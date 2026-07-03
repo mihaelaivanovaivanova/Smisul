@@ -4,11 +4,14 @@ import { useCart } from '../../hooks/useCart';
 import { getErrorMessage } from '../../api/errors';
 import { cart as cartCopy } from '../../content/copy';
 import QuantityStepper from '../cart/QuantityStepper';
+import Icon from '../icons/Icon';
 import type { Inventory } from '../../types/product';
 
 interface AddToCartButtonProps {
   productVariantId: number;
   inventory: Inventory | null | undefined;
+  /** Icon-only button + smaller stepper, for tight spaces like listing cards. */
+  compact?: boolean;
 }
 
 /**
@@ -32,7 +35,7 @@ const BACKORDER_SOFT_MAX = 10;
  * changes, so quantity/pending/error/success state never leaks from one
  * variant's attempt onto another.
  */
-export default function AddToCartButton({ productVariantId, inventory }: AddToCartButtonProps) {
+export default function AddToCartButton({ productVariantId, inventory, compact = false }: AddToCartButtonProps) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isPending, setIsPending] = useState(false);
@@ -65,11 +68,17 @@ export default function AddToCartButton({ productVariantId, inventory }: AddToCa
 
   return (
     <div>
-      <div className="d-flex align-items-center gap-3 mb-2">
+      <div className={`d-flex align-items-center ${compact ? 'gap-2 mb-1' : 'gap-3 mb-2'}`}>
         <QuantityStepper quantity={quantity} max={maxQuantity} disabled={isPending} onChange={setQuantity} />
-        <button type="button" className="btn btn-primary" onClick={() => void handleAdd()} disabled={isPending}>
+        <button
+          type="button"
+          className={`btn btn-primary ${compact ? 'btn-sm' : ''}`}
+          onClick={() => void handleAdd()}
+          disabled={isPending}
+          aria-label={cartCopy.addToCart}
+        >
           {isPending && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-          {cartCopy.addToCart}
+          {compact ? <Icon name="cart" /> : cartCopy.addToCart}
         </button>
       </div>
 

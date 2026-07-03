@@ -13,6 +13,7 @@ import ErrorState from '../components/ErrorState';
 import PriceBlock from '../components/product/PriceBlock';
 import StockStatus from '../components/product/StockStatus';
 import VariantPicker from '../components/product/VariantPicker';
+import AddToCartButton from '../components/product/AddToCartButton';
 import Seo from '../components/Seo';
 import Icon from '../components/icons/Icon';
 import { bio, benefits, delivery, faq, featured, hero, product as productCopy, seo, trust, usage } from '../content/copy';
@@ -91,6 +92,16 @@ export default function HomePage() {
                   selectedId={activeVariant?.id ?? 0}
                   onSelect={setSelectedVariant}
                 />
+
+                {activeVariant && (
+                  <div className="mt-3">
+                    <AddToCartButton
+                      key={activeVariant.id}
+                      productVariantId={activeVariant.id}
+                      inventory={activeVariant.inventory}
+                    />
+                  </div>
+                )}
 
                 <Link to={`/products/${featuredProduct.slug}`} className="btn btn-outline-primary mt-2">
                   {featured.cta}

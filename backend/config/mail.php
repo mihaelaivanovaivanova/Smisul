@@ -115,4 +115,17 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Administrator Notification Address
+    |--------------------------------------------------------------------------
+    |
+    | Where order-placed notifications are sent. Reuses the same account
+    | seeded as the sole administrator (see AdminSeeder) — there is no
+    | separate "store notifications" mailbox concept yet.
+    |
+    */
+
+    'admin_address' => env('ADMIN_EMAIL'),
+
 ];

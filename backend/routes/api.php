@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\V1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -97,6 +99,20 @@ Route::prefix('v1')->group(function () {
         Route::delete('/items/{item}', [CartController::class, 'destroyItem'])->name('cart.items.destroy');
         Route::delete('/', [CartController::class, 'clear'])->name('cart.clear');
     });
+
+    // Checkout: same guest/authenticated resolution as cart (see above) —
+    // placing an order doesn't require an account.
+    Route::prefix('checkout')->group(function () {
+        Route::get('/shipping-methods', [CheckoutController::class, 'shippingMethods'])->name('checkout.shipping-methods');
+        Route::get('/legal-documents', [CheckoutController::class, 'legalDocuments'])->name('checkout.legal-documents');
+        Route::post('/orders', [CheckoutController::class, 'placeOrder'])
+            ->middleware('throttle:checkout')
+            ->name('checkout.orders.store');
+    });
+
+    // Order lookup: registered customers via ownership (OrderPolicy), guests
+    // via the guest_access_token minted at placement — see OrderController.
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 
     // Admin: full CRUD over the product domain, gated to administrators.
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->name('admin.')->group(function () {

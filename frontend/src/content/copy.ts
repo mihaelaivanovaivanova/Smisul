@@ -234,6 +234,7 @@ export const cart = {
   shippingCalculatedLater: 'изчислява се на следваща стъпка',
   viewCart: 'Виж количката',
   continueShopping: 'Продължи пазаруването',
+  checkoutCta: 'Продължи към плащане',
   addToCart: 'Добави в количката',
   addedToCart: 'Добавено в количката.',
   addToCartError: 'Неуспешно добавяне в количката.',
@@ -244,6 +245,92 @@ export const cart = {
   noImage: 'Няма снимка',
   seoTitle: `Количка — ${siteName}`,
   seoDescription: 'Прегледай продуктите в количката си в Smisul.',
+};
+
+export const checkout = {
+  title: 'Плащане',
+  seoTitle: `Плащане — ${siteName}`,
+  seoDescription: 'Завърши поръчката си в Smisul.',
+  emptyCartTitle: 'Количката е празна',
+  emptyCartMessage: 'Добави продукти в количката, преди да продължиш към плащане.',
+  emptyCartCta: 'Разгледай продуктите',
+
+  steps: {
+    customer: 'Данни за поръчката',
+    delivery: 'Доставка',
+    review: 'Преглед и потвърждение',
+  },
+
+  back: 'Назад',
+  next: 'Напред',
+  placeOrder: 'Направи поръчка',
+  placingOrder: 'Изпращане на поръчката…',
+
+  customer: {
+    firstName: 'Име',
+    lastName: 'Фамилия',
+    email: 'Имейл адрес',
+    phone: 'Телефон',
+    company: 'Фирма (незадължително)',
+    vatNumber: 'ДДС номер (незадължително)',
+    deliveryNotes: 'Бележки към доставката (незадължително)',
+  },
+
+  address: {
+    title: 'Адрес за доставка',
+    country: 'Държава',
+    city: 'Град',
+    postalCode: 'Пощенски код',
+    addressLine: 'Адрес',
+    apartment: 'Апартамент / Етаж (незадължително)',
+  },
+
+  delivery: {
+    title: 'Начин на доставка',
+    loading: 'Зареждане на начините за доставка…',
+    loadError: 'Неуспешно зареждане на начините за доставка.',
+  },
+
+  legal: {
+    title: 'Правна информация',
+    loading: 'Зареждане…',
+    loadError: 'Неуспешно зареждане на правната информация.',
+    acceptPrefix: 'Приемам',
+  },
+
+  review: {
+    title: 'Преглед на поръчката',
+    itemsHeading: 'Артикули',
+    customerHeading: 'Данни за поръчката',
+    addressHeading: 'Адрес за доставка',
+    deliveryHeading: 'Доставка',
+  },
+
+  errors: {
+    firstNameRequired: 'Моля, въведи име.',
+    lastNameRequired: 'Моля, въведи фамилия.',
+    emailRequired: 'Моля, въведи валиден имейл адрес.',
+    phoneRequired: 'Моля, въведи телефон.',
+    countryRequired: 'Моля, въведи държава.',
+    cityRequired: 'Моля, въведи град.',
+    postalCodeRequired: 'Моля, въведи пощенски код.',
+    addressLineRequired: 'Моля, въведи адрес.',
+    shippingMethodRequired: 'Моля, избери начин на доставка.',
+    legalRequired: 'Трябва да приемеш всички изброени документи, за да продължиш.',
+    placeOrderFailed: 'Неуспешно създаване на поръчката. Моля, провери данните и опитай отново.',
+  },
+
+  confirmation: {
+    seoTitle: `Потвърждение на поръчка — ${siteName}`,
+    loading: 'Зареждане на поръчката…',
+    loadError: 'Неуспешно зареждане на поръчката.',
+    thankYou: 'Благодарим ти за поръчката!',
+    orderNumberLabel: 'Номер на поръчката',
+    statusLabel: 'Статус',
+    statusPending: 'Изчаква обработка',
+    paymentNotice: 'Плащането ще бъде добавено в следваща стъпка — поръчката е регистрирана и очаква потвърждение.',
+    continueShopping: 'Продължи пазаруването',
+  },
 };
 
 /**

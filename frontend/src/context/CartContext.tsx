@@ -51,6 +51,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated, isAuthLoading]);
 
+  const refresh = useCallback(async () => {
+    const current = await cartApi.fetchCart();
+    setCart(current);
+  }, []);
+
   const addItem = useCallback(async (productVariantId: number, quantity: number) => {
     const updated = await cartApi.addCartItem(productVariantId, quantity);
     setCart(updated);
@@ -71,7 +76,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(updated);
   }, []);
 
-  const value: CartContextValue = { cart, isLoading, error, addItem, updateItem, removeItem, clear };
+  const value: CartContextValue = { cart, isLoading, error, addItem, updateItem, removeItem, clear, refresh };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

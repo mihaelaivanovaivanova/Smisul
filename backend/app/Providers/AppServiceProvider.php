@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\Order\OrderPlaced;
+use App\Listeners\SendOrderPlacedNotifications;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -35,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         // framework's own "send verification email on registration" listener
         // has to be wired up explicitly.
         Event::listen(Registered::class, SendEmailVerificationNotification::class);
+        Event::listen(OrderPlaced::class, SendOrderPlacedNotifications::class);
     }
 
     /**
@@ -60,6 +63,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('email-verification', function ($request) {
             return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('checkout', function ($request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
     }
 

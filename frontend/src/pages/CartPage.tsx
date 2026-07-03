@@ -74,6 +74,9 @@ export default function CartPage() {
 
           <div className="col-12 col-lg-4">
             <CartTotalsSummary totals={cart.totals} />
+            <Link to="/checkout" className="btn btn-primary w-100 mt-3">
+              {cartCopy.checkoutCta}
+            </Link>
           </div>
         </div>
       )}

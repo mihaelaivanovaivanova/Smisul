@@ -110,6 +110,10 @@ Route::prefix('v1')->group(function () {
             ->name('checkout.orders.store');
     });
 
+    // Order history: registered customers only — a guest has no account to
+    // list orders against.
+    Route::middleware('auth:sanctum')->get('/orders', [OrderController::class, 'index'])->name('orders.index');
+
     // Order lookup: registered customers via ownership (OrderPolicy), guests
     // via the guest_access_token minted at placement — see OrderController.
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');

@@ -33,7 +33,11 @@ class AuthenticatedCheckoutTest extends TestCase
     private function acceptAllCurrentLegalDocuments(): array
     {
         return collect(LegalDocumentType::cases())
-            ->map(fn (LegalDocumentType $type) => LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id)
+            ->map(function (LegalDocumentType $type) {
+                $existing = LegalDocument::where('type', $type)->where('version', '1.0')->first();
+
+                return $existing?->id ?? LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id;
+            })
             ->values()
             ->all();
     }
@@ -100,5 +104,37 @@ class AuthenticatedCheckoutTest extends TestCase
 
         $this->actingAs($intruder)->getJson("/api/v1/orders/{$placed->json('data.id')}")
             ->assertForbidden();
+    }
+
+    #[Test]
+    public function a_registered_customer_can_list_their_own_order_history(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $ownVariant = $this->purchasableVariant();
+        $this->actingAs($user)->postJson('/api/v1/cart/items', ['product_variant_id' => $ownVariant->id, 'quantity' => 1]);
+        $ownOrder = $this->actingAs($user)->postJson('/api/v1/checkout/orders', $this->validPayload());
+
+        $otherVariant = $this->purchasableVariant();
+        $this->actingAs($otherUser)->postJson('/api/v1/cart/items', ['product_variant_id' => $otherVariant->id, 'quantity' => 1]);
+        $this->actingAs($otherUser)->postJson('/api/v1/checkout/orders', $this->validPayload(['customer' => [
+            'first_name' => 'Other',
+            'last_name' => 'Customer',
+            'email' => 'other@example.com',
+            'phone' => '+359888999888',
+        ]]));
+
+        $response = $this->actingAs($user)->getJson('/api/v1/orders');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $ownOrder->json('data.id'));
+    }
+
+    #[Test]
+    public function a_guest_cannot_list_order_history(): void
+    {
+        $this->getJson('/api/v1/orders')->assertUnauthorized();
     }
 }

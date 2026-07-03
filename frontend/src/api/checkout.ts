@@ -1,6 +1,7 @@
 import { apiClient, ensureCsrfCookie } from './client';
 import { getGuestCartToken } from '../services/guestCartToken';
 import type { LegalDocument, Order, PlaceOrderPayload, ShippingMethod } from '../types/checkout';
+import type { PaginatedResponse } from '../types/product';
 
 const GUEST_TOKEN_HEADER = 'X-Guest-Cart-Token';
 
@@ -48,4 +49,10 @@ export async function fetchOrder(orderId: number, token?: string | null): Promis
     params: token ? { token } : undefined,
   });
   return data.data;
+}
+
+/** The signed-in customer's own order history — requires an authenticated session. */
+export async function fetchOrders(page = 1): Promise<PaginatedResponse<Order>> {
+  const { data } = await apiClient.get<PaginatedResponse<Order>>('/orders', { params: { page } });
+  return data;
 }

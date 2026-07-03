@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
 import ProfileDetailsForm from '../components/ProfileDetailsForm';
 import ChangePasswordForm from '../components/ChangePasswordForm';
 import { useAuth } from '../hooks/useAuth';
+import { orders as ordersCopy } from '../content/copy';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -18,6 +20,11 @@ export default function ProfilePage() {
         </div>
         <div className="col-12 col-lg-8">
           <ChangePasswordForm />
+        </div>
+        <div className="col-12 col-lg-8">
+          <Link to="/profile/orders" className="btn btn-outline-primary">
+            {ordersCopy.title}
+          </Link>
         </div>
       </div>
     </div>

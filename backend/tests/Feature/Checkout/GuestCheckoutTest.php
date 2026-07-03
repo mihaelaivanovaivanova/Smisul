@@ -32,7 +32,11 @@ class GuestCheckoutTest extends TestCase
     private function acceptAllCurrentLegalDocuments(): array
     {
         return collect(LegalDocumentType::cases())
-            ->map(fn (LegalDocumentType $type) => LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id)
+            ->map(function (LegalDocumentType $type) {
+                $existing = LegalDocument::where('type', $type)->where('version', '1.0')->first();
+
+                return $existing?->id ?? LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id;
+            })
             ->values()
             ->all();
     }
@@ -108,7 +112,7 @@ class GuestCheckoutTest extends TestCase
     }
 
     #[Test]
-    public function placing_an_order_empties_the_cart_and_commits_stock(): void
+    public function placing_an_order_empties_the_cart_but_keeps_stock_held_pending_payment(): void
     {
         $variant = $this->purchasableVariant(10);
         $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 3]);
@@ -121,9 +125,12 @@ class GuestCheckoutTest extends TestCase
         $cart = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart');
         $cart->assertJsonPath('data.items', []);
 
+        // No payment gateway exists yet — placing the order must not commit
+        // stock. The 3 units stay reserved (held) until OrderService's
+        // confirmPayment()/cancel() seam resolves them (see its docblock).
         $variant->inventory->refresh();
-        $this->assertSame(7, $variant->inventory->quantity_on_hand);
-        $this->assertSame(0, $variant->inventory->quantity_reserved);
+        $this->assertSame(10, $variant->inventory->quantity_on_hand);
+        $this->assertSame(3, $variant->inventory->quantity_reserved);
     }
 
     #[Test]

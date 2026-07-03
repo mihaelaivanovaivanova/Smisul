@@ -33,7 +33,11 @@ class CheckoutValidationTest extends TestCase
     private function acceptAllCurrentLegalDocuments(): array
     {
         return collect(LegalDocumentType::cases())
-            ->map(fn (LegalDocumentType $type) => LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id)
+            ->map(function (LegalDocumentType $type) {
+                $existing = LegalDocument::where('type', $type)->where('version', '1.0')->first();
+
+                return $existing?->id ?? LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id;
+            })
             ->values()
             ->all();
     }

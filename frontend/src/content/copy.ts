@@ -333,6 +333,28 @@ export const checkout = {
   },
 };
 
+export const orders = {
+  title: 'Моите поръчки',
+  seoTitle: `Моите поръчки — ${siteName}`,
+  seoDescription: 'Прегледай историята на поръчките си в Smisul.',
+  loading: 'Зареждане на поръчките…',
+  loadError: 'Неуспешно зареждане на поръчките.',
+  emptyTitle: 'Все още нямаш поръчки',
+  emptyMessage: 'Разгледай продуктите и направи първата си поръчка.',
+  emptyCta: 'Разгледай продуктите',
+  orderNumberHeading: 'Номер',
+  dateHeading: 'Дата',
+  statusHeading: 'Статус',
+  totalHeading: 'Сума',
+  viewOrder: 'Виж поръчката',
+  status: {
+    pending: 'Изчаква обработка',
+    processing: 'В обработка',
+    completed: 'Завършена',
+    cancelled: 'Отказана',
+  } as Record<string, string>,
+};
+
 /**
  * Bulgarian placeholder copy for backend-owned seed content (product
  * name/description/short_description). NOT applied automatically — these

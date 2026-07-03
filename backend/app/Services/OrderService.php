@@ -8,8 +8,8 @@ use App\Events\Order\OrderPlaced;
 use App\Exceptions\Checkout\CartItemUnavailableException;
 use App\Exceptions\Checkout\EmptyCartException;
 use App\Exceptions\Checkout\InvalidShippingMethodException;
+use App\Exceptions\Order\InvalidOrderStatusTransitionException;
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -18,16 +18,22 @@ use Illuminate\Support\Str;
 /**
  * Orchestrates order placement: re-validates the cart exactly as it stands
  * right now (never trusting anything the client claims about price or
- * availability — see the per-item checks below), snapshots everything an
- * Order/OrderItem needs to stand alone forever, and converts each item's
- * existing cart reservation (see CartService/InventoryService) into a
- * fulfilled stock decrement. There is no separate "payment pending"
- * reservation window yet — Sprint 5 has no payment step, so placing an
- * order commits stock immediately. When payment is integrated, the
- * intended extension point is here: decreaseStock()+release() below would
- * move to a "payment succeeded" handler, and placeOrder() would leave the
- * cart's existing reservation untouched (still held, not yet fulfilled)
- * until then.
+ * availability — see the per-item checks below) and snapshots everything
+ * an Order/OrderItem needs to stand alone forever.
+ *
+ * Stock is deliberately NOT decremented here. Each item's inventory
+ * reservation was already made when it was added to the cart (see
+ * CartService::addItem/InventoryService::reserve) and stays exactly as-is
+ * through placement — placing an order just stops that reservation from
+ * being tied to a cart_item (which is deleted below) without releasing it,
+ * holding the stock until the outcome is known. There are exactly two ways
+ * out of that held state, both below: confirmPayment() turns the
+ * reservation into a real decrement once payment succeeds, and cancel()
+ * releases it if payment fails/expires or the order is otherwise cancelled
+ * before being paid. Nothing in this sprint calls either yet (no payment
+ * gateway is integrated) — they exist as the seam the payment sprint wires
+ * up, so a Pending order's held stock has a well-defined resolution rather
+ * than being a dangling TODO.
  */
 class OrderService
 {
@@ -137,8 +143,6 @@ class OrderService
                     'unit_price' => $line['unit_price'],
                     'line_total' => $line['line_total'],
                 ]);
-
-                $this->fulfillReservation($line['item']);
             }
 
             foreach ($acceptedDocuments as $document) {
@@ -148,10 +152,9 @@ class OrderService
                 ]);
             }
 
-            // Not CartService::clear() — that would also try to release
-            // these items' inventory reservations, which fulfillReservation()
-            // above has already released (as an actual stock decrement, not
-            // a no-op release) for every line here.
+            // Not CartService::clear() — that would release each item's
+            // inventory reservation, which must instead stay held (see the
+            // class docblock) until confirmPayment() or cancel() resolves it.
             $cart->items()->delete();
 
             OrderPlaced::dispatch($order);
@@ -161,23 +164,62 @@ class OrderService
     }
 
     /**
-     * Converts a cart item's existing reservation into a real stock
-     * decrement: the quantity was already subtracted from availableQuantity
-     * (on_hand - reserved) the moment it was added to the cart (see
-     * CartService::addItem) — placing the order now makes that permanent by
-     * moving it out of on_hand entirely and releasing the reservation
-     * bookkeeping for it, leaving availableQuantity() unchanged by this step.
+     * The payment-succeeded seam (see class docblock): converts every item's
+     * held reservation into a real, permanent stock decrement and moves the
+     * order to Processing. No caller exists yet in this sprint — a future
+     * payment webhook/gateway callback is expected to invoke this.
      */
-    private function fulfillReservation(CartItem $item): void
+    public function confirmPayment(Order $order): Order
     {
-        $variant = $item->productVariant;
-        $inventory = $variant?->inventory()->lockForUpdate()->first();
+        return DB::transaction(function () use ($order) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->first() ?? $order;
 
-        if ($inventory === null) {
-            return;
-        }
+            if ($order->status !== OrderStatus::Pending) {
+                throw InvalidOrderStatusTransitionException::notPending($order->order_number, $order->status);
+            }
 
-        $this->inventory->decreaseStock($inventory, $item->quantity);
-        $this->inventory->release($inventory, $item->quantity);
+            foreach ($order->items as $item) {
+                $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
+
+                if ($inventory === null) {
+                    continue;
+                }
+
+                $this->inventory->decreaseStock($inventory, $item->quantity);
+                $this->inventory->release($inventory, $item->quantity);
+            }
+
+            $order->update(['status' => OrderStatus::Processing]);
+
+            return $order->load(self::EAGER_LOAD);
+        });
+    }
+
+    /**
+     * The payment-failed/abandoned seam (see class docblock): releases
+     * every item's held reservation without decrementing stock, and moves
+     * the order to Cancelled. No caller exists yet in this sprint.
+     */
+    public function cancel(Order $order): Order
+    {
+        return DB::transaction(function () use ($order) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->first() ?? $order;
+
+            if ($order->status !== OrderStatus::Pending) {
+                throw InvalidOrderStatusTransitionException::notPending($order->order_number, $order->status);
+            }
+
+            foreach ($order->items as $item) {
+                $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
+
+                if ($inventory !== null) {
+                    $this->inventory->release($inventory, $item->quantity);
+                }
+            }
+
+            $order->update(['status' => OrderStatus::Cancelled]);
+
+            return $order->load(self::EAGER_LOAD);
+        });
     }
 }

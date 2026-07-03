@@ -85,6 +85,10 @@ above, plus one demo customer (`customer@example.com`, password `password`,
 from `UserFactory`'s default). Administrator accounts can **only** be
 created this way — public registration always creates a `customer`.
 
+This also seeds the full development product catalog — see
+[Development seed data](#development-seed-data) below for what it
+contains and for the one-time `storage:link` step media needs.
+
 Start the backend dev server:
 
 ```bash
@@ -181,6 +185,55 @@ Notes on the design:
   tested but not yet wired into any route, controller, or page — they're
   the foundation the next sprints (storefront pages, cart/orders stock
   reservation) build on, not dead code.
+
+## Development seed data
+
+One command rebuilds the entire development dataset from scratch:
+
+```bash
+cd backend
+php artisan migrate:fresh --seed
+```
+
+Then, once (per machine/deploy), so seeded media URLs actually resolve:
+
+```bash
+php artisan storage:link
+```
+
+This creates the admin/customer accounts (see Authentication above) plus a
+7-product catalog across 3 categories, deliberately built to exercise every
+storefront/cart scenario rather than just "happy path" data:
+
+| Product | Category | Variants | Notable scenario |
+|---|---|---|---|
+| Smisul Original | Original | 1/3/6/12 бр. | Active promotion, one variant on sale, 4 images, PDF, video |
+| Био билкова смес | Билки и чайове | 50г/100г | On sale, low stock, expired *and* active (inherited) promotions at once |
+| Био микс от семена | Ядки, семена и масла | 200г/500г | No promotion, no images, one out-of-stock variant |
+| Студено пресовано масло | Ядки, семена и масла | 250мл/500мл | Backorder-enabled variant (purchasable at 0 on-hand) |
+| Натурални енергийни хапки | Ядки, семена и масла | 150г (single) | Single-variant product — variant picker hides itself |
+| Уелнес чай | Билки и чайове | 20/40 пакетчета | Promotion inherited from its category only |
+| Премиум микс от ядки | Ядки, семена и масла | 150г/300г/500г | Three variants, one low-stock |
+
+Every product has full Bulgarian copy (short/long description with
+benefits, usage, storage, ingredients, and FAQ sections), SEO metadata
+(title/description/keywords/OG), and image alt text — see
+`database/seeders/ProductSeeder.php`.
+
+**No binary media is committed to the repo.** Product photos (SVG), the
+demo PDF, and the demo video are all generated at seed time by
+`App\Support\PlaceholderMedia` and written to `storage/app/public/...`,
+so the dataset is fully reproducible from `migrate:fresh --seed` with zero
+binary drift. See `backend/resources/seed-media/README.md` for where real
+assets belong once they exist, and that class's docblocks for why the demo
+PDF/video are deliberately simple (no PDF/video libraries are installed —
+the PDF is still a genuinely valid, openable file; the video is a labeled
+text stub that exercises the UI path without being a real playable clip).
+
+Re-running the seeders (with or without `migrate:fresh` first) is safe —
+every write is `updateOrCreate`/`sync`, never a blind insert, so editing
+`ProductSeeder.php`'s content and re-seeding updates existing rows instead
+of duplicating them.
 
 ## Running tests and checks
 

@@ -102,7 +102,9 @@ export default function OrderConfirmationPage() {
               </div>
             </div>
 
-            <div className="alert alert-info">{checkoutCopy.confirmation.paymentNotice}</div>
+            {(order.status === 'pending' || order.status === 'awaiting_payment') && (
+              <div className="alert alert-info">{checkoutCopy.confirmation.paymentNotice}</div>
+            )}
 
             {order.timeline && order.timeline.length > 0 && (
               <div className="card shadow-sm mb-4">

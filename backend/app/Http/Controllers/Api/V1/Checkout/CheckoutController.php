@@ -8,10 +8,12 @@ use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Resources\Checkout\LegalDocumentResource;
 use App\Http\Resources\Checkout\ShippingMethodResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\PaymentResource;
 use App\Models\Cart;
 use App\Services\CartService;
 use App\Services\LegalDocumentService;
 use App\Services\OrderService;
+use App\Services\PaymentService;
 use App\Services\ShippingMethodService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly CartService $carts,
         private readonly OrderService $orders,
+        private readonly PaymentService $payments,
         private readonly ShippingMethodService $shippingMethods,
         private readonly LegalDocumentService $legalDocuments,
     ) {}
@@ -38,15 +41,30 @@ class CheckoutController extends Controller
         return LegalDocumentResource::collection($this->legalDocuments->current())->response();
     }
 
+    /**
+     * Places the order, then immediately starts its payment session —
+     * the frontend redirects the customer's browser straight to the
+     * returned payment.redirect_url (see the sprint's checkout flow).
+     */
     public function placeOrder(PlaceOrderRequest $request): JsonResponse
     {
         $cart = $this->resolveCart($request);
         $user = $request->user();
 
         $order = $this->orders->placeOrder($cart, PlaceOrderData::fromArray($request->validated()), $user);
+        $payment = $this->payments->initiate($order);
+
+        // initiate() moves the order Pending -> AwaitingPayment via a
+        // separately-fetched model instance (see OrderStatusService) — this
+        // $order reference needs reloading to reflect that before it's
+        // serialized below.
+        $order = $order->fresh(OrderService::EAGER_LOAD);
 
         return (new OrderResource($order))
-            ->additional(['meta' => ['guest_access_token' => $order->guest_access_token]])
+            ->additional([
+                'meta' => ['guest_access_token' => $order->guest_access_token],
+                'payment' => (new PaymentResource($payment))->resolve(),
+            ])
             ->response()
             ->setStatusCode(201);
     }

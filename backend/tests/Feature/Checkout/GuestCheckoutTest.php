@@ -96,7 +96,10 @@ class GuestCheckoutTest extends TestCase
             ->postJson('/api/v1/checkout/orders', $this->validPayload());
 
         $response->assertCreated();
-        $response->assertJsonPath('data.status', 'pending');
+        // Not 'pending' — placeOrder() now also auto-initiates payment
+        // (see Sprint 7), which immediately advances the order to
+        // awaiting_payment as part of the same request.
+        $response->assertJsonPath('data.status', 'awaiting_payment');
         $response->assertJsonPath('data.customer.first_name', 'Ivan');
         $response->assertJsonPath('data.shipping.carrier', 'econt');
         $response->assertJsonPath('data.shipping.price', 5.99);

@@ -2,6 +2,7 @@ import { apiClient, ensureCsrfCookie } from './client';
 import { getGuestCartToken } from '../services/guestCartToken';
 import type { LegalDocument, Order, PlaceOrderPayload, ShippingMethod } from '../types/checkout';
 import type { PaginatedResponse } from '../types/product';
+import type { Payment } from '../types/payment';
 
 const GUEST_TOKEN_HEADER = 'X-Guest-Cart-Token';
 
@@ -23,11 +24,13 @@ export async function fetchLegalDocuments(): Promise<LegalDocument[]> {
 interface PlaceOrderResponse {
   data: Order;
   meta: { guest_access_token: string | null };
+  payment: Payment;
 }
 
 export interface PlaceOrderResult {
   order: Order;
   guestAccessToken: string | null;
+  payment: Payment;
 }
 
 export async function placeOrder(payload: PlaceOrderPayload): Promise<PlaceOrderResult> {
@@ -35,7 +38,7 @@ export async function placeOrder(payload: PlaceOrderPayload): Promise<PlaceOrder
   const { data } = await apiClient.post<PlaceOrderResponse>('/checkout/orders', payload, {
     headers: guestTokenHeaders(),
   });
-  return { order: data.data, guestAccessToken: data.meta.guest_access_token };
+  return { order: data.data, guestAccessToken: data.meta.guest_access_token, payment: data.payment };
 }
 
 /**

@@ -62,22 +62,25 @@ class OrderTimelineTest extends TestCase
         $orderId = $placed->json('data.id');
         $token = $placed->json('meta.guest_access_token');
 
+        // Two entries already, not one: placeOrder() auto-initiates payment
+        // (see Sprint 7), which immediately transitions Pending ->
+        // AwaitingPayment as part of the same request.
         $afterPlacement = $this->getJson("/api/v1/orders/{$orderId}?token={$token}");
-        $afterPlacement->assertJsonCount(1, 'data.timeline');
+        $afterPlacement->assertJsonCount(2, 'data.timeline');
         $afterPlacement->assertJsonPath('data.timeline.0.status', 'pending');
         $afterPlacement->assertJsonPath('data.timeline.0.previous_status', null);
+        $afterPlacement->assertJsonPath('data.timeline.1.status', 'awaiting_payment');
+        $afterPlacement->assertJsonPath('data.timeline.1.previous_status', 'pending');
 
         $admin = User::factory()->administrator()->create();
         $order = Order::findOrFail($orderId);
-        app(OrderStatusService::class)->transitionTo($order, OrderStatus::AwaitingPayment, $admin, 'Sent to gateway');
-        app(OrderStatusService::class)->transitionTo($order->fresh(), OrderStatus::Paid, $admin);
+        app(OrderStatusService::class)->transitionTo($order, OrderStatus::Paid, $admin, 'Confirmed manually');
 
         $afterTransitions = $this->getJson("/api/v1/orders/{$orderId}?token={$token}");
         $afterTransitions->assertJsonCount(3, 'data.timeline');
-        $afterTransitions->assertJsonPath('data.timeline.1.status', 'awaiting_payment');
-        $afterTransitions->assertJsonPath('data.timeline.1.previous_status', 'pending');
-        $afterTransitions->assertJsonPath('data.timeline.1.note', 'Sent to gateway');
-        $afterTransitions->assertJsonPath('data.timeline.1.changed_by', $admin->fullName());
         $afterTransitions->assertJsonPath('data.timeline.2.status', 'paid');
+        $afterTransitions->assertJsonPath('data.timeline.2.previous_status', 'awaiting_payment');
+        $afterTransitions->assertJsonPath('data.timeline.2.note', 'Confirmed manually');
+        $afterTransitions->assertJsonPath('data.timeline.2.changed_by', $admin->fullName());
     }
 }

@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
+use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
+use App\Http\Controllers\Api\V1\Payment\PaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Resources\UserResource;
@@ -119,6 +121,25 @@ Route::prefix('v1')->group(function () {
     // via the guest_access_token minted at placement — see OrderController.
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
+
+    // Payments: same ownership rules as the order they belong to (see
+    // PaymentController::authorizeAccess) — no auth:sanctum middleware,
+    // since guests place and pay for orders too.
+    Route::prefix('payments')->group(function () {
+        Route::post('/{order}/initiate', [PaymentController::class, 'initiate'])
+            ->middleware('throttle:checkout')
+            ->name('payments.initiate');
+        Route::get('/{order}/status', [PaymentController::class, 'status'])->name('payments.status');
+        Route::post('/{order}/return', [PaymentController::class, 'handleReturn'])->name('payments.return');
+        Route::post('/{order}/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
+    });
+
+    // Webhook: public, unauthenticated — iCard's servers call this
+    // directly. Trust comes from signature verification, not a session
+    // (see ICardWebhookController / ICardPaymentGateway::verifySignature).
+    Route::post('/payments/webhook/icard', [ICardWebhookController::class, 'handle'])
+        ->middleware('throttle:webhooks')
+        ->name('payments.webhook.icard');
 
     // Admin: full CRUD over the product domain, gated to administrators.
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->name('admin.')->group(function () {

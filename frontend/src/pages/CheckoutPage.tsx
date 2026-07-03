@@ -168,7 +168,7 @@ export default function CheckoutPage() {
     setErrors({});
 
     try {
-      const { order, guestAccessToken } = await checkoutApi.placeOrder({
+      const { order, guestAccessToken, payment } = await checkoutApi.placeOrder({
         customer: {
           first_name: customer.first_name,
           last_name: customer.last_name,
@@ -200,11 +200,21 @@ export default function CheckoutPage() {
       });
 
       await refreshCart();
+
+      if (payment.redirect_url) {
+        // Leaving the SPA entirely — the customer enters their card
+        // details on iCard's own hosted page, never ours (see the
+        // sprint's "no card data" requirement). isSubmitting stays true
+        // so the button shows a spinner during the brief moment before
+        // the browser actually navigates away.
+        window.location.href = payment.redirect_url;
+        return;
+      }
+
       navigate(`/order-confirmation/${order.id}`, { state: { order, guestAccessToken } });
     } catch (error) {
       setErrors(getValidationErrors(error));
       setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
-    } finally {
       setIsSubmitting(false);
     }
   }

@@ -71,6 +71,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('checkout', function ($request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Generous and IP-scoped, not user-scoped — the caller here is
+        // iCard's own servers, not a customer.
+        RateLimiter::for('webhooks', function ($request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
     }
 
     /**

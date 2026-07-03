@@ -258,13 +258,24 @@ export const checkout = {
   steps: {
     customer: 'Данни за поръчката',
     delivery: 'Доставка',
-    review: 'Преглед и потвърждение',
+    review: 'Преглед',
+    payment: 'Плащане',
   },
 
   back: 'Назад',
   next: 'Напред',
   placeOrder: 'Направи поръчка',
   placingOrder: 'Изпращане на поръчката…',
+
+  paymentStep: {
+    title: 'Плащане с карта',
+    description:
+      'Плащанията се обработват сигурно от iCard. Ще бъдеш пренасочен/а към страницата на iCard, за да въведеш данните на картата си — ние никога не съхраняваме тези данни.',
+    methodLabel: 'Начин на плащане',
+    methodValue: 'Карта (Visa / Mastercard) чрез iCard',
+    payButton: 'Плати с карта',
+    payingButton: 'Пренасочване към iCard…',
+  },
 
   customer: {
     firstName: 'Име',

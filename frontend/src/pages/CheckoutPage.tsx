@@ -16,11 +16,18 @@ import StepIndicator from '../components/checkout/StepIndicator';
 import CustomerInfoStep from '../components/checkout/CustomerInfoStep';
 import DeliveryStep from '../components/checkout/DeliveryStep';
 import OrderReviewStep from '../components/checkout/OrderReviewStep';
+import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
 import type { CustomerInfo, ShippingAddress, ShippingCarrier } from '../types/checkout';
 
-const STEP_LABELS = [checkoutCopy.steps.customer, checkoutCopy.steps.delivery, checkoutCopy.steps.review];
+const STEP_LABELS = [
+  checkoutCopy.steps.customer,
+  checkoutCopy.steps.delivery,
+  checkoutCopy.steps.review,
+  checkoutCopy.steps.payment,
+];
+const LAST_STEP = STEP_LABELS.length - 1;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -137,8 +144,24 @@ export default function CheckoutPage() {
     return Object.keys(stepErrors).length === 0;
   }
 
+  function validateReviewStep(): boolean {
+    if (!legalDocuments) {
+      return false;
+    }
+
+    const allDocumentsAccepted = legalDocuments.every((document) => acceptedLegalDocumentIds.includes(document.id));
+
+    if (!allDocumentsAccepted) {
+      setErrors({ legal_document_ids: checkoutCopy.errors.legalRequired });
+      return false;
+    }
+
+    return true;
+  }
+
   function handleNext(): void {
-    const isValid = step === 0 ? validateCustomerStep() : validateDeliveryStep();
+    const validators = [validateCustomerStep, validateDeliveryStep, validateReviewStep];
+    const isValid = validators[step]();
 
     if (isValid) {
       setErrors({});
@@ -287,6 +310,8 @@ export default function CheckoutPage() {
                   />
                 )}
 
+                {step === 3 && <PaymentStep cart={cart} shippingMethod={selectedShippingMethod} />}
+
                 <div className="d-flex justify-content-between mt-4">
                   {step > 0 ? (
                     <button type="button" className="btn btn-outline-secondary" onClick={handleBack} disabled={isSubmitting}>
@@ -296,13 +321,13 @@ export default function CheckoutPage() {
                     <span />
                   )}
 
-                  {step < 2 && (
+                  {step < LAST_STEP && (
                     <button type="button" className="btn btn-primary" onClick={handleNext}>
                       {checkoutCopy.next}
                     </button>
                   )}
 
-                  {step === 2 && (
+                  {step === LAST_STEP && (
                     <button
                       type="button"
                       className="btn btn-primary"
@@ -310,7 +335,7 @@ export default function CheckoutPage() {
                       disabled={isSubmitting}
                     >
                       {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-                      {isSubmitting ? checkoutCopy.placingOrder : checkoutCopy.placeOrder}
+                      {isSubmitting ? checkoutCopy.paymentStep.payingButton : checkoutCopy.paymentStep.payButton}
                     </button>
                   )}
                 </div>

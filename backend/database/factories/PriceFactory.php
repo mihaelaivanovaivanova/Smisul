@@ -18,7 +18,7 @@ class PriceFactory extends Factory
     {
         return [
             'product_variant_id' => ProductVariant::factory(),
-            'currency' => Currency::BGN->value,
+            'currency' => Currency::EUR->value,
             'amount' => fake()->randomFloat(2, 5, 200),
             'compare_at_amount' => null,
         ];

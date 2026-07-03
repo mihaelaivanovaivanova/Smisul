@@ -18,7 +18,7 @@ class PriceHistoryFactory extends Factory
     {
         return [
             'product_variant_id' => ProductVariant::factory(),
-            'currency' => Currency::BGN->value,
+            'currency' => Currency::EUR->value,
             'old_amount' => fake()->randomFloat(2, 5, 200),
             'new_amount' => fake()->randomFloat(2, 5, 200),
             'changed_by' => null,

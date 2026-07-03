@@ -21,7 +21,7 @@ class PriceAdminTest extends TestCase
 
         $response = $this->actingAs($admin)->putJson(
             "/api/v1/admin/products/{$product->id}/variants/{$variant->id}/price",
-            ['currency' => 'BGN', 'amount' => 24.99],
+            ['currency' => 'EUR', 'amount' => 24.99],
         );
 
         $response->assertOk();
@@ -41,7 +41,7 @@ class PriceAdminTest extends TestCase
 
         $this->actingAs($admin)->putJson(
             "/api/v1/admin/products/{$product->id}/variants/{$variant->id}/price",
-            ['currency' => 'BGN', 'amount' => 20, 'compare_at_amount' => 10],
+            ['currency' => 'EUR', 'amount' => 20, 'compare_at_amount' => 10],
         )->assertUnprocessable()->assertJsonValidationErrors('compare_at_amount');
     }
 
@@ -54,7 +54,7 @@ class PriceAdminTest extends TestCase
 
         $this->actingAs($customer)->putJson(
             "/api/v1/admin/products/{$product->id}/variants/{$variant->id}/price",
-            ['currency' => 'BGN', 'amount' => 24.99],
+            ['currency' => 'EUR', 'amount' => 24.99],
         )->assertForbidden();
     }
 }

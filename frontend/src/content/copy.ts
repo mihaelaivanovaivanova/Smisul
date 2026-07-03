@@ -208,6 +208,44 @@ export const seo = {
   searchDescription: 'Разгледай и намери продуктите на Smisul по твоите критерии.',
 };
 
+export const cart = {
+  title: 'Количка',
+  badgeAria: (count: number) => `Количка, ${count} артикула`,
+  empty: {
+    title: 'Количката е празна',
+    message: 'Разгледай продуктите и добави нещо, което ти харесва.',
+    cta: 'Разгледай продуктите',
+  },
+  loading: 'Зареждане на количката…',
+  itemsHeading: 'Артикули',
+  quantityLabel: 'Количество',
+  decreaseAria: 'Намали количеството',
+  increaseAria: 'Увеличи количеството',
+  remove: 'Премахни',
+  removeAria: (name: string) => `Премахни ${name} от количката`,
+  clear: 'Изпразни количката',
+  unavailable: 'Вече не е налично в заявеното количество',
+  outOfStock: 'Изчерпан',
+  subtotal: 'Междинна сума',
+  discount: 'Отстъпка',
+  shipping: 'Доставка',
+  tax: 'ДДС',
+  grandTotal: 'Общо',
+  shippingCalculatedLater: 'изчислява се на следваща стъпка',
+  viewCart: 'Виж количката',
+  continueShopping: 'Продължи пазаруването',
+  addToCart: 'Добави в количката',
+  addedToCart: 'Добавено в количката.',
+  addToCartError: 'Неуспешно добавяне в количката.',
+  updateError: 'Неуспешна промяна на количеството.',
+  removeError: 'Неуспешно премахване на артикула.',
+  clearError: 'Неуспешно изпразване на количката.',
+  loadError: 'Неуспешно зареждане на количката.',
+  noImage: 'Няма снимка',
+  seoTitle: `Количка — ${siteName}`,
+  seoDescription: 'Прегледай продуктите в количката си в Smisul.',
+};
+
 /**
  * Bulgarian placeholder copy for backend-owned seed content (product
  * name/description/short_description). NOT applied automatically — these

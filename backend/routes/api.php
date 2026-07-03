@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Auth\NewPasswordController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Api\V1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
+use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -84,6 +85,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
     Route::get('/categories/{slug}/products', [CategoryController::class, 'products'])->name('categories.products');
+
+    // Cart: open to both guests (identified by the X-Guest-Cart-Token
+    // header) and authenticated users (identified by their session) — no
+    // auth:sanctum middleware, since that would 401 guests. See
+    // CartController::resolve() / CartService::resolveCart().
+    Route::prefix('cart')->group(function () {
+        Route::get('/', [CartController::class, 'show'])->name('cart.show');
+        Route::post('/items', [CartController::class, 'storeItem'])->name('cart.items.store');
+        Route::patch('/items/{item}', [CartController::class, 'updateItem'])->name('cart.items.update');
+        Route::delete('/items/{item}', [CartController::class, 'destroyItem'])->name('cart.items.destroy');
+        Route::delete('/', [CartController::class, 'clear'])->name('cart.clear');
+    });
 
     // Admin: full CRUD over the product domain, gated to administrators.
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->name('admin.')->group(function () {

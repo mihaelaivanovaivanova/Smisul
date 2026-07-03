@@ -67,7 +67,7 @@ class ProductSeeder extends Seeder
             $amount = round($pack['unit_price'] * $pack['pack_size'], 2);
 
             $priceService->setPrice($variant, new PriceData(
-                currency: Currency::BGN->value,
+                currency: Currency::EUR->value,
                 amount: $amount,
             ));
 

@@ -1,7 +1,7 @@
 export type ProductStatus = 'draft' | 'published' | 'archived';
 export type VariantStatus = 'active' | 'inactive';
 export type PromotionType = 'percentage' | 'fixed_amount';
-export type Currency = 'BGN';
+export type Currency = 'EUR';
 
 export interface Price {
   currency: Currency;
@@ -25,6 +25,14 @@ export interface Media {
   sort_order: number;
 }
 
+/** A slim product reference nested under a variant — present only when the backend eager-loads it (e.g. cart responses). */
+export interface ProductSummary {
+  id: number;
+  name: string;
+  slug: string;
+  primary_image: Media | null;
+}
+
 export interface ProductVariant {
   id: number;
   sku: string;
@@ -34,6 +42,7 @@ export interface ProductVariant {
   status: VariantStatus;
   prices: Price[];
   inventory: Inventory | null;
+  product?: ProductSummary;
 }
 
 export interface Seo {

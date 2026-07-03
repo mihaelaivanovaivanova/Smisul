@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Logo from './Logo';
+import MiniCart from './cart/MiniCart';
 import { nav } from '../content/copy';
 
 export default function Navbar() {
@@ -40,6 +41,8 @@ export default function Navbar() {
         </form>
 
         <div className="d-flex align-items-center gap-2 flex-shrink-0">
+          <MiniCart />
+
           {!isLoading && (
             <>
               {isAuthenticated ? (

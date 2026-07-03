@@ -18,6 +18,7 @@ import { ProductDownloads, ProductVideos } from '../components/product/ProductMe
 import VariantPicker from '../components/product/VariantPicker';
 import PriceBlock from '../components/product/PriceBlock';
 import StockStatus from '../components/product/StockStatus';
+import AddToCartButton from '../components/product/AddToCartButton';
 import NotFoundPage from './NotFoundPage';
 import { breadcrumbLabels, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
@@ -103,6 +104,14 @@ export default function ProductPage() {
           {product.short_description && <p className="text-muted">{product.short_description}</p>}
 
           <VariantPicker variants={variants} selectedId={activeVariant?.id ?? 0} onSelect={setSelectedVariant} />
+
+          {activeVariant && (
+            <AddToCartButton
+              key={activeVariant.id}
+              productVariantId={activeVariant.id}
+              inventory={activeVariant.inventory}
+            />
+          )}
         </div>
       </div>
 

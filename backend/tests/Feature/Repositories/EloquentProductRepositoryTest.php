@@ -32,7 +32,7 @@ class EloquentProductRepositoryTest extends TestCase
             'name' => '1-pack',
             'pack_size' => 1,
         ]);
-        $variant->prices()->create(['currency' => Currency::BGN->value, 'amount' => $amount]);
+        $variant->prices()->create(['currency' => Currency::EUR->value, 'amount' => $amount]);
 
         return $product;
     }

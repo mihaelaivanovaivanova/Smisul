@@ -25,7 +25,7 @@ class ProductShowTest extends TestCase
             'is_default' => true,
         ]);
         $variant->inventory()->create(['quantity_on_hand' => 10]);
-        $variant->prices()->create(['currency' => Currency::BGN->value, 'amount' => 19.99]);
+        $variant->prices()->create(['currency' => Currency::EUR->value, 'amount' => 19.99]);
 
         $response = $this->getJson("/api/v1/products/{$product->slug}");
 

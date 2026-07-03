@@ -1,11 +1,11 @@
 import type { Currency, Media, Price, Product, ProductVariant, Promotion } from '../types/product';
 
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  BGN: 'лв.',
+  EUR: '€',
 };
 
-/** Formats a raw amount as a display string, e.g. formatPrice(19.99, 'BGN') -> "19.99 лв." */
-export function formatPrice(amount: number, currency: Currency = 'BGN'): string {
+/** Formats a raw amount as a display string, e.g. formatPrice(19.99, 'EUR') -> "19.99 €" */
+export function formatPrice(amount: number, currency: Currency = 'EUR'): string {
   return `${amount.toFixed(2)} ${CURRENCY_SYMBOLS[currency]}`;
 }
 
@@ -14,12 +14,12 @@ export function getDefaultVariant(product: Product): ProductVariant | undefined 
   return product.variants.find((variant) => variant.is_default) ?? product.variants[0];
 }
 
-export function getVariantPrice(variant: ProductVariant, currency: Currency = 'BGN'): Price | undefined {
+export function getVariantPrice(variant: ProductVariant, currency: Currency = 'EUR'): Price | undefined {
   return variant.prices.find((price) => price.currency === currency);
 }
 
 /** The price shown on a product card/listing: the default variant's price. */
-export function getDisplayPrice(product: Product, currency: Currency = 'BGN'): Price | undefined {
+export function getDisplayPrice(product: Product, currency: Currency = 'EUR'): Price | undefined {
   const variant = getDefaultVariant(product);
   return variant ? getVariantPrice(variant, currency) : undefined;
 }
@@ -71,7 +71,7 @@ export function getActivePromotion(product: Product): Promotion | undefined {
   return product.active_promotions?.[0];
 }
 
-/** Display label for a promotion's discount, e.g. "-20%" or "-5.00 лв." */
+/** Display label for a promotion's discount, e.g. "-20%" or "-5.00 €" */
 export function formatPromotionValue(promotion: Promotion): string {
   return promotion.type === 'percentage' ? `-${promotion.value}%` : `-${formatPrice(promotion.value)}`;
 }

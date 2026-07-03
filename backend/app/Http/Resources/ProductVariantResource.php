@@ -25,6 +25,14 @@ class ProductVariantResource extends JsonResource
             'status' => $this->status->value,
             'prices' => PriceResource::collection($this->whenLoaded('prices')),
             'inventory' => new InventoryResource($this->whenLoaded('inventory')),
+            'product' => $this->whenLoaded('product', fn () => [
+                'id' => $this->product->id,
+                'name' => $this->product->name,
+                'slug' => $this->product->slug,
+                'primary_image' => $this->product->relationLoaded('primaryMedia') && $this->product->primaryMedia
+                    ? new MediaResource($this->product->primaryMedia)
+                    : null,
+            ]),
         ];
     }
 }

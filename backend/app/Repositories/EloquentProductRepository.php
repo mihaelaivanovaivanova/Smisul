@@ -103,7 +103,7 @@ class EloquentProductRepository implements ProductRepositoryInterface
         }
 
         $query->whereHas('variants.prices', function (Builder $query) use ($minPrice, $maxPrice) {
-            $query->where('currency', Currency::BGN->value);
+            $query->where('currency', Currency::EUR->value);
 
             if ($minPrice !== null) {
                 $query->where('amount', '>=', $minPrice);
@@ -142,7 +142,7 @@ class EloquentProductRepository implements ProductRepositoryInterface
             ->selectRaw('MIN(prices.amount)')
             ->join('product_variants', 'product_variants.id', '=', 'prices.product_variant_id')
             ->whereColumn('product_variants.product_id', 'products.id')
-            ->where('prices.currency', Currency::BGN->value)
+            ->where('prices.currency', Currency::EUR->value)
             ->whereNull('product_variants.deleted_at');
 
         $query->orderBy($minPriceSubquery, $direction);

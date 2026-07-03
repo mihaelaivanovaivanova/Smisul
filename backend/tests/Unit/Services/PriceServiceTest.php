@@ -27,11 +27,11 @@ class PriceServiceTest extends TestCase
     {
         $variant = ProductVariant::factory()->create();
 
-        $this->service->setPrice($variant, new PriceData(currency: Currency::BGN->value, amount: 19.99));
+        $this->service->setPrice($variant, new PriceData(currency: Currency::EUR->value, amount: 19.99));
 
         $this->assertDatabaseHas('prices', [
             'product_variant_id' => $variant->id,
-            'currency' => 'BGN',
+            'currency' => 'EUR',
             'amount' => 19.99,
         ]);
         $this->assertDatabaseHas('price_histories', [
@@ -45,13 +45,13 @@ class PriceServiceTest extends TestCase
     public function changing_the_price_records_the_old_and_new_amounts(): void
     {
         $variant = ProductVariant::factory()->create();
-        $this->service->setPrice($variant, new PriceData(currency: Currency::BGN->value, amount: 19.99));
+        $this->service->setPrice($variant, new PriceData(currency: Currency::EUR->value, amount: 19.99));
 
-        $this->service->setPrice($variant, new PriceData(currency: Currency::BGN->value, amount: 24.99));
+        $this->service->setPrice($variant, new PriceData(currency: Currency::EUR->value, amount: 24.99));
 
         $this->assertDatabaseHas('prices', [
             'product_variant_id' => $variant->id,
-            'currency' => 'BGN',
+            'currency' => 'EUR',
             'amount' => 24.99,
         ]);
         $this->assertDatabaseHas('price_histories', [
@@ -65,9 +65,9 @@ class PriceServiceTest extends TestCase
     public function setting_the_same_price_again_does_not_create_a_new_history_entry(): void
     {
         $variant = ProductVariant::factory()->create();
-        $this->service->setPrice($variant, new PriceData(currency: Currency::BGN->value, amount: 19.99));
+        $this->service->setPrice($variant, new PriceData(currency: Currency::EUR->value, amount: 19.99));
 
-        $this->service->setPrice($variant, new PriceData(currency: Currency::BGN->value, amount: 19.99));
+        $this->service->setPrice($variant, new PriceData(currency: Currency::EUR->value, amount: 19.99));
 
         $this->assertDatabaseCount('price_histories', 1);
     }

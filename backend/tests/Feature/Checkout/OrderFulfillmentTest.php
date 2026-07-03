@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\OrderService;
+use App\Services\OrderStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -76,14 +77,14 @@ class OrderFulfillmentTest extends TestCase
     }
 
     #[Test]
-    public function confirming_payment_commits_stock_and_marks_the_order_processing(): void
+    public function confirming_payment_commits_stock_and_marks_the_order_paid(): void
     {
         $variant = $this->purchasableVariant(10);
         $order = $this->placePendingOrder($variant, 3);
 
         $confirmed = app(OrderService::class)->confirmPayment($order);
 
-        $this->assertSame(OrderStatus::Processing, $confirmed->status);
+        $this->assertSame(OrderStatus::Paid, $confirmed->status);
 
         $variant->inventory->refresh();
         $this->assertSame(7, $variant->inventory->quantity_on_hand);
@@ -118,12 +119,34 @@ class OrderFulfillmentTest extends TestCase
     }
 
     #[Test]
-    public function cancelling_an_already_processing_order_is_rejected(): void
+    public function a_paid_order_can_still_be_cancelled_before_it_ships(): void
+    {
+        $variant = $this->purchasableVariant(10);
+        $order = $this->placePendingOrder($variant, 3);
+
+        app(OrderService::class)->confirmPayment($order);
+
+        $cancelled = app(OrderService::class)->cancel($order->fresh());
+
+        $this->assertSame(OrderStatus::Cancelled, $cancelled->status);
+
+        // Already committed by confirmPayment() — cancelling after payment
+        // doesn't restock automatically (that's a separate refund/restock
+        // process, out of scope here).
+        $variant->inventory->refresh();
+        $this->assertSame(7, $variant->inventory->quantity_on_hand);
+    }
+
+    #[Test]
+    public function cancelling_an_order_that_has_already_shipped_is_rejected(): void
     {
         $variant = $this->purchasableVariant(10);
         $order = $this->placePendingOrder($variant, 1);
 
-        app(OrderService::class)->confirmPayment($order);
+        $order = app(OrderService::class)->confirmPayment($order);
+        $order = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Processing, null);
+        $order = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Packed, null);
+        $order = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Shipped, null);
 
         $this->expectException(InvalidOrderStatusTransitionException::class);
         app(OrderService::class)->cancel($order);

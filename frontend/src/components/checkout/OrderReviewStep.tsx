@@ -9,6 +9,8 @@ interface OrderReviewStepProps {
   cart: Cart;
   customer: CustomerInfo;
   address: ShippingAddress;
+  billingSameAsShipping: boolean;
+  billingAddress: ShippingAddress;
   shippingMethod: ShippingMethod | null;
   legalDocuments: LegalDocument[] | null;
   isLoadingLegalDocuments: boolean;
@@ -22,6 +24,8 @@ export default function OrderReviewStep({
   cart,
   customer,
   address,
+  billingSameAsShipping,
+  billingAddress,
   shippingMethod,
   legalDocuments,
   isLoadingLegalDocuments,
@@ -74,6 +78,20 @@ export default function OrderReviewStep({
           </p>
         </div>
       </div>
+
+      {!billingSameAsShipping && (
+        <div className="mb-4">
+          <h2 className="h6 mb-2">{checkoutCopy.review.billingAddressHeading}</h2>
+          <p className="mb-0 small text-muted">
+            {billingAddress.address_line}
+            {billingAddress.apartment && `, ${billingAddress.apartment}`}
+            <br />
+            {billingAddress.city}, {billingAddress.postal_code}
+            <br />
+            {billingAddress.country}
+          </p>
+        </div>
+      )}
 
       {shippingMethod && (
         <div className="mb-4">

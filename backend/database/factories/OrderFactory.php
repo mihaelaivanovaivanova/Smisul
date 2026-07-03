@@ -21,6 +21,9 @@ class OrderFactory extends Factory
     {
         $subtotal = fake()->randomFloat(2, 10, 200);
         $shippingPrice = 5.99;
+        $city = fake()->city();
+        $postalCode = fake()->postcode();
+        $addressLine = fake()->streetAddress();
 
         return [
             'order_number' => 'SM-'.now()->format('ymd').'-'.Str::upper(Str::random(6)),
@@ -36,10 +39,16 @@ class OrderFactory extends Factory
             'customer_vat_number' => null,
             'delivery_notes' => null,
             'shipping_country' => 'Bulgaria',
-            'shipping_city' => fake()->city(),
-            'shipping_postal_code' => fake()->postcode(),
-            'shipping_address_line' => fake()->streetAddress(),
+            'shipping_city' => $city,
+            'shipping_postal_code' => $postalCode,
+            'shipping_address_line' => $addressLine,
             'shipping_apartment' => null,
+            'billing_same_as_shipping' => true,
+            'billing_country' => 'Bulgaria',
+            'billing_city' => $city,
+            'billing_postal_code' => $postalCode,
+            'billing_address_line' => $addressLine,
+            'billing_apartment' => null,
             'shipping_carrier' => fake()->randomElement(ShippingCarrier::cases()),
             'shipping_method_label' => 'Econt',
             'shipping_price' => $shippingPrice,

@@ -8,6 +8,10 @@ import type { ShippingAddress, ShippingCarrier, ShippingMethod } from '../../typ
 interface DeliveryStepProps {
   address: ShippingAddress;
   onAddressChange: <K extends keyof ShippingAddress>(field: K, value: ShippingAddress[K]) => void;
+  billingSameAsShipping: boolean;
+  onToggleBillingSameAsShipping: (value: boolean) => void;
+  billingAddress: ShippingAddress;
+  onBillingAddressChange: <K extends keyof ShippingAddress>(field: K, value: ShippingAddress[K]) => void;
   shippingMethods: ShippingMethod[] | null;
   isLoadingShippingMethods: boolean;
   shippingMethodsError: string | null;
@@ -19,6 +23,10 @@ interface DeliveryStepProps {
 export default function DeliveryStep({
   address,
   onAddressChange,
+  billingSameAsShipping,
+  onToggleBillingSameAsShipping,
+  billingAddress,
+  onBillingAddressChange,
   shippingMethods,
   isLoadingShippingMethods,
   shippingMethodsError,
@@ -85,6 +93,81 @@ export default function DeliveryStep({
           required
         />
       </div>
+
+      <h2 className="h6 mb-3">{checkoutCopy.billing.title}</h2>
+
+      <div className="form-check mb-3">
+        <input
+          type="checkbox"
+          className="form-check-input"
+          id="checkout-billing-same-as-shipping"
+          checked={billingSameAsShipping}
+          onChange={(event) => onToggleBillingSameAsShipping(event.target.checked)}
+        />
+        <label htmlFor="checkout-billing-same-as-shipping" className="form-check-label">
+          {checkoutCopy.billing.sameAsShipping}
+        </label>
+      </div>
+
+      {!billingSameAsShipping && (
+        <>
+          <div className="row">
+            <div className="col-12 col-sm-6 mb-3">
+              <FormField
+                id="checkout-billing-country"
+                label={checkoutCopy.address.country}
+                value={billingAddress.country}
+                onChange={(value) => onBillingAddressChange('country', value)}
+                error={errors['billing_address.country']}
+                required
+              />
+            </div>
+            <div className="col-12 col-sm-6 mb-3">
+              <FormField
+                id="checkout-billing-city"
+                label={checkoutCopy.address.city}
+                value={billingAddress.city}
+                onChange={(value) => onBillingAddressChange('city', value)}
+                error={errors['billing_address.city']}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-12 col-sm-6 mb-3">
+              <FormField
+                id="checkout-billing-postal-code"
+                label={checkoutCopy.address.postalCode}
+                value={billingAddress.postal_code}
+                onChange={(value) => onBillingAddressChange('postal_code', value)}
+                error={errors['billing_address.postal_code']}
+                required
+              />
+            </div>
+            <div className="col-12 col-sm-6 mb-3">
+              <FormField
+                id="checkout-billing-apartment"
+                label={checkoutCopy.address.apartment}
+                value={billingAddress.apartment}
+                onChange={(value) => onBillingAddressChange('apartment', value)}
+                error={errors['billing_address.apartment']}
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <FormField
+              id="checkout-billing-address-line"
+              label={checkoutCopy.address.addressLine}
+              value={billingAddress.address_line}
+              onChange={(value) => onBillingAddressChange('address_line', value)}
+              error={errors['billing_address.address_line']}
+              required
+            />
+          </div>
+        </>
+      )}
 
       <h2 className="h6 mb-3">{checkoutCopy.delivery.title}</h2>
 

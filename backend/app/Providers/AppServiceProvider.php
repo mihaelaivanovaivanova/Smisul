@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Events\Order\OrderPlaced;
+use App\Events\Order\OrderStatusChanged;
 use App\Listeners\SendOrderPlacedNotifications;
+use App\Listeners\SendOrderStatusEmails;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -38,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         // has to be wired up explicitly.
         Event::listen(Registered::class, SendEmailVerificationNotification::class);
         Event::listen(OrderPlaced::class, SendOrderPlacedNotifications::class);
+        Event::listen(OrderStatusChanged::class, SendOrderStatusEmails::class);
     }
 
     /**

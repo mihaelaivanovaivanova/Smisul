@@ -9,10 +9,10 @@ use Illuminate\Http\Request;
 
 class InvalidOrderStatusTransitionException extends Exception
 {
-    public static function notPending(string $orderNumber, OrderStatus $actual): self
+    public static function notAllowed(string $orderNumber, OrderStatus $from, OrderStatus $to): self
     {
         return new self(
-            "Order {$orderNumber} cannot transition from its current status ({$actual->value}) — only a Pending order can."
+            "Order {$orderNumber} cannot move from {$from->label()} to {$to->label()} — that transition isn't allowed."
         );
     }
 

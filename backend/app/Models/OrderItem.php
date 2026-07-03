@@ -27,7 +27,10 @@ class OrderItem extends Model
         'sku',
         'quantity',
         'unit_price',
+        'compare_at_price',
         'line_total',
+        'discount_amount',
+        'promotion_name',
     ];
 
     protected function casts(): array
@@ -35,7 +38,9 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'compare_at_price' => 'decimal:2',
             'line_total' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
         ];
     }
 

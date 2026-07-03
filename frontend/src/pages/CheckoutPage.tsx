@@ -46,6 +46,14 @@ export default function CheckoutPage() {
     address_line: '',
     apartment: '',
   });
+  const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
+  const [billingAddress, setBillingAddress] = useState<ShippingAddress>({
+    country: 'България',
+    city: '',
+    postal_code: '',
+    address_line: '',
+    apartment: '',
+  });
   const [shippingCarrier, setShippingCarrier] = useState<ShippingCarrier | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -87,6 +95,10 @@ export default function CheckoutPage() {
     setAddress((prev) => ({ ...prev, [field]: value }));
   }
 
+  function updateBillingAddress<K extends keyof ShippingAddress>(field: K, value: ShippingAddress[K]): void {
+    setBillingAddress((prev) => ({ ...prev, [field]: value }));
+  }
+
   function toggleLegalDocument(documentId: number): void {
     setAcceptedLegalDocumentIds((prev) =>
       prev.includes(documentId) ? prev.filter((id) => id !== documentId) : [...prev, documentId],
@@ -113,6 +125,13 @@ export default function CheckoutPage() {
     if (!address.postal_code.trim()) stepErrors['address.postal_code'] = checkoutCopy.errors.postalCodeRequired;
     if (!address.address_line.trim()) stepErrors['address.address_line'] = checkoutCopy.errors.addressLineRequired;
     if (!shippingCarrier) stepErrors.shipping_carrier = checkoutCopy.errors.shippingMethodRequired;
+
+    if (!billingSameAsShipping) {
+      if (!billingAddress.country.trim()) stepErrors['billing_address.country'] = checkoutCopy.errors.countryRequired;
+      if (!billingAddress.city.trim()) stepErrors['billing_address.city'] = checkoutCopy.errors.cityRequired;
+      if (!billingAddress.postal_code.trim()) stepErrors['billing_address.postal_code'] = checkoutCopy.errors.postalCodeRequired;
+      if (!billingAddress.address_line.trim()) stepErrors['billing_address.address_line'] = checkoutCopy.errors.addressLineRequired;
+    }
 
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
@@ -165,6 +184,16 @@ export default function CheckoutPage() {
           address_line: address.address_line,
           apartment: address.apartment || undefined,
         },
+        billing_same_as_shipping: billingSameAsShipping,
+        billing_address: billingSameAsShipping
+          ? undefined
+          : {
+              country: billingAddress.country,
+              city: billingAddress.city,
+              postal_code: billingAddress.postal_code,
+              address_line: billingAddress.address_line,
+              apartment: billingAddress.apartment || undefined,
+            },
         delivery_notes: deliveryNotes || undefined,
         shipping_carrier: shippingCarrier,
         legal_document_ids: acceptedLegalDocumentIds,
@@ -218,6 +247,10 @@ export default function CheckoutPage() {
                   <DeliveryStep
                     address={address}
                     onAddressChange={updateAddress}
+                    billingSameAsShipping={billingSameAsShipping}
+                    onToggleBillingSameAsShipping={setBillingSameAsShipping}
+                    billingAddress={billingAddress}
+                    onBillingAddressChange={updateBillingAddress}
                     shippingMethods={shippingMethods}
                     isLoadingShippingMethods={isLoadingShippingMethods}
                     shippingMethodsError={shippingMethodsError}
@@ -232,6 +265,8 @@ export default function CheckoutPage() {
                     cart={cart}
                     customer={customer}
                     address={address}
+                    billingSameAsShipping={billingSameAsShipping}
+                    billingAddress={billingAddress}
                     shippingMethod={selectedShippingMethod}
                     legalDocuments={legalDocuments}
                     isLoadingLegalDocuments={isLoadingLegalDocuments}

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\DataTransferObjects\Admin\OrderFilterData;
 use App\DataTransferObjects\Checkout\PlaceOrderData;
 use App\Enums\OrderStatus;
 use App\Events\Order\OrderPlaced;
@@ -11,7 +12,9 @@ use App\Exceptions\Checkout\InvalidShippingMethodException;
 use App\Exceptions\Order\InvalidOrderStatusTransitionException;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\ProductVariant;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -30,16 +33,17 @@ use Illuminate\Support\Str;
  * out of that held state, both below: confirmPayment() turns the
  * reservation into a real decrement once payment succeeds, and cancel()
  * releases it if payment fails/expires or the order is otherwise cancelled
- * before being paid. Nothing in this sprint calls either yet (no payment
- * gateway is integrated) — they exist as the seam the payment sprint wires
- * up, so a Pending order's held stock has a well-defined resolution rather
- * than being a dangling TODO.
+ * before being paid. Nothing in this sprint calls either automatically yet
+ * (no payment gateway is integrated) — they exist as the seam a future
+ * payment webhook/gateway callback wires up, and the admin status-update
+ * endpoint can call cancel() directly today.
  */
 class OrderService
 {
     public const EAGER_LOAD = [
         'items',
         'legalAcceptances.legalDocument',
+        'statusHistories.changedBy',
     ];
 
     public function __construct(
@@ -48,13 +52,19 @@ class OrderService
         private readonly ShippingMethodService $shippingMethods,
         private readonly LegalDocumentService $legalDocuments,
         private readonly OrderNumberGenerator $orderNumbers,
+        private readonly OrderStatusService $orderStatus,
     ) {}
 
     public function placeOrder(Cart $cart, PlaceOrderData $data, ?User $user): Order
     {
         return DB::transaction(function () use ($cart, $data, $user) {
             $cart = Cart::whereKey($cart->id)
-                ->with(['items.productVariant.product', 'items.productVariant.prices', 'items.productVariant.inventory'])
+                ->with([
+                    'items.productVariant.product.promotions',
+                    'items.productVariant.product.categories.promotions',
+                    'items.productVariant.prices',
+                    'items.productVariant.inventory',
+                ])
                 ->lockForUpdate()
                 ->first() ?? $cart;
 
@@ -87,10 +97,18 @@ class OrderService
                     continue;
                 }
 
+                $compareAtPrice = $price->compare_at_amount !== null ? (float) $price->compare_at_amount : null;
+                $discountAmount = $compareAtPrice !== null && $compareAtPrice > (float) $price->amount
+                    ? round(($compareAtPrice - (float) $price->amount) * $item->quantity, 2)
+                    : 0.0;
+
                 $lines[] = [
                     'item' => $item,
                     'variant' => $variant,
                     'unit_price' => (float) $price->amount,
+                    'compare_at_price' => $compareAtPrice,
+                    'discount_amount' => $discountAmount,
+                    'promotion_name' => $variant->product->activePromotions()->first()?->name,
                     'line_total' => $this->pricing->lineTotal($item, $cart->currency),
                 ];
             }
@@ -101,8 +119,10 @@ class OrderService
 
             $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
             $shippingTotal = $shippingMethod->price;
-            $discountTotal = 0.0;
+            $discountTotal = round(array_sum(array_column($lines, 'discount_amount')), 2);
             $taxTotal = 0.0;
+
+            $billingAddress = $data->billingSameAsShipping ? $data->address : $data->billingAddress;
 
             $order = Order::create([
                 'order_number' => $this->orderNumbers->generate(),
@@ -122,6 +142,12 @@ class OrderService
                 'shipping_postal_code' => $data->address->postalCode,
                 'shipping_address_line' => $data->address->addressLine,
                 'shipping_apartment' => $data->address->apartment,
+                'billing_same_as_shipping' => $data->billingSameAsShipping,
+                'billing_country' => $billingAddress->country,
+                'billing_city' => $billingAddress->city,
+                'billing_postal_code' => $billingAddress->postalCode,
+                'billing_address_line' => $billingAddress->addressLine,
+                'billing_apartment' => $billingAddress->apartment,
                 'shipping_carrier' => $shippingMethod->carrier,
                 'shipping_method_label' => $shippingMethod->label,
                 'shipping_price' => $shippingTotal,
@@ -141,7 +167,10 @@ class OrderService
                     'sku' => $variant->sku,
                     'quantity' => $line['item']->quantity,
                     'unit_price' => $line['unit_price'],
+                    'compare_at_price' => $line['compare_at_price'],
                     'line_total' => $line['line_total'],
+                    'discount_amount' => $line['discount_amount'],
+                    'promotion_name' => $line['promotion_name'],
                 ]);
             }
 
@@ -157,6 +186,8 @@ class OrderService
             // class docblock) until confirmPayment() or cancel() resolves it.
             $cart->items()->delete();
 
+            $this->orderStatus->recordInitial($order);
+
             OrderPlaced::dispatch($order);
 
             return $order->load(self::EAGER_LOAD);
@@ -166,60 +197,143 @@ class OrderService
     /**
      * The payment-succeeded seam (see class docblock): converts every item's
      * held reservation into a real, permanent stock decrement and moves the
-     * order to Processing. No caller exists yet in this sprint — a future
-     * payment webhook/gateway callback is expected to invoke this.
+     * order to Paid. No caller exists yet in this sprint — a future payment
+     * webhook/gateway callback is expected to invoke this.
      */
-    public function confirmPayment(Order $order): Order
+    public function confirmPayment(Order $order, ?string $note = null): Order
     {
-        return DB::transaction(function () use ($order) {
-            $order = Order::whereKey($order->id)->lockForUpdate()->first() ?? $order;
+        return DB::transaction(function () use ($order, $note) {
+            $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
 
-            if ($order->status !== OrderStatus::Pending) {
-                throw InvalidOrderStatusTransitionException::notPending($order->order_number, $order->status);
+            if (! in_array(OrderStatus::Paid, $this->orderStatus->allowedTransitions($order->status), strict: true)) {
+                throw InvalidOrderStatusTransitionException::notAllowed($order->order_number, $order->status, OrderStatus::Paid);
             }
 
             foreach ($order->items as $item) {
-                $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
-
-                if ($inventory === null) {
-                    continue;
-                }
-
-                $this->inventory->decreaseStock($inventory, $item->quantity);
-                $this->inventory->release($inventory, $item->quantity);
+                $this->fulfillReservation($item->productVariant, $item->quantity);
             }
 
-            $order->update(['status' => OrderStatus::Processing]);
-
-            return $order->load(self::EAGER_LOAD);
+            return $this->orderStatus->transitionTo($order, OrderStatus::Paid, changedBy: null, note: $note ?? 'Payment confirmed');
         });
     }
 
     /**
      * The payment-failed/abandoned seam (see class docblock): releases
      * every item's held reservation without decrementing stock, and moves
-     * the order to Cancelled. No caller exists yet in this sprint.
+     * the order to Cancelled. $cancelledBy is null for system/automated
+     * cancellations (e.g. an expired pending order) and set for an
+     * admin-initiated one (see Api\V1\Admin\OrderController).
      */
-    public function cancel(Order $order): Order
+    public function cancel(Order $order, ?User $cancelledBy = null, ?string $note = null): Order
     {
-        return DB::transaction(function () use ($order) {
-            $order = Order::whereKey($order->id)->lockForUpdate()->first() ?? $order;
+        return DB::transaction(function () use ($order, $cancelledBy, $note) {
+            $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
 
-            if ($order->status !== OrderStatus::Pending) {
-                throw InvalidOrderStatusTransitionException::notPending($order->order_number, $order->status);
-            }
+            // Only a not-yet-paid order still holds a reservation to release —
+            // an order cancelled after payment (Paid or later) already had its
+            // stock permanently committed by confirmPayment() and needs a
+            // real restock/refund process instead, which is out of scope here.
+            if (in_array($order->status, [OrderStatus::Pending, OrderStatus::AwaitingPayment], strict: true)) {
+                foreach ($order->items as $item) {
+                    $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
 
-            foreach ($order->items as $item) {
-                $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
-
-                if ($inventory !== null) {
-                    $this->inventory->release($inventory, $item->quantity);
+                    if ($inventory !== null) {
+                        $this->inventory->release($inventory, $item->quantity);
+                    }
                 }
             }
 
-            $order->update(['status' => OrderStatus::Cancelled]);
-
-            return $order->load(self::EAGER_LOAD);
+            return $this->orderStatus->transitionTo($order, OrderStatus::Cancelled, $cancelledBy, $note);
         });
+    }
+
+    /**
+     * Admin order listing: search (order number, customer name/email),
+     * status filter, placement-date range, and sort — all optional and
+     * combinable. No ownership scoping (unlike the customer-facing index);
+     * gating this to administrators is the caller's job (route middleware).
+     */
+    public function listForAdmin(OrderFilterData $filters): LengthAwarePaginator
+    {
+        $query = Order::query()->with('items');
+
+        if ($filters->search !== null && $filters->search !== '') {
+            $term = "%{$filters->search}%";
+            $query->where(function ($query) use ($term) {
+                $query->where('order_number', 'like', $term)
+                    ->orWhere('customer_email', 'like', $term)
+                    ->orWhere('customer_first_name', 'like', $term)
+                    ->orWhere('customer_last_name', 'like', $term);
+            });
+        }
+
+        if ($filters->status !== null) {
+            $query->where('status', $filters->status);
+        }
+
+        if ($filters->dateFrom !== null) {
+            $query->whereDate('created_at', '>=', $filters->dateFrom);
+        }
+
+        if ($filters->dateTo !== null) {
+            $query->whereDate('created_at', '<=', $filters->dateTo);
+        }
+
+        match ($filters->sort) {
+            'oldest' => $query->oldest(),
+            'total_asc' => $query->orderBy('grand_total'),
+            'total_desc' => $query->orderByDesc('grand_total'),
+            default => $query->latest(),
+        };
+
+        return $query->paginate($filters->perPage, page: $filters->page);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function statistics(): array
+    {
+        $ordersByStatus = Order::query()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        $revenueStatuses = [
+            OrderStatus::Paid->value,
+            OrderStatus::Processing->value,
+            OrderStatus::Packed->value,
+            OrderStatus::Shipped->value,
+            OrderStatus::Delivered->value,
+            OrderStatus::Completed->value,
+        ];
+
+        return [
+            'total_orders' => array_sum($ordersByStatus->all()),
+            'orders_by_status' => collect(OrderStatus::cases())
+                ->mapWithKeys(fn (OrderStatus $status) => [$status->value => (int) ($ordersByStatus[$status->value] ?? 0)])
+                ->all(),
+            'total_revenue' => (float) Order::query()->whereIn('status', $revenueStatuses)->sum('grand_total'),
+            'orders_today' => Order::query()->whereDate('created_at', now()->toDateString())->count(),
+        ];
+    }
+
+    /**
+     * Converts a held reservation into a real, permanent stock decrement:
+     * the quantity was already subtracted from availableQuantity() the
+     * moment it was added to the cart (see InventoryService::reserve) — this
+     * makes that permanent by moving it out of on_hand and releasing the
+     * reservation bookkeeping for it, leaving availableQuantity() unchanged.
+     */
+    private function fulfillReservation(?ProductVariant $variant, int $quantity): void
+    {
+        $inventory = $variant?->inventory()->lockForUpdate()->first();
+
+        if ($inventory === null) {
+            return;
+        }
+
+        $this->inventory->decreaseStock($inventory, $quantity);
+        $this->inventory->release($inventory, $quantity);
     }
 }

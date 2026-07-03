@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
@@ -117,6 +118,7 @@ Route::prefix('v1')->group(function () {
     // Order lookup: registered customers via ownership (OrderPolicy), guests
     // via the guest_access_token minted at placement — see OrderController.
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
 
     // Admin: full CRUD over the product domain, gated to administrators.
     Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->name('admin.')->group(function () {
@@ -140,5 +142,10 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
 
         Route::apiResource('promotions', AdminPromotionController::class);
+
+        Route::get('/orders/statistics', [AdminOrderController::class, 'statistics'])->name('orders.statistics');
+        Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
     });
 });

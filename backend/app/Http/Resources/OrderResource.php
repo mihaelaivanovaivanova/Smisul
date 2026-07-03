@@ -37,6 +37,14 @@ class OrderResource extends JsonResource
                 'address_line' => $this->shipping_address_line,
                 'apartment' => $this->shipping_apartment,
             ],
+            'billing_same_as_shipping' => $this->billing_same_as_shipping,
+            'billing_address' => [
+                'country' => $this->billing_country,
+                'city' => $this->billing_city,
+                'postal_code' => $this->billing_postal_code,
+                'address_line' => $this->billing_address_line,
+                'apartment' => $this->billing_apartment,
+            ],
             'delivery_notes' => $this->delivery_notes,
             'shipping' => [
                 'carrier' => $this->shipping_carrier->value,
@@ -60,6 +68,7 @@ class OrderResource extends JsonResource
                     'accepted_at' => $acceptance->accepted_at->toIso8601String(),
                 ])->values(),
             ),
+            'timeline' => OrderStatusHistoryResource::collection($this->whenLoaded('statusHistories')),
             'placed_at' => $this->created_at->toIso8601String(),
         ];
     }

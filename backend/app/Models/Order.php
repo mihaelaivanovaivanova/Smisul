@@ -39,6 +39,12 @@ class Order extends Model
         'shipping_postal_code',
         'shipping_address_line',
         'shipping_apartment',
+        'billing_same_as_shipping',
+        'billing_country',
+        'billing_city',
+        'billing_postal_code',
+        'billing_address_line',
+        'billing_apartment',
         'shipping_carrier',
         'shipping_method_label',
         'shipping_price',
@@ -53,6 +59,7 @@ class Order extends Model
         return [
             'status' => OrderStatus::class,
             'shipping_carrier' => ShippingCarrier::class,
+            'billing_same_as_shipping' => 'boolean',
             'shipping_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
@@ -83,6 +90,14 @@ class Order extends Model
     public function legalAcceptances(): HasMany
     {
         return $this->hasMany(OrderLegalAcceptance::class);
+    }
+
+    /**
+     * @return HasMany<OrderStatusHistory, $this>
+     */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(OrderStatusHistory::class);
     }
 
     public function isGuestOrder(): bool

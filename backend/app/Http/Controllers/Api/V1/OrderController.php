@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class OrderController extends Controller
 {
@@ -35,17 +36,43 @@ class OrderController extends Controller
      */
     public function show(Request $request, Order $order): OrderResource
     {
+        $this->authorizeAccess($request, $order);
+
+        return new OrderResource($order->load(OrderService::EAGER_LOAD));
+    }
+
+    /**
+     * A minimal, dependency-free invoice document — see the view for the
+     * "not a real tax invoice" disclaimer. Real invoicing (PDF generation,
+     * legal numbering sequence, VAT breakdown) is a future extension point;
+     * this establishes the endpoint/URL shape it would live behind.
+     */
+    public function invoice(Request $request, Order $order): Response
+    {
+        $this->authorizeAccess($request, $order);
+
+        $order->load('items');
+        $html = view('invoices.order', ['order' => $order])->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html',
+            'Content-Disposition' => "attachment; filename=\"invoice-{$order->order_number}.html\"",
+        ]);
+    }
+
+    private function authorizeAccess(Request $request, Order $order): void
+    {
         $user = $request->user();
 
         if ($order->user_id !== null) {
             abort_unless($user !== null && $user->can('view', $order), 403);
-        } else {
-            abort_unless(
-                $order->guest_access_token !== null && hash_equals($order->guest_access_token, (string) $request->query('token')),
-                403,
-            );
+
+            return;
         }
 
-        return new OrderResource($order->load(OrderService::EAGER_LOAD));
+        abort_unless(
+            $order->guest_access_token !== null && hash_equals($order->guest_access_token, (string) $request->query('token')),
+            403,
+        );
     }
 }

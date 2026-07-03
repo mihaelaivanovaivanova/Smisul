@@ -36,6 +36,14 @@ class PlaceOrderRequest extends FormRequest
             'address.address_line' => ['required', 'string', 'max:255'],
             'address.apartment' => ['nullable', 'string', 'max:100'],
 
+            'billing_same_as_shipping' => ['sometimes', 'boolean'],
+            'billing_address' => ['required_if:billing_same_as_shipping,false', 'array'],
+            'billing_address.country' => ['required_if:billing_same_as_shipping,false', 'string', 'max:100'],
+            'billing_address.city' => ['required_if:billing_same_as_shipping,false', 'string', 'max:100'],
+            'billing_address.postal_code' => ['required_if:billing_same_as_shipping,false', 'string', 'max:20'],
+            'billing_address.address_line' => ['required_if:billing_same_as_shipping,false', 'string', 'max:255'],
+            'billing_address.apartment' => ['nullable', 'string', 'max:100'],
+
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
 
             'shipping_carrier' => ['required', 'string', Rule::in(array_column(ShippingCarrier::cases(), 'value'))],

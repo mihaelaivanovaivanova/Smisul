@@ -285,6 +285,11 @@ export const checkout = {
     apartment: 'Апартамент / Етаж (незадължително)',
   },
 
+  billing: {
+    title: 'Адрес за фактуриране',
+    sameAsShipping: 'Адресът за фактуриране е същият като адреса за доставка',
+  },
+
   delivery: {
     title: 'Начин на доставка',
     loading: 'Зареждане на начините за доставка…',
@@ -303,6 +308,7 @@ export const checkout = {
     itemsHeading: 'Артикули',
     customerHeading: 'Данни за поръчката',
     addressHeading: 'Адрес за доставка',
+    billingAddressHeading: 'Адрес за фактуриране',
     deliveryHeading: 'Доставка',
   },
 
@@ -347,11 +353,21 @@ export const orders = {
   statusHeading: 'Статус',
   totalHeading: 'Сума',
   viewOrder: 'Виж поръчката',
+  downloadInvoice: 'Изтегли фактура (примерна)',
+  timelineHeading: 'История на поръчката',
+  timelineChangedBySystem: 'Системата',
   status: {
     pending: 'Изчаква обработка',
+    awaiting_payment: 'Очаква плащане',
+    paid: 'Платена',
     processing: 'В обработка',
+    packed: 'Опакована',
+    shipped: 'Изпратена',
+    delivered: 'Доставена',
     completed: 'Завършена',
     cancelled: 'Отказана',
+    refunded: 'Възстановена',
+    failed: 'Неуспешна',
   } as Record<string, string>,
 };
 

@@ -23,7 +23,10 @@ class OrderItemResource extends JsonResource
             'sku' => $this->sku,
             'quantity' => $this->quantity,
             'unit_price' => (float) $this->unit_price,
+            'compare_at_price' => $this->compare_at_price !== null ? (float) $this->compare_at_price : null,
             'line_total' => (float) $this->line_total,
+            'discount_amount' => (float) $this->discount_amount,
+            'promotion_name' => $this->promotion_name,
         ];
     }
 }

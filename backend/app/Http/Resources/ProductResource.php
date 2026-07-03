@@ -28,6 +28,10 @@ class ProductResource extends JsonResource
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
             'media' => MediaResource::collection($this->whenLoaded('media')),
             'seo' => new SeoResource($this->whenLoaded('seo')),
+            'active_promotions' => $this->whenLoaded(
+                'promotions',
+                fn () => PromotionResource::collection($this->activePromotions()),
+            ),
         ];
     }
 }

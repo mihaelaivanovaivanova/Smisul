@@ -5,6 +5,7 @@ namespace Tests\Feature\Products;
 use App\Enums\Currency;
 use App\Enums\ProductStatus;
 use App\Models\Product;
+use App\Models\Promotion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -33,6 +34,28 @@ class ProductShowTest extends TestCase
         $response->assertJsonPath('data.variants.0.sku', 'SMISUL-1');
         $response->assertJsonPath('data.variants.0.prices.0.amount', 19.99);
         $response->assertJsonPath('data.variants.0.inventory.is_in_stock', true);
+    }
+
+    #[Test]
+    public function it_includes_media_mime_type_and_currently_valid_promotions(): void
+    {
+        $product = Product::factory()->published()->create();
+        $product->media()->create([
+            'disk' => 'public',
+            'path' => 'products/photo.jpg',
+            'filename' => 'photo.jpg',
+            'mime_type' => 'image/jpeg',
+        ]);
+        $activePromotion = Promotion::factory()->create(['is_active' => true, 'name' => 'Active Sale']);
+        $expiredPromotion = Promotion::factory()->expired()->create(['name' => 'Old Sale']);
+        $product->promotions()->attach([$activePromotion->id, $expiredPromotion->id]);
+
+        $response = $this->getJson("/api/v1/products/{$product->slug}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.media.0.mime_type', 'image/jpeg');
+        $response->assertJsonCount(1, 'data.active_promotions');
+        $response->assertJsonPath('data.active_promotions.0.name', 'Active Sale');
     }
 
     #[Test]

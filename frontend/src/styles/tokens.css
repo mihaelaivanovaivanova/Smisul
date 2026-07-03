@@ -1,0 +1,95 @@
+/*
+ * Smisul design tokens — a lightweight design system layered on top of
+ * Bootstrap 5 (no rebuild, no Sass): CSS variables only. Bootstrap's own
+ * `--bs-*` variables are remapped where useful; component-level reskinning
+ * lives in bootstrap-overrides.css and components.css.
+ *
+ * Palette direction: warm, earthy, calm — deep forest green + terracotta
+ * accent + cream/linen surfaces. Meant to read as a premium Bulgarian
+ * bio/wellness brand, not a generic SaaS blue or a clinical medical white.
+ */
+
+:root {
+  /* ---- Color palette ---- */
+  --color-forest: #33402e;
+  --color-forest-dark: #232c1f;
+  --color-forest-light: #4f5f45;
+  --color-sage: #8a9678;
+  --color-terracotta: #a8502f;
+  --color-terracotta-light: #c97a52;
+  --color-gold: #b08a4e;
+
+  --color-cream: #faf5ec;
+  --color-sand: #f1e8d8;
+  --color-surface: #fffdf9;
+  --color-border: #e6dcc7;
+
+  --color-charcoal: #2b2822;
+  --color-muted: #71695c;
+  --color-muted-light: #948c7c;
+
+  --color-success-bg: #3f6b44;
+  --color-success-fg: #ffffff;
+  --color-warning-bg: #eed9ae;
+  --color-warning-fg: #4a3c1c;
+  --color-neutral-bg: #ddd5c4;
+  --color-neutral-fg: #4a4437;
+  --color-danger-bg: #a8502f;
+  --color-danger-fg: #ffffff;
+
+  /* ---- Typography ---- */
+  --font-heading: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.9375rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.25rem;
+  --fs-3xl: 3rem;
+
+  /* ---- Spacing scale (4px base grid) ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* ---- Radii & shadows ---- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(43, 40, 34, 0.06);
+  --shadow-md: 0 8px 24px rgba(43, 40, 34, 0.08);
+  --shadow-lg: 0 20px 48px rgba(43, 40, 34, 0.14);
+
+  /* ---- Section rhythm ---- */
+  --section-padding-y: var(--space-8);
+  --section-padding-y-sm: var(--space-6);
+
+  /* ---- Bootstrap variable bridge ----
+   * Bootstrap 5's precompiled CSS bakes most component colors to static
+   * hex values, so this bridge covers the utilities/tokens that DO read
+   * live CSS variables; targeted component overrides for buttons, cards,
+   * badges, forms, etc. live in bootstrap-overrides.css.
+   */
+  --bs-body-font-family: var(--font-body);
+  --bs-body-color: var(--color-charcoal);
+  --bs-body-bg: var(--color-cream);
+  --bs-border-color: var(--color-border);
+  --bs-border-radius: var(--radius-sm);
+  --bs-border-radius-lg: var(--radius-md);
+  --bs-link-color: var(--color-forest);
+  --bs-link-color-rgb: 51, 64, 46;
+  --bs-link-hover-color: var(--color-forest-dark);
+  --bs-primary: var(--color-forest);
+  --bs-primary-rgb: 51, 64, 46;
+}

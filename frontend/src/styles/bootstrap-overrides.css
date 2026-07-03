@@ -1,0 +1,194 @@
+/*
+ * Targeted reskin of the Bootstrap 5 primitives this storefront actually
+ * uses. Bootstrap ships precompiled CSS (no Sass build in this project),
+ * so component colors are static hex values baked at Bootstrap's build
+ * time — remapping --bs-primary alone does not retint them. These rules
+ * load after bootstrap.min.css (see main.tsx) and win on equal specificity
+ * by source order.
+ */
+
+/* ---- Buttons ---- */
+
+.btn {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary {
+  background-color: var(--color-forest);
+  border-color: var(--color-forest);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--color-forest-dark);
+  border-color: var(--color-forest-dark);
+  color: #fff;
+}
+
+.btn-outline-primary {
+  color: var(--color-forest);
+  border-color: var(--color-forest);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--color-forest);
+  border-color: var(--color-forest);
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  color: var(--color-muted);
+  border-color: var(--color-border);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background-color: var(--color-sand);
+  border-color: var(--color-border);
+  color: var(--color-charcoal);
+}
+
+.btn-outline-danger {
+  color: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+  background-color: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+  color: #fff;
+}
+
+.btn-lg {
+  border-radius: var(--radius-md);
+  padding-block: var(--space-3);
+  padding-inline: var(--space-6);
+}
+
+/* ---- Cards ---- */
+
+.card {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.card.shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+  transition:
+    box-shadow 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
+}
+
+.card.shadow-sm:hover {
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-2px);
+}
+
+/* ---- Badges ---- */
+
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: var(--radius-pill);
+  padding-inline: var(--space-3);
+  padding-block: 0.35em;
+}
+
+/* ---- Forms ---- */
+
+.form-control,
+.form-select {
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-charcoal);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-forest);
+  box-shadow: 0 0 0 0.2rem rgba(51, 64, 46, 0.15);
+}
+
+.form-label {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+/* ---- Alerts ---- */
+
+.alert-danger {
+  background-color: #f3e3dd;
+  border-color: #e3c3b4;
+  color: #6b3521;
+}
+
+/* ---- Breadcrumbs ---- */
+
+.breadcrumb {
+  --bs-breadcrumb-divider: '/';
+  font-size: var(--fs-sm);
+}
+
+.breadcrumb-item a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+  color: var(--color-forest);
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: var(--color-charcoal);
+}
+
+/* ---- Pagination ---- */
+
+.pagination .page-link {
+  color: var(--color-forest);
+  border-color: var(--color-border);
+}
+
+.pagination .page-link:hover {
+  background-color: var(--color-sand);
+  color: var(--color-forest-dark);
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--color-forest);
+  border-color: var(--color-forest);
+}
+
+.pagination .page-item.disabled .page-link {
+  color: var(--color-muted-light);
+}
+
+/* ---- Accordion (FAQ) ---- */
+
+.accordion-item {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.accordion-button {
+  font-weight: 600;
+  color: var(--color-forest-dark);
+  background-color: var(--color-surface);
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: var(--color-sand);
+  color: var(--color-forest-dark);
+  box-shadow: none;
+}
+
+.accordion-button:focus {
+  box-shadow: 0 0 0 0.2rem rgba(51, 64, 46, 0.15);
+}

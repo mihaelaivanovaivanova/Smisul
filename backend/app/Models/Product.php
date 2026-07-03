@@ -9,6 +9,7 @@ use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\IsMediable;
 use Carbon\Carbon;
 use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -79,5 +80,24 @@ class Product extends Model implements IsMediable
     public function isPublished(): bool
     {
         return $this->status === ProductStatus::Published;
+    }
+
+    /**
+     * Currently-valid promotions covering this product, whether scoped to
+     * the product directly or to one of its categories. Callers should
+     * eager-load "promotions" and "categories.promotions" to avoid N+1s
+     * across a product listing.
+     *
+     * @return Collection<int, Promotion>
+     */
+    public function activePromotions(): Collection
+    {
+        $viaCategories = $this->categories->flatMap(fn (Category $category) => $category->promotions);
+
+        return $this->promotions
+            ->merge($viaCategories)
+            ->unique('id')
+            ->filter(fn (Promotion $promotion) => $promotion->isCurrentlyValid())
+            ->values();
     }
 }

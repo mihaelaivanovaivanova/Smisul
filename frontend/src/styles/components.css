@@ -1,0 +1,291 @@
+/* Bespoke storefront components not covered by a plain Bootstrap reskin. */
+
+/* ---- Brand / logo ---- */
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-forest-dark);
+  text-decoration: none;
+}
+
+.brand-mark__icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.brand-mark__word {
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Hero ---- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 80% at 85% 0%, rgba(168, 80, 47, 0.12), transparent 60%),
+    radial-gradient(ellipse 70% 90% at 10% 100%, rgba(51, 64, 46, 0.1), transparent 60%),
+    var(--color-sand);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero__eyebrow {
+  color: var(--color-terracotta);
+}
+
+.hero__title {
+  font-size: var(--fs-3xl);
+  line-height: 1.1;
+}
+
+/* ---- Icon tiles (benefits/trust/delivery) ---- */
+
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-forest);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.icon-tile--muted {
+  background-color: var(--color-sand);
+  color: var(--color-forest);
+}
+
+/* ---- Benefit / usage-step cards ---- */
+
+.benefit-card,
+.step-card {
+  height: 100%;
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.step-card__index {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  color: var(--color-terracotta);
+  line-height: 1;
+}
+
+/* ---- Trust list ---- */
+
+.trust-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trust-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.trust-list .icon-tile,
+.trust-list .icon-tile--muted {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* ---- Product price block ---- */
+
+.price {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.price__current {
+  font-family: var(--font-heading);
+  color: var(--color-forest-dark);
+}
+
+.price__current.is-sale {
+  color: var(--color-terracotta);
+}
+
+.price--lg .price__current {
+  font-size: var(--fs-2xl);
+}
+
+.price--sm .price__current {
+  font-size: var(--fs-md);
+  font-family: var(--font-body);
+  font-weight: 700;
+}
+
+.price__compare {
+  color: var(--color-muted-light);
+  text-decoration: line-through;
+  font-size: 0.9em;
+}
+
+.price__unavailable {
+  color: var(--color-muted);
+}
+
+/* ---- Badges: stock + promotion ---- */
+
+.badge-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.badge-stock--in {
+  background-color: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+
+.badge-stock--low {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-fg);
+}
+
+.badge-stock--out,
+.badge-stock--unknown {
+  background-color: var(--color-neutral-bg);
+  color: var(--color-neutral-fg);
+}
+
+.badge-promotion {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-fg);
+}
+
+/* ---- Variant / package picker ---- */
+
+.variant-picker__option {
+  border-radius: var(--radius-pill) !important;
+}
+
+/* ---- Product gallery ---- */
+
+.gallery__main {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.gallery__thumb {
+  border-color: var(--color-border) !important;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.gallery__thumb--active {
+  border-color: var(--color-forest) !important;
+  border-width: 2px !important;
+}
+
+.gallery__placeholder {
+  border: 1px dashed var(--color-border);
+  color: var(--color-muted);
+}
+
+/* ---- Product cards (grid) ---- */
+
+.product-card__image-wrap {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.product-card__title {
+  color: var(--color-forest-dark);
+}
+
+/* ---- Media extras: video / PDF blocks ---- */
+
+.media-block {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.file-chip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-gold);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ---- Loading / error / empty states ---- */
+
+.state-block {
+  text-align: center;
+  padding-block: var(--space-7);
+  color: var(--color-muted);
+}
+
+.state-block__spinner {
+  color: var(--color-forest);
+}
+
+.state-block__title {
+  color: var(--color-forest-dark);
+}
+
+/* ---- FAQ ---- */
+
+.faq-question {
+  font-family: var(--font-body);
+}
+
+/* ---- Decorative placeholder visual (used instead of stock photography) ---- */
+
+.placeholder-visual {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(139, 150, 120, 0.35), transparent 55%),
+    radial-gradient(circle at 75% 70%, rgba(168, 80, 47, 0.25), transparent 55%),
+    var(--color-sand);
+  border: 1px solid var(--color-border);
+}
+
+.placeholder-visual__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+  text-align: center;
+  padding: var(--space-3);
+}

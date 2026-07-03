@@ -16,6 +16,15 @@ export interface Inventory {
   is_low_stock: boolean;
 }
 
+export interface Media {
+  id: number;
+  url: string;
+  mime_type: string | null;
+  alt_text: string | null;
+  is_primary: boolean;
+  sort_order: number;
+}
+
 export interface ProductVariant {
   id: number;
   sku: string;
@@ -25,14 +34,6 @@ export interface ProductVariant {
   status: VariantStatus;
   prices: Price[];
   inventory: Inventory | null;
-}
-
-export interface Media {
-  id: number;
-  url: string;
-  alt_text: string | null;
-  is_primary: boolean;
-  sort_order: number;
 }
 
 export interface Seo {
@@ -68,6 +69,7 @@ export interface Product {
   variants: ProductVariant[];
   media: Media[];
   seo: Seo | null;
+  active_promotions?: Promotion[];
 }
 
 export interface Promotion {

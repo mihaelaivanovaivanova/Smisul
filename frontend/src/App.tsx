@@ -1,8 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import PublicLayout from './components/layout/PublicLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
 import HomePage from './pages/HomePage';
+import ProductPage from './pages/ProductPage';
+import CategoryPage from './pages/CategoryPage';
+import SearchPage from './pages/SearchPage';
+import NotFoundPage from './pages/NotFoundPage';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -12,10 +16,12 @@ import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
   return (
-    <>
-      <Navbar />
-      <Routes>
+    <Routes>
+      <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/products/:slug" element={<ProductPage />} />
+        <Route path="/categories/:slug" element={<CategoryPage />} />
+        <Route path="/search" element={<SearchPage />} />
 
         <Route element={<GuestRoute />}>
           <Route path="/register" element={<RegisterPage />} />
@@ -29,7 +35,9 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
-      </Routes>
-    </>
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }

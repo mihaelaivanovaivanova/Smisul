@@ -24,9 +24,11 @@ class ProductController extends Controller
 
     public function show(string $slug): ProductResource
     {
+        // findBySlug() already eager-loads everything ProductResource needs
+        // (see EloquentProductRepository) — no further ->load() required.
         $product = $this->products->findBySlug($slug, publishedOnly: true);
 
-        return new ProductResource($product->load(['categories', 'variants.prices', 'variants.inventory', 'media', 'seo']));
+        return new ProductResource($product);
     }
 
     public function variants(string $slug)

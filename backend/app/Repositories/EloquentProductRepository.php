@@ -16,7 +16,7 @@ class EloquentProductRepository implements ProductRepositoryInterface
     public function findBySlug(string $slug, bool $publishedOnly = true): ?Product
     {
         return $this->baseQuery($publishedOnly)
-            ->with(['categories', 'variants.inventory', 'variants.prices', 'media', 'seo'])
+            ->with(['categories.promotions', 'variants.inventory', 'variants.prices', 'media', 'seo', 'promotions'])
             ->where('slug', $slug)
             ->first();
     }

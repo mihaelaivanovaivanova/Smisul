@@ -1,4 +1,4 @@
-import type { Currency, Media, Price, Product, ProductVariant } from '../types/product';
+import type { Currency, Media, Price, Product, ProductVariant, Promotion } from '../types/product';
 
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
   BGN: 'лв.',
@@ -32,7 +32,46 @@ export function sortVariantsByPackSize(variants: ProductVariant[]): ProductVaria
   return [...variants].sort((a, b) => a.pack_size - b.pack_size);
 }
 
-/** The primary product image, or the first image as a fallback. */
+function sortMedia(media: Media[]): Media[] {
+  return [...media].sort((a, b) => a.sort_order - b.sort_order);
+}
+
+/**
+ * Image media for a product's gallery, primary image first. Media with no
+ * mime_type on record (older/seed data predating that field) is treated as
+ * an image rather than hidden, so existing catalog entries still render.
+ */
+export function getGalleryImages(product: Product): Media[] {
+  const images = sortMedia(product.media.filter((media) => media.mime_type?.startsWith('image/') ?? true));
+  const primaryIndex = images.findIndex((image) => image.is_primary);
+
+  if (primaryIndex <= 0) {
+    return images;
+  }
+
+  const [primary] = images.splice(primaryIndex, 1);
+  return [primary, ...images];
+}
+
+/** The primary product image, or the first gallery image as a fallback. */
 export function getPrimaryImage(product: Product): Media | undefined {
-  return product.media.find((media) => media.is_primary) ?? product.media[0];
+  return getGalleryImages(product)[0];
+}
+
+export function getVideos(product: Product): Media[] {
+  return sortMedia(product.media.filter((media) => media.mime_type?.startsWith('video/') ?? false));
+}
+
+export function getDownloads(product: Product): Media[] {
+  return sortMedia(product.media.filter((media) => media.mime_type === 'application/pdf'));
+}
+
+/** The first currently-valid promotion applying to this product, if any — for badge display. */
+export function getActivePromotion(product: Product): Promotion | undefined {
+  return product.active_promotions?.[0];
+}
+
+/** Display label for a promotion's discount, e.g. "-20%" or "-5.00 лв." */
+export function formatPromotionValue(promotion: Promotion): string {
+  return promotion.type === 'percentage' ? `-${promotion.value}%` : `-${formatPrice(promotion.value)}`;
 }

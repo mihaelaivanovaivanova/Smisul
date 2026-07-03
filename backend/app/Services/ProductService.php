@@ -13,10 +13,11 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class ProductService
 {
     private const DEFAULT_EAGER_LOAD = [
-        'categories',
+        'categories.promotions',
         'variants.prices',
         'variants.inventory',
         'media',
+        'promotions',
     ];
 
     public function __construct(

@@ -12,6 +12,7 @@ final readonly class OrderFilterData
         public string $sort = 'newest',
         public int $page = 1,
         public int $perPage = 15,
+        public ?int $userId = null,
     ) {}
 
     /**
@@ -27,6 +28,7 @@ final readonly class OrderFilterData
             sort: $data['sort'] ?? 'newest',
             page: (int) ($data['page'] ?? 1),
             perPage: min((int) ($data['per_page'] ?? 15), 100),
+            userId: isset($data['user_id']) ? (int) $data['user_id'] : null,
         );
     }
 }

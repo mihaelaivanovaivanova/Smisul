@@ -1,12 +1,18 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
+use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
+use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVariantController;
 use App\Http\Controllers\Api\V1\Admin\PromotionController as AdminPromotionController;
+use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\V1\Auth\NewPasswordController;
@@ -176,5 +182,22 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
+
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.show');
+
+        Route::get('/customers', [AdminUserController::class, 'index'])->name('customers.index');
+        Route::get('/customers/{user}', [AdminUserController::class, 'show'])->name('customers.show');
+
+        Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.show');
+        Route::put('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
+
+        Route::get('/legal-documents', [AdminLegalDocumentController::class, 'index'])->name('legal-documents.index');
+        Route::post('/legal-documents', [AdminLegalDocumentController::class, 'store'])->name('legal-documents.store');
+
+        Route::get('/media', [AdminMediaController::class, 'index'])->name('media.index');
+        Route::post('/media/{media}', [AdminMediaController::class, 'replace'])->name('media.replace');
+        Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');
+
+        Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
     });
 });

@@ -8,13 +8,17 @@ use App\Http\Requests\Category\StoreCategoryRequest;
 use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use App\Services\AdminActionLogger;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
 class CategoryController extends Controller
 {
-    public function __construct(private readonly CategoryService $categories) {}
+    public function __construct(
+        private readonly CategoryService $categories,
+        private readonly AdminActionLogger $actionLogger,
+    ) {}
 
     public function index()
     {
@@ -24,6 +28,8 @@ class CategoryController extends Controller
     public function store(StoreCategoryRequest $request): JsonResponse
     {
         $category = $this->categories->create(CategoryData::fromArray($request->validated()));
+
+        $this->actionLogger->log($request->user(), 'category.created', $category);
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
     }
@@ -37,12 +43,16 @@ class CategoryController extends Controller
     {
         $category = $this->categories->update($category, CategoryData::fromArray($request->validated()));
 
+        $this->actionLogger->log($request->user(), 'category.updated', $category);
+
         return new CategoryResource($category);
     }
 
     public function destroy(Category $category): Response
     {
         $this->authorize('delete', $category);
+
+        $this->actionLogger->log(request()->user(), 'category.deleted', $category);
 
         $this->categories->delete($category);
 

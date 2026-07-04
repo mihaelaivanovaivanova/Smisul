@@ -289,3 +289,16 @@
   text-align: center;
   padding: var(--space-3);
 }
+
+/* ---- Admin panel ---- */
+/* Plain Bootstrap by design (see Sprint 9) — only structural layout rules live here. */
+
+.admin-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.admin-sidebar__link.active {
+  font-weight: 600;
+  background-color: var(--bs-tertiary-bg);
+}

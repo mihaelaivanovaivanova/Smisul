@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import PublicLayout from './components/layout/PublicLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
+import AdminRoute from './components/admin/AdminRoute';
+import AdminLayout from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import CategoryPage from './pages/CategoryPage';
@@ -21,6 +23,17 @@ import OrdersPage from './pages/OrdersPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailedPage from './pages/PaymentFailedPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
+import DashboardPage from './pages/admin/DashboardPage';
+import ProductsPage from './pages/admin/ProductsPage';
+import CategoriesPage from './pages/admin/CategoriesPage';
+import PromotionsPage from './pages/admin/PromotionsPage';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import OrderDetailPage from './pages/admin/OrderDetailPage';
+import CustomersPage from './pages/admin/CustomersPage';
+import CustomerDetailPage from './pages/admin/CustomerDetailPage';
+import MediaLibraryPage from './pages/admin/MediaLibraryPage';
+import SettingsPage from './pages/admin/SettingsPage';
+import LogsPage from './pages/admin/LogsPage';
 
 export default function App() {
   return (
@@ -53,6 +66,22 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
+      </Route>
+
+      <Route element={<AdminRoute />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/:orderId" element={<OrderDetailPage />} />
+          <Route path="customers" element={<CustomersPage />} />
+          <Route path="customers/:customerId" element={<CustomerDetailPage />} />
+          <Route path="media" element={<MediaLibraryPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="logs" element={<LogsPage />} />
+        </Route>
       </Route>
     </Routes>
   );

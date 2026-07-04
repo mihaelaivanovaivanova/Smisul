@@ -115,6 +115,20 @@ class Order extends Model
         return $this->hasOne(Shipment::class);
     }
 
+    /**
+     * A HasMany, not a HasOne — retrying a failed/cancelled payment mints a
+     * fresh attempt rather than reusing the old row (see PaymentService),
+     * so an order can genuinely have several. Admins see the full history;
+     * PaymentService::latestForOrder() is still the source of truth for
+     * "what's the current one".
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function isGuestOrder(): bool
     {
         return $this->user_id === null;

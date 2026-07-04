@@ -46,6 +46,17 @@ class OrderService
         'statusHistories.changedBy',
     ];
 
+    /**
+     * Adds payment attempts and shipment/tracking to the base eager-load
+     * list — admin-only, since the customer-facing endpoints already have
+     * dedicated Payment/Shipment endpoints and don't need them embedded.
+     */
+    public const ADMIN_EAGER_LOAD = [
+        ...self::EAGER_LOAD,
+        'payments',
+        'shipment.statusEvents',
+    ];
+
     public function __construct(
         private readonly CartPricingService $pricing,
         private readonly InventoryService $inventory,
@@ -264,6 +275,10 @@ class OrderService
     {
         $query = Order::query()->with('items');
 
+        if ($filters->userId !== null) {
+            $query->where('user_id', $filters->userId);
+        }
+
         if ($filters->search !== null && $filters->search !== '') {
             $term = "%{$filters->search}%";
             $query->where(function ($query) use ($term) {
@@ -322,7 +337,19 @@ class OrderService
                 ->all(),
             'total_revenue' => (float) Order::query()->whereIn('status', $revenueStatuses)->sum('grand_total'),
             'orders_today' => Order::query()->whereDate('created_at', now()->toDateString())->count(),
+            'revenue_today' => (float) Order::query()
+                ->whereIn('status', $revenueStatuses)
+                ->whereDate('created_at', now()->toDateString())
+                ->sum('grand_total'),
         ];
+    }
+
+    /**
+     * @return list<Order>
+     */
+    public function latest(int $limit = 10): array
+    {
+        return Order::query()->latest()->take($limit)->get()->all();
     }
 
     /**

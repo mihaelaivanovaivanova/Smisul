@@ -7,7 +7,7 @@ use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OrderIndexRequest;
 use App\Http\Requests\Admin\UpdateOrderStatusRequest;
-use App\Http\Resources\OrderResource;
+use App\Http\Resources\Admin\OrderResource;
 use App\Models\Order;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
@@ -30,7 +30,7 @@ class OrderController extends Controller
 
     public function show(Order $order): OrderResource
     {
-        return new OrderResource($order->load(OrderService::EAGER_LOAD));
+        return new OrderResource($order->load(OrderService::ADMIN_EAGER_LOAD));
     }
 
     /**
@@ -50,7 +50,7 @@ class OrderController extends Controller
             ? $this->orders->cancel($order, $admin, $note)
             : $this->orderStatus->transitionTo($order, $status, $admin, $note);
 
-        return new OrderResource($updated->load(OrderService::EAGER_LOAD));
+        return new OrderResource($updated->load(OrderService::ADMIN_EAGER_LOAD));
     }
 
     public function statistics(): JsonResponse

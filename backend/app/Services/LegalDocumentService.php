@@ -51,4 +51,37 @@ class LegalDocumentService
 
         return $accepted;
     }
+
+    /**
+     * All versions of every document type, newest first — the admin
+     * history view. Unlike current(), this is not filtered to is_current.
+     *
+     * @return Collection<int, LegalDocument>
+     */
+    public function all(): Collection
+    {
+        return LegalDocument::query()->orderByDesc('published_at')->get();
+    }
+
+    /**
+     * Publishes a new version of a document type: inserts a new row and
+     * flips is_current on it, while unsetting is_current on every other
+     * row of that type. Never mutates an existing version in place, since
+     * past orders' OrderLegalAcceptance rows point at specific versions.
+     */
+    public function publish(LegalDocumentType $type, string $version, string $title, ?string $content): LegalDocument
+    {
+        return LegalDocument::query()->getConnection()->transaction(function () use ($type, $version, $title, $content) {
+            LegalDocument::query()->where('type', $type)->update(['is_current' => false]);
+
+            return LegalDocument::query()->create([
+                'type' => $type,
+                'version' => $version,
+                'title' => $title,
+                'content' => $content,
+                'is_current' => true,
+                'published_at' => now(),
+            ]);
+        });
+    }
 }

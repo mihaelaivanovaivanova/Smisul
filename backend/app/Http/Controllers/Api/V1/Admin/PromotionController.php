@@ -8,13 +8,17 @@ use App\Http\Requests\Promotion\StorePromotionRequest;
 use App\Http\Requests\Promotion\UpdatePromotionRequest;
 use App\Http\Resources\PromotionResource;
 use App\Models\Promotion;
+use App\Services\AdminActionLogger;
 use App\Services\PromotionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
 class PromotionController extends Controller
 {
-    public function __construct(private readonly PromotionService $promotions) {}
+    public function __construct(
+        private readonly PromotionService $promotions,
+        private readonly AdminActionLogger $actionLogger,
+    ) {}
 
     public function index()
     {
@@ -26,6 +30,8 @@ class PromotionController extends Controller
     public function store(StorePromotionRequest $request): JsonResponse
     {
         $promotion = $this->promotions->create(PromotionData::fromArray($request->validated()));
+
+        $this->actionLogger->log($request->user(), 'promotion.created', $promotion);
 
         return (new PromotionResource($promotion))->response()->setStatusCode(201);
     }
@@ -41,12 +47,16 @@ class PromotionController extends Controller
     {
         $promotion = $this->promotions->update($promotion, PromotionData::fromArray($request->validated()));
 
+        $this->actionLogger->log($request->user(), 'promotion.updated', $promotion);
+
         return new PromotionResource($promotion);
     }
 
     public function destroy(Promotion $promotion): Response
     {
         $this->authorize('delete', $promotion);
+
+        $this->actionLogger->log(request()->user(), 'promotion.deleted', $promotion);
 
         $this->promotions->delete($promotion);
 

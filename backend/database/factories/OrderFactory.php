@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\Currency;
 use App\Enums\OrderStatus;
 use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,6 +25,8 @@ class OrderFactory extends Factory
         $city = fake()->city();
         $postalCode = fake()->postcode();
         $addressLine = fake()->streetAddress();
+        $carrier = fake()->randomElement(ShippingCarrier::cases());
+        $deliveryType = $carrier === ShippingCarrier::BoxNow ? ShippingDeliveryType::Locker : ShippingDeliveryType::Address;
 
         return [
             'order_number' => 'SM-'.now()->format('ymd').'-'.Str::upper(Str::random(6)),
@@ -49,8 +52,11 @@ class OrderFactory extends Factory
             'billing_postal_code' => $postalCode,
             'billing_address_line' => $addressLine,
             'billing_apartment' => null,
-            'shipping_carrier' => fake()->randomElement(ShippingCarrier::cases()),
-            'shipping_method_label' => 'Econt',
+            'shipping_carrier' => $carrier,
+            'shipping_delivery_type' => $deliveryType,
+            'shipping_office_id' => $deliveryType->requiresOfficeSelection() ? 'office-1' : null,
+            'shipping_office_name' => $deliveryType->requiresOfficeSelection() ? $carrier->label().' Office 1' : null,
+            'shipping_method_label' => $carrier->label(),
             'shipping_price' => $shippingPrice,
             'subtotal' => $subtotal,
             'discount_total' => 0,

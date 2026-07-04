@@ -16,13 +16,26 @@ export interface ShippingAddress {
 }
 
 export type ShippingCarrier = 'econt' | 'speedy' | 'box_now';
+export type ShippingDeliveryType = 'office' | 'locker' | 'address';
 
 export interface ShippingMethod {
   carrier: ShippingCarrier;
+  delivery_type: ShippingDeliveryType;
   label: string;
   description: string;
   price: number;
   currency: string;
+  estimated_delivery: string;
+  requires_office: boolean;
+}
+
+export interface ShippingOffice {
+  id: string;
+  carrier: ShippingCarrier;
+  type: ShippingDeliveryType;
+  name: string;
+  city: string;
+  address: string;
 }
 
 export interface LegalDocument {
@@ -60,6 +73,9 @@ export interface PlaceOrderPayload {
   };
   delivery_notes?: string;
   shipping_carrier: ShippingCarrier;
+  shipping_delivery_type: ShippingDeliveryType;
+  shipping_office_id?: string;
+  shipping_office_name?: string;
   legal_document_ids: number[];
 }
 
@@ -94,6 +110,30 @@ export interface OrderTotals {
   currency: string;
 }
 
+export interface ShipmentTrackingEvent {
+  status: string;
+  label: string;
+  description: string | null;
+  occurred_at: string;
+}
+
+export interface Shipment {
+  id: number;
+  order_id: number;
+  carrier: ShippingCarrier;
+  delivery_type: ShippingDeliveryType;
+  office_id: string | null;
+  office_name: string | null;
+  tracking_number: string | null;
+  status: string;
+  status_label: string;
+  price: number;
+  currency: string;
+  estimated_delivery_at: string | null;
+  events: ShipmentTrackingEvent[];
+  created_at: string;
+}
+
 export interface Order {
   id: number;
   order_number: string;
@@ -104,7 +144,14 @@ export interface Order {
   billing_same_as_shipping: boolean;
   billing_address: ShippingAddress;
   delivery_notes: string | null;
-  shipping: { carrier: ShippingCarrier; label: string; price: number };
+  shipping: {
+    carrier: ShippingCarrier;
+    delivery_type: ShippingDeliveryType | null;
+    office_id: string | null;
+    office_name: string | null;
+    label: string;
+    price: number;
+  };
   items: OrderItem[];
   totals: OrderTotals;
   legal_acceptances?: { type: string; version: string; accepted_at: string }[];

@@ -57,6 +57,9 @@ class OrderCreationTest extends TestCase
                 'address_line' => 'ul. Vitosha 1',
             ],
             'shipping_carrier' => 'box_now',
+            'shipping_delivery_type' => 'locker',
+            'shipping_office_id' => 'locker-1',
+            'shipping_office_name' => 'BOX NOW Sofia Center',
             'legal_document_ids' => $overrides['legal_document_ids'] ?? $this->acceptAllCurrentLegalDocuments(),
         ], $overrides);
     }

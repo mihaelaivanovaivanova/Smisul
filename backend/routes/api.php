@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
 use App\Http\Controllers\Api\V1\Payment\PaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ShipmentController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -107,6 +108,8 @@ Route::prefix('v1')->group(function () {
     // placing an order doesn't require an account.
     Route::prefix('checkout')->group(function () {
         Route::get('/shipping-methods', [CheckoutController::class, 'shippingMethods'])->name('checkout.shipping-methods');
+        Route::get('/shipping-quote', [CheckoutController::class, 'shippingQuote'])->name('checkout.shipping-quote');
+        Route::get('/shipping-offices', [CheckoutController::class, 'shippingOffices'])->name('checkout.shipping-offices');
         Route::get('/legal-documents', [CheckoutController::class, 'legalDocuments'])->name('checkout.legal-documents');
         Route::post('/orders', [CheckoutController::class, 'placeOrder'])
             ->middleware('throttle:checkout')
@@ -121,6 +124,11 @@ Route::prefix('v1')->group(function () {
     // via the guest_access_token minted at placement — see OrderController.
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
+
+    // Shipment tracking: same ownership rules as the order it belongs to
+    // (see ShipmentController::authorizeAccess) — no auth:sanctum
+    // middleware, since guests place and track orders too.
+    Route::get('/orders/{order}/shipment', [ShipmentController::class, 'show'])->name('orders.shipment');
 
     // Payments: same ownership rules as the order they belong to (see
     // PaymentController::authorizeAccess) — no auth:sanctum middleware,

@@ -305,6 +305,13 @@ export const checkout = {
     title: 'Начин на доставка',
     loading: 'Зареждане на начините за доставка…',
     loadError: 'Неуспешно зареждане на начините за доставка.',
+    estimatedDeliveryPrefix: 'Очаквана доставка:',
+    officeLabel: 'Офис / автомат',
+    officePlaceholder: 'Избери офис или автомат',
+    officeLoading: 'Зареждане на офиси…',
+    officeLoadError: 'Неуспешно зареждане на офисите.',
+    officeEmpty: 'Няма намерени офиси за този град. Опитай с друг град.',
+    officeRequired: 'Моля, избери офис или автомат.',
   },
 
   legal: {
@@ -350,6 +357,20 @@ export const checkout = {
   },
 
   redirectingToPayment: 'Пренасочване към страницата за плащане…',
+};
+
+export const tracking = {
+  seoTitle: `Проследяване на пратка — ${siteName}`,
+  title: 'Проследяване на пратка',
+  loading: 'Зареждане на информация за пратката…',
+  loadError: 'Неуспешно зареждане на информация за пратката.',
+  notShippedYet: 'Поръчката все още не е предадена на куриер.',
+  trackingNumberLabel: 'Товарителница №',
+  carrierLabel: 'Куриер',
+  officeLabel: 'Офис / автомат',
+  estimatedDeliveryLabel: 'Очаквана доставка',
+  historyHeading: 'История на пратката',
+  backToOrder: 'Обратно към поръчката',
 };
 
 export const payment = {

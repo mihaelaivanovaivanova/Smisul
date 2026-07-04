@@ -1,6 +1,14 @@
 import { apiClient, ensureCsrfCookie } from './client';
 import { getGuestCartToken } from '../services/guestCartToken';
-import type { LegalDocument, Order, PlaceOrderPayload, ShippingMethod } from '../types/checkout';
+import type {
+  LegalDocument,
+  Order,
+  PlaceOrderPayload,
+  Shipment,
+  ShippingCarrier,
+  ShippingMethod,
+  ShippingOffice,
+} from '../types/checkout';
 import type { PaginatedResponse } from '../types/product';
 import type { Payment } from '../types/payment';
 
@@ -13,6 +21,14 @@ function guestTokenHeaders(): Record<string, string> {
 
 export async function fetchShippingMethods(): Promise<ShippingMethod[]> {
   const { data } = await apiClient.get<{ data: ShippingMethod[] }>('/checkout/shipping-methods');
+  return data.data;
+}
+
+/** Offices/lockers for a carrier, optionally filtered by city (see the Sprint 8 shipping engine). */
+export async function fetchShippingOffices(carrier: ShippingCarrier, city?: string): Promise<ShippingOffice[]> {
+  const { data } = await apiClient.get<{ data: ShippingOffice[] }>('/checkout/shipping-offices', {
+    params: { carrier, city: city || undefined },
+  });
   return data.data;
 }
 
@@ -58,4 +74,16 @@ export async function fetchOrder(orderId: number, token?: string | null): Promis
 export async function fetchOrders(page = 1): Promise<PaginatedResponse<Order>> {
   const { data } = await apiClient.get<PaginatedResponse<Order>>('/orders', { params: { page } });
   return data;
+}
+
+/**
+ * The order's shipment + tracking history, if one has been created yet (see
+ * ShipmentController — this reads persisted state, it does not poll the
+ * carrier live). `token` mirrors fetchOrder's guest-access pattern.
+ */
+export async function fetchShipment(orderId: number, token?: string | null): Promise<Shipment> {
+  const { data } = await apiClient.get<{ data: Shipment }>(`/orders/${orderId}/shipment`, {
+    params: token ? { token } : undefined,
+  });
+  return data.data;
 }

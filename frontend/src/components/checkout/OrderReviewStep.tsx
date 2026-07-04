@@ -12,6 +12,7 @@ interface OrderReviewStepProps {
   billingSameAsShipping: boolean;
   billingAddress: ShippingAddress;
   shippingMethod: ShippingMethod | null;
+  officeName?: string | null;
   legalDocuments: LegalDocument[] | null;
   isLoadingLegalDocuments: boolean;
   legalDocumentsError: string | null;
@@ -27,6 +28,7 @@ export default function OrderReviewStep({
   billingSameAsShipping,
   billingAddress,
   shippingMethod,
+  officeName,
   legalDocuments,
   isLoadingLegalDocuments,
   legalDocumentsError,
@@ -98,6 +100,12 @@ export default function OrderReviewStep({
           <h2 className="h6 mb-2">{checkoutCopy.review.deliveryHeading}</h2>
           <p className="mb-0 small text-muted">
             {shippingMethod.label} — {formatPrice(shippingMethod.price, shippingMethod.currency as 'EUR')}
+            {officeName && (
+              <>
+                <br />
+                {officeName}
+              </>
+            )}
           </p>
         </div>
       )}

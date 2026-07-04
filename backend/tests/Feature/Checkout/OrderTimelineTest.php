@@ -56,6 +56,7 @@ class OrderTimelineTest extends TestCase
             'customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => '+359888123456'],
             'address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
             'shipping_carrier' => 'econt',
+            'shipping_delivery_type' => 'address',
             'legal_document_ids' => $this->acceptAllCurrentLegalDocuments(),
         ]);
 

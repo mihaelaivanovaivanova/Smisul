@@ -4,16 +4,19 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use Carbon\Carbon;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property OrderStatus $status
  * @property ShippingCarrier $shipping_carrier
+ * @property ?ShippingDeliveryType $shipping_delivery_type
  * @property Carbon $created_at
  */
 class Order extends Model
@@ -46,6 +49,9 @@ class Order extends Model
         'billing_address_line',
         'billing_apartment',
         'shipping_carrier',
+        'shipping_delivery_type',
+        'shipping_office_id',
+        'shipping_office_name',
         'shipping_method_label',
         'shipping_price',
         'subtotal',
@@ -59,6 +65,7 @@ class Order extends Model
         return [
             'status' => OrderStatus::class,
             'shipping_carrier' => ShippingCarrier::class,
+            'shipping_delivery_type' => ShippingDeliveryType::class,
             'billing_same_as_shipping' => 'boolean',
             'shipping_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
@@ -98,6 +105,14 @@ class Order extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class);
+    }
+
+    /**
+     * @return HasOne<Shipment, $this>
+     */
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(Shipment::class);
     }
 
     public function isGuestOrder(): bool

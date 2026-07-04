@@ -3,7 +3,7 @@ import LoadingState from '../LoadingState';
 import ErrorState from '../ErrorState';
 import { formatPrice } from '../../services/productCatalog';
 import { checkout as checkoutCopy } from '../../content/copy';
-import type { ShippingAddress, ShippingCarrier, ShippingMethod } from '../../types/checkout';
+import type { ShippingAddress, ShippingMethod, ShippingOffice } from '../../types/checkout';
 
 interface DeliveryStepProps {
   address: ShippingAddress;
@@ -15,9 +15,18 @@ interface DeliveryStepProps {
   shippingMethods: ShippingMethod[] | null;
   isLoadingShippingMethods: boolean;
   shippingMethodsError: string | null;
-  selectedCarrier: ShippingCarrier | null;
-  onSelectCarrier: (carrier: ShippingCarrier) => void;
+  selectedMethod: ShippingMethod | null;
+  onSelectMethod: (method: ShippingMethod) => void;
+  offices: ShippingOffice[] | null;
+  isLoadingOffices: boolean;
+  officesError: string | null;
+  selectedOfficeId: string | null;
+  onSelectOffice: (office: ShippingOffice) => void;
   errors: Record<string, string>;
+}
+
+function methodKey(method: ShippingMethod): string {
+  return `${method.carrier}:${method.delivery_type}`;
 }
 
 export default function DeliveryStep({
@@ -30,8 +39,13 @@ export default function DeliveryStep({
   shippingMethods,
   isLoadingShippingMethods,
   shippingMethodsError,
-  selectedCarrier,
-  onSelectCarrier,
+  selectedMethod,
+  onSelectMethod,
+  offices,
+  isLoadingOffices,
+  officesError,
+  selectedOfficeId,
+  onSelectOffice,
   errors,
 }: DeliveryStepProps) {
   return (
@@ -176,34 +190,79 @@ export default function DeliveryStep({
 
       {!isLoadingShippingMethods && shippingMethods && (
         <div className="d-flex flex-column gap-2">
-          {shippingMethods.map((method) => (
-            <label
-              key={method.carrier}
-              className={`d-flex align-items-center justify-content-between border rounded-3 p-3 ${
-                selectedCarrier === method.carrier ? 'border-primary' : ''
-              }`}
-              style={{ cursor: 'pointer' }}
-            >
-              <span className="d-flex align-items-center gap-2">
-                <input
-                  type="radio"
-                  name="shipping_carrier"
-                  className="form-check-input mt-0"
-                  checked={selectedCarrier === method.carrier}
-                  onChange={() => onSelectCarrier(method.carrier)}
-                />
-                <span>
-                  <span className="d-block fw-semibold">{method.label}</span>
-                  <span className="d-block text-muted small">{method.description}</span>
+          {shippingMethods.map((method) => {
+            const isSelected = selectedMethod !== null && methodKey(selectedMethod) === methodKey(method);
+
+            return (
+              <label
+                key={methodKey(method)}
+                className={`d-flex align-items-center justify-content-between border rounded-3 p-3 ${
+                  isSelected ? 'border-primary' : ''
+                }`}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="d-flex align-items-center gap-2">
+                  <input
+                    type="radio"
+                    name="shipping_method"
+                    className="form-check-input mt-0"
+                    checked={isSelected}
+                    onChange={() => onSelectMethod(method)}
+                  />
+                  <span>
+                    <span className="d-block fw-semibold">{method.label}</span>
+                    <span className="d-block text-muted small">{method.description}</span>
+                    <span className="d-block text-muted small">
+                      {checkoutCopy.delivery.estimatedDeliveryPrefix} {method.estimated_delivery}
+                    </span>
+                  </span>
                 </span>
-              </span>
-              <span className="fw-semibold">{formatPrice(method.price, method.currency as 'EUR')}</span>
-            </label>
-          ))}
+                <span className="fw-semibold">{formatPrice(method.price, method.currency as 'EUR')}</span>
+              </label>
+            );
+          })}
         </div>
       )}
 
       {errors.shipping_carrier && <div className="text-danger small mt-2">{errors.shipping_carrier}</div>}
+
+      {selectedMethod?.requires_office && (
+        <div className="mt-3">
+          <label htmlFor="checkout-office" className="form-label small fw-semibold">
+            {checkoutCopy.delivery.officeLabel}
+          </label>
+
+          {isLoadingOffices && <LoadingState message={checkoutCopy.delivery.officeLoading} />}
+          {!isLoadingOffices && officesError && <ErrorState message={officesError} />}
+
+          {!isLoadingOffices && !officesError && offices && offices.length === 0 && (
+            <div className="text-muted small">{checkoutCopy.delivery.officeEmpty}</div>
+          )}
+
+          {!isLoadingOffices && offices && offices.length > 0 && (
+            <select
+              id="checkout-office"
+              className={`form-select ${errors.shipping_office_id ? 'is-invalid' : ''}`}
+              value={selectedOfficeId ?? ''}
+              onChange={(event) => {
+                const office = offices.find((candidate) => candidate.id === event.target.value);
+                if (office) onSelectOffice(office);
+              }}
+            >
+              <option value="" disabled>
+                {checkoutCopy.delivery.officePlaceholder}
+              </option>
+              {offices.map((office) => (
+                <option key={office.id} value={office.id}>
+                  {office.name} — {office.address}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {errors.shipping_office_id && <div className="text-danger small mt-1">{errors.shipping_office_id}</div>}
+        </div>
+      )}
     </div>
   );
 }

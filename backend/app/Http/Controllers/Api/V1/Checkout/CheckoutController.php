@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Checkout;
 
 use App\DataTransferObjects\Checkout\PlaceOrderData;
+use App\DataTransferObjects\Shipping\ShippingQuoteRequestData;
+use App\Enums\ShippingDeliveryType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
+use App\Http\Requests\Checkout\ShippingQuoteRequest;
 use App\Http\Resources\Checkout\LegalDocumentResource;
 use App\Http\Resources\Checkout\ShippingMethodResource;
+use App\Http\Resources\Checkout\ShippingOfficeResource;
+use App\Http\Resources\Checkout\ShippingQuoteResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Cart;
@@ -15,6 +20,7 @@ use App\Services\LegalDocumentService;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\ShippingMethodService;
+use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -28,12 +34,53 @@ class CheckoutController extends Controller
         private readonly OrderService $orders,
         private readonly PaymentService $payments,
         private readonly ShippingMethodService $shippingMethods,
+        private readonly ShippingService $shipping,
         private readonly LegalDocumentService $legalDocuments,
     ) {}
 
     public function shippingMethods(): JsonResponse
     {
         return ShippingMethodResource::collection($this->shippingMethods->all())->response();
+    }
+
+    /**
+     * A live, destination-aware price/eta for a specific carrier + delivery
+     * type — distinct from shippingMethods() above, which lists the flat
+     * catalog rate with no network call (see ShippingService::quote()).
+     */
+    public function shippingQuote(ShippingQuoteRequest $request): JsonResponse
+    {
+        $quote = $this->shipping->quote(
+            $request->string('carrier')->toString(),
+            new ShippingQuoteRequestData(
+                deliveryType: ShippingDeliveryType::from($request->string('delivery_type')->toString()),
+                city: $request->string('city')->toString(),
+                postalCode: $request->string('postal_code')->toString(),
+                weightKg: $request->filled('weight_kg') ? (float) $request->input('weight_kg') : null,
+            ),
+        );
+
+        return (new ShippingQuoteResource($quote))->response();
+    }
+
+    /**
+     * Offices/lockers for a carrier, optionally filtered by city — used by
+     * the checkout office/locker selector once a carrier requiring one is
+     * chosen (see ShippingMethodData::requiresOffice).
+     */
+    public function shippingOffices(Request $request): JsonResponse
+    {
+        $request->validate([
+            'carrier' => ['required', 'string'],
+            'city' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $offices = $this->shipping->offices(
+            $request->string('carrier')->toString(),
+            $request->filled('city') ? $request->string('city')->toString() : null,
+        );
+
+        return ShippingOfficeResource::collection($offices)->response();
     }
 
     public function legalDocuments(): JsonResponse

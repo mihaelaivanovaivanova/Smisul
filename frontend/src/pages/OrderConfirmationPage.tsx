@@ -7,7 +7,7 @@ import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import Seo from '../components/Seo';
 import { formatPrice } from '../services/productCatalog';
-import { cart as cartCopy, checkout as checkoutCopy, orders as ordersCopy } from '../content/copy';
+import { cart as cartCopy, checkout as checkoutCopy, orders as ordersCopy, tracking as trackingCopy } from '../content/copy';
 import type { Order } from '../types/checkout';
 
 interface LocationState {
@@ -137,6 +137,9 @@ export default function OrderConfirmationPage() {
               >
                 {ordersCopy.downloadInvoice}
               </a>
+              <Link to={`/orders/${order.id}/tracking${token ? `?token=${token}` : ''}`} className="btn btn-outline-secondary">
+                {trackingCopy.title}
+              </Link>
               <Link to="/search" className="btn btn-outline-primary">
                 {checkoutCopy.confirmation.continueShopping}
               </Link>

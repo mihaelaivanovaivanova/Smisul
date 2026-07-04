@@ -2,59 +2,29 @@
 
 namespace App\Services;
 
-use App\DataTransferObjects\Checkout\ShippingMethodData;
-use App\Enums\Currency;
-use App\Enums\ShippingCarrier;
+use App\DataTransferObjects\Shipping\ShippingMethodData;
 
 /**
- * Generic, flat-rate shipping options — no carrier API is integrated (see
- * Sprint 5 scope). Real Econt/Speedy/BOX NOW rate quoting, office/locker
- * lookup, and label generation are future extension points: they'd live
- * behind this same all(...)/find(...) contract, most likely backed by an
- * HTTP client per carrier instead of the hardcoded list below. Nothing
- * calling this service (CheckoutController, OrderService) would need to
- * change shape when that happens.
+ * Thin facade kept for backward compatibility with CheckoutController and
+ * OrderService — both were built against all()/find() in Sprint 5, before
+ * real carrier integration existed. All actual carrier logic now lives
+ * behind ShippingService/ShippingProviderInterface (see Sprint 8); this
+ * class is just the seam so neither caller needed to change shape.
  */
 class ShippingMethodService
 {
+    public function __construct(private readonly ShippingService $shipping) {}
+
     /**
      * @return list<ShippingMethodData>
      */
     public function all(): array
     {
-        return [
-            new ShippingMethodData(
-                carrier: ShippingCarrier::Econt,
-                label: 'Econt',
-                description: 'Доставка до офис или адрес с Econt.',
-                price: 5.99,
-                currency: Currency::EUR->value,
-            ),
-            new ShippingMethodData(
-                carrier: ShippingCarrier::Speedy,
-                label: 'Speedy',
-                description: 'Доставка до офис или адрес със Speedy.',
-                price: 5.99,
-                currency: Currency::EUR->value,
-            ),
-            new ShippingMethodData(
-                carrier: ShippingCarrier::BoxNow,
-                label: 'BOX NOW',
-                description: 'Доставка до автомат на BOX NOW.',
-                price: 4.99,
-                currency: Currency::EUR->value,
-            ),
-        ];
+        return $this->shipping->availableMethods();
     }
 
-    public function find(string $carrier): ?ShippingMethodData
+    public function find(string $carrier, ?string $deliveryType = null): ?ShippingMethodData
     {
-        foreach ($this->all() as $method) {
-            if ($method->carrier->value === $carrier) {
-                return $method;
-            }
-        }
-
-        return null;
+        return $this->shipping->find($carrier, $deliveryType);
     }
 }

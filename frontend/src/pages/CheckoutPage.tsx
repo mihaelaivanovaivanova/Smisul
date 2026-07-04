@@ -4,7 +4,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
-import { fetchShippingMethods, fetchLegalDocuments } from '../api/checkout';
+import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments } from '../api/checkout';
 import { redirectToGateway } from '../api/payment';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
 import LoadingState from '../components/LoadingState';
@@ -20,7 +20,7 @@ import OrderReviewStep from '../components/checkout/OrderReviewStep';
 import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
-import type { CustomerInfo, ShippingAddress, ShippingCarrier } from '../types/checkout';
+import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
 
 const STEP_LABELS = [
   checkoutCopy.steps.customer,
@@ -62,7 +62,11 @@ export default function CheckoutPage() {
     address_line: '',
     apartment: '',
   });
-  const [shippingCarrier, setShippingCarrier] = useState<ShippingCarrier | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<ShippingMethod | null>(null);
+  const [selectedOffice, setSelectedOffice] = useState<ShippingOffice | null>(null);
+  const [offices, setOffices] = useState<ShippingOffice[] | null>(null);
+  const [isLoadingOffices, setIsLoadingOffices] = useState(false);
+  const [officesError, setOfficesError] = useState<string | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -78,6 +82,43 @@ export default function CheckoutPage() {
     [],
     checkoutCopy.legal.loadError,
   );
+
+  // Offices/lockers depend on both the chosen method (which carrier) and
+  // the shipping city already typed above — refetches whenever either
+  // changes, and clears out entirely for methods that don't need one
+  // (Address delivery).
+  useEffect(() => {
+    if (!selectedMethod?.requires_office) {
+      setOffices(null);
+      setSelectedOffice(null);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingOffices(true);
+    setOfficesError(null);
+
+    fetchShippingOffices(selectedMethod.carrier, address.city || undefined)
+      .then((result) => {
+        if (isMounted) setOffices(result);
+      })
+      .catch((error: unknown) => {
+        if (isMounted) setOfficesError(getErrorMessage(error, checkoutCopy.delivery.officeLoadError));
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingOffices(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMethod?.carrier, selectedMethod?.requires_office, address.city]);
+
+  function handleSelectMethod(method: ShippingMethod): void {
+    setSelectedMethod(method);
+    setSelectedOffice(null);
+  }
 
   // Prefills whatever the account already knows once it loads, without
   // clobbering anything the customer has already typed themselves.
@@ -132,7 +173,8 @@ export default function CheckoutPage() {
     if (!address.city.trim()) stepErrors['address.city'] = checkoutCopy.errors.cityRequired;
     if (!address.postal_code.trim()) stepErrors['address.postal_code'] = checkoutCopy.errors.postalCodeRequired;
     if (!address.address_line.trim()) stepErrors['address.address_line'] = checkoutCopy.errors.addressLineRequired;
-    if (!shippingCarrier) stepErrors.shipping_carrier = checkoutCopy.errors.shippingMethodRequired;
+    if (!selectedMethod) stepErrors.shipping_carrier = checkoutCopy.errors.shippingMethodRequired;
+    if (selectedMethod?.requires_office && !selectedOffice) stepErrors.shipping_office_id = checkoutCopy.delivery.officeRequired;
 
     if (!billingSameAsShipping) {
       if (!billingAddress.country.trim()) stepErrors['billing_address.country'] = checkoutCopy.errors.countryRequired;
@@ -176,7 +218,7 @@ export default function CheckoutPage() {
   }
 
   async function handlePlaceOrder(): Promise<void> {
-    if (!shippingCarrier || !legalDocuments) {
+    if (!selectedMethod || !legalDocuments) {
       return;
     }
 
@@ -219,7 +261,10 @@ export default function CheckoutPage() {
               apartment: billingAddress.apartment || undefined,
             },
         delivery_notes: deliveryNotes || undefined,
-        shipping_carrier: shippingCarrier,
+        shipping_carrier: selectedMethod.carrier,
+        shipping_delivery_type: selectedMethod.delivery_type,
+        shipping_office_id: selectedOffice?.id,
+        shipping_office_name: selectedOffice?.name,
         legal_document_ids: acceptedLegalDocumentIds,
       });
 
@@ -244,7 +289,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const selectedShippingMethod = shippingMethods?.find((method) => method.carrier === shippingCarrier) ?? null;
+  const selectedShippingMethod = selectedMethod;
 
   return (
     <div className="container py-4">
@@ -289,8 +334,13 @@ export default function CheckoutPage() {
                     shippingMethods={shippingMethods}
                     isLoadingShippingMethods={isLoadingShippingMethods}
                     shippingMethodsError={shippingMethodsError}
-                    selectedCarrier={shippingCarrier}
-                    onSelectCarrier={setShippingCarrier}
+                    selectedMethod={selectedMethod}
+                    onSelectMethod={handleSelectMethod}
+                    offices={offices}
+                    isLoadingOffices={isLoadingOffices}
+                    officesError={officesError}
+                    selectedOfficeId={selectedOffice?.id ?? null}
+                    onSelectOffice={setSelectedOffice}
                     errors={errors}
                   />
                 )}
@@ -303,6 +353,7 @@ export default function CheckoutPage() {
                     billingSameAsShipping={billingSameAsShipping}
                     billingAddress={billingAddress}
                     shippingMethod={selectedShippingMethod}
+                    officeName={selectedOffice?.name}
                     legalDocuments={legalDocuments}
                     isLoadingLegalDocuments={isLoadingLegalDocuments}
                     legalDocumentsError={legalDocumentsError}

@@ -70,6 +70,7 @@ class OrderFulfillmentTest extends TestCase
                 'address_line' => 'ul. Vitosha 1',
             ],
             'shipping_carrier' => 'econt',
+            'shipping_delivery_type' => 'address',
             'legal_document_ids' => $this->acceptAllCurrentLegalDocuments(),
         ]);
 

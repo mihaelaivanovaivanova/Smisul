@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Checkout;
 
 use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -47,6 +48,9 @@ class PlaceOrderRequest extends FormRequest
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
 
             'shipping_carrier' => ['required', 'string', Rule::in(array_column(ShippingCarrier::cases(), 'value'))],
+            'shipping_delivery_type' => ['required', 'string', Rule::in(array_column(ShippingDeliveryType::cases(), 'value'))],
+            'shipping_office_id' => ['required_unless:shipping_delivery_type,address', 'nullable', 'string', 'max:100'],
+            'shipping_office_name' => ['required_unless:shipping_delivery_type,address', 'nullable', 'string', 'max:255'],
 
             'legal_document_ids' => ['required', 'array', 'min:1'],
             'legal_document_ids.*' => ['integer', 'exists:legal_documents,id'],

@@ -57,6 +57,7 @@ class GuestCheckoutTest extends TestCase
                 'address_line' => 'ul. Vitosha 1',
             ],
             'shipping_carrier' => 'econt',
+            'shipping_delivery_type' => 'address',
             'legal_document_ids' => $overrides['legal_document_ids'] ?? $this->acceptAllCurrentLegalDocuments(),
         ], $overrides);
     }
@@ -67,10 +68,14 @@ class GuestCheckoutTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/shipping-methods');
 
         $response->assertOk();
-        $response->assertJsonCount(3, 'data');
-        $response->assertJsonFragment(['carrier' => 'econt']);
-        $response->assertJsonFragment(['carrier' => 'speedy']);
-        $response->assertJsonFragment(['carrier' => 'box_now']);
+        // Econt (office + address) + Speedy (office + address) + BOX NOW
+        // (locker only) — see ShippingProviderInterface::supportedDeliveryTypes().
+        $response->assertJsonCount(5, 'data');
+        $response->assertJsonFragment(['carrier' => 'econt', 'delivery_type' => 'office']);
+        $response->assertJsonFragment(['carrier' => 'econt', 'delivery_type' => 'address']);
+        $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'office']);
+        $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'address']);
+        $response->assertJsonFragment(['carrier' => 'box_now', 'delivery_type' => 'locker']);
     }
 
     #[Test]

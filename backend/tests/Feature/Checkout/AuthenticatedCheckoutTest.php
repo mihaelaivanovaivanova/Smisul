@@ -58,6 +58,7 @@ class AuthenticatedCheckoutTest extends TestCase
                 'address_line' => 'ul. Glavna 5',
             ],
             'shipping_carrier' => 'speedy',
+            'shipping_delivery_type' => 'address',
             'legal_document_ids' => $overrides['legal_document_ids'] ?? $this->acceptAllCurrentLegalDocuments(),
         ], $overrides);
     }

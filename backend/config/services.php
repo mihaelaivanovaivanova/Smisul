@@ -71,4 +71,35 @@ return [
         'webhook_url' => env('ICARD_WEBHOOK_URL'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Shipping providers (Econt, Speedy, BOX NOW)
+    |--------------------------------------------------------------------------
+    |
+    | Sandbox/demo configuration only — no real courier credentials exist
+    | yet. Each provider (see App\Services\Shipping) falls back to a flat
+    | rate when its API is unreachable, so checkout keeps working without
+    | these ever being filled in; only shipment creation/tracking require
+    | them to actually succeed.
+    |
+    */
+
+    'shipping' => [
+        'econt' => [
+            'base_url' => env('ECONT_BASE_URL', 'https://demo.econt.com/ee/services/'),
+            'username' => env('ECONT_USERNAME'),
+            'password' => env('ECONT_PASSWORD'),
+        ],
+        'speedy' => [
+            'base_url' => env('SPEEDY_BASE_URL', 'https://api.speedy.bg/v1/'),
+            'username' => env('SPEEDY_USERNAME'),
+            'password' => env('SPEEDY_PASSWORD'),
+        ],
+        'box_now' => [
+            'base_url' => env('BOX_NOW_BASE_URL', 'https://sandbox-api.boxnow.bg/'),
+            'client_id' => env('BOX_NOW_CLIENT_ID'),
+            'client_secret' => env('BOX_NOW_CLIENT_SECRET'),
+        ],
+    ],
+
 ];

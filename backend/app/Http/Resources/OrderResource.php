@@ -48,6 +48,9 @@ class OrderResource extends JsonResource
             'delivery_notes' => $this->delivery_notes,
             'shipping' => [
                 'carrier' => $this->shipping_carrier->value,
+                'delivery_type' => $this->shipping_delivery_type?->value,
+                'office_id' => $this->shipping_office_id,
+                'office_name' => $this->shipping_office_name,
                 'label' => $this->shipping_method_label,
                 'price' => (float) $this->shipping_price,
             ],

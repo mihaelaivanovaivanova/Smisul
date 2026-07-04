@@ -72,8 +72,12 @@ class OrderService
                 throw EmptyCartException::create();
             }
 
-            $shippingMethod = $this->shippingMethods->find($data->shippingCarrier)
-                ?? throw InvalidShippingMethodException::forCarrier($data->shippingCarrier);
+            $shippingMethod = $this->shippingMethods->find($data->shippingCarrier, $data->shippingDeliveryType)
+                ?? throw InvalidShippingMethodException::forCarrierAndDeliveryType($data->shippingCarrier, $data->shippingDeliveryType);
+
+            if ($shippingMethod->requiresOffice && $data->shippingOfficeId === null) {
+                throw InvalidShippingMethodException::officeRequired($data->shippingCarrier, $data->shippingDeliveryType);
+            }
 
             $acceptedDocuments = $this->legalDocuments->validateAcceptance($data->legalDocumentIds);
 
@@ -149,6 +153,9 @@ class OrderService
                 'billing_address_line' => $billingAddress->addressLine,
                 'billing_apartment' => $billingAddress->apartment,
                 'shipping_carrier' => $shippingMethod->carrier,
+                'shipping_delivery_type' => $shippingMethod->deliveryType,
+                'shipping_office_id' => $shippingMethod->requiresOffice ? $data->shippingOfficeId : null,
+                'shipping_office_name' => $shippingMethod->requiresOffice ? $data->shippingOfficeName : null,
                 'shipping_method_label' => $shippingMethod->label,
                 'shipping_price' => $shippingTotal,
                 'subtotal' => $subtotal,

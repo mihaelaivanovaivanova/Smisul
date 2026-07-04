@@ -14,6 +14,9 @@ final readonly class PlaceOrderData
         public ?ShippingAddressData $billingAddress,
         public ?string $deliveryNotes,
         public string $shippingCarrier,
+        public string $shippingDeliveryType,
+        public ?string $shippingOfficeId,
+        public ?string $shippingOfficeName,
         public array $legalDocumentIds,
     ) {}
 
@@ -31,6 +34,9 @@ final readonly class PlaceOrderData
             billingAddress: $billingSameAsShipping ? null : ShippingAddressData::fromArray($data['billing_address']),
             deliveryNotes: isset($data['delivery_notes']) ? (string) $data['delivery_notes'] : null,
             shippingCarrier: (string) $data['shipping_carrier'],
+            shippingDeliveryType: (string) $data['shipping_delivery_type'],
+            shippingOfficeId: isset($data['shipping_office_id']) ? (string) $data['shipping_office_id'] : null,
+            shippingOfficeName: isset($data['shipping_office_name']) ? (string) $data['shipping_office_name'] : null,
             legalDocumentIds: array_map('intval', $data['legal_document_ids']),
         );
     }

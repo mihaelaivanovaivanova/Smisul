@@ -97,19 +97,34 @@ class ShippingOfficeLookupTest extends TestCase
         $response->assertJsonFragment(['id' => 'BN1', 'type' => 'locker']);
     }
 
+    /**
+     * The fake response mirrors Speedy's real, confirmed shape (address is
+     * a nested object with fullAddressString — see
+     * https://api.speedy.bg/api/docs/, verified live during development).
+     * Speedy's real API requires userName/password in every request body
+     * (confirmed by the "invalid credentials" vs. "missing parameter"
+     * response difference during development) — without real credentials
+     * this always returns an empty list in practice, which
+     * offices_lookup_returns_an_empty_list_when_the_carrier_api_fails below
+     * also covers.
+     */
     #[Test]
     public function speedy_offices_are_listed(): void
     {
         Http::fake([
             'api.speedy.bg/*' => Http::response([
-                'offices' => [['id' => 'SP1', 'name' => 'Speedy Office Sofia', 'siteName' => 'Sofia', 'address' => 'bul. Bulgaria 1']],
+                'offices' => [[
+                    'id' => 'SP1',
+                    'name' => 'Speedy Office Sofia',
+                    'address' => ['fullAddressString' => 'bul. Bulgaria 1'],
+                ]],
             ]),
         ]);
 
         $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=speedy&city=Sofia');
 
         $response->assertOk();
-        $response->assertJsonFragment(['id' => 'SP1', 'carrier' => 'speedy']);
+        $response->assertJsonFragment(['id' => 'SP1', 'carrier' => 'speedy', 'address' => 'bul. Bulgaria 1']);
     }
 
     #[Test]

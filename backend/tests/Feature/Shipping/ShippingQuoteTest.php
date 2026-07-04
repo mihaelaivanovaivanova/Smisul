@@ -60,11 +60,21 @@ class ShippingQuoteTest extends TestCase
         $response->assertJsonPath('data.price', 5.99);
     }
 
+    /**
+     * The Speedy fake response mirrors their real, confirmed response shape
+     * (calculations[] array wrapping price/deliveryDeadline — see
+     * https://api.speedy.bg/api/docs/, verified live during development),
+     * not a flat guess.
+     */
     #[Test]
     public function speedy_and_box_now_quotes_use_their_own_endpoints(): void
     {
         Http::fake([
-            'api.speedy.bg/*' => Http::response(['price' => ['total' => 6.20, 'currency' => 'EUR'], 'estimatedDeliveryTime' => '1-2 дни']),
+            'api.speedy.bg/*' => Http::response([
+                'calculations' => [
+                    ['price' => ['total' => 6.20, 'currency' => 'EUR'], 'deliveryDeadline' => '2026-07-08T12:00:00+03:00'],
+                ],
+            ]),
             'sandbox-api.boxnow.bg/*' => Http::response(['price' => 4.50, 'currency' => 'EUR']),
         ]);
 

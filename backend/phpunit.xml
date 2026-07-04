@@ -32,5 +32,17 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+
+        <!-- Dedicated test-only RSA key pair (tests/Fixtures/icard) — never
+             the real iCard credentials from .env. The same pair signs
+             outbound requests and fake-signs inbound webhook payloads in
+             tests, standing in for both our key and iCard's. -->
+        <env name="ICARD_MID" value="000000000000000"/>
+        <env name="ICARD_MID_NAME" value="Test Shop"/>
+        <env name="ICARD_ORIGINATOR" value="1"/>
+        <env name="ICARD_KEY_INDEX" value="1"/>
+        <env name="ICARD_KEY_INDEX_RESP" value="1"/>
+        <env name="ICARD_PRIVATE_KEY_PATH" value="tests/Fixtures/icard/test_private_key.pem"/>
+        <env name="ICARD_PUBLIC_KEY_PATH" value="tests/Fixtures/icard/test_public_key.pem"/>
     </php>
 </phpunit>

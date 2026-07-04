@@ -37,21 +37,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | iCard Payment Gateway
+    | iCard Payment Gateway (IPG API, Redirect Checkout / IPGPurchase)
     |--------------------------------------------------------------------------
     |
-    | Placeholder configuration for the hosted-payment-page integration
-    | (see App\Services\Payments\ICardPaymentGateway). No real credentials
-    | exist yet — merchant_id/secret must be supplied before this can talk
-    | to iCard's actual sandbox or production environment.
+    | Matches iCard's real IPG API (protocol v4.5): requests are RSA-signed
+    | and submitted to IPG as a browser form POST, not a simple redirect
+    | URL — see App\Services\Payments\ICardPaymentGateway. Key files are
+    | never committed (see backend/.gitignore) — supply real paths via env.
     |
     */
 
     'icard' => [
-        'merchant_id' => env('ICARD_MERCHANT_ID'),
-        'secret' => env('ICARD_SECRET_KEY'),
+        'mid' => env('ICARD_MID'),
+        'mid_name' => env('ICARD_MID_NAME', 'Smisul'),
+        'originator' => env('ICARD_ORIGINATOR'),
+        'key_index' => env('ICARD_KEY_INDEX'),
+        'key_index_resp' => env('ICARD_KEY_INDEX_RESP'),
+        'ipg_version' => env('ICARD_IPG_VERSION', '4.5'),
+
+        // ISO 4217 numeric currency code for the MID's fixed settlement
+        // currency (978 = EUR) — IPG rejects a currency that doesn't match
+        // the MID, so this isn't derived per-payment.
+        'currency_numeric' => env('ICARD_CURRENCY_NUMERIC', '978'),
+
         'environment' => env('ICARD_ENVIRONMENT', 'sandbox'),
-        'base_url' => env('ICARD_BASE_URL', 'https://sandbox.icard.example/api'),
+        'base_url' => env('ICARD_BASE_URL', 'https://dev-ipg.icards.eu/sandbox/'),
+
+        'private_key_path' => env('ICARD_PRIVATE_KEY_PATH', storage_path('icard/private_key.pem')),
+        'public_key_path' => env('ICARD_PUBLIC_KEY_PATH', storage_path('icard/public_key.pem')),
+
         'return_url' => env('ICARD_RETURN_URL'),
         'cancel_url' => env('ICARD_CANCEL_URL'),
         'webhook_url' => env('ICARD_WEBHOOK_URL'),

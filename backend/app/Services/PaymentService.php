@@ -36,24 +36,19 @@ class PaymentService
     ) {}
 
     /**
-     * Idempotent: an order with an existing non-final payment attempt gets
-     * that same attempt back rather than a duplicate — re-clicking "pay"
-     * (double form submit, browser back-button-then-resubmit) doesn't
-     * create a second gateway session or a second AwaitingPayment
-     * transition (which would fail anyway, since Order status only leaves
-     * Pending once).
+     * Always mints a fresh attempt (new transaction_reference, freshly
+     * signed gateway fields) rather than reusing a prior non-final payment.
+     * iCard's IPG API keys duplicate-transmission rejection off MID+OrderID
+     * (our transaction_reference) — resubmitting the same OrderID a second
+     * time, which is exactly what a "retry" after Failed/Cancelled does, is
+     * rejected by iCard itself ("payment process interrupted"), so an
+     * order-level idempotency shortcut here would be actively wrong for its
+     * own purpose. The old, already-submitted Payment row is simply left
+     * behind as a non-final, never-confirmed attempt — harmless audit
+     * clutter, not a live session anything still points at.
      */
     public function initiate(Order $order): Payment
     {
-        $existing = Payment::where('order_id', $order->id)
-            ->whereIn('status', [PaymentStatus::Pending, PaymentStatus::Initiated, PaymentStatus::Authorized])
-            ->latest()
-            ->first();
-
-        if ($existing !== null) {
-            return $existing;
-        }
-
         return DB::transaction(function () use ($order) {
             $payment = Payment::create([
                 'order_id' => $order->id,
@@ -72,15 +67,15 @@ class PaymentService
             $payment->update([
                 'status' => PaymentStatus::Initiated,
                 'provider_reference' => $session->providerReference,
-                'redirect_url' => $session->redirectUrl,
-                'raw_response' => $session->rawResponse,
+                'redirect_url' => $session->actionUrl,
+                'raw_response' => ['fields' => $session->formFields] + $session->rawResponse,
                 'initiated_at' => now(),
             ]);
 
             $payment->transactions()->create([
                 'type' => 'initiated',
                 'status' => PaymentStatus::Initiated,
-                'raw_payload' => $session->rawResponse,
+                'raw_payload' => ['action_url' => $session->actionUrl, 'fields' => $session->formFields],
             ]);
 
             if ($order->status === OrderStatus::Pending) {
@@ -214,8 +209,8 @@ class PaymentService
             PaymentWebhookLog::create([
                 'payment_id' => null,
                 'provider' => $this->gateway->provider(),
-                'event_type' => $rawPayload['event'] ?? null,
-                'provider_reference' => $rawPayload['reference'] ?? null,
+                'event_type' => $rawPayload['Operation']['Type'] ?? $rawPayload['Payment']['Status'] ?? null,
+                'provider_reference' => $rawPayload['Payment']['OrderId'] ?? null,
                 'idempotency_key' => $idempotencyKey,
                 'signature_valid' => false,
                 'payload' => $rawPayload,

@@ -16,6 +16,7 @@ export interface Payment {
   amount: number;
   currency: string;
   redirect_url: string | null;
+  form_fields: Record<string, string> | null;
   initiated_at: string | null;
   completed_at: string | null;
 }

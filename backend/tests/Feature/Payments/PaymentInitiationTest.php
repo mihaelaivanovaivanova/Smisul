@@ -72,6 +72,12 @@ class PaymentInitiationTest extends TestCase
         $this->assertNotNull($response->json('payment.redirect_url'));
         $this->assertStringContainsString('icard', $response->json('payment.redirect_url'));
 
+        $fields = $response->json('payment.form_fields');
+        $this->assertIsArray($fields);
+        $this->assertSame('IPGPurchase', $fields['IPGmethod']);
+        $this->assertArrayHasKey('Signature', $fields);
+        $this->assertNotEmpty($fields['Signature']);
+
         $this->assertDatabaseHas('payments', [
             'order_id' => $response->json('data.id'),
             'status' => PaymentStatus::Initiated->value,
@@ -82,19 +88,28 @@ class PaymentInitiationTest extends TestCase
         ]);
     }
 
+    /**
+     * Re-initiating (e.g. the "retry payment" flow after Failed/Cancelled)
+     * must mint a fresh attempt with its own transaction_reference — iCard
+     * rejects a resubmission of the same MID+OrderID it already saw, so
+     * reusing the prior payment record here would break every retry.
+     */
     #[Test]
-    public function re_initiating_an_order_with_an_in_flight_payment_is_idempotent(): void
+    public function re_initiating_an_order_mints_a_fresh_payment_attempt(): void
     {
         $placed = $this->placeOrder();
         $orderId = $placed->json('data.id');
         $token = $placed->json('meta.guest_access_token');
         $firstPaymentId = $placed->json('payment.id');
+        $firstReference = Payment::find($firstPaymentId)->transaction_reference;
 
         $response = $this->postJson("/api/v1/payments/{$orderId}/initiate?token={$token}");
 
         $response->assertOk();
-        $response->assertJsonPath('data.id', $firstPaymentId);
-        $this->assertDatabaseCount('payments', 1);
+        $response->assertJsonPath('data.status', 'initiated');
+        $this->assertNotSame($firstPaymentId, $response->json('data.id'));
+        $this->assertNotSame($firstReference, Payment::find($response->json('data.id'))->transaction_reference);
+        $this->assertDatabaseCount('payments', 2);
     }
 
     #[Test]

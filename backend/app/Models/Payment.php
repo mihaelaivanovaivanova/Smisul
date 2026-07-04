@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property PaymentProvider $provider
  * @property PaymentStatus $status
+ * @property ?array<string, mixed> $raw_response
  * @property ?Carbon $initiated_at
  * @property ?Carbon $completed_at
  */

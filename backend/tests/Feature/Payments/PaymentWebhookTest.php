@@ -15,11 +15,13 @@ use App\Models\ProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Feature\Payments\Concerns\SignsICardCallbacks;
 use Tests\TestCase;
 
 class PaymentWebhookTest extends TestCase
 {
     use RefreshDatabase;
+    use SignsICardCallbacks;
 
     private function purchasableVariant(int $stock = 10): ProductVariant
     {
@@ -69,15 +71,40 @@ class PaymentWebhookTest extends TestCase
     }
 
     /**
-     * @param  array<string, mixed>  $payload
+     * Builds and signs a real-shaped iCard callback body (nested
+     * Payment/Operation objects — see ICardPaymentGateway::parseWebhook()).
      */
-    private function postWebhook(array $payload): TestResponse
-    {
-        $secret = (string) config('services.icard.secret');
-        $body = json_encode($payload);
-        $signature = hash_hmac('sha256', $body, $secret);
+    private function postWebhook(
+        Payment $payment,
+        string $paymentStatus,
+        string $operationType = 'authorization',
+        string $operationStatus = 'success',
+        ?float $amountOverride = null,
+    ): TestResponse {
+        $payload = [
+            'Payment' => [
+                'OrderId' => $payment->transaction_reference,
+                'MID' => (string) config('services.icard.mid'),
+                'Date' => now()->toIso8601String(),
+                'Type' => 'IPGPurchase',
+                'Context' => 'CardPay',
+                'Status' => $paymentStatus,
+                'Sum' => [
+                    'Amount' => number_format($amountOverride ?? (float) $payment->amount, 2, '.', ''),
+                    'Currency' => (int) config('services.icard.currency_numeric'),
+                ],
+                'Interface' => 'redirect',
+            ],
+            'Operation' => [
+                'Type' => $operationType,
+                'Status' => $operationStatus,
+                'Date' => now()->toIso8601String(),
+                'Code' => 0,
+                'Message' => 'Success',
+            ],
+        ];
 
-        return $this->postJson('/api/v1/payments/webhook/icard', $payload, ['X-ICard-Signature' => $signature]);
+        return $this->postJson('/api/v1/payments/webhook/icard', $this->signICardPayload($payload));
     }
 
     #[Test]
@@ -85,12 +112,7 @@ class PaymentWebhookTest extends TestCase
     {
         [$order, $payment, $variant] = $this->placeAwaitingPaymentOrder(stock: 10, quantity: 3);
 
-        $response = $this->postWebhook([
-            'event' => 'payment.paid',
-            'reference' => $payment->transaction_reference,
-            'amount' => (float) $payment->amount,
-            'currency' => $payment->currency,
-        ]);
+        $response = $this->postWebhook($payment, 'success');
 
         $response->assertOk();
 
@@ -110,16 +132,11 @@ class PaymentWebhookTest extends TestCase
     }
 
     #[Test]
-    public function a_failed_webhook_marks_the_order_failed_and_keeps_stock_held(): void
+    public function a_declined_webhook_marks_the_order_failed_and_keeps_stock_held(): void
     {
         [$order, $payment, $variant] = $this->placeAwaitingPaymentOrder(stock: 10, quantity: 2);
 
-        $this->postWebhook([
-            'event' => 'payment.failed',
-            'reference' => $payment->transaction_reference,
-            'amount' => (float) $payment->amount,
-            'currency' => $payment->currency,
-        ])->assertOk();
+        $this->postWebhook($payment, 'declined')->assertOk();
 
         $payment->refresh();
         $order->refresh();
@@ -131,26 +148,26 @@ class PaymentWebhookTest extends TestCase
         $this->assertSame(2, $variant->inventory->quantity_reserved);
     }
 
+    /**
+     * An intermediate step (3DS challenge, validation, etc.) reports
+     * Payment.Status=success too — only a successful "authorization"
+     * Operation confirms the payment. iCard's redirect-checkout callback
+     * never reports an explicit "cancelled" event (cancellation only
+     * reaches us via URL_Cancel — see PaymentReturnCancelTest), so
+     * non-authorization callbacks must be a safe no-op, not a transition.
+     */
     #[Test]
-    public function a_cancelled_webhook_cancels_the_order_and_releases_stock(): void
+    public function a_non_authorization_success_callback_does_not_confirm_the_order(): void
     {
-        [$order, $payment, $variant] = $this->placeAwaitingPaymentOrder(stock: 10, quantity: 2);
+        [$order, $payment] = $this->placeAwaitingPaymentOrder();
 
-        $this->postWebhook([
-            'event' => 'payment.cancelled',
-            'reference' => $payment->transaction_reference,
-            'amount' => (float) $payment->amount,
-            'currency' => $payment->currency,
-        ])->assertOk();
+        $this->postWebhook($payment, 'success', operationType: '3ds_authentication')->assertOk();
 
         $payment->refresh();
         $order->refresh();
-        $variant->inventory->refresh();
 
-        $this->assertSame(PaymentStatus::Cancelled, $payment->status);
-        $this->assertSame(OrderStatus::Cancelled, $order->status);
-        $this->assertSame(10, $variant->inventory->quantity_on_hand);
-        $this->assertSame(0, $variant->inventory->quantity_reserved);
+        $this->assertSame(PaymentStatus::Authorized, $payment->status);
+        $this->assertSame(OrderStatus::AwaitingPayment, $order->status);
     }
 
     #[Test]
@@ -158,15 +175,17 @@ class PaymentWebhookTest extends TestCase
     {
         [, $payment] = $this->placeAwaitingPaymentOrder();
 
-        $payload = [
-            'event' => 'payment.paid',
-            'reference' => $payment->transaction_reference,
-            'amount' => (float) $payment->amount,
-            'currency' => $payment->currency,
-        ];
+        $payload = $this->signICardPayload([
+            'Payment' => [
+                'OrderId' => $payment->transaction_reference,
+                'Status' => 'success',
+                'Sum' => ['Amount' => number_format((float) $payment->amount, 2, '.', ''), 'Currency' => (int) config('services.icard.currency_numeric')],
+            ],
+            'Operation' => ['Type' => 'authorization', 'Status' => 'success'],
+        ]);
 
-        $this->postWebhook($payload)->assertOk();
-        $this->postWebhook($payload)->assertOk();
+        $this->postJson('/api/v1/payments/webhook/icard', $payload)->assertOk();
+        $this->postJson('/api/v1/payments/webhook/icard', $payload)->assertOk();
 
         $this->assertDatabaseCount('payment_webhook_logs', 1);
         $this->assertDatabaseCount('payment_transactions', 2); // initiated + webhook, not two webhooks
@@ -178,11 +197,14 @@ class PaymentWebhookTest extends TestCase
         [, $payment] = $this->placeAwaitingPaymentOrder();
 
         $response = $this->postJson('/api/v1/payments/webhook/icard', [
-            'event' => 'payment.paid',
-            'reference' => $payment->transaction_reference,
-            'amount' => (float) $payment->amount,
-            'currency' => $payment->currency,
-        ], ['X-ICard-Signature' => 'not-a-real-signature']);
+            'Payment' => [
+                'OrderId' => $payment->transaction_reference,
+                'Status' => 'success',
+                'Sum' => ['Amount' => (float) $payment->amount, 'Currency' => (int) config('services.icard.currency_numeric')],
+            ],
+            'Operation' => ['Type' => 'authorization', 'Status' => 'success'],
+            'Signature' => 'not-a-real-signature',
+        ]);
 
         $response->assertStatus(401);
 
@@ -195,12 +217,16 @@ class PaymentWebhookTest extends TestCase
     #[Test]
     public function a_webhook_for_an_unknown_reference_is_logged_but_does_not_error(): void
     {
-        $response = $this->postWebhook([
-            'event' => 'payment.paid',
-            'reference' => 'does-not-exist',
-            'amount' => 10,
-            'currency' => 'EUR',
+        $payload = $this->signICardPayload([
+            'Payment' => [
+                'OrderId' => 'does-not-exist',
+                'Status' => 'success',
+                'Sum' => ['Amount' => '10.00', 'Currency' => 978],
+            ],
+            'Operation' => ['Type' => 'authorization', 'Status' => 'success'],
         ]);
+
+        $response = $this->postJson('/api/v1/payments/webhook/icard', $payload);
 
         $response->assertOk();
         $this->assertDatabaseHas('payment_webhook_logs', [
@@ -214,12 +240,7 @@ class PaymentWebhookTest extends TestCase
     {
         [$order, $payment] = $this->placeAwaitingPaymentOrder();
 
-        $this->postWebhook([
-            'event' => 'payment.paid',
-            'reference' => $payment->transaction_reference,
-            'amount' => 999999.99,
-            'currency' => $payment->currency,
-        ])->assertOk();
+        $this->postWebhook($payment, 'success', amountOverride: 999999.99)->assertOk();
 
         $payment->refresh();
         $order->refresh();

@@ -10,24 +10,22 @@ use App\Enums\PaymentStatus;
 use App\Exceptions\Payment\InvalidWebhookPayloadException;
 use App\Models\Payment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * A hosted-payment-page integration: createSession() builds a signed
- * redirect URL locally (no card data is ever collected or transmitted by
- * this application — the customer enters their card details on iCard's own
- * page) rather than calling out to an API to open a session first, which
- * matches how most redirect-based card gateways in this region actually
- * work. checkStatus() is the one genuine outbound call this class makes,
- * used for reconciliation rather than the primary flow (which relies on
- * the webhook).
+ * Real iCard IPG API integration (protocol v4.5, Redirect Checkout /
+ * IPGPurchase — see the "IPG API BM ECommerce" integration guide). Unlike a
+ * typical hosted-page gateway, iCard does not expose a "create session" API
+ * call: createSession() instead builds and RSA-signs the full IPGPurchase
+ * form field set locally, and the customer's own browser POSTs it directly
+ * to IPG (see PaymentSessionData — the frontend builds and submits that
+ * form). Every request, response, and callback is signed/verified with an
+ * RSA key pair exchanged out-of-band with iCard, not a shared secret.
  *
- * No real iCard API documentation exists yet — the URL shape, webhook
- * payload shape, and signature scheme below are a reasonable placeholder
- * built to match this contract, and will need adjusting to iCard's actual
- * integration guide before this can talk to a real sandbox (see the sprint
- * report's "what needs real credentials" section).
+ * iCard's E-commerce guide documents no server-to-server status-inquiry
+ * call, so checkStatus() has nothing to call — reconciliation for a
+ * delayed/missing webhook relies on the return-page best-effort log only
+ * (see PaymentService::reconcile()).
  */
 class ICardPaymentGateway implements PaymentGatewayInterface
 {
@@ -38,101 +36,251 @@ class ICardPaymentGateway implements PaymentGatewayInterface
 
     public function createSession(Payment $payment, string $returnUrl, string $cancelUrl): PaymentSessionData
     {
-        $merchantId = (string) config('services.icard.merchant_id');
-        $baseUrl = rtrim((string) config('services.icard.base_url'), '/');
+        $order = $payment->order;
 
-        $params = [
-            'merchant_id' => $merchantId,
-            'reference' => $payment->transaction_reference,
-            'amount' => number_format((float) $payment->amount, 2, '.', ''),
-            'currency' => $payment->currency,
-            'return_url' => $returnUrl,
-            'cancel_url' => $cancelUrl,
+        $fields = [
+            'IPGmethod' => 'IPGPurchase',
+            'KeyIndex' => (string) config('services.icard.key_index'),
+            'KeyIndexResp' => (string) config('services.icard.key_index_resp'),
+            'IPGVersion' => (string) config('services.icard.ipg_version'),
+            'Language' => 'BG',
+            'Originator' => (string) config('services.icard.originator'),
+            'BannerIndex' => '1',
+            'PostResultAction' => 'Redirect',
+            'MID' => (string) config('services.icard.mid'),
+            'MIDName' => (string) config('services.icard.mid_name'),
+            'Amount' => number_format((float) $payment->amount, 2, '.', ''),
+            'Currency' => (string) config('services.icard.currency_numeric'),
+            'CustomerIP' => request()->ip() ?? '127.0.0.1',
+            // Our own reference, echoed back in the callback's Payment.OrderId
+            // — used as providerReference so incoming webhooks can be matched
+            // back to this Payment (see parseWebhook() below).
+            'OrderID' => $payment->transaction_reference,
+            'CustomerIdentifier' => (string) $order->id,
+            'Email' => (string) $order->customer_email,
+            'URL_OK' => $returnUrl,
+            'URL_Cancel' => $cancelUrl,
+            'URL_Notify' => (string) config('services.icard.webhook_url'),
+            // Mandatory per spec — checkout requires customer.phone, so this
+            // is always present (PlaceOrderRequest::rules()).
+            'MobileNumber' => (string) $order->customer_phone,
         ];
 
-        $params['signature'] = $this->sign($params);
+        // Recommended (not mandatory) fields — improve acceptance/fraud
+        // scoring but aren't required for the request to be accepted.
+        // Country is only sent when it resolves to a known ISO 3166-1
+        // numeric code, since the checkout form takes free-text country
+        // names rather than ISO codes.
+        $shippingCountryCode = $this->isoNumericCountryCode($order->shipping_country);
+        if ($shippingCountryCode !== null) {
+            $fields['ShipAddrCountry'] = $shippingCountryCode;
+        }
+        $fields['ShipAddrCity'] = (string) $order->shipping_city;
+        $fields['ShipAddrPostCode'] = (string) $order->shipping_postal_code;
+        $fields['ShipAddrLine1'] = base64_encode((string) $order->shipping_address_line);
 
-        $redirectUrl = "{$baseUrl}/pay?".http_build_query($params);
+        $billingCountryCode = $this->isoNumericCountryCode($order->billing_country);
+        if ($billingCountryCode !== null) {
+            $fields['BillAddrCountry'] = $billingCountryCode;
+        }
+        $fields['BillAddrCity'] = (string) $order->billing_city;
+        $fields['BillAddrPostCode'] = (string) $order->billing_postal_code;
+        $fields['BillAddrLine1'] = base64_encode((string) $order->billing_address_line);
+
+        $fields['Signature'] = $this->sign($fields);
+
+        $actionUrl = rtrim((string) config('services.icard.base_url'), '/').'/';
 
         return new PaymentSessionData(
-            redirectUrl: $redirectUrl,
+            actionUrl: $actionUrl,
+            formFields: $fields,
             providerReference: $payment->transaction_reference,
-            rawResponse: ['request' => $params],
         );
     }
 
     public function verifySignature(Request $request): bool
     {
-        $secret = (string) config('services.icard.secret');
-        $provided = (string) $request->header('X-ICard-Signature', '');
+        $payload = $request->json()->all();
 
-        if ($provided === '') {
+        if (! isset($payload['Signature']) || ! is_string($payload['Signature'])) {
             return false;
         }
 
-        $expected = hash_hmac('sha256', $request->getContent(), $secret);
+        $signature = $payload['Signature'];
+        unset($payload['Signature']);
 
-        return hash_equals($expected, $provided);
+        return $this->verify($payload, $signature);
     }
 
     public function parseWebhook(Request $request): WebhookPayloadData
     {
         $payload = $request->json()->all();
+        $payment = $payload['Payment'] ?? null;
+        $operation = $payload['Operation'] ?? null;
 
-        if (! isset($payload['event'], $payload['reference'])) {
+        if (! is_array($payment) || ! isset($payment['OrderId'], $payment['Status'])) {
             throw InvalidWebhookPayloadException::missingFields();
         }
 
+        $sum = is_array($payment['Sum'] ?? null) ? $payment['Sum'] : null;
+        $operation = is_array($operation) ? $operation : null;
+
         return new WebhookPayloadData(
-            eventType: (string) $payload['event'],
-            providerReference: (string) $payload['reference'],
-            status: $this->mapEventToStatus((string) $payload['event']),
-            amount: isset($payload['amount']) ? (float) $payload['amount'] : null,
-            currency: isset($payload['currency']) ? (string) $payload['currency'] : null,
+            eventType: (string) ($operation['Type'] ?? $payment['Status']),
+            providerReference: (string) $payment['OrderId'],
+            status: $this->mapCallbackToStatus((string) $payment['Status'], $operation),
+            amount: isset($sum['Amount']) ? (float) $sum['Amount'] : null,
+            currency: isset($sum['Currency']) ? (string) $sum['Currency'] : null,
             raw: $payload,
         );
     }
 
     public function checkStatus(string $providerReference): PaymentStatus
     {
-        $baseUrl = rtrim((string) config('services.icard.base_url'), '/');
-        $secret = (string) config('services.icard.secret');
-
-        $response = Http::withToken($secret)
-            ->acceptJson()
-            ->timeout(5)
-            ->get("{$baseUrl}/payments/{$providerReference}");
-
-        if ($response->failed()) {
-            throw new RuntimeException("iCard status check failed for reference [{$providerReference}]: HTTP {$response->status()}");
-        }
-
-        $status = (string) $response->json('status');
-
-        return $this->mapEventToStatus($status);
+        throw new RuntimeException(
+            "iCard's IPG Redirect Checkout API has no status-inquiry call — reconciliation for [{$providerReference}] must rely on the webhook or the customer's return-page visit.",
+        );
     }
 
     /**
-     * @param  array<string, string>  $params
+     * Payment.Status is success/error/declined, but "success" alone isn't
+     * necessarily final — the same callback shape is reused for
+     * intermediate steps (3DS challenge, validation) via Operation.Type.
+     * Only a successful "authorization" operation confirms the payment;
+     * anything else is left non-final so the order isn't touched until the
+     * real terminal callback arrives.
+     *
+     * @param  array<string, mixed>|null  $operation
      */
-    private function sign(array $params): string
+    private function mapCallbackToStatus(string $paymentStatus, ?array $operation): PaymentStatus
     {
-        $secret = (string) config('services.icard.secret');
-        ksort($params);
+        if ($paymentStatus === 'declined' || $paymentStatus === 'error') {
+            return PaymentStatus::Failed;
+        }
 
-        return hash_hmac('sha256', http_build_query($params), $secret);
+        $operationType = $operation['Type'] ?? null;
+        $operationStatus = $operation['Status'] ?? null;
+
+        if ($operationType === 'authorization' && $operationStatus === 'success') {
+            return PaymentStatus::Paid;
+        }
+
+        return PaymentStatus::Authorized;
     }
 
-    private function mapEventToStatus(string $event): PaymentStatus
+    /**
+     * The checkout form collects a free-text country name, not an ISO code,
+     * so BillAddrCountry/ShipAddrCountry (recommended, not mandatory) are
+     * only sent when the name resolves to a known ISO 3166-1 numeric code —
+     * sending a wrong code would be worse than omitting an optional field.
+     * The storefront currently only ships within Bulgaria (all three
+     * carriers — Econt, Speedy, BOX NOW — are Bulgaria-only).
+     */
+    private function isoNumericCountryCode(?string $countryName): ?string
     {
-        return match (true) {
-            str_contains($event, 'authorized') => PaymentStatus::Authorized,
-            str_contains($event, 'paid'), str_contains($event, 'success') => PaymentStatus::Paid,
-            str_contains($event, 'failed') => PaymentStatus::Failed,
-            str_contains($event, 'cancelled'), str_contains($event, 'canceled') => PaymentStatus::Cancelled,
-            str_contains($event, 'expired') => PaymentStatus::Expired,
-            str_contains($event, 'refunded') => PaymentStatus::Refunded,
-            default => PaymentStatus::Pending,
+        return match (mb_strtolower(trim((string) $countryName))) {
+            'bulgaria', 'българия', 'bg' => '100',
+            default => null,
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function sign(array $data): string
+    {
+        $privateKey = openssl_pkey_get_private($this->readKeyFile((string) config('services.icard.private_key_path')));
+
+        if ($privateKey === false) {
+            throw new RuntimeException('Invalid iCard private key: '.openssl_error_string());
+        }
+
+        $dataToSign = $this->canonicalize($data);
+        openssl_sign($dataToSign, $signature, $privateKey, OPENSSL_ALGO_SHA256);
+
+        return base64_encode($signature);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function verify(array $data, string $signatureBase64): bool
+    {
+        $publicKey = openssl_pkey_get_public($this->readKeyFile((string) config('services.icard.public_key_path')));
+
+        if ($publicKey === false) {
+            return false;
+        }
+
+        $decodedSignature = base64_decode($signatureBase64, strict: true);
+
+        if ($decodedSignature === false) {
+            return false;
+        }
+
+        $dataToVerify = $this->canonicalize($data);
+
+        return openssl_verify($dataToVerify, $decodedSignature, $publicKey, OPENSSL_ALGO_SHA256) === 1;
+    }
+
+    /**
+     * iCard's signing algorithm (protocol >= 4.5): lower-case every key,
+     * turn booleans into '0'/'1', flatten every value (however deeply
+     * nested — request bodies are flat, callback bodies are nested
+     * objects) into "parent:...:key:value" path strings, sort them in
+     * natural order, and join with ";". Empty arrays are skipped entirely;
+     * empty string values are kept as an empty trailing segment.
+     *
+     * @param  array<int|string, mixed>  $data
+     */
+    private function canonicalize(array $data, array $parents = []): string
+    {
+        $lines = $this->flatten($data, $parents);
+        sort($lines, SORT_NATURAL);
+
+        return implode(';', $lines);
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $data
+     * @param  array<int, string>  $parents
+     * @return array<int, string>
+     */
+    private function flatten(array $data, array $parents): array
+    {
+        $lines = [];
+
+        foreach ($data as $key => $value) {
+            $keySegment = is_int($key) ? (string) $key : mb_strtolower((string) $key);
+
+            if (is_array($value)) {
+                if ($value === []) {
+                    continue;
+                }
+
+                array_push($lines, ...$this->flatten($value, [...$parents, $keySegment]));
+
+                continue;
+            }
+
+            if (is_bool($value)) {
+                $value = $value ? '1' : '0';
+            }
+
+            $lines[] = implode(':', [...$parents, $keySegment, (string) $value]);
+        }
+
+        return $lines;
+    }
+
+    private function readKeyFile(string $path): string
+    {
+        $contents = @file_get_contents($path);
+
+        if ($contents === false) {
+            throw new RuntimeException("iCard key file not found or unreadable: {$path}");
+        }
+
+        return $contents;
     }
 }

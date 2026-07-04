@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
 import { fetchShippingMethods, fetchLegalDocuments } from '../api/checkout';
+import { redirectToGateway } from '../api/payment';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
@@ -229,8 +230,9 @@ export default function CheckoutPage() {
         // details on iCard's own hosted page, never ours (see the
         // sprint's "no card data" requirement). isSubmitting stays true
         // so the button shows a spinner during the brief moment before
-        // the browser actually navigates away.
-        window.location.href = payment.redirect_url;
+        // the browser actually navigates away. iCard's IPG API requires a
+        // signed form POST rather than a plain redirect URL.
+        redirectToGateway(payment);
         return;
       }
 

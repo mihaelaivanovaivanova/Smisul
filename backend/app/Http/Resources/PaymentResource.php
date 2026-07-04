@@ -24,6 +24,7 @@ class PaymentResource extends JsonResource
             'amount' => (float) $this->amount,
             'currency' => $this->currency,
             'redirect_url' => $this->redirect_url,
+            'form_fields' => $this->raw_response['fields'] ?? null,
             'initiated_at' => $this->initiated_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
         ];

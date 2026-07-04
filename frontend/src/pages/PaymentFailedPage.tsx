@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { fetchPaymentStatus, initiatePayment } from '../api/payment';
+import { fetchPaymentStatus, initiatePayment, redirectToGateway } from '../api/payment';
 import { getErrorMessage } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
@@ -52,7 +52,7 @@ export default function PaymentFailedPage() {
       const retried = await initiatePayment(orderId, token);
 
       if (retried.redirect_url) {
-        window.location.href = retried.redirect_url;
+        redirectToGateway(retried);
         return;
       }
     } catch (err) {

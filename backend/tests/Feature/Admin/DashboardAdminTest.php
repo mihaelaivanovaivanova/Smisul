@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\OrderStatus;
+use App\Models\Favorite;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Product;
@@ -51,9 +52,21 @@ class DashboardAdminTest extends TestCase
             'data' => [
                 'total_orders', 'orders_today', 'revenue_today', 'total_revenue',
                 'total_customers', 'total_products', 'low_stock_products',
-                'out_of_stock_products',
+                'out_of_stock_products', 'total_favorites',
             ],
         ]);
+    }
+
+    #[Test]
+    public function the_dashboard_reports_the_total_number_of_favorites(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        Favorite::factory()->count(4)->create();
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/dashboard');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.total_favorites', 4);
     }
 
     #[Test]

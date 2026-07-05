@@ -4,7 +4,9 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\ProductStatus;
 use App\Models\Category;
+use App\Models\Favorite;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -176,6 +178,19 @@ class ProductAdminTest extends TestCase
         $this->actingAs($admin)->postJson('/api/v1/admin/products', [
             'name' => 'Bad Quantity', 'quantity' => -1,
         ])->assertUnprocessable();
+    }
+
+    #[Test]
+    public function the_admin_product_response_reports_its_favorites_count(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
+        Favorite::factory()->count(2)->create(['product_variant_id' => $variant->id]);
+
+        $this->actingAs($admin)->getJson("/api/v1/admin/products/{$product->id}")
+            ->assertOk()
+            ->assertJsonPath('data.favorites_count', 2);
     }
 
     #[Test]

@@ -19,6 +19,7 @@ export interface AdminOrder extends Order {
 export interface AdminProduct extends Product {
   quantity: number | null;
   price: number | null;
+  favorites_count: number;
 }
 
 export interface DashboardStats {
@@ -30,6 +31,7 @@ export interface DashboardStats {
   total_products: number;
   low_stock_products: number;
   out_of_stock_products: number;
+  total_favorites: number;
 }
 
 export interface Customer {

@@ -28,6 +28,10 @@ class ProductResource extends BaseProductResource
             ...parent::toArray($request),
             'quantity' => $variant?->inventory?->quantity_on_hand,
             'price' => $price !== null ? (float) $price : null,
+            // Falls back to a live count when the caller didn't eager-load
+            // it via withCount('favorites') — an extra query per row on an
+            // uncounted list, acceptable at this catalog's scale.
+            'favorites_count' => $this->favorites_count ?? $this->favorites()->count(),
         ];
     }
 }

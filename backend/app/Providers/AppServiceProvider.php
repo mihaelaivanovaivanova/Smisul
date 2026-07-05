@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Events\Favorite\ProductBackInStock;
+use App\Events\Favorite\ProductPriceDropped;
 use App\Events\Order\OrderPlaced;
 use App\Events\Order\OrderStatusChanged;
+use App\Listeners\NotifyFavoritesOfBackInStock;
+use App\Listeners\NotifyFavoritesOfPriceDrop;
 use App\Listeners\SendOrderPlacedNotifications;
 use App\Listeners\SendOrderStatusEmails;
 use Illuminate\Auth\Events\Registered;
@@ -41,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Registered::class, SendEmailVerificationNotification::class);
         Event::listen(OrderPlaced::class, SendOrderPlacedNotifications::class);
         Event::listen(OrderStatusChanged::class, SendOrderStatusEmails::class);
+        Event::listen(ProductPriceDropped::class, NotifyFavoritesOfPriceDrop::class);
+        Event::listen(ProductBackInStock::class, NotifyFavoritesOfBackInStock::class);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Enums\ProductStatus;
 use App\Exceptions\ProductNotFoundException;
 use App\Models\Product;
 use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Services\InventoryService;
 use App\Services\PriceService;
 use App\Services\ProductService;
 use App\Services\ProductVariantService;
@@ -33,7 +34,7 @@ class ProductServiceTest extends TestCase
 
     private function makeService(ProductRepositoryInterface $repository): ProductService
     {
-        return new ProductService($repository, new ProductVariantService, new PriceService);
+        return new ProductService($repository, new ProductVariantService, new PriceService, new InventoryService);
     }
 
     #[Test]

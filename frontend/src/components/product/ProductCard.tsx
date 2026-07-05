@@ -5,6 +5,7 @@ import { product as productCopy } from '../../content/copy';
 import PriceBlock from './PriceBlock';
 import StockStatus from './StockStatus';
 import AddToCartButton from './AddToCartButton';
+import FavoriteButton from './FavoriteButton';
 
 interface ProductCardProps {
   product: Product;
@@ -18,9 +19,15 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="col">
-      <div className="card h-100 shadow-sm">
-        {/* Add-to-cart below is a sibling, not nested inside this link — a
-            <button> inside an <a> is invalid HTML and breaks click handling. */}
+      <div className="card h-100 shadow-sm position-relative">
+        {/* Add-to-cart and favorite below are siblings, not nested inside
+            this link — a <button>/<a> inside an <a> is invalid HTML and
+            breaks click handling. */}
+        {variant && (
+          <div className="position-absolute top-0 end-0 m-2" style={{ zIndex: 1 }}>
+            <FavoriteButton productVariantId={variant.id} compact />
+          </div>
+        )}
         <Link to={`/products/${product.slug}`} className="d-flex flex-column flex-grow-1 text-decoration-none text-body">
           <div className="ratio ratio-1x1 bg-white product-card__image-wrap">
             {image ? (

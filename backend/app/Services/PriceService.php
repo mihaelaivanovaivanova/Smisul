@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\DataTransferObjects\PriceData;
+use App\Events\Favorite\ProductPriceDropped;
 use App\Models\Price;
 use App\Models\PriceHistory;
 use App\Models\ProductVariant;
@@ -23,7 +24,9 @@ class PriceService
         ?User $changedBy = null,
         ?string $reason = null,
     ): Price {
-        return DB::transaction(function () use ($variant, $data, $changedBy, $reason) {
+        $oldAmount = null;
+
+        $price = DB::transaction(function () use ($variant, $data, $changedBy, $reason, &$oldAmount) {
             $existing = $variant->prices()->where('currency', $data->currency)->first();
             $oldAmount = $existing?->amount;
 
@@ -48,5 +51,14 @@ class PriceService
 
             return $price;
         });
+
+        // Dispatched after the transaction commits, not from inside it —
+        // the listener sends mail, which shouldn't run against a price
+        // change that might yet be rolled back.
+        if ($oldAmount !== null && $data->amount < (float) $oldAmount) {
+            event(new ProductPriceDropped($variant, (float) $oldAmount, $data->amount, $data->currency));
+        }
+
+        return $price;
     }
 }

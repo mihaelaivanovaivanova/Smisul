@@ -28,6 +28,7 @@ class ProductService
         private readonly ProductRepositoryInterface $products,
         private readonly ProductVariantService $variants,
         private readonly PriceService $prices,
+        private readonly InventoryService $inventory,
     ) {}
 
     public function list(ProductFilterData $filters, bool $publishedOnly = true): LengthAwarePaginator
@@ -100,7 +101,7 @@ class ProductService
         }
 
         if ($data->quantity !== null) {
-            $variant->inventory->update(['quantity_on_hand' => $data->quantity]);
+            $this->inventory->setQuantityOnHand($variant->inventory, $data->quantity);
         }
 
         if ($data->price !== null) {

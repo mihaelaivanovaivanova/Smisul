@@ -19,6 +19,7 @@ import VariantPicker from '../components/product/VariantPicker';
 import PriceBlock from '../components/product/PriceBlock';
 import StockStatus from '../components/product/StockStatus';
 import AddToCartButton from '../components/product/AddToCartButton';
+import FavoriteButton from '../components/product/FavoriteButton';
 import NotFoundPage from './NotFoundPage';
 import { breadcrumbLabels, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
@@ -91,7 +92,10 @@ export default function ProductPage() {
           <ProductGallery images={images} productName={product.name} />
         </div>
         <div className="col-12 col-lg-6">
-          <h1 className="h3 mb-3">{product.name}</h1>
+          <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
+            <h1 className="h3 mb-0">{product.name}</h1>
+            {activeVariant && <FavoriteButton productVariantId={activeVariant.id} compact />}
+          </div>
 
           <div className="mb-3">
             <PriceBlock price={price} promotion={promotion} size="lg" />

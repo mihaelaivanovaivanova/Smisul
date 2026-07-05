@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -75,6 +76,14 @@ class Product extends Model implements IsMediable
         // Explicit pivot name: Eloquent's alphabetical-order convention would
         // guess "product_promotion", but the migration uses "promotion_product".
         return $this->belongsToMany(Promotion::class, 'promotion_product');
+    }
+
+    /**
+     * @return HasManyThrough<Favorite, ProductVariant, $this>
+     */
+    public function favorites(): HasManyThrough
+    {
+        return $this->hasManyThrough(Favorite::class, ProductVariant::class);
     }
 
     public function isPublished(): bool

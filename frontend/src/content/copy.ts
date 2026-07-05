@@ -342,6 +342,25 @@ export const orders = {
   } as Record<string, string>,
 };
 
+export const favorites = {
+  title: 'Любими',
+  seoTitle: `Любими — ${siteName}`,
+  seoDescription: 'Продуктите, които си запазил/а в любими.',
+  loading: 'Зареждане на любими продукти…',
+  loadError: 'Неуспешно зареждане на любимите продукти.',
+  emptyTitle: 'Все още нямаш любими продукти',
+  emptyMessage: 'Разгледай продуктите и запази тези, които харесваш.',
+  emptyCta: 'Разгледай продуктите',
+  add: 'Добави в любими',
+  remove: 'Премахни от любими',
+  addAria: 'Добави в любими',
+  removeAria: 'Премахни от любими',
+  loginToSave: 'Влез, за да запазиш в любими',
+  addError: 'Неуспешно добавяне в любими.',
+  removeError: 'Неуспешно премахване от любими.',
+  duplicateError: 'Този продукт вече е в любимите ти.',
+};
+
 /**
  * Bulgarian placeholder copy for backend-owned seed content (product
  * name/description/short_description). NOT applied automatically — these

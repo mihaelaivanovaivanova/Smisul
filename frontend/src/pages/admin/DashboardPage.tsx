@@ -78,6 +78,7 @@ export default function DashboardPage() {
           <StatCard label="Total products" value={stats.total_products} />
           <StatCard label="Low stock products" value={stats.low_stock_products} />
           <StatCard label="Out of stock products" value={stats.out_of_stock_products} />
+          <StatCard label="Total favorites" value={stats.total_favorites} />
         </div>
       )}
 

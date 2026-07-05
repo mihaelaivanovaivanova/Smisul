@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
@@ -90,6 +91,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
         Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::put('/profile/password', [PasswordController::class, 'update'])->name('profile.password.update');
+    });
+
+    // Favorites: authenticated customers only (see FavoritePolicy) — a
+    // guest gets 401 from auth:sanctum, an administrator gets 403 from the
+    // policy. Every route is under /customer per the sprint spec, unlike
+    // the flat /profile and /orders routes above.
+    Route::prefix('customer')->middleware('auth:sanctum')->name('customer.')->group(function () {
+        Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
+        Route::post('/favorites', [FavoriteController::class, 'store'])->name('favorites.store');
+        Route::get('/favorites/count', [FavoriteController::class, 'count'])->name('favorites.count');
+        Route::get('/favorites/check/{productVariant}', [FavoriteController::class, 'check'])->name('favorites.check');
+        Route::delete('/favorites/{favorite}', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
     });
 
     // Public storefront: read-only, no auth required.

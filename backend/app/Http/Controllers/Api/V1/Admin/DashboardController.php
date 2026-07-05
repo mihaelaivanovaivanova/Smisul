@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Models\Favorite;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\User;
@@ -46,6 +47,7 @@ class DashboardController extends Controller
                 'total_products' => Product::query()->count(),
                 'low_stock_products' => $lowStockCount,
                 'out_of_stock_products' => $outOfStockCount,
+                'total_favorites' => Favorite::query()->count(),
             ],
         ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\Favorite\ProductBackInStock;
 use App\Exceptions\InsufficientStockException;
 use App\Models\Inventory;
 
@@ -9,9 +10,14 @@ class InventoryService
 {
     public function increaseStock(Inventory $inventory, int $quantity): Inventory
     {
-        $inventory->increment('quantity_on_hand', $quantity);
+        $wasInStock = $inventory->isInStock();
 
-        return $inventory->refresh();
+        $inventory->increment('quantity_on_hand', $quantity);
+        $inventory->refresh();
+
+        $this->dispatchBackInStockIfNeeded($inventory, $wasInStock);
+
+        return $inventory;
     }
 
     public function decreaseStock(Inventory $inventory, int $quantity): Inventory
@@ -21,6 +27,33 @@ class InventoryService
         $inventory->decrement('quantity_on_hand', $quantity);
 
         return $inventory->refresh();
+    }
+
+    /**
+     * Sets the on-hand quantity to an absolute value — an admin's stock
+     * recount/correction, not a fulfillment-driven delta. Deliberately
+     * skips ensureAvailable(): an admin asserting ground truth (e.g. "we
+     * actually only have 5, even though 8 are reserved by pending carts")
+     * is a legitimate override, not a race condition to block.
+     */
+    public function setQuantityOnHand(Inventory $inventory, int $quantity): Inventory
+    {
+        $wasInStock = $inventory->isInStock();
+
+        $inventory->quantity_on_hand = max(0, $quantity);
+        $inventory->save();
+        $inventory->refresh();
+
+        $this->dispatchBackInStockIfNeeded($inventory, $wasInStock);
+
+        return $inventory;
+    }
+
+    private function dispatchBackInStockIfNeeded(Inventory $inventory, bool $wasInStock): void
+    {
+        if (! $wasInStock && $inventory->isInStock()) {
+            event(new ProductBackInStock($inventory->productVariant));
+        }
     }
 
     /**

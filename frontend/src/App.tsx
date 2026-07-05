@@ -20,6 +20,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
+import FavoritesPage from './pages/FavoritesPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailedPage from './pages/PaymentFailedPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
@@ -64,6 +65,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/orders" element={<OrdersPage />} />
+          <Route path="/profile/favorites" element={<FavoritesPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

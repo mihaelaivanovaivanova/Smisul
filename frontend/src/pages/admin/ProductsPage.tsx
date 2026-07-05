@@ -158,6 +158,7 @@ export default function ProductsPage() {
                   <th>Name</th>
                   <th>Status</th>
                   <th>Categories</th>
+                  <th className="text-end">Favorites</th>
                   <th></th>
                 </tr>
               </thead>
@@ -169,6 +170,7 @@ export default function ProductsPage() {
                       <StatusBadge status={product.status} />
                     </td>
                     <td>{product.categories.map((category) => category.name).join(', ') || '—'}</td>
+                    <td className="text-end">{product.favorites_count}</td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
                         <Link className="btn btn-outline-secondary" to={`/products/${product.slug}`} target="_blank">

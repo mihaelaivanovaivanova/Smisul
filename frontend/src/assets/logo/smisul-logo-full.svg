@@ -1,12 +1,15 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="610 0 300 300" version="1.1">
-  <title>С|МИСЪЛ — символ</title>
-  <defs>
-    <clipPath id="symbol-square-crop">
-      <rect x="610" y="0" width="300" height="300"/>
-    </clipPath>
-  </defs>
-  <g id="smisal-symbol-only" fill-rule="evenodd" clip-path="url(#symbol-square-crop)">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="660"
+   height="368"
+   viewBox="430 34 660 368"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg">
+  <title>С|МИСЪЛ</title>
+  <g
+     id="vectorized-mark-and-wordmark"
+     fill-rule="evenodd">
     <path
        id="dark-green-outlines"
        fill="#24362C"

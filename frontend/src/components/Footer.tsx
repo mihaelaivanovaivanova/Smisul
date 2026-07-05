@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="container">
         <div className="d-flex flex-column flex-md-row justify-content-between gap-4">
           <div>
-            <Logo />
+            <Logo tagline />
             <p className="text-muted mt-2 mb-0" style={{ maxWidth: '24rem' }}>
               {footer.description}
             </p>

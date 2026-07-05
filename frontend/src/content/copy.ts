@@ -359,6 +359,12 @@ export const favorites = {
   addError: 'Неуспешно добавяне в любими.',
   removeError: 'Неуспешно премахване от любими.',
   duplicateError: 'Този продукт вече е в любимите ти.',
+  // Same underlying favorite — just relabeled on a product page when the
+  // item is currently unavailable, since "save this for later" reads as
+  // "notify me when it's back" rather than "I like this" in that context.
+  addToWishlist: 'Добави в списък за изчакване',
+  removeFromWishlist: 'Премахни от списъка за изчакване',
+  wishlistNotice: 'Ще ти изпратим имейл, когато продуктът отново е наличен.',
 };
 
 /**

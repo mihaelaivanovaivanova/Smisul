@@ -116,6 +116,12 @@ export default function ProductPage() {
               inventory={activeVariant.inventory}
             />
           )}
+
+          {/* AddToCartButton renders nothing when out of stock — this fills
+              that gap with a clear next step instead of leaving it empty. */}
+          {activeVariant && !activeVariant.inventory?.is_in_stock && (
+            <FavoriteButton key={activeVariant.id} productVariantId={activeVariant.id} mode="wishlist" />
+          )}
         </div>
       </div>
 

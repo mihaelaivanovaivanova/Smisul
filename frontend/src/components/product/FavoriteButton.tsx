@@ -10,6 +10,13 @@ interface FavoriteButtonProps {
   productVariantId: number;
   /** Icon-only, for tight spaces like a listing card. */
   compact?: boolean;
+  /**
+   * Same favorite underneath — "wishlist" only relabels the button for an
+   * unavailable product, since "save this" reads as "notify me when it's
+   * back" rather than "I like this" in that context. Callers pass this
+   * based on the variant's current stock (see ProductPage/ProductCard).
+   */
+  mode?: 'favorite' | 'wishlist';
 }
 
 /**
@@ -18,7 +25,7 @@ interface FavoriteButtonProps {
  * sprint's research), so this establishes one, modeled on ProtectedRoute's
  * `state={{ from: location }}` redirect-back idiom.
  */
-export default function FavoriteButton({ productVariantId, compact = false }: FavoriteButtonProps) {
+export default function FavoriteButton({ productVariantId, compact = false, mode = 'favorite' }: FavoriteButtonProps) {
   const { isAuthenticated } = useAuth();
   const { favoriteVariantIds, toggleFavorite } = useFavorites();
   const location = useLocation();
@@ -55,13 +62,15 @@ export default function FavoriteButton({ productVariantId, compact = false }: Fa
     }
   }
 
-  const label = isFavorited ? favoritesCopy.remove : favoritesCopy.add;
+  const label = mode === 'wishlist'
+    ? (isFavorited ? favoritesCopy.removeFromWishlist : favoritesCopy.addToWishlist)
+    : (isFavorited ? favoritesCopy.remove : favoritesCopy.add);
 
   return (
     <div>
       <button
         type="button"
-        className={`btn ${isFavorited ? 'btn-danger' : 'btn-outline-secondary'} ${compact ? 'btn-sm' : ''}`}
+        className={`btn btn-outline-secondary ${compact ? 'btn-sm' : ''}`}
         onClick={() => void handleClick()}
         disabled={isSubmitting}
         aria-pressed={isFavorited}
@@ -71,10 +80,15 @@ export default function FavoriteButton({ productVariantId, compact = false }: Fa
         {isSubmitting ? (
           <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
         ) : (
-          <Icon name="heart" />
+          <span className={isFavorited ? 'text-danger' : ''}>
+            <Icon name="heart" />
+          </span>
         )}
         {!compact && <span className="ms-2">{label}</span>}
       </button>
+      {mode === 'wishlist' && !compact && (
+        <div className="text-muted small mt-1">{favoritesCopy.wishlistNotice}</div>
+      )}
       {error && (
         <div className="text-danger small mt-1" aria-live="polite">
           {error}

@@ -10,11 +10,15 @@
  */
 
 :root {
-  /* ---- Color palette ---- */
-  --color-forest: #33402e;
-  --color-forest-dark: #232c1f;
-  --color-forest-light: #4f5f45;
-  --color-sage: #8a9678;
+  /* ---- Color palette ----
+   * Forest/sage pinned to the brand guide's two logo colors: #24362C
+   * (dark green) and #8E9467 (olive green). forest-dark/forest-light are
+   * derived tints for hover states, not independently brand-specified.
+   */
+  --color-forest: #24362c;
+  --color-forest-dark: #1b2921;
+  --color-forest-light: #66726b;
+  --color-sage: #8e9467;
   --color-terracotta: #a8502f;
   --color-terracotta-light: #c97a52;
   --color-gold: #b08a4e;
@@ -88,8 +92,8 @@
   --bs-border-radius: var(--radius-sm);
   --bs-border-radius-lg: var(--radius-md);
   --bs-link-color: var(--color-forest);
-  --bs-link-color-rgb: 51, 64, 46;
+  --bs-link-color-rgb: 36, 54, 44;
   --bs-link-hover-color: var(--color-forest-dark);
   --bs-primary: var(--color-forest);
-  --bs-primary-rgb: 51, 64, 46;
+  --bs-primary-rgb: 36, 54, 44;
 }

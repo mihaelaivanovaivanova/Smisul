@@ -112,7 +112,7 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-forest);
-  box-shadow: 0 0 0 0.2rem rgba(51, 64, 46, 0.15);
+  box-shadow: 0 0 0 0.2rem rgba(36, 54, 44, 0.15);
 }
 
 .form-label {
@@ -190,5 +190,5 @@
 }
 
 .accordion-button:focus {
-  box-shadow: 0 0 0 0.2rem rgba(51, 64, 46, 0.15);
+  box-shadow: 0 0 0 0.2rem rgba(36, 54, 44, 0.15);
 }

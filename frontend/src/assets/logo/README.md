@@ -1,15 +1,6 @@
 # Logo assets
 
-`smisul-logo.svg` is a placeholder brand mark (a simple leaf-in-circle
-shape) used live by `src/components/Logo.tsx` in the header and footer.
-It is hand-drawn SVG, not a downloaded/copyrighted asset.
+`smisul-logo-full.svg` — mark + "С|МИСЪЛ" wordmark, no tagline. Used in the navbar.
+`smisul-logo-tagline.svg` — same mark/wordmark plus the "избирай с мисъл" tagline. Used in the footer, where there's more vertical room.
 
-## Replacing with the real logo
-
-1. Drop the real logo file(s) here (prefer SVG for crisp scaling; keep a
-   PNG fallback only if the real mark isn't available as vector art).
-2. Keep the filename `smisul-logo.svg` (or update the import in
-   `src/components/Logo.tsx`) so nothing else needs to change.
-3. If the real brand has a distinct wordmark, consider removing the text
-   portion rendered in `Logo.tsx` and using an all-in-one logo file
-   instead.
+Both are traced vector art (`#24362C` dark green / `#8E9467` olive), transparent background, cropped to their content's bounding box. Rendered via `src/components/Logo.tsx`, which picks the variant with the `tagline` prop.

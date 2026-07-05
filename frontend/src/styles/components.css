@@ -3,23 +3,13 @@
 /* ---- Brand / logo ---- */
 
 .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-forest-dark);
-  text-decoration: none;
-}
-
-.brand-mark__icon {
   display: block;
-  flex-shrink: 0;
+  height: 40px;
+  width: auto;
 }
 
-.brand-mark__word {
-  font-family: var(--font-heading);
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  letter-spacing: 0.01em;
+.brand-mark--tagline {
+  height: 56px;
 }
 
 /* ---- Hero ---- */
@@ -29,7 +19,7 @@
   overflow: hidden;
   background:
     radial-gradient(ellipse 60% 80% at 85% 0%, rgba(168, 80, 47, 0.12), transparent 60%),
-    radial-gradient(ellipse 70% 90% at 10% 100%, rgba(51, 64, 46, 0.1), transparent 60%),
+    radial-gradient(ellipse 70% 90% at 10% 100%, rgba(36, 54, 44, 0.1), transparent 60%),
     var(--color-sand);
   border-bottom: 1px solid var(--color-border);
 }

@@ -9,13 +9,10 @@ import EmptyState from '../../components/EmptyState';
 import FormModal from '../../components/admin/FormModal';
 import ConfirmModal from '../../components/admin/ConfirmModal';
 import FieldError from '../../components/FieldError';
+import { flattenCategories } from '../../services/categoryTree';
 import type { Category } from '../../types/product';
 
 const EMPTY_FORM: CategoryPayload = { name: '', description: '', is_active: true, sort_order: 0, parent_id: null };
-
-function flatten(categories: Category[], depth = 0): { category: Category; depth: number }[] {
-  return categories.flatMap((category) => [{ category, depth }, ...flatten(category.children, depth + 1)]);
-}
 
 export default function CategoriesPage() {
   const [reloadKey, setReloadKey] = useState(0);
@@ -31,7 +28,7 @@ export default function CategoriesPage() {
   const [deleting, setDeleting] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const rows = data ? flatten(data) : [];
+  const rows = data ? flattenCategories(data) : [];
 
   function openCreate() {
     setEditing(null);

@@ -95,6 +95,27 @@ class MediaService
         $media->delete();
     }
 
+    /**
+     * Flips this media to primary and every sibling on the same mediable
+     * (same type+id) to not-primary, mirroring the unset-then-set done at
+     * attach() time — kept atomic so a request can never leave two rows
+     * both marked primary.
+     */
+    public function makePrimary(Media $media): Media
+    {
+        Media::query()->getConnection()->transaction(function () use ($media) {
+            Media::query()
+                ->where('mediable_type', $media->mediable_type)
+                ->where('mediable_id', $media->mediable_id)
+                ->where('id', '!=', $media->id)
+                ->update(['is_primary' => false]);
+
+            $media->update(['is_primary' => true]);
+        });
+
+        return $media->fresh();
+    }
+
     private function directoryFor(Model&IsMediable $mediable): string
     {
         return Str::plural(Str::snake(class_basename($mediable)));

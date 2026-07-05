@@ -99,6 +99,86 @@ class ProductAdminTest extends TestCase
     }
 
     #[Test]
+    public function creating_a_product_with_quantity_and_price_creates_a_default_variant(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/products', [
+            'name' => 'Herbal Tea',
+            'quantity' => 25,
+            'price' => 12.50,
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.quantity', 25);
+        $response->assertJsonPath('data.price', 12.5);
+
+        $product = Product::query()->where('name', 'Herbal Tea')->firstOrFail();
+        $variant = $product->variants()->where('is_default', true)->firstOrFail();
+        $this->assertSame(25, $variant->inventory->quantity_on_hand);
+        $this->assertSame('12.50', (string) $variant->prices()->where('currency', 'EUR')->firstOrFail()->amount);
+    }
+
+    #[Test]
+    public function creating_a_product_without_quantity_or_price_creates_no_variant(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/products', ['name' => 'No Stock Yet']);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.quantity', null);
+        $response->assertJsonPath('data.price', null);
+
+        $product = Product::query()->where('name', 'No Stock Yet')->firstOrFail();
+        $this->assertSame(0, $product->variants()->count());
+    }
+
+    #[Test]
+    public function updating_quantity_and_price_on_a_product_with_an_existing_default_variant_updates_it_in_place(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $create = $this->actingAs($admin)->postJson('/api/v1/admin/products', [
+            'name' => 'Restockable', 'quantity' => 5, 'price' => 9.99,
+        ]);
+        $productId = $create->json('data.id');
+
+        $response = $this->actingAs($admin)->putJson("/api/v1/admin/products/{$productId}", [
+            'name' => 'Restockable', 'quantity' => 40, 'price' => 11.50,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.quantity', 40);
+        $response->assertJsonPath('data.price', 11.5);
+
+        $product = Product::query()->findOrFail($productId);
+        $this->assertSame(1, $product->variants()->count());
+    }
+
+    #[Test]
+    public function setting_quantity_on_a_product_created_before_this_feature_creates_its_default_variant_on_the_fly(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create(['name' => 'Legacy Product']);
+
+        $this->actingAs($admin)->putJson("/api/v1/admin/products/{$product->id}", [
+            'name' => 'Legacy Product', 'quantity' => 10,
+        ])->assertOk()->assertJsonPath('data.quantity', 10);
+
+        $this->assertSame(1, $product->variants()->count());
+    }
+
+    #[Test]
+    public function a_negative_quantity_is_rejected(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/products', [
+            'name' => 'Bad Quantity', 'quantity' => -1,
+        ])->assertUnprocessable();
+    }
+
+    #[Test]
     public function an_administrator_can_delete_a_product(): void
     {
         $admin = User::factory()->administrator()->create();

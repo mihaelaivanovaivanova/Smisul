@@ -51,7 +51,7 @@ class DashboardAdminTest extends TestCase
             'data' => [
                 'total_orders', 'orders_today', 'revenue_today', 'total_revenue',
                 'total_customers', 'total_products', 'low_stock_products',
-                'out_of_stock_products', 'latest_orders',
+                'out_of_stock_products',
             ],
         ]);
     }

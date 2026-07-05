@@ -2,11 +2,15 @@
 
 namespace App\Services;
 
+use App\DataTransferObjects\PriceData;
 use App\DataTransferObjects\ProductData;
 use App\DataTransferObjects\ProductFilterData;
+use App\DataTransferObjects\ProductVariantData;
+use App\Enums\Currency;
 use App\Enums\ProductStatus;
 use App\Exceptions\ProductNotFoundException;
 use App\Models\Product;
+use App\Models\User;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -22,6 +26,8 @@ class ProductService
 
     public function __construct(
         private readonly ProductRepositoryInterface $products,
+        private readonly ProductVariantService $variants,
+        private readonly PriceService $prices,
     ) {}
 
     public function list(ProductFilterData $filters, bool $publishedOnly = true): LengthAwarePaginator
@@ -40,17 +46,19 @@ class ProductService
         return $product;
     }
 
-    public function create(ProductData $data): Product
+    public function create(ProductData $data, ?User $actor = null): Product
     {
         $product = $this->products->create([
             ...$this->baseAttributes($data),
             'published_at' => $data->status === ProductStatus::Published ? now() : null,
         ]);
 
-        return $this->syncCategoriesAndReload($product, $data->categoryIds);
+        $product = $this->syncCategoriesAndReload($product, $data->categoryIds);
+
+        return $this->applyDefaultVariantValues($product, $data, $actor);
     }
 
-    public function update(Product $product, ProductData $data): Product
+    public function update(Product $product, ProductData $data, ?User $actor = null): Product
     {
         $isNewlyPublished = ! $product->isPublished() && $data->status === ProductStatus::Published;
 
@@ -59,7 +67,47 @@ class ProductService
             'published_at' => $isNewlyPublished ? now() : $product->published_at,
         ]);
 
-        return $this->syncCategoriesAndReload($product, $data->categoryIds);
+        $product = $this->syncCategoriesAndReload($product, $data->categoryIds);
+
+        return $this->applyDefaultVariantValues($product, $data, $actor);
+    }
+
+    /**
+     * The admin product form deals in one simplified "quantity" and "price"
+     * per product, but those actually live on a ProductVariant's Inventory
+     * and Price rows (a product can have many variants). This maps the
+     * simplified fields onto the product's default variant — creating one
+     * on the fly (auto-generated SKU/name, pack size 1) if it doesn't have
+     * one yet — so the form doesn't need to expose the full variant model
+     * for the common single-variant case. Multi-variant products keep their
+     * other variants untouched; only the default one is affected.
+     */
+    private function applyDefaultVariantValues(Product $product, ProductData $data, ?User $actor): Product
+    {
+        if ($data->quantity === null && $data->price === null) {
+            return $product;
+        }
+
+        $variant = $product->variants->firstWhere('is_default', true) ?? $product->variants->first();
+
+        if ($variant === null) {
+            $variant = $this->variants->create($product, new ProductVariantData(
+                sku: "P{$product->id}-DEFAULT",
+                name: $product->name,
+                packSize: 1,
+                isDefault: true,
+            ));
+        }
+
+        if ($data->quantity !== null) {
+            $variant->inventory->update(['quantity_on_hand' => $data->quantity]);
+        }
+
+        if ($data->price !== null) {
+            $this->prices->setPrice($variant, new PriceData(Currency::EUR->value, $data->price), changedBy: $actor);
+        }
+
+        return $product->refresh()->load(['variants.prices', 'variants.inventory']);
     }
 
     public function delete(Product $product): void

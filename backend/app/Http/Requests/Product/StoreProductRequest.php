@@ -26,6 +26,11 @@ class StoreProductRequest extends FormRequest
             'status' => ['sometimes', Rule::enum(ProductStatus::class)],
             'category_ids' => ['sometimes', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
+            // Applied to the product's default variant, creating one on the
+            // fly if it doesn't have one yet — see
+            // ProductService::applyDefaultVariantValues().
+            'quantity' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
         ];
     }
 }

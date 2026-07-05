@@ -8,7 +8,9 @@ use App\Enums\ProductStatus;
 use App\Exceptions\ProductNotFoundException;
 use App\Models\Product;
 use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Services\PriceService;
 use App\Services\ProductService;
+use App\Services\ProductVariantService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
@@ -29,13 +31,18 @@ class ProductServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function makeService(ProductRepositoryInterface $repository): ProductService
+    {
+        return new ProductService($repository, new ProductVariantService, new PriceService);
+    }
+
     #[Test]
     public function find_by_slug_throws_a_domain_exception_when_the_repository_returns_null(): void
     {
         $repository = Mockery::mock(ProductRepositoryInterface::class);
         $repository->shouldReceive('findBySlug')->with('missing', true)->andReturnNull();
 
-        $service = new ProductService($repository);
+        $service = $this->makeService($repository);
 
         $this->expectException(ProductNotFoundException::class);
 
@@ -50,7 +57,7 @@ class ProductServiceTest extends TestCase
         $repository = Mockery::mock(ProductRepositoryInterface::class);
         $repository->shouldReceive('findBySlug')->with('found-me', true)->andReturn($product);
 
-        $service = new ProductService($repository);
+        $service = $this->makeService($repository);
 
         $this->assertSame($product, $service->findBySlug('found-me'));
     }
@@ -67,7 +74,7 @@ class ProductServiceTest extends TestCase
             ->with($filters, true, Mockery::type('array'))
             ->andReturn($paginator);
 
-        $service = new ProductService($repository);
+        $service = $this->makeService($repository);
 
         $this->assertSame($paginator, $service->list($filters));
     }
@@ -82,7 +89,7 @@ class ProductServiceTest extends TestCase
             ->with(Mockery::on(fn (array $attrs) => $attrs['status'] === ProductStatus::Published && $attrs['published_at'] !== null))
             ->andReturn(Product::factory()->make());
 
-        $service = new ProductService($repository);
+        $service = $this->makeService($repository);
 
         $service->create(new ProductData(name: 'New Product', status: ProductStatus::Published));
     }
@@ -96,7 +103,7 @@ class ProductServiceTest extends TestCase
             ->with(Mockery::on(fn (array $attrs) => $attrs['status'] === ProductStatus::Draft && $attrs['published_at'] === null))
             ->andReturn(Product::factory()->make());
 
-        $service = new ProductService($repository);
+        $service = $this->makeService($repository);
 
         $service->create(new ProductData(name: 'New Product', status: ProductStatus::Draft));
     }

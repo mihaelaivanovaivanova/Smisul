@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/promotions', label: 'Promotions' },
+  { to: '/admin/content', label: 'Content' },
   { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/customers', label: 'Customers' },
   { to: '/admin/media', label: 'Media Library' },
@@ -13,7 +14,15 @@ const NAV_ITEMS = [
   { to: '/admin/logs', label: 'Logs' },
 ];
 
-function SidebarNav() {
+/**
+ * Rendered in two places: the always-visible desktop sidebar and the
+ * mobile offcanvas panel. `data-bs-dismiss="offcanvas"` must only be set
+ * in the latter — Bootstrap's offcanvas click handler runs for any
+ * element carrying that attribute regardless of context, and throws
+ * trying to dismiss an offcanvas that isn't there when it's set on the
+ * desktop copy, which was silently breaking every sidebar link.
+ */
+function SidebarNav({ dismissesOffcanvas = false }: { dismissesOffcanvas?: boolean }) {
   return (
     <nav className="nav flex-column">
       {NAV_ITEMS.map((item) => (
@@ -22,7 +31,7 @@ function SidebarNav() {
           to={item.to}
           end={item.end}
           className={({ isActive }) => `nav-link admin-sidebar__link${isActive ? ' active' : ''}`}
-          data-bs-dismiss="offcanvas"
+          {...(dismissesOffcanvas ? { 'data-bs-dismiss': 'offcanvas' } : {})}
         >
           {item.label}
         </NavLink>
@@ -54,7 +63,7 @@ export default function AdminLayout() {
           <button type="button" className="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div className="offcanvas-body">
-          <SidebarNav />
+          <SidebarNav dismissesOffcanvas />
         </div>
       </div>
 

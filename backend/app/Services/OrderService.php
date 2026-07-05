@@ -345,14 +345,6 @@ class OrderService
     }
 
     /**
-     * @return list<Order>
-     */
-    public function latest(int $limit = 10): array
-    {
-        return Order::query()->latest()->take($limit)->get()->all();
-    }
-
-    /**
      * Converts a held reservation into a real, permanent stock decrement:
      * the quantity was already subtracted from availableQuantity() the
      * moment it was added to the cart (see InventoryService::reserve) — this

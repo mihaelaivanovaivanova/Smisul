@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\ProductIndexRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
-use App\Http\Resources\ProductResource;
+use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
 use App\Services\AdminActionLogger;
 use App\Services\ProductService;
@@ -33,7 +33,7 @@ class ProductController extends Controller
 
     public function store(StoreProductRequest $request): JsonResponse
     {
-        $product = $this->products->create(ProductData::fromArray($request->validated()));
+        $product = $this->products->create(ProductData::fromArray($request->validated()), $request->user());
 
         $this->actionLogger->log($request->user(), 'product.created', $product);
 
@@ -49,7 +49,7 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): ProductResource
     {
-        $product = $this->products->update($product, ProductData::fromArray($request->validated()));
+        $product = $this->products->update($product, ProductData::fromArray($request->validated()), $request->user());
 
         $this->actionLogger->log($request->user(), 'product.updated', $product);
 

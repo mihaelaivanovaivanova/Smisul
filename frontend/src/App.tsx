@@ -27,6 +27,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
+import ContentPage from './pages/admin/ContentPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 import CustomersPage from './pages/admin/CustomersPage';
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="content" element={<ContentPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />

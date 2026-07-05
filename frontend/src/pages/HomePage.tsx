@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useProducts } from '../hooks/useProducts';
+import { fetchProduct, fetchProducts } from '../api/products';
+import { fetchHomepageContent } from '../api/content';
+import { useAsync } from '../hooks/useAsync';
 import {
   getActivePromotion,
   getDefaultVariant,
@@ -16,12 +18,36 @@ import VariantPicker from '../components/product/VariantPicker';
 import AddToCartButton from '../components/product/AddToCartButton';
 import Seo from '../components/Seo';
 import Icon from '../components/icons/Icon';
-import { bio, benefits, delivery, faq, featured, hero, product as productCopy, seo, trust, usage } from '../content/copy';
-import type { ProductVariant } from '../types/product';
+import { product as productCopy, seo, states } from '../content/copy';
+import type { Product, ProductVariant } from '../types/product';
+
+/** The admin's chosen product (by slug, resolved server-side), falling back to the newest published one when none is set. */
+async function fetchFeaturedProduct(slug: string | null): Promise<Product | null> {
+  if (slug) {
+    return fetchProduct(slug);
+  }
+
+  const { data } = await fetchProducts({ sort: 'newest', per_page: 1 });
+  return data[0] ?? null;
+}
 
 export default function HomePage() {
-  const { products, isLoading, error } = useProducts({ sort: 'newest', per_page: 1 });
-  const featuredProduct = products[0];
+  const { data: content, isLoading: contentLoading, error: contentError } = useAsync(
+    fetchHomepageContent,
+    [],
+    'Съдържанието не можа да се зареди.',
+  );
+
+  // undefined while homepage content is still loading, so we don't fetch a
+  // product before knowing whether one was actually chosen.
+  const featuredSlug = content ? content.featured.product_slug : undefined;
+
+  const { data: featuredProduct, isLoading, error } = useAsync(
+    () => (featuredSlug === undefined ? Promise.resolve(null) : fetchFeaturedProduct(featuredSlug)),
+    [featuredSlug],
+    'Продуктът не можа да се зареди.',
+  );
+
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
   const variants = featuredProduct ? sortVariantsByPackSize(featuredProduct.variants) : [];
@@ -30,6 +56,16 @@ export default function HomePage() {
   const price = activeVariant ? getVariantPrice(activeVariant) : undefined;
   const promotion = featuredProduct ? getActivePromotion(featuredProduct) : undefined;
   const image = featuredProduct ? getPrimaryImage(featuredProduct) : undefined;
+
+  if (contentLoading) {
+    return <LoadingState message={states.loadingDefault} />;
+  }
+
+  if (contentError || !content) {
+    return <ErrorState message={contentError ?? states.loadingDefault} />;
+  }
+
+  const { hero, featured, benefits, usage, trust, delivery, bio, faq } = content;
 
   return (
     <div>
@@ -56,9 +92,9 @@ export default function HomePage() {
           <h2 className="section-title">{featured.title}</h2>
           <p className="section-lead mb-4">{featured.description}</p>
 
-          {isLoading && <LoadingState message={featured.loading} />}
+          {isLoading && <LoadingState message={states.loadingDefault} />}
           {!isLoading && error && <ErrorState message={error} />}
-          {!isLoading && !error && !featuredProduct && <p className="text-muted">{featured.empty}</p>}
+          {!isLoading && !error && !featuredProduct && <p className="text-muted">{states.emptyDefaultTitle}</p>}
 
           {!isLoading && !error && featuredProduct && (
             <div className="row g-4 align-items-center">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createProduct, deleteProduct, fetchAdminProducts, updateProduct } from '../../api/admin/products';
+import { createProduct, deleteProduct, fetchAdminProduct, fetchAdminProducts, updateProduct } from '../../api/admin/products';
 import type { ProductPayload } from '../../api/admin/products';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage, getValidationErrors } from '../../api/errors';
@@ -11,10 +11,20 @@ import Pagination from '../../components/listing/Pagination';
 import FormModal from '../../components/admin/FormModal';
 import ConfirmModal from '../../components/admin/ConfirmModal';
 import StatusBadge from '../../components/admin/StatusBadge';
+import ProductMediaManager from '../../components/admin/ProductMediaManager';
 import FieldError from '../../components/FieldError';
-import type { Product, ProductStatus } from '../../types/product';
+import type { Media, ProductStatus } from '../../types/product';
+import type { AdminProduct } from '../../types/admin';
 
-const EMPTY_FORM: ProductPayload = { name: '', short_description: '', description: '', status: 'draft', category_ids: [] };
+const EMPTY_FORM: ProductPayload = {
+  name: '',
+  short_description: '',
+  description: '',
+  status: 'draft',
+  category_ids: [],
+  quantity: 0,
+  price: 0,
+};
 
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
@@ -26,36 +36,51 @@ export default function ProductsPage() {
     'Could not load products.',
   );
 
-  const [editing, setEditing] = useState<Product | null>(null);
+  const [editing, setEditing] = useState<AdminProduct | null>(null);
+  const [media, setMedia] = useState<Media[]>([]);
+  const [justCreated, setJustCreated] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ProductPayload>(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [deleting, setDeleting] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState<AdminProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   function openCreate() {
     setEditing(null);
+    setMedia([]);
+    setJustCreated(false);
     setForm(EMPTY_FORM);
     setFormErrors({});
     setFormError(null);
     setShowForm(true);
   }
 
-  function openEdit(product: Product) {
+  async function openEdit(product: AdminProduct) {
     setEditing(product);
+    setMedia(product.media ?? []);
+    setJustCreated(false);
     setForm({
       name: product.name,
       short_description: product.short_description ?? '',
       description: product.description ?? '',
       status: product.status,
       category_ids: product.categories.map((category) => category.id),
+      quantity: product.quantity ?? 0,
+      price: product.price ?? 0,
     });
     setFormErrors({});
     setFormError(null);
     setShowForm(true);
+
+    // Refresh with the single-product endpoint so quantity/price/media
+    // reflect the latest state even if the list row was stale.
+    const fresh = await fetchAdminProduct(product.id);
+    setEditing(fresh);
+    setMedia(fresh.media);
+    setForm((current) => ({ ...current, quantity: fresh.quantity ?? 0, price: fresh.price ?? 0 }));
   }
 
   async function handleSubmit() {
@@ -66,10 +91,16 @@ export default function ProductsPage() {
     try {
       if (editing) {
         await updateProduct(editing.id, form);
+        setShowForm(false);
       } else {
-        await createProduct(form);
+        // Media can only be attached to a product that already exists, so
+        // creating stays in the same modal (now in "edit" mode) instead of
+        // closing, letting the admin add photos immediately.
+        const created = await createProduct(form);
+        setEditing(created);
+        setMedia(created.media ?? []);
+        setJustCreated(true);
       }
-      setShowForm(false);
       setReloadKey((key) => key + 1);
     } catch (err) {
       setFormErrors(getValidationErrors(err));
@@ -143,7 +174,7 @@ export default function ProductsPage() {
                         <Link className="btn btn-outline-secondary" to={`/products/${product.slug}`} target="_blank">
                           View
                         </Link>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => openEdit(product)}>
+                        <button type="button" className="btn btn-outline-secondary" onClick={() => void openEdit(product)}>
                           Edit
                         </button>
                         <button type="button" className="btn btn-outline-danger" onClick={() => setDeleting(product)}>
@@ -168,6 +199,10 @@ export default function ProductsPage() {
         onSubmit={() => void handleSubmit()}
         onClose={() => setShowForm(false)}
       >
+        {justCreated && (
+          <div className="alert alert-success mb-0">Product created. Add photos or videos below, then close when done.</div>
+        )}
+
         <div>
           <label className="form-label" htmlFor="product-name">
             Name
@@ -222,6 +257,41 @@ export default function ProductsPage() {
             <option value="archived">Archived</option>
           </select>
         </div>
+
+        <div className="row g-3">
+          <div className="col-sm-6">
+            <label className="form-label" htmlFor="product-quantity">
+              Quantity in stock
+            </label>
+            <input
+              id="product-quantity"
+              type="number"
+              min="0"
+              step="1"
+              className={`form-control ${formErrors.quantity ? 'is-invalid' : ''}`}
+              value={form.quantity ?? 0}
+              onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
+            />
+            <FieldError message={formErrors.quantity} />
+          </div>
+          <div className="col-sm-6">
+            <label className="form-label" htmlFor="product-price">
+              Price (EUR)
+            </label>
+            <input
+              id="product-price"
+              type="number"
+              min="0"
+              step="0.01"
+              className={`form-control ${formErrors.price ? 'is-invalid' : ''}`}
+              value={form.price ?? 0}
+              onChange={(event) => setForm({ ...form, price: Number(event.target.value) })}
+            />
+            <FieldError message={formErrors.price} />
+          </div>
+        </div>
+
+        {editing && <ProductMediaManager productId={editing.id} media={media} onChange={setMedia} />}
       </FormModal>
 
       <ConfirmModal

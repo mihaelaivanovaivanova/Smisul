@@ -15,6 +15,9 @@ final readonly class ProductData
         public ?string $description = null,
         public ProductStatus $status = ProductStatus::Draft,
         public array $categoryIds = [],
+        /** Applied to the product's default variant — see ProductService::applyDefaultVariantValues(). */
+        public ?int $quantity = null,
+        public ?float $price = null,
     ) {}
 
     /**
@@ -28,6 +31,8 @@ final readonly class ProductData
             description: $data['description'] ?? null,
             status: isset($data['status']) ? ProductStatus::from($data['status']) : ProductStatus::Draft,
             categoryIds: $data['category_ids'] ?? [],
+            quantity: isset($data['quantity']) ? (int) $data['quantity'] : null,
+            price: isset($data['price']) ? (float) $data['price'] : null,
         );
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
+use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
@@ -30,6 +32,7 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ShipmentController;
 use App\Http\Resources\UserResource;
+use App\Services\ContentBlockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -97,6 +100,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
     Route::get('/categories/{slug}/products', [CategoryController::class, 'products'])->name('categories.products');
+
+    Route::get('/content/homepage', [ContentController::class, 'homepage'])->name('content.homepage');
 
     // Cart: open to both guests (identified by the X-Guest-Cart-Token
     // header) and authenticated users (identified by their session) — no
@@ -171,6 +176,8 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/products/{product}/media', [AdminProductMediaController::class, 'store'])
             ->name('products.media.store');
+        Route::patch('/products/{product}/media/{media}/primary', [AdminProductMediaController::class, 'makePrimary'])
+            ->name('products.media.primary');
         Route::delete('/products/{product}/media/{media}', [AdminProductMediaController::class, 'destroy'])
             ->name('products.media.destroy');
 
@@ -199,5 +206,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');
 
         Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
+
+        Route::get('/content/homepage', [AdminContentBlockController::class, 'index'])->name('content.homepage.show');
+        Route::put('/content/homepage/{section}', [AdminContentBlockController::class, 'update'])
+            ->where('section', implode('|', ContentBlockService::HOMEPAGE_SECTIONS))
+            ->name('content.homepage.update');
     });
 });

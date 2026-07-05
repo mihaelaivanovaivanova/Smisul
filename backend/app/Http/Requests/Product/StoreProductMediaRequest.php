@@ -17,7 +17,10 @@ class StoreProductMediaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'image', 'max:5120'],
+            // Same mime/size allowance as the admin Media Library's replace
+            // endpoint (MediaReplaceRequest) — one whitelist to keep in
+            // sync instead of two drifting sets of "allowed media" rules.
+            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp,mp4,mov,pdf', 'max:20480'],
             'alt_text' => ['nullable', 'string', 'max:255'],
             'is_primary' => ['sometimes', 'boolean'],
         ];

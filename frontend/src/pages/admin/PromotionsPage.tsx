@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { createPromotion, deletePromotion, fetchAdminPromotions, updatePromotion } from '../../api/admin/promotions';
 import type { PromotionPayload } from '../../api/admin/promotions';
+import { fetchAdminProducts } from '../../api/admin/products';
+import { fetchAdminCategories } from '../../api/admin/categories';
+import { flattenCategories } from '../../services/categoryTree';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage, getValidationErrors } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -9,15 +12,29 @@ import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/listing/Pagination';
 import FormModal from '../../components/admin/FormModal';
 import ConfirmModal from '../../components/admin/ConfirmModal';
+import MultiSelectChecklist from '../../components/admin/MultiSelectChecklist';
 import FieldError from '../../components/FieldError';
 import type { Promotion, PromotionType } from '../../types/product';
 
-const EMPTY_FORM: PromotionPayload = { name: '', description: '', type: 'percentage', value: 0, code: '', is_active: true };
+const EMPTY_FORM: PromotionPayload = {
+  name: '',
+  description: '',
+  type: 'percentage',
+  value: 0,
+  code: '',
+  is_active: true,
+  product_ids: [],
+  category_ids: [],
+};
 
 export default function PromotionsPage() {
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const { data, isLoading, error } = useAsync(() => fetchAdminPromotions(page), [page, reloadKey], 'Could not load promotions.');
+
+  const { data: products } = useAsync(() => fetchAdminProducts({ sort: 'name', per_page: 100 }), [], 'Could not load products.');
+  const { data: categoryTree } = useAsync(fetchAdminCategories, [], 'Could not load categories.');
+  const categoryRows = categoryTree ? flattenCategories(categoryTree) : [];
 
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -49,6 +66,8 @@ export default function PromotionsPage() {
       ends_at: promotion.ends_at,
       usage_limit: promotion.usage_limit,
       is_active: promotion.is_active,
+      product_ids: promotion.products.map((product) => product.id),
+      category_ids: promotion.categories.map((category) => category.id),
     });
     setFormErrors({});
     setFormError(null);
@@ -251,6 +270,33 @@ export default function PromotionsPage() {
             value={form.description ?? ''}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
           />
+        </div>
+
+        <div className="row g-3">
+          <div className="col-sm-6">
+            <label className="form-label">Applies to products</label>
+            <MultiSelectChecklist
+              items={(products?.data ?? []).map((product) => ({ id: product.id, label: product.name }))}
+              selectedIds={form.product_ids ?? []}
+              onChange={(product_ids) => setForm({ ...form, product_ids })}
+              searchPlaceholder="Search products..."
+              emptyMessage="No products found."
+            />
+          </div>
+          <div className="col-sm-6">
+            <label className="form-label">Applies to categories</label>
+            <MultiSelectChecklist
+              items={categoryRows.map(({ category, depth }) => ({ id: category.id, label: `${'—'.repeat(depth)} ${category.name}`.trim() }))}
+              selectedIds={form.category_ids ?? []}
+              onChange={(category_ids) => setForm({ ...form, category_ids })}
+              searchPlaceholder="Search categories..."
+              emptyMessage="No categories found."
+            />
+          </div>
+        </div>
+        <div className="form-text mb-3">
+          A promotion applies to a product if the product is selected directly, or belongs to a selected category.
+          Selecting neither means this promotion won't apply to anything yet.
         </div>
 
         <div className="form-check">

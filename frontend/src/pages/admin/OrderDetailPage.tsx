@@ -7,11 +7,7 @@ import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { formatPrice } from '../../services/productCatalog';
-
-const STATUSES = [
-  'pending', 'awaiting_payment', 'paid', 'processing', 'packed', 'shipped',
-  'delivered', 'completed', 'cancelled', 'failed', 'refunded',
-];
+import { ORDER_STATUSES } from '../../constants/orderStatus';
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -210,7 +206,7 @@ export default function OrderDetailPage() {
               {updateError && <div className="alert alert-danger py-2 mb-0">{updateError}</div>}
               <select className="form-select" value={newStatus} onChange={(event) => setNewStatus(event.target.value)}>
                 <option value="">Select new status...</option>
-                {STATUSES.filter((status) => status !== order.status).map((status) => (
+                {ORDER_STATUSES.filter((status) => status !== order.status).map((status) => (
                   <option key={status} value={status}>
                     {status.replace(/_/g, ' ')}
                   </option>

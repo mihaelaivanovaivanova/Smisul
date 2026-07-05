@@ -6,6 +6,8 @@ export interface AdminOrderFilters {
   search?: string;
   user_id?: number;
   status?: string;
+  date_from?: string;
+  date_to?: string;
   sort?: 'newest' | 'oldest' | 'total_asc' | 'total_desc';
   page?: number;
 }

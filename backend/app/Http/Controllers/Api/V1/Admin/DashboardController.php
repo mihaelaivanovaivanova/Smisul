@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\OrderResource;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\User;
@@ -47,7 +46,6 @@ class DashboardController extends Controller
                 'total_products' => Product::query()->count(),
                 'low_stock_products' => $lowStockCount,
                 'out_of_stock_products' => $outOfStockCount,
-                'latest_orders' => OrderResource::collection($this->orders->latest(10)),
             ],
         ]);
     }

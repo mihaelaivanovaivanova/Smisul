@@ -1,6 +1,7 @@
 import type { Order, Shipment } from './checkout';
 import type { Payment } from './payment';
 import type { Role } from './auth';
+import type { Product } from './product';
 
 /** OrderResource enriched with admin-only fields (see backend Admin\OrderResource). */
 export interface AdminOrder extends Order {
@@ -10,11 +11,15 @@ export interface AdminOrder extends Order {
 }
 
 /**
- * The dashboard's "latest orders" table doesn't eager-load items/timeline
- * (see OrderService::latest()), so those keys are genuinely absent from
- * the JSON, not just empty — only these fields are safe to render.
+ * ProductResource enriched with a simplified quantity/price pair — read off
+ * the product's default variant (see backend Admin\ProductResource). Both
+ * are null until the product has a variant (i.e. before its first
+ * quantity/price has ever been set).
  */
-export type DashboardOrderSummary = Pick<Order, 'id' | 'order_number' | 'status' | 'customer' | 'totals' | 'placed_at'>;
+export interface AdminProduct extends Product {
+  quantity: number | null;
+  price: number | null;
+}
 
 export interface DashboardStats {
   total_orders: number;
@@ -25,7 +30,6 @@ export interface DashboardStats {
   total_products: number;
   low_stock_products: number;
   out_of_stock_products: number;
-  latest_orders: DashboardOrderSummary[];
 }
 
 export interface Customer {

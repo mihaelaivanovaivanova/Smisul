@@ -23,21 +23,27 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Speedy integration against their real, publicly documented Web API
- * (confirmed live at https://api.speedy.bg/api/docs/ during development —
- * unlike a guessed shape, this one is verified against the actual reference:
- * credentials are embedded as `userName`/`password` fields in every request
- * body, not an HTTP auth header, and every endpoint requires them —
- * including office lookups, unlike Econt's public nomenclature endpoint.
- * Without real Speedy credentials, every call here fails authentication and
- * degrades to the documented fallback (flat rate for quote(), empty list
- * for offices()) — this is expected, not a bug, until real credentials are
- * configured (see the sprint's "known limitations").
+ * Speedy integration against their real Web API, verified end-to-end
+ * against the sandbox with live test credentials (account 1996549) —
+ * quote, office lookup, shipment creation, and tracking have all returned
+ * real data, not just documented-but-unverified shapes. Credentials are
+ * embedded as `userName`/`password` fields in every request body, not an
+ * HTTP auth header, and every endpoint requires them — including office
+ * lookups, unlike Econt's public nomenclature endpoint.
  *
- * `serviceId` (505) is an unverified placeholder — the real value must be
- * confirmed against the merchant's actual Speedy contract once credentials
- * exist. Independent of EcontShippingProvider/BoxNowShippingProvider by
- * design — no shared base class.
+ * Two endpoints, two different field shapes for the same concepts —
+ * confirmed by trial against the real API, not guessed:
+ *  - `calculate` (quote): `recipient.addressLocation` + `recipient.privatePerson`
+ *    + `service.serviceIds` (array).
+ *  - `shipment` (createShipment): `recipient.address` + `service.serviceId`
+ *    (singular), and `address` needs a non-empty `streetNo` — see
+ *    splitStreetAndNumber() for how a single free-text address line gets
+ *    split to satisfy that.
+ *
+ * `serviceId` 505 is confirmed valid for this account (returns real prices
+ * and creates real test shipments) — no longer a placeholder guess.
+ * Independent of EcontShippingProvider/BoxNowShippingProvider by design —
+ * no shared base class.
  */
 class SpeedyShippingProvider implements ShippingProviderInterface
 {
@@ -69,12 +75,13 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         try {
             $response = $this->client()->post('calculate', $this->withCredentials([
                 'recipient' => [
-                    'address' => [
+                    'privatePerson' => true,
+                    'addressLocation' => [
                         'siteName' => $request->city,
                         'postCode' => $request->postalCode,
                     ],
                 ],
-                'service' => ['serviceId' => self::SERVICE_ID],
+                'service' => ['serviceIds' => [self::SERVICE_ID]],
                 'content' => [
                     'parcelsCount' => 1,
                     'totalWeight' => $request->weightKg ?? 1.0,
@@ -92,7 +99,7 @@ class SpeedyShippingProvider implements ShippingProviderInterface
                     deliveryType: $request->deliveryType,
                     price: (float) $price['total'],
                     currency: (string) ($price['currency'] ?? 'EUR'),
-                    estimatedDelivery: (string) ($response->json('calculations.0.deliveryDeadline') ?? '1-2 работни дни'),
+                    estimatedDelivery: $this->formatDeliveryDeadline($response->json('calculations.0.deliveryDeadline')),
                 );
             }
         } catch (ConnectionException|RequestException $exception) {
@@ -129,10 +136,9 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         } catch (ConnectionException|RequestException $exception) {
             Log::warning('Speedy offices lookup failed', ['error' => $exception->getMessage()]);
         } catch (Throwable $exception) {
-            // The full real response shape is documented (see class
-            // docblock), but without real credentials this has never
-            // actually returned office data — degrade to an empty list
-            // rather than a 500 if anything is still off.
+            // The mapping above is confirmed against real office data (see
+            // class docblock) — this only catches a genuinely unexpected
+            // shape, degrading to an empty list rather than a 500.
             Log::warning('Speedy offices response had an unexpected shape', ['error' => $exception->getMessage()]);
         }
 
@@ -152,9 +158,13 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         if ($deliveryType === ShippingDeliveryType::Office && $officeId !== null) {
             $recipient['pickupOfficeId'] = (int) $officeId;
         } else {
+            [$streetName, $streetNo] = $this->splitStreetAndNumber($order->shipping_address_line);
+
             $recipient['address'] = [
                 'siteName' => $order->shipping_city,
                 'postCode' => $order->shipping_postal_code,
+                'streetName' => $streetName,
+                'streetNo' => $streetNo,
             ];
         }
 
@@ -238,6 +248,50 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
+     * Checkout only captures one free-text address line (see
+     * shipping_address_line), but Speedy's real `shipment` endpoint
+     * rejects an address without a non-empty streetNo — it isn't willing
+     * to take a single unstructured line the way `calculate` will. Pulls
+     * a trailing house number (e.g. "1", "25А", "5B") off the line as
+     * streetNo; if none is found, the whole line becomes streetName and
+     * streetNo falls back to "0" so the request stays deliverable-shaped
+     * rather than failing outright. Confirmed against the real sandbox —
+     * see the Sprint 11.5 Speedy integration notes.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function splitStreetAndNumber(string $addressLine): array
+    {
+        $addressLine = trim($addressLine);
+
+        if (preg_match('/^(.*?)[\s,]+(\d+[\p{L}]?)$/u', $addressLine, $matches) === 1) {
+            return [trim($matches[1]), $matches[2]];
+        }
+
+        return [$addressLine, '0'];
+    }
+
+    /**
+     * Speedy's `calculate` endpoint returns a precise ISO deadline
+     * (e.g. "2026-07-07T19:00:00+0300"), not a display-ready string like
+     * Econt/BOX NOW's mocked responses — showing that raw value verbatim
+     * in checkout looked like a bug. Falls back to the same generic range
+     * the other carriers use if the value is missing or unparsable.
+     */
+    private function formatDeliveryDeadline(mixed $deadline): string
+    {
+        if (! is_string($deadline) || $deadline === '') {
+            return '1-2 работни дни';
+        }
+
+        try {
+            return 'до '.CarbonImmutable::parse($deadline)->format('d.m.Y');
+        } catch (Throwable) {
+            return '1-2 работни дни';
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $body
      * @return array<string, mixed>
      */
@@ -246,7 +300,9 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         return [
             'userName' => (string) config('services.shipping.speedy.username'),
             'password' => (string) config('services.shipping.speedy.password'),
-            'language' => 'EN',
+            // Bulgarian-language office names/addresses — this storefront
+            // has no English UI to match an 'EN' response against.
+            'language' => 'BG',
             ...$body,
         ];
     }

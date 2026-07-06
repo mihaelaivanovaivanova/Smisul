@@ -87,6 +87,34 @@ class ShippingQuoteTest extends TestCase
         $boxNow->assertJsonPath('data.price', 4.5);
     }
 
+    /**
+     * Confirmed against the real Speedy sandbox with live test credentials:
+     * `calculate` wants `recipient.addressLocation` (not `address`),
+     * `recipient.privatePerson`, and `service.serviceIds` as an array (not
+     * a singular `serviceId`) — unlike the `shipment` endpoint, which wants
+     * `address` + a singular `serviceId`. Getting these mixed up is exactly
+     * the bug this test guards against.
+     */
+    #[Test]
+    public function speedy_quote_request_uses_the_calculate_endpoints_real_field_shape(): void
+    {
+        Http::fake([
+            'api.speedy.bg/*' => Http::response([
+                'calculations' => [
+                    ['price' => ['total' => 6.20, 'currency' => 'EUR'], 'deliveryDeadline' => '2026-07-08T12:00:00+03:00'],
+                ],
+            ]),
+        ]);
+
+        $this->quote(['carrier' => 'speedy', 'delivery_type' => 'office', 'city' => 'Sofia', 'postal_code' => '1000'])->assertOk();
+
+        Http::assertSent(function ($request) {
+            return $request['recipient']['privatePerson'] === true
+                && $request['recipient']['addressLocation']['siteName'] === 'Sofia'
+                && $request['service']['serviceIds'] === [505];
+        });
+    }
+
     #[Test]
     public function an_invalid_carrier_is_rejected(): void
     {

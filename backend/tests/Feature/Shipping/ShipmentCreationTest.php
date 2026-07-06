@@ -108,4 +108,54 @@ class ShipmentCreationTest extends TestCase
         $this->assertSame('BN-TEST-1', $shipment->tracking_number);
         $this->assertSame('locker-42', $shipment->office_id);
     }
+
+    /**
+     * Speedy's real API (confirmed against the sandbox with live test
+     * credentials) requires a non-empty recipient.address.streetNo — a
+     * single free-text address line has to be split into street name +
+     * number before it's sent. See SpeedyShippingProvider::splitStreetAndNumber.
+     */
+    #[Test]
+    public function creating_a_speedy_shipment_splits_the_address_line_into_street_and_number(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1'])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_address_line' => 'ul. Vitosha 25A',
+        ]);
+
+        $shipment = $this->app->make(ShippingService::class)->createShipment($order);
+
+        $this->assertSame('SPEEDY-TEST-1', $shipment->tracking_number);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'api.speedy.bg')
+                && $request['recipient']['address']['streetName'] === 'ul. Vitosha'
+                && $request['recipient']['address']['streetNo'] === '25A'
+                && $request['service']['serviceId'] === 505;
+        });
+    }
+
+    #[Test]
+    public function creating_a_speedy_shipment_falls_back_to_a_placeholder_number_when_the_address_has_none(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-2'])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_address_line' => 'ul. Vitosha',
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            return $request['recipient']['address']['streetName'] === 'ul. Vitosha'
+                && $request['recipient']['address']['streetNo'] === '0';
+        });
+    }
 }

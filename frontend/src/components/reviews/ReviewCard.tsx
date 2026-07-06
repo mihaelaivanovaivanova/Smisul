@@ -75,14 +75,14 @@ export default function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps
         )}
         {!isAuthenticated && helpfulCount > 0 && <span className="text-muted small">{reviewsCopy.helpfulCount(helpfulCount)}</span>}
 
-        {review.is_own && review.status === 'pending' && onEdit && (
+        {review.is_own && onEdit && (
           <button type="button" className="btn btn-link btn-sm p-0" onClick={() => onEdit(review)}>
             {reviewsCopy.editReview}
           </button>
         )}
-        {review.is_own && review.status === 'pending' && onDelete && (
+        {review.is_own && onDelete && (
           <button type="button" className="btn btn-link btn-sm p-0 text-danger" onClick={() => onDelete(review)}>
-            {reviewsCopy.cancel}
+            {reviewsCopy.delete}
           </button>
         )}
       </div>

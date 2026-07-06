@@ -30,14 +30,20 @@ class ReviewPolicy
         return $user->isCustomer();
     }
 
+    /**
+     * Reviews publish immediately (see ReviewService::create) — there is no
+     * pending window to restrict editing to, so ownership is the only
+     * check. Editing doesn't reset an admin-hidden/rejected review back to
+     * approved; it just updates the content in place.
+     */
     public function update(User $user, Review $review): bool
     {
-        return $user->id === $review->user_id && $review->status === ReviewStatus::Pending;
+        return $user->id === $review->user_id;
     }
 
     public function delete(User $user, Review $review): bool
     {
-        return $user->id === $review->user_id && $review->status === ReviewStatus::Pending;
+        return $user->id === $review->user_id;
     }
 
     /**

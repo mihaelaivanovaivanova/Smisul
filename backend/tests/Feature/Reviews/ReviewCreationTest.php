@@ -5,6 +5,7 @@ namespace Tests\Feature\Reviews;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Review;
 use App\Models\User;
@@ -76,12 +77,13 @@ class ReviewCreationTest extends TestCase
         $response->assertCreated();
         $response->assertJsonPath('data.rating', 5);
         $response->assertJsonPath('data.verified_purchase', true);
-        $response->assertJsonPath('data.status', 'pending');
+        // Reviews publish immediately — no pre-publication moderation queue.
+        $response->assertJsonPath('data.status', 'approved');
         $this->assertDatabaseHas('reviews', [
             'user_id' => $customer->id,
             'order_id' => $order->id,
             'product_id' => $variant->product_id,
-            'status' => 'pending',
+            'status' => 'approved',
         ]);
     }
 
@@ -170,5 +172,24 @@ class ReviewCreationTest extends TestCase
         $payload['rating'] = 6;
 
         $this->actingAs($customer)->postJson('/api/v1/customer/reviews', $payload)->assertUnprocessable();
+    }
+
+    #[Test]
+    public function a_newly_created_review_is_immediately_visible_on_the_public_product_page(): void
+    {
+        $customer = User::factory()->create();
+        $product = Product::factory()->published()->create();
+        $variant = ProductVariant::factory()->for($product)->create();
+        $order = $this->deliveredOrderWithItem($customer, $variant);
+
+        $this->actingAs($customer)->postJson('/api/v1/customer/reviews', $this->validPayload($order, $variant))
+            ->assertCreated();
+
+        $response = $this->getJson("/api/v1/products/{$product->slug}/reviews");
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+
+        $summary = $this->getJson("/api/v1/products/{$product->slug}/reviews/summary");
+        $summary->assertJsonPath('data.review_count', 1);
     }
 }

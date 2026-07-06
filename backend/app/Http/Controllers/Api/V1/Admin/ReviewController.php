@@ -14,6 +14,7 @@ use App\Models\Review;
 use App\Services\ReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class ReviewController extends Controller
 {
@@ -37,6 +38,19 @@ class ReviewController extends Controller
     public function hide(Review $review): ReviewResource
     {
         return new ReviewResource($this->reviews->hide($review));
+    }
+
+    /**
+     * A permanent removal — unlike hide/reject, this isn't reversible via
+     * the approve action. Distinct from the customer's own delete (same
+     * underlying ReviewService::delete, no ownership check needed here
+     * since the 'admin' middleware already gates the whole route group).
+     */
+    public function destroy(Review $review): Response
+    {
+        $this->reviews->delete($review);
+
+        return response()->noContent();
     }
 
     public function reply(ReplyReviewRequest $request, Review $review): ReviewResource

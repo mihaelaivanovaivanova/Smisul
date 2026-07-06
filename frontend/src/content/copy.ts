@@ -397,6 +397,7 @@ export const reviews = {
 
   writeReview: 'Напиши отзив',
   editReview: 'Редактирай отзива',
+  delete: 'Изтрий',
   cancel: 'Отказ',
   ratingLabel: 'Оценка',
   titleLabel: 'Заглавие',
@@ -404,7 +405,7 @@ export const reviews = {
   submit: 'Изпрати отзива',
   submitting: 'Изпращане…',
   saveChanges: 'Запази промените',
-  submitSuccess: 'Благодарим за отзива! Ще бъде публикуван след одобрение.',
+  submitSuccess: 'Благодарим за отзива!',
   submitError: 'Неуспешно изпращане на отзива.',
   updateError: 'Неуспешно запазване на промените.',
   deleteConfirm: 'Сигурен/а ли си, че искаш да изтриеш отзива?',

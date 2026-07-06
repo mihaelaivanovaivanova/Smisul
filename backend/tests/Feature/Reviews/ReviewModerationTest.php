@@ -108,6 +108,30 @@ class ReviewModerationTest extends TestCase
     }
 
     #[Test]
+    public function an_admin_can_permanently_delete_a_review(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $review = Review::factory()->create();
+
+        $this->actingAs($admin)->deleteJson("/api/v1/admin/reviews/{$review->id}")
+            ->assertNoContent();
+
+        $this->assertModelMissing($review);
+    }
+
+    #[Test]
+    public function a_customer_cannot_use_the_admin_delete_route(): void
+    {
+        $customer = User::factory()->create();
+        $review = Review::factory()->create();
+
+        $this->actingAs($customer)->deleteJson("/api/v1/admin/reviews/{$review->id}")
+            ->assertForbidden();
+
+        $this->assertModelExists($review);
+    }
+
+    #[Test]
     public function an_admin_can_reply_to_a_review_and_the_author_is_notified(): void
     {
         Notification::fake();

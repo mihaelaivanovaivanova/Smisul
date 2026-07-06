@@ -36,6 +36,10 @@ export async function hideReview(id: number): Promise<AdminReview> {
   return data.data;
 }
 
+export async function deleteReviewAsAdmin(id: number): Promise<void> {
+  await apiClient.delete(`/admin/reviews/${id}`);
+}
+
 export async function replyToReview(id: number, reply: string): Promise<AdminReview> {
   const { data } = await apiClient.post<{ data: AdminReview }>(`/admin/reviews/${id}/reply`, { reply });
   return data.data;

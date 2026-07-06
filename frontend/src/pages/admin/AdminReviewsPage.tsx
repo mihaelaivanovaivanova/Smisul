@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   approveReview,
   bulkModerateReviews,
+  deleteReviewAsAdmin,
   fetchAdminReviewStatistics,
   fetchAdminReviews,
   hideReview,
@@ -64,7 +65,7 @@ export default function AdminReviewsPage() {
     setRefreshKey((key) => key + 1);
   }
 
-  async function runAction(action: () => Promise<AdminReview>) {
+  async function runAction(action: () => Promise<unknown>) {
     setActionError(null);
     try {
       await action();
@@ -72,6 +73,13 @@ export default function AdminReviewsPage() {
     } catch (err) {
       setActionError(getErrorMessage(err, 'Action failed.'));
     }
+  }
+
+  async function handleDelete(review: AdminReview) {
+    if (!window.confirm(`Permanently delete this review by ${review.customer.name}? This cannot be undone.`)) {
+      return;
+    }
+    await runAction(() => deleteReviewAsAdmin(review.id));
   }
 
   async function handleBulk(status: 'approved' | 'rejected' | 'hidden') {
@@ -254,6 +262,9 @@ export default function AdminReviewsPage() {
                           }}
                         >
                           Reply
+                        </button>
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => void handleDelete(review)}>
+                          Delete
                         </button>
                       </div>
 

@@ -245,6 +245,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
         Route::post('/reviews/{review}/hide', [AdminReviewController::class, 'hide'])->name('reviews.hide');
         Route::post('/reviews/{review}/reply', [AdminReviewController::class, 'reply'])->name('reviews.reply');
+        Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
 
         Route::get('/content/homepage', [AdminContentBlockController::class, 'index'])->name('content.homepage.show');
         Route::put('/content/homepage/{section}', [AdminContentBlockController::class, 'update'])

@@ -61,6 +61,12 @@ class ReviewService
     }
 
     /**
+     * Reviews publish immediately — there is no pre-publication moderation
+     * queue. Admins moderate after the fact (hide/reject/delete a live
+     * review, or restore one via approve) rather than gatekeeping before
+     * publication; see ReviewPolicy for the matching customer-side rule
+     * (owners may edit/delete their review at any time, not just pre-review).
+     *
      * @param  array{rating: int, title: string, body: string}  $data
      */
     public function create(User $user, ProductVariant $variant, Order $order, array $data): Review
@@ -75,7 +81,7 @@ class ReviewService
             'rating' => $data['rating'],
             'title' => $data['title'],
             'body' => $data['body'],
-            'status' => ReviewStatus::Pending,
+            'status' => ReviewStatus::Approved,
             'verified_purchase' => true,
         ]);
 

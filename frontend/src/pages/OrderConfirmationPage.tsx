@@ -7,7 +7,14 @@ import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import Seo from '../components/Seo';
 import { formatPrice } from '../services/productCatalog';
-import { cart as cartCopy, checkout as checkoutCopy, orders as ordersCopy, tracking as trackingCopy } from '../content/copy';
+import { useAuth } from '../hooks/useAuth';
+import {
+  cart as cartCopy,
+  checkout as checkoutCopy,
+  orders as ordersCopy,
+  reviews as reviewsCopy,
+  tracking as trackingCopy,
+} from '../content/copy';
 import type { Order } from '../types/checkout';
 
 interface LocationState {
@@ -20,6 +27,7 @@ export default function OrderConfirmationPage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const state = (location.state ?? {}) as LocationState;
+  const { isAuthenticated } = useAuth();
 
   const [order, setOrder] = useState<Order | null>(state.order ?? null);
   const [isLoading, setIsLoading] = useState(state.order === undefined);
@@ -85,12 +93,23 @@ export default function OrderConfirmationPage() {
               <div className="card-body">
                 <ul className="list-unstyled mb-3">
                   {order.items.map((item) => (
-                    <li key={item.id} className="d-flex justify-content-between border-bottom py-2">
-                      <span>
-                        {item.product_name}
-                        {item.variant_name ? ` (${item.variant_name})` : ''} × {item.quantity}
-                      </span>
-                      <span>{formatPrice(item.line_total)}</span>
+                    <li key={item.id} className="border-bottom py-2">
+                      <div className="d-flex justify-content-between">
+                        <span>
+                          {item.product_name}
+                          {item.variant_name ? ` (${item.variant_name})` : ''} × {item.quantity}
+                        </span>
+                        <span>{formatPrice(item.line_total)}</span>
+                      </div>
+                      {isAuthenticated && order.status === 'delivered' && item.product_slug && item.product_variant_id && (
+                        <Link
+                          to={`/products/${item.product_slug}`}
+                          state={{ reviewPrompt: { orderId: order.id, productVariantId: item.product_variant_id } }}
+                          className="small"
+                        >
+                          {reviewsCopy.writePrompt.cta}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

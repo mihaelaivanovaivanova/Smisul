@@ -367,6 +367,73 @@ export const favorites = {
   wishlistNotice: 'Ще ти изпратим имейл, когато продуктът отново е наличен.',
 };
 
+export const reviews = {
+  title: 'Отзиви',
+  seoTitle: `Моите отзиви — ${siteName}`,
+  seoDescription: 'Прегледай отзивите, които си оставил/а за продукти на Smisul.',
+  loading: 'Зареждане на отзиви…',
+  loadError: 'Неуспешно зареждане на отзивите.',
+  summaryLoadError: 'Неуспешно зареждане на обобщението на отзивите.',
+  emptyTitle: 'Все още няма отзиви',
+  emptyMessage: 'Бъди първият, който ще сподели мнение за този продукт.',
+  reviewCount: (count: number) => `${count} ${count === 1 ? 'отзив' : 'отзива'}`,
+  verifiedPurchase: 'Потвърдена покупка',
+  helpfulQuestion: 'Полезен ли беше този отзив?',
+  helpful: 'Полезен',
+  helpfulCount: (count: number) => `Полезен (${count})`,
+  helpfulError: 'Неуспешно гласуване.',
+  adminReplyLabel: 'Отговор от екипа на Smisul',
+
+  sortLabel: 'Подреди по',
+  sortOptions: {
+    newest: 'Най-нови',
+    highest: 'Най-висока оценка',
+    lowest: 'Най-ниска оценка',
+    helpful: 'Най-полезни',
+  },
+
+  distributionTitle: 'Разпределение на оценките',
+  starLabel: (n: number) => `${n} ${n === 1 ? 'звезда' : 'звезди'}`,
+
+  writeReview: 'Напиши отзив',
+  editReview: 'Редактирай отзива',
+  cancel: 'Отказ',
+  ratingLabel: 'Оценка',
+  titleLabel: 'Заглавие',
+  bodyLabel: 'Отзив',
+  submit: 'Изпрати отзива',
+  submitting: 'Изпращане…',
+  saveChanges: 'Запази промените',
+  submitSuccess: 'Благодарим за отзива! Ще бъде публикуван след одобрение.',
+  submitError: 'Неуспешно изпращане на отзива.',
+  updateError: 'Неуспешно запазване на промените.',
+  deleteConfirm: 'Сигурен/а ли си, че искаш да изтриеш отзива?',
+  deleteError: 'Неуспешно изтриване на отзива.',
+  ratingRequired: 'Моля, избери оценка.',
+  titleRequired: 'Моля, въведи заглавие.',
+  bodyRequired: 'Моля, въведи текст на отзива.',
+
+  yourReviewTitle: 'Твоят отзив',
+  statusPending: 'Изчаква одобрение',
+  statusApproved: 'Одобрен',
+  statusRejected: 'Отхвърлен',
+  statusHidden: 'Скрит',
+
+  myReviews: {
+    title: 'Моите отзиви',
+    emptyTitle: 'Все още нямаш написани отзиви',
+    emptyMessage: 'Прегледай доставените си поръчки, за да оставиш отзив за продукт.',
+    emptyCta: 'Виж поръчките си',
+  },
+
+  writePrompt: {
+    title: 'Продуктът е доставен — сподели мнение',
+    cta: 'Напиши отзив',
+    alreadyReviewed: 'Вече си оставил/а отзив за този продукт',
+    editCta: 'Редактирай отзива си',
+  },
+};
+
 /**
  * Bulgarian placeholder copy for backend-owned seed content (product
  * name/description/short_description). NOT applied automatically — these

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import ProfileDetailsForm from '../components/ProfileDetailsForm';
 import ChangePasswordForm from '../components/ChangePasswordForm';
 import { useAuth } from '../hooks/useAuth';
-import { orders as ordersCopy, favorites as favoritesCopy } from '../content/copy';
+import { orders as ordersCopy, favorites as favoritesCopy, reviews as reviewsCopy } from '../content/copy';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -27,6 +27,9 @@ export default function ProfilePage() {
           </Link>
           <Link to="/profile/favorites" className="btn btn-outline-primary">
             {favoritesCopy.title}
+          </Link>
+          <Link to="/profile/reviews" className="btn btn-outline-primary">
+            {reviewsCopy.myReviews.title}
           </Link>
         </div>
       </div>

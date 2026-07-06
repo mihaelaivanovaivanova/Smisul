@@ -21,6 +21,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
 import FavoritesPage from './pages/FavoritesPage';
+import ReviewsPage from './pages/ReviewsPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailedPage from './pages/PaymentFailedPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
@@ -30,6 +31,7 @@ import CategoriesPage from './pages/admin/CategoriesPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
 import ContentPage from './pages/admin/ContentPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 import CustomersPage from './pages/admin/CustomersPage';
 import CustomerDetailPage from './pages/admin/CustomerDetailPage';
@@ -66,6 +68,7 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/orders" element={<OrdersPage />} />
           <Route path="/profile/favorites" element={<FavoritesPage />} />
+          <Route path="/profile/reviews" element={<ReviewsPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
@@ -79,6 +82,7 @@ export default function App() {
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:customerId" element={<CustomerDetailPage />} />

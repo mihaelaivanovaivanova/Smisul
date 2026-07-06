@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { useProduct } from '../hooks/useProduct';
 import {
   getActivePromotion,
@@ -20,14 +20,21 @@ import PriceBlock from '../components/product/PriceBlock';
 import StockStatus from '../components/product/StockStatus';
 import AddToCartButton from '../components/product/AddToCartButton';
 import FavoriteButton from '../components/product/FavoriteButton';
+import ReviewsSection from '../components/reviews/ReviewsSection';
 import NotFoundPage from './NotFoundPage';
 import { breadcrumbLabels, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
 
+interface ReviewPromptState {
+  reviewPrompt?: { orderId: number; productVariantId: number };
+}
+
 export default function ProductPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+  const location = useLocation();
   const { product, isLoading, error } = useProduct(slug);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const writePrompt = (location.state as ReviewPromptState | null)?.reviewPrompt;
 
   if (isLoading) {
     return <LoadingState message={productCopy.loading} />;
@@ -136,6 +143,12 @@ export default function ProductPage() {
 
           <ProductVideos videos={videos} />
           <ProductDownloads downloads={downloads} />
+        </div>
+      </div>
+
+      <div className="row mt-5">
+        <div className="col-12 col-lg-8">
+          <ReviewsSection productSlug={product.slug} writePrompt={writePrompt} />
         </div>
       </div>
     </div>

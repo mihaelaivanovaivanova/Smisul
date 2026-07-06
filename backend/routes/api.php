@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductControlle
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVariantController;
 use App\Http\Controllers\Api\V1\Admin\PromotionController as AdminPromotionController;
+use App\Http\Controllers\Api\V1\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedSessionController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
 use App\Http\Controllers\Api\V1\Payment\PaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ShipmentController;
 use App\Http\Resources\UserResource;
 use App\Services\ContentBlockService;
@@ -103,12 +105,28 @@ Route::prefix('v1')->group(function () {
         Route::get('/favorites/count', [FavoriteController::class, 'count'])->name('favorites.count');
         Route::get('/favorites/check/{productVariant}', [FavoriteController::class, 'check'])->name('favorites.check');
         Route::delete('/favorites/{favorite}', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
+
+        // Reviews: "own reviews" CRUD — verified-purchase eligibility is
+        // enforced in ReviewService::assertEligible(), not here (see
+        // ReviewPolicy). Administrators get the same 403 a guest would get
+        // 401 for, one layer up.
+        Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+        Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+        Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     });
+
+    // Marking a review helpful isn't customer-only (see ReviewPolicy) —
+    // flat under auth:sanctum like /profile, not the /customer prefix.
+    Route::middleware('auth:sanctum')->post('/reviews/{review}/helpful', [ReviewController::class, 'markHelpful'])
+        ->name('reviews.helpful');
 
     // Public storefront: read-only, no auth required.
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
     Route::get('/products/{slug}/variants', [ProductController::class, 'variants'])->name('products.variants');
+    Route::get('/products/{slug}/reviews', [ProductController::class, 'reviews'])->name('products.reviews.index');
+    Route::get('/products/{slug}/reviews/summary', [ProductController::class, 'reviewsSummary'])->name('products.reviews.summary');
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
@@ -219,6 +237,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');
 
         Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
+
+        Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
+        Route::get('/reviews/statistics', [AdminReviewController::class, 'statistics'])->name('reviews.statistics');
+        Route::post('/reviews/bulk-moderate', [AdminReviewController::class, 'bulkModerate'])->name('reviews.bulk-moderate');
+        Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
+        Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
+        Route::post('/reviews/{review}/hide', [AdminReviewController::class, 'hide'])->name('reviews.hide');
+        Route::post('/reviews/{review}/reply', [AdminReviewController::class, 'reply'])->name('reviews.reply');
 
         Route::get('/content/homepage', [AdminContentBlockController::class, 'index'])->name('content.homepage.show');
         Route::put('/content/homepage/{section}', [AdminContentBlockController::class, 'update'])

@@ -6,10 +6,16 @@ use App\Events\Favorite\ProductBackInStock;
 use App\Events\Favorite\ProductPriceDropped;
 use App\Events\Order\OrderPlaced;
 use App\Events\Order\OrderStatusChanged;
+use App\Events\Review\ReviewApproved;
+use App\Events\Review\ReviewRejected;
+use App\Events\Review\ReviewReplied;
 use App\Listeners\NotifyFavoritesOfBackInStock;
 use App\Listeners\NotifyFavoritesOfPriceDrop;
 use App\Listeners\SendOrderPlacedNotifications;
 use App\Listeners\SendOrderStatusEmails;
+use App\Listeners\SendReviewApprovedNotification;
+use App\Listeners\SendReviewRejectedNotification;
+use App\Listeners\SendReviewReplyNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -47,6 +53,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(OrderStatusChanged::class, SendOrderStatusEmails::class);
         Event::listen(ProductPriceDropped::class, NotifyFavoritesOfPriceDrop::class);
         Event::listen(ProductBackInStock::class, NotifyFavoritesOfBackInStock::class);
+        Event::listen(ReviewApproved::class, SendReviewApprovedNotification::class);
+        Event::listen(ReviewRejected::class, SendReviewRejectedNotification::class);
+        Event::listen(ReviewReplied::class, SendReviewReplyNotification::class);
     }
 
     /**

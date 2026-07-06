@@ -124,3 +124,27 @@ export interface LogEntry {
   created_at: string;
   meta: Record<string, unknown>;
 }
+
+export interface AdminReview {
+  id: number;
+  rating: number;
+  title: string;
+  body: string;
+  status: 'pending' | 'approved' | 'rejected' | 'hidden';
+  verified_purchase: boolean;
+  helpful_count: number;
+  created_at: string;
+  customer: { id: number; name: string; email: string };
+  product: { id: number; name: string; slug: string };
+  order_id: number;
+  admin_reply: string | null;
+  admin_reply_at: string | null;
+  admin_replied_by: string | null;
+}
+
+export interface AdminReviewStatistics {
+  total_reviews: number;
+  reviews_by_status: Record<string, number>;
+  average_rating: number;
+  pending_count: number;
+}

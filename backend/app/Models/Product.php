@@ -86,6 +86,14 @@ class Product extends Model implements IsMediable
         return $this->hasManyThrough(Favorite::class, ProductVariant::class);
     }
 
+    /**
+     * @return HasMany<Review, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public function isPublished(): bool
     {
         return $this->status === ProductStatus::Published;

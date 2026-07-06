@@ -41,7 +41,7 @@ use Illuminate\Support\Str;
 class OrderService
 {
     public const EAGER_LOAD = [
-        'items',
+        'items.productVariant.product',
         'legalAcceptances.legalDocument',
         'statusHistories.changedBy',
     ];

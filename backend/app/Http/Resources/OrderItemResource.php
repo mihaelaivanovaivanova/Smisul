@@ -27,6 +27,11 @@ class OrderItemResource extends JsonResource
             'line_total' => (float) $this->line_total,
             'discount_amount' => (float) $this->discount_amount,
             'promotion_name' => $this->promotion_name,
+            // Nullable: the variant (and/or its product) may since have been
+            // deleted — a historical order line stays valid without them
+            // (see OrderItem's class docblock), it just can't be reviewed.
+            'product_variant_id' => $this->product_variant_id,
+            'product_slug' => $this->productVariant?->product?->slug,
         ];
     }
 }

@@ -90,6 +90,9 @@ export interface OrderItem {
   line_total: number;
   discount_amount: number;
   promotion_name: string | null;
+  /** Null if the variant (or its product) has since been deleted — can't be reviewed in that case. */
+  product_variant_id: number | null;
+  product_slug: string | null;
 }
 
 export interface OrderTimelineEntry {

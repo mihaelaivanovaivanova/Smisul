@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/admin/promotions', label: 'Promotions' },
   { to: '/admin/content', label: 'Content' },
   { to: '/admin/orders', label: 'Orders' },
+  { to: '/admin/reviews', label: 'Reviews' },
   { to: '/admin/customers', label: 'Customers' },
   { to: '/admin/media', label: 'Media Library' },
   { to: '/admin/settings', label: 'Settings' },

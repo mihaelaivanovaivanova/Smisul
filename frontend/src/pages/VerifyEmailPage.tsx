@@ -4,6 +4,7 @@ import AuthCard from '../components/AuthCard';
 import Alert from '../components/Alert';
 import { verifyEmail } from '../api/auth';
 import { getErrorMessage } from '../api/errors';
+import { auth as authCopy } from '../content/copy';
 
 type Status = 'verifying' | 'success' | 'error';
 
@@ -19,7 +20,7 @@ export default function VerifyEmailPage() {
 
     if (!id || !hash || !expires || !signature) {
       setStatus('error');
-      setMessage('This verification link is invalid or incomplete.');
+      setMessage(authCopy.verifyEmail.invalidLink);
       return;
     }
 
@@ -35,7 +36,7 @@ export default function VerifyEmailPage() {
       .catch((error: unknown) => {
         if (isMounted) {
           setStatus('error');
-          setMessage(getErrorMessage(error, 'This verification link is invalid or has expired.'));
+          setMessage(getErrorMessage(error, authCopy.verifyEmail.error));
         }
       });
 
@@ -45,11 +46,11 @@ export default function VerifyEmailPage() {
   }, [id, hash, searchParams]);
 
   return (
-    <AuthCard title="Email verification">
+    <AuthCard title={authCopy.verifyEmail.title}>
       {status === 'verifying' && (
         <div className="text-center py-3">
           <div className="spinner-border" role="status">
-            <span className="visually-hidden">Verifying...</span>
+            <span className="visually-hidden">{authCopy.verifyEmail.verifying}</span>
           </div>
         </div>
       )}
@@ -57,7 +58,7 @@ export default function VerifyEmailPage() {
       {status === 'error' && <Alert variant="danger">{message}</Alert>}
 
       <p className="text-center mt-3 mb-0">
-        <Link to="/login">Go to log in</Link>
+        <Link to="/login">{authCopy.verifyEmail.goToLogin}</Link>
       </p>
     </AuthCard>
   );

@@ -5,6 +5,7 @@ import SubmitButton from './SubmitButton';
 import Alert from './Alert';
 import { updatePassword } from '../api/profile';
 import { useFormSubmit } from '../hooks/useFormSubmit';
+import { profile as profileCopy } from '../content/copy';
 
 export default function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -27,13 +28,13 @@ export default function ChangePasswordForm() {
       setCurrentPassword('');
       setPassword('');
       setPasswordConfirmation('');
-    }, 'Unable to update your password.');
+    }, profileCopy.changePassword.error);
   }
 
   return (
     <div className="card shadow-sm">
       <div className="card-body p-4">
-        <h2 className="h5 mb-4">Change password</h2>
+        <h2 className="h5 mb-4">{profileCopy.changePassword.heading}</h2>
 
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
         {formError && <Alert variant="danger">{formError}</Alert>}
@@ -42,7 +43,7 @@ export default function ChangePasswordForm() {
           <div className="mb-3">
             <FormField
               id="current_password"
-              label="Current password"
+              label={profileCopy.changePassword.currentPassword}
               type="password"
               value={currentPassword}
               onChange={setCurrentPassword}
@@ -54,7 +55,7 @@ export default function ChangePasswordForm() {
           <div className="mb-3">
             <FormField
               id="new_password"
-              label="New password"
+              label={profileCopy.changePassword.newPassword}
               type="password"
               value={password}
               onChange={setPassword}
@@ -66,7 +67,7 @@ export default function ChangePasswordForm() {
           <div className="mb-3">
             <FormField
               id="new_password_confirmation"
-              label="Confirm new password"
+              label={profileCopy.changePassword.confirmNewPassword}
               type="password"
               value={passwordConfirmation}
               onChange={setPasswordConfirmation}
@@ -74,7 +75,7 @@ export default function ChangePasswordForm() {
             />
           </div>
 
-          <SubmitButton isLoading={isLoading}>Update password</SubmitButton>
+          <SubmitButton isLoading={isLoading}>{profileCopy.changePassword.submit}</SubmitButton>
         </form>
       </div>
     </div>

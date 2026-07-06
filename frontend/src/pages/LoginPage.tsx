@@ -7,6 +7,7 @@ import SubmitButton from '../components/SubmitButton';
 import Alert from '../components/Alert';
 import { useAuth } from '../hooks/useAuth';
 import { useFormSubmit } from '../hooks/useFormSubmit';
+import { auth as authCopy } from '../content/copy';
 
 interface LocationState {
   message?: string;
@@ -29,24 +30,32 @@ export default function LoginPage() {
 
     await submit(async () => {
       await login({ email, password, remember });
-      navigate(state.from?.pathname ?? '/profile', { replace: true });
-    }, 'Unable to log in. Please try again.');
+      navigate(state.from?.pathname ?? '/', { replace: true });
+    }, authCopy.login.error);
   }
 
   return (
-    <AuthCard title="Log in">
+    <AuthCard title={authCopy.login.title}>
       {state.message && <Alert variant="success">{state.message}</Alert>}
       {formError && <Alert variant="danger">{formError}</Alert>}
 
       <form onSubmit={(event) => void handleSubmit(event)} noValidate>
         <div className="mb-3">
-          <FormField id="email" label="Email address" type="email" value={email} onChange={setEmail} error={errors.email} required />
+          <FormField
+            id="email"
+            label={authCopy.login.email}
+            type="email"
+            value={email}
+            onChange={setEmail}
+            error={errors.email}
+            required
+          />
         </div>
 
         <div className="mb-3">
           <FormField
             id="password"
-            label="Password"
+            label={authCopy.login.password}
             type="password"
             value={password}
             onChange={setPassword}
@@ -65,19 +74,19 @@ export default function LoginPage() {
               onChange={(event) => setRemember(event.target.checked)}
             />
             <label htmlFor="remember" className="form-check-label">
-              Remember me
+              {authCopy.login.rememberMe}
             </label>
           </div>
-          <Link to="/forgot-password">Forgot password?</Link>
+          <Link to="/forgot-password">{authCopy.login.forgotPassword}</Link>
         </div>
 
         <SubmitButton isLoading={isLoading} className="w-100">
-          Log in
+          {authCopy.login.submit}
         </SubmitButton>
       </form>
 
       <p className="text-center mt-3 mb-0">
-        Don&apos;t have an account? <Link to="/register">Register</Link>
+        {authCopy.login.noAccount} <Link to="/register">{authCopy.login.registerLink}</Link>
       </p>
     </AuthCard>
   );

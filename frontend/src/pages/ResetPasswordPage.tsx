@@ -7,6 +7,7 @@ import SubmitButton from '../components/SubmitButton';
 import Alert from '../components/Alert';
 import { resetPassword } from '../api/auth';
 import { useFormSubmit } from '../hooks/useFormSubmit';
+import { auth as authCopy } from '../content/copy';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -28,29 +29,29 @@ export default function ResetPasswordPage() {
         password,
         password_confirmation: passwordConfirmation,
       });
-      navigate('/login', { state: { message: 'Your password has been reset. Please log in.' } });
-    }, 'Unable to reset your password. The link may have expired.');
+      navigate('/login', { state: { message: authCopy.resetPassword.success } });
+    }, authCopy.resetPassword.error);
   }
 
   if (!token || !email) {
     return (
-      <AuthCard title="Reset password">
-        <Alert variant="danger">This password reset link is invalid or incomplete.</Alert>
+      <AuthCard title={authCopy.resetPassword.invalidLinkTitle}>
+        <Alert variant="danger">{authCopy.resetPassword.invalidLink}</Alert>
         <p className="text-center mb-0">
-          <Link to="/forgot-password">Request a new link</Link>
+          <Link to="/forgot-password">{authCopy.resetPassword.requestNewLink}</Link>
         </p>
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard title="Reset your password">
+    <AuthCard title={authCopy.resetPassword.title}>
       {formError && <Alert variant="danger">{formError}</Alert>}
 
       <form onSubmit={(event) => void handleSubmit(event)} noValidate>
         <div className="mb-3">
           <label htmlFor="email" className="form-label">
-            Email address
+            {authCopy.resetPassword.email}
           </label>
           <input id="email" type="email" className="form-control" value={email} disabled readOnly />
         </div>
@@ -58,7 +59,7 @@ export default function ResetPasswordPage() {
         <div className="mb-3">
           <FormField
             id="password"
-            label="New password"
+            label={authCopy.resetPassword.newPassword}
             type="password"
             value={password}
             onChange={setPassword}
@@ -70,7 +71,7 @@ export default function ResetPasswordPage() {
         <div className="mb-3">
           <FormField
             id="password_confirmation"
-            label="Confirm new password"
+            label={authCopy.resetPassword.confirmNewPassword}
             type="password"
             value={passwordConfirmation}
             onChange={setPasswordConfirmation}
@@ -79,7 +80,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <SubmitButton isLoading={isLoading} className="w-100">
-          Reset password
+          {authCopy.resetPassword.submit}
         </SubmitButton>
       </form>
     </AuthCard>

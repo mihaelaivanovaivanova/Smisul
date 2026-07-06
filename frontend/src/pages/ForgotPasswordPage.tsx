@@ -7,6 +7,7 @@ import SubmitButton from '../components/SubmitButton';
 import Alert from '../components/Alert';
 import { forgotPassword } from '../api/auth';
 import { useFormSubmit } from '../hooks/useFormSubmit';
+import { auth as authCopy } from '../content/copy';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -20,28 +21,36 @@ export default function ForgotPasswordPage() {
     await submit(async () => {
       const message = await forgotPassword(email);
       setSuccessMessage(message);
-    }, 'Unable to send the reset link. Please try again.');
+    }, authCopy.forgotPassword.error);
   }
 
   return (
-    <AuthCard title="Forgot your password?">
+    <AuthCard title={authCopy.forgotPassword.title}>
       {successMessage && <Alert variant="success">{successMessage}</Alert>}
       {formError && <Alert variant="danger">{formError}</Alert>}
 
       {!successMessage && (
         <form onSubmit={(event) => void handleSubmit(event)} noValidate>
           <div className="mb-3">
-            <FormField id="email" label="Email address" type="email" value={email} onChange={setEmail} error={errors.email} required />
+            <FormField
+              id="email"
+              label={authCopy.forgotPassword.email}
+              type="email"
+              value={email}
+              onChange={setEmail}
+              error={errors.email}
+              required
+            />
           </div>
 
           <SubmitButton isLoading={isLoading} className="w-100">
-            Send reset link
+            {authCopy.forgotPassword.submit}
           </SubmitButton>
         </form>
       )}
 
       <p className="text-center mt-3 mb-0">
-        <Link to="/login">Back to log in</Link>
+        <Link to="/login">{authCopy.forgotPassword.backToLogin}</Link>
       </p>
     </AuthCard>
   );

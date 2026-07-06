@@ -7,6 +7,7 @@ import { updateProfile } from '../api/profile';
 import { resendVerificationEmail } from '../api/auth';
 import { getErrorMessage } from '../api/errors';
 import { useFormSubmit } from '../hooks/useFormSubmit';
+import { profile as profileCopy } from '../content/copy';
 import type { User } from '../types/auth';
 
 interface ProfileDetailsFormProps {
@@ -42,11 +43,9 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
       });
       onUpdated(updated);
       setSuccessMessage(
-        updated.email !== user.email
-          ? 'Profile updated. Since you changed your email, please verify it again.'
-          : 'Profile updated successfully.',
+        updated.email !== user.email ? profileCopy.details.successEmailChanged : profileCopy.details.success,
       );
-    }, 'Unable to update your profile.');
+    }, profileCopy.details.error);
   }
 
   async function handleResendVerification() {
@@ -57,7 +56,7 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
       const message = await resendVerificationEmail();
       setResendMessage(message);
     } catch (error) {
-      setResendMessage(getErrorMessage(error, 'Unable to resend the verification email.'));
+      setResendMessage(getErrorMessage(error, profileCopy.details.resendError));
     } finally {
       setIsResending(false);
     }
@@ -66,21 +65,21 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
   return (
     <div className="card shadow-sm">
       <div className="card-body p-4">
-        <h2 className="h5 mb-4">Profile details</h2>
+        <h2 className="h5 mb-4">{profileCopy.details.heading}</h2>
 
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
         {formError && <Alert variant="danger">{formError}</Alert>}
 
         {!user.email_verified_at && (
           <Alert variant="warning">
-            Your email address is not verified.{' '}
+            {profileCopy.details.emailNotVerified}{' '}
             <button
               type="button"
               className="btn btn-link p-0 align-baseline"
               onClick={() => void handleResendVerification()}
               disabled={isResending}
             >
-              Resend verification email
+              {profileCopy.details.resendVerification}
             </button>
             {resendMessage && <div className="small mt-1">{resendMessage}</div>}
           </Alert>
@@ -91,7 +90,7 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
             <div className="col-12 col-sm-6 mb-3">
               <FormField
                 id="first_name"
-                label="First name"
+                label={profileCopy.details.firstName}
                 value={firstName}
                 onChange={setFirstName}
                 error={errors.first_name}
@@ -99,16 +98,31 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
               />
             </div>
             <div className="col-12 col-sm-6 mb-3">
-              <FormField id="last_name" label="Last name" value={lastName} onChange={setLastName} error={errors.last_name} required />
+              <FormField
+                id="last_name"
+                label={profileCopy.details.lastName}
+                value={lastName}
+                onChange={setLastName}
+                error={errors.last_name}
+                required
+              />
             </div>
           </div>
 
           <div className="mb-3">
-            <FormField id="email" label="Email address" type="email" value={email} onChange={setEmail} error={errors.email} required />
+            <FormField
+              id="email"
+              label={profileCopy.details.email}
+              type="email"
+              value={email}
+              onChange={setEmail}
+              error={errors.email}
+              required
+            />
           </div>
 
           <div className="mb-3">
-            <FormField id="phone" label="Phone" type="tel" value={phone} onChange={setPhone} error={errors.phone} />
+            <FormField id="phone" label={profileCopy.details.phone} type="tel" value={phone} onChange={setPhone} error={errors.phone} />
           </div>
 
           <div className="form-check mb-2">
@@ -120,7 +134,7 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
               onChange={(event) => setNewsletter(event.target.checked)}
             />
             <label htmlFor="newsletter_subscription" className="form-check-label">
-              Subscribe to the newsletter
+              {profileCopy.details.newsletterSubscription}
             </label>
           </div>
 
@@ -133,11 +147,11 @@ export default function ProfileDetailsForm({ user, onUpdated }: ProfileDetailsFo
               onChange={(event) => setMarketing(event.target.checked)}
             />
             <label htmlFor="marketing_consent" className="form-check-label">
-              I agree to receive marketing communications
+              {profileCopy.details.marketingConsent}
             </label>
           </div>
 
-          <SubmitButton isLoading={isLoading}>Save changes</SubmitButton>
+          <SubmitButton isLoading={isLoading}>{profileCopy.details.submit}</SubmitButton>
         </form>
       </div>
     </div>

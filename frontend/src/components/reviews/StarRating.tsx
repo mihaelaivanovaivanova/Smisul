@@ -1,4 +1,5 @@
 import Icon from '../icons/Icon';
+import { reviews as reviewsCopy } from '../../content/copy';
 
 interface StarRatingProps {
   rating: number;
@@ -15,7 +16,7 @@ export default function StarRating({ rating, onChange, size = 'sm', ariaLabel }:
 
   if (onChange) {
     return (
-      <div role="radiogroup" aria-label={ariaLabel ?? 'Rating'} className="d-flex gap-1">
+      <div role="radiogroup" aria-label={ariaLabel ?? reviewsCopy.ratingLabel} className="d-flex gap-1">
         {STARS.map((star) => (
           <button
             key={star}

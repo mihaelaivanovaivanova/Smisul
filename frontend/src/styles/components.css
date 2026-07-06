@@ -12,6 +12,40 @@
   height: 56px;
 }
 
+/* ---- Navbar ---- */
+
+/*
+ * Bootstrap's width utilities (w-*) aren't responsive out of the box, so
+ * the mobile-full-width / desktop-grows-inline behavior needs an explicit
+ * rule instead. flex-basis:100% on mobile guarantees the search form
+ * can't share a row with anything else (forcing it onto its own line once
+ * the navbar container wraps — see Navbar.tsx); at md+ it reverts to a
+ * normal growing flex item alongside the logo and action buttons. 768px
+ * matches navbar-expand-md's own breakpoint.
+ */
+.navbar-search {
+  flex: 1 1 100%;
+}
+
+@media (min-width: 768px) {
+  .navbar-search {
+    flex: 1 1 auto;
+  }
+}
+
+/*
+ * The mini-cart dropdown was a fixed 320px wide — Bootstrap's Popper
+ * positioning can shift it to try to stay in the viewport, but it can't
+ * shrink it, so on any screen narrower than ~350px (plus the cart button
+ * sitting near the right edge on mobile, since dropdown-menu-end anchors
+ * its right edge to the button) the menu's left edge went off-screen.
+ * min() caps the width to whatever actually fits, with 1rem of breathing
+ * room on each side.
+ */
+.minicart-dropdown {
+  width: min(320px, calc(100vw - 2rem));
+}
+
 /* ---- Hero ---- */
 
 .hero {

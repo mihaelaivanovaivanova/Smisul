@@ -8,6 +8,7 @@ import SubmitButton from '../components/SubmitButton';
 import Alert from '../components/Alert';
 import { register as registerRequest } from '../api/auth';
 import { useFormSubmit } from '../hooks/useFormSubmit';
+import { auth as authCopy } from '../content/copy';
 
 interface FormState {
   first_name: string;
@@ -60,14 +61,14 @@ export default function RegisterPage() {
 
       navigate('/login', {
         state: {
-          message: 'Account created. Please check your email to verify your address, then log in.',
+          message: authCopy.register.success,
         },
       });
-    }, 'Registration failed. Please check the form and try again.');
+    }, authCopy.register.error);
   }
 
   return (
-    <AuthCard title="Create your account">
+    <AuthCard title={authCopy.register.title}>
       {formError && <Alert variant="danger">{formError}</Alert>}
 
       <form onSubmit={(event) => void handleSubmit(event)} noValidate>
@@ -75,7 +76,7 @@ export default function RegisterPage() {
           <div className="col-12 col-sm-6 mb-3">
             <FormField
               id="first_name"
-              label="First name"
+              label={authCopy.register.firstName}
               value={form.first_name}
               onChange={(value) => updateField('first_name', value)}
               error={errors.first_name}
@@ -85,7 +86,7 @@ export default function RegisterPage() {
           <div className="col-12 col-sm-6 mb-3">
             <FormField
               id="last_name"
-              label="Last name"
+              label={authCopy.register.lastName}
               value={form.last_name}
               onChange={(value) => updateField('last_name', value)}
               error={errors.last_name}
@@ -97,7 +98,7 @@ export default function RegisterPage() {
         <div className="mb-3">
           <FormField
             id="email"
-            label="Email address"
+            label={authCopy.register.email}
             type="email"
             value={form.email}
             onChange={(value) => updateField('email', value)}
@@ -109,7 +110,7 @@ export default function RegisterPage() {
         <div className="mb-3">
           <FormField
             id="phone"
-            label="Phone (optional)"
+            label={authCopy.register.phoneOptional}
             type="tel"
             value={form.phone}
             onChange={(value) => updateField('phone', value)}
@@ -121,7 +122,7 @@ export default function RegisterPage() {
           <div className="col-12 col-sm-6 mb-3">
             <FormField
               id="password"
-              label="Password"
+              label={authCopy.register.password}
               type="password"
               value={form.password}
               onChange={(value) => updateField('password', value)}
@@ -132,7 +133,7 @@ export default function RegisterPage() {
           <div className="col-12 col-sm-6 mb-3">
             <FormField
               id="password_confirmation"
-              label="Confirm password"
+              label={authCopy.register.confirmPassword}
               type="password"
               value={form.password_confirmation}
               onChange={(value) => updateField('password_confirmation', value)}
@@ -150,7 +151,7 @@ export default function RegisterPage() {
             onChange={(event) => updateField('newsletter_subscription', event.target.checked)}
           />
           <label htmlFor="newsletter_subscription" className="form-check-label">
-            Subscribe to the newsletter
+            {authCopy.register.newsletterSubscription}
           </label>
         </div>
 
@@ -163,7 +164,7 @@ export default function RegisterPage() {
             onChange={(event) => updateField('marketing_consent', event.target.checked)}
           />
           <label htmlFor="marketing_consent" className="form-check-label">
-            I agree to receive marketing communications
+            {authCopy.register.marketingConsent}
           </label>
         </div>
 
@@ -177,18 +178,18 @@ export default function RegisterPage() {
             required
           />
           <label htmlFor="gdpr_consent" className="form-check-label">
-            I agree to the processing of my personal data in accordance with the Privacy Policy *
+            {authCopy.register.gdprConsent}
           </label>
           <FieldError message={errors.gdpr_consent} />
         </div>
 
         <SubmitButton isLoading={isLoading} className="w-100">
-          Create account
+          {authCopy.register.submit}
         </SubmitButton>
       </form>
 
       <p className="text-center mt-3 mb-0">
-        Already have an account? <Link to="/login">Log in</Link>
+        {authCopy.register.haveAccount} <Link to="/login">{authCopy.register.loginLink}</Link>
       </p>
     </AuthCard>
   );

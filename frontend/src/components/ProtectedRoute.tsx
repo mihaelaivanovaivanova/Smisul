@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { states } from '../content/copy';
 
 /** Redirects guests to /login, preserving the intended destination. */
 export default function ProtectedRoute() {
@@ -10,7 +11,7 @@ export default function ProtectedRoute() {
     return (
       <div className="d-flex justify-content-center py-5">
         <div className="spinner-border" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">{states.loadingDefault}</span>
         </div>
       </div>
     );

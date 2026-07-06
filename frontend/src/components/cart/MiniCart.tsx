@@ -21,7 +21,7 @@ export default function MiniCart() {
         <CartBadge quantity={quantity} />
       </button>
 
-      <div className="dropdown-menu dropdown-menu-end p-3 shadow" style={{ minWidth: 320 }}>
+      <div className="dropdown-menu dropdown-menu-end minicart-dropdown p-3 shadow">
         <h2 className="h6 mb-3">{cartCopy.title}</h2>
 
         {isLoading && <p className="text-muted small mb-0">{cartCopy.loading}</p>}

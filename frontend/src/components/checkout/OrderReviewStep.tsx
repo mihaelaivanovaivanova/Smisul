@@ -128,7 +128,15 @@ export default function OrderReviewStep({
               />
               <label htmlFor={`legal-doc-${document.id}`} className="form-check-label">
                 {checkoutCopy.legal.acceptPrefix} {document.title}
-              </label>
+              </label>{' '}
+              <a
+                href={`/legal/${document.type.replace(/_/g, '-')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="small"
+              >
+                ({checkoutCopy.legal.viewDocument})
+              </a>
             </div>
           ))}
         </div>

@@ -7,6 +7,7 @@ import Seo from '../components/Seo';
 import ProductListing from '../components/listing/ProductListing';
 import NotFoundPage from './NotFoundPage';
 import { filtersFromSearchParams, filtersToSearchParams } from '../services/listingFilters';
+import { buildBreadcrumbJsonLd } from '../services/structuredData';
 import { breadcrumbLabels, category as categoryCopy, listing, seo } from '../content/copy';
 import type { ProductFilters } from '../types/product';
 
@@ -33,13 +34,16 @@ export default function CategoryPage() {
     return <NotFoundPage />;
   }
 
+  const breadcrumbItems = [{ label: breadcrumbLabels.home, to: '/' }, { label: category.name }];
+
   return (
     <div className="container py-4">
       <Seo
         title={`${category.name}${seo.categoryTitleSuffix}`}
         description={category.description ?? seo.categoryDescriptionFallback}
+        jsonLd={buildBreadcrumbJsonLd(breadcrumbItems)}
       />
-      <Breadcrumbs items={[{ label: breadcrumbLabels.home, to: '/' }, { label: category.name }]} />
+      <Breadcrumbs items={breadcrumbItems} />
       <h1 className="mb-2 mt-3">{category.name}</h1>
       {category.description && <p className="text-muted">{category.description}</p>}
 

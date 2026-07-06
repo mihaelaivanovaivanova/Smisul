@@ -22,6 +22,7 @@ import AddToCartButton from '../components/product/AddToCartButton';
 import FavoriteButton from '../components/product/FavoriteButton';
 import ReviewsSection from '../components/reviews/ReviewsSection';
 import NotFoundPage from './NotFoundPage';
+import { buildBreadcrumbJsonLd } from '../services/structuredData';
 import { breadcrumbLabels, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
 
@@ -82,17 +83,23 @@ export default function ProductPage() {
       }),
   };
 
+  const breadcrumbItems = [
+    { label: breadcrumbLabels.home, to: '/' },
+    ...(category ? [{ label: category.name, to: `/categories/${category.slug}` }] : []),
+    { label: product.name },
+  ];
+
   return (
     <div className="container py-4">
-      <Seo title={seoTitle} description={seoDescription} ogImage={ogImage} ogType="product" jsonLd={jsonLd} />
-
-      <Breadcrumbs
-        items={[
-          { label: breadcrumbLabels.home, to: '/' },
-          ...(category ? [{ label: category.name, to: `/categories/${category.slug}` }] : []),
-          { label: product.name },
-        ]}
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        ogImage={ogImage}
+        ogType="product"
+        jsonLd={[jsonLd, buildBreadcrumbJsonLd(breadcrumbItems)]}
       />
+
+      <Breadcrumbs items={breadcrumbItems} />
 
       <div className="row g-4 mt-1">
         <div className="col-12 col-lg-6">

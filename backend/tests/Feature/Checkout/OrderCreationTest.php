@@ -31,7 +31,11 @@ class OrderCreationTest extends TestCase
      */
     private function acceptAllCurrentLegalDocuments(): array
     {
-        return collect(LegalDocumentType::cases())
+        // Only the types checkout actually presents as checkboxes (see
+        // LegalDocumentType::requiredAtCheckout) — ShippingPolicy/
+        // ReturnsPolicy are informational-only pages a real checkout
+        // request would never submit an id for.
+        return collect(LegalDocumentType::requiredAtCheckout())
             ->map(function (LegalDocumentType $type) {
                 $existing = LegalDocument::where('type', $type)->where('version', '1.0')->first();
 

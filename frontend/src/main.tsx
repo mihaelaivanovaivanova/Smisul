@@ -8,16 +8,19 @@ import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { FavoritesProvider } from './context/FavoritesContext'
+import { CookieConsentProvider } from './context/CookieConsentContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <CartProvider>
-          <FavoritesProvider>
-            <App />
-          </FavoritesProvider>
-        </CartProvider>
+        <CookieConsentProvider>
+          <CartProvider>
+            <FavoritesProvider>
+              <App />
+            </FavoritesProvider>
+          </CartProvider>
+        </CookieConsentProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

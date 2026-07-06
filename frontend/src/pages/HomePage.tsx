@@ -18,6 +18,7 @@ import VariantPicker from '../components/product/VariantPicker';
 import AddToCartButton from '../components/product/AddToCartButton';
 import Seo from '../components/Seo';
 import Icon from '../components/icons/Icon';
+import { organizationJsonLd, websiteJsonLd } from '../services/structuredData';
 import { product as productCopy, seo, states } from '../content/copy';
 import type { Product, ProductVariant } from '../types/product';
 
@@ -69,7 +70,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <Seo title={seo.homeTitle} description={seo.homeDescription} />
+      <Seo title={seo.homeTitle} description={seo.homeDescription} jsonLd={[organizationJsonLd(), websiteJsonLd()]} />
 
       {/* ---- Hero ---- */}
       <section className="hero section">

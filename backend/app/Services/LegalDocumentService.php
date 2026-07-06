@@ -16,6 +16,11 @@ use Illuminate\Database\Eloquent\Collection;
 class LegalDocumentService
 {
     /**
+     * Every current document, of every type — the public "browse our
+     * legal pages" listing (footer links, /legal/{slug}). Includes
+     * ShippingPolicy/ReturnsPolicy, which are informational-only and
+     * never required at checkout (see requiredAtCheckout()/currentRequiredForCheckout()).
+     *
      * @return Collection<int, LegalDocument>
      */
     public function current(): Collection
@@ -24,13 +29,27 @@ class LegalDocumentService
     }
 
     /**
-     * Every LegalDocumentType is required at checkout today (see the
-     * sprint brief's Cookie Policy "if applicable" note — this storefront
-     * doesn't yet distinguish an "if applicable" case, so all five are
-     * always required). Returns the current LegalDocument rows matching
-     * the given IDs, or throws listing whichever required types weren't
-     * covered — by a missing ID, a wrong/stale ID, or an ID for the wrong
-     * type.
+     * Just the subset of current documents checkout actually requires
+     * acceptance of (see LegalDocumentType::requiredAtCheckout) — what
+     * CheckoutController::legalDocuments() shows, as opposed to current()'s
+     * full public listing.
+     *
+     * @return Collection<int, LegalDocument>
+     */
+    public function currentRequiredForCheckout(): Collection
+    {
+        $requiredTypes = LegalDocumentType::requiredAtCheckout();
+
+        return $this->current()->filter(fn (LegalDocument $doc) => in_array($doc->type, $requiredTypes, strict: true))->values();
+    }
+
+    /**
+     * Returns the current LegalDocument rows matching the given IDs, or
+     * throws listing whichever required types weren't covered — by a
+     * missing ID, a wrong/stale ID, or an ID for the wrong type. Only
+     * LegalDocumentType::requiredAtCheckout() types are enforced —
+     * ShippingPolicy/ReturnsPolicy are informational pages, not checkout
+     * checkboxes.
      *
      * @param  list<int>  $legalDocumentIds
      * @return Collection<int, LegalDocument>
@@ -40,7 +59,7 @@ class LegalDocumentService
         $current = $this->current();
         $accepted = $current->whereIn('id', $legalDocumentIds);
 
-        $missingTypes = collect(LegalDocumentType::cases())
+        $missingTypes = collect(LegalDocumentType::requiredAtCheckout())
             ->reject(fn (LegalDocumentType $type) => $accepted->contains(fn (LegalDocument $doc) => $doc->type === $type))
             ->values()
             ->all();
@@ -50,6 +69,11 @@ class LegalDocumentService
         }
 
         return $accepted;
+    }
+
+    public function currentByType(LegalDocumentType $type): ?LegalDocument
+    {
+        return LegalDocument::query()->where('type', $type)->where('is_current', true)->first();
     }
 
     /**

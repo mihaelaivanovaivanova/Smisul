@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\ConsentType;
 use App\Enums\Role;
 use App\Models\User;
 use App\Services\AuthService;
@@ -23,7 +24,7 @@ class AuthServiceTest extends TestCase
     {
         Event::fake();
 
-        $user = (new AuthService)->register([
+        $user = $this->app->make(AuthService::class)->register([
             'first_name' => 'Ada',
             'last_name' => 'Lovelace',
             'email' => 'ada@example.com',
@@ -34,13 +35,18 @@ class AuthServiceTest extends TestCase
         $this->assertSame(Role::Customer, $user->fresh()->role);
         $this->assertNotNull($user->gdpr_consent_at);
 
+        $this->assertDatabaseHas('consents', ['user_id' => $user->id, 'type' => ConsentType::Terms->value, 'accepted' => true]);
+        $this->assertDatabaseHas('consents', ['user_id' => $user->id, 'type' => ConsentType::Privacy->value, 'accepted' => true]);
+        $this->assertDatabaseHas('consents', ['user_id' => $user->id, 'type' => ConsentType::Marketing->value, 'accepted' => false]);
+        $this->assertDatabaseHas('consents', ['user_id' => $user->id, 'type' => ConsentType::Newsletter->value, 'accepted' => false]);
+
         Event::assertDispatched(Registered::class);
     }
 
     #[Test]
     public function register_ignores_any_client_supplied_role(): void
     {
-        $user = (new AuthService)->register([
+        $user = $this->app->make(AuthService::class)->register([
             'first_name' => 'Ada',
             'last_name' => 'Lovelace',
             'email' => 'ada@example.com',
@@ -58,7 +64,7 @@ class AuthServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
 
-        (new AuthService)->login($this->requestWithSession(), 'ada@example.com', 'wrong-password', false);
+        $this->app->make(AuthService::class)->login($this->requestWithSession(), 'ada@example.com', 'wrong-password', false);
     }
 
     #[Test]
@@ -67,7 +73,7 @@ class AuthServiceTest extends TestCase
         User::factory()->create(['email' => 'ada@example.com', 'password' => 'correct-password']);
 
         try {
-            (new AuthService)->login(Request::create('/'), 'ada@example.com', 'correct-password', false);
+            $this->app->make(AuthService::class)->login(Request::create('/'), 'ada@example.com', 'correct-password', false);
             $this->fail('Expected an HttpException to be thrown.');
         } catch (HttpException $exception) {
             $this->assertSame(400, $exception->getStatusCode());

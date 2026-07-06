@@ -19,7 +19,7 @@ class ProfileController extends Controller
 
     public function update(UpdateProfileRequest $request): UserResource
     {
-        $user = $this->profileService->updateProfile($request->user(), $request->validated());
+        $user = $this->profileService->updateProfile($request->user(), $request->validated(), $request->ip(), $request->userAgent());
 
         return new UserResource($user);
     }

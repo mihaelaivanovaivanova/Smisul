@@ -87,7 +87,7 @@ class CheckoutController extends Controller
 
     public function legalDocuments(): JsonResponse
     {
-        return LegalDocumentResource::collection($this->legalDocuments->current())->response();
+        return LegalDocumentResource::collection($this->legalDocuments->currentRequiredForCheckout())->response();
     }
 
     /**

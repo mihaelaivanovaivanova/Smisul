@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ConsentType;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
+    public function __construct(private readonly ConsentService $consents) {}
+
     /**
      * Register a new customer account.
      *
@@ -19,7 +22,7 @@ class AuthService
      *
      * @param  array<string, mixed>  $data
      */
-    public function register(array $data): User
+    public function register(array $data, ?string $ipAddress = null, ?string $userAgent = null): User
     {
         $user = User::create([
             'first_name' => $data['first_name'],
@@ -37,6 +40,16 @@ class AuthService
         // this, $user->role would be null in memory until the model is
         // fetched fresh from the database.
         $user->refresh();
+
+        // "gdpr_consent" on the request is a single required checkbox that
+        // covers accepting the Terms and Privacy policies at sign-up time;
+        // newsletter/marketing are their own independently-optional boxes.
+        $this->consents->recordMany([
+            ConsentType::Terms->value => true,
+            ConsentType::Privacy->value => true,
+            ConsentType::Marketing->value => (bool) ($data['marketing_consent'] ?? false),
+            ConsentType::Newsletter->value => (bool) ($data['newsletter_subscription'] ?? false),
+        ], $user, null, $ipAddress, $userAgent);
 
         event(new Registered($user));
 

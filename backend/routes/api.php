@@ -24,8 +24,10 @@ use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
+use App\Http\Controllers\Api\V1\ConsentController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\FavoriteController;
+use App\Http\Controllers\Api\V1\LegalController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
@@ -133,6 +135,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories/{slug}/products', [CategoryController::class, 'products'])->name('categories.products');
 
     Route::get('/content/homepage', [ContentController::class, 'homepage'])->name('content.homepage');
+
+    // Legal pages: public, no auth — every current document (superset of
+    // checkout's required-only subset, see CheckoutController::legalDocuments).
+    Route::get('/legal-documents', [LegalController::class, 'index'])->name('legal-documents.index');
+    Route::get('/legal-documents/{slug}', [LegalController::class, 'show'])->name('legal-documents.show');
+
+    // Cookie consent: open to guests (the banner appears before login) and
+    // authenticated users alike — see ConsentController.
+    Route::prefix('consent')->group(function () {
+        Route::get('/cookies', [ConsentController::class, 'showCookiePreferences'])->name('consent.cookies.show');
+        Route::post('/cookies', [ConsentController::class, 'storeCookiePreferences'])->name('consent.cookies.store');
+    });
 
     // Cart: open to both guests (identified by the X-Guest-Cart-Token
     // header) and authenticated users (identified by their session) — no

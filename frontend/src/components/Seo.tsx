@@ -7,8 +7,12 @@ interface SeoProps {
   canonicalPath?: string;
   ogImage?: string | null;
   ogType?: string;
-  /** A JSON-serializable schema.org object; rendered as a <script type="application/ld+json">. */
-  jsonLd?: Record<string, unknown> | null;
+  /**
+   * One or more JSON-serializable schema.org objects; each is rendered as
+   * its own <script type="application/ld+json"> (e.g. a page's Product
+   * schema alongside its BreadcrumbList schema).
+   */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
 }
 
 function upsertMeta(attribute: 'name' | 'property', key: string, content: string): void {
@@ -35,7 +39,7 @@ function upsertLink(rel: string, href: string): void {
   element.setAttribute('href', href);
 }
 
-const JSON_LD_ELEMENT_ID = 'seo-json-ld';
+const JSON_LD_ELEMENT_ID_PREFIX = 'seo-json-ld';
 
 /**
  * Hand-rolled, dependency-free SEO tag manager for this client-side-rendered
@@ -49,7 +53,8 @@ const JSON_LD_ELEMENT_ID = 'seo-json-ld';
  * SSR/prerendering path that would be needed to close that gap.
  */
 export default function Seo({ title, description, canonicalPath, ogImage, ogType = 'website', jsonLd }: SeoProps) {
-  const jsonLdString = jsonLd ? JSON.stringify(jsonLd) : null;
+  const jsonLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+  const jsonLdString = jsonLdList.length > 0 ? JSON.stringify(jsonLdList) : null;
 
   useEffect(() => {
     document.title = title;
@@ -71,20 +76,27 @@ export default function Seo({ title, description, canonicalPath, ogImage, ogType
       upsertMeta('property', 'og:image', ogImage);
     }
 
-    const existingScript = document.getElementById(JSON_LD_ELEMENT_ID);
-
-    if (jsonLdString) {
-      const script = existingScript ?? document.createElement('script');
-      script.id = JSON_LD_ELEMENT_ID;
-      (script as HTMLScriptElement).type = 'application/ld+json';
-      script.textContent = jsonLdString;
-
-      if (!existingScript) {
-        document.head.appendChild(script);
-      }
-    } else {
-      existingScript?.remove();
+    upsertMeta('name', 'twitter:card', ogImage ? 'summary_large_image' : 'summary');
+    upsertMeta('name', 'twitter:title', title);
+    if (description) {
+      upsertMeta('name', 'twitter:description', description);
     }
+    if (ogImage) {
+      upsertMeta('name', 'twitter:image', ogImage);
+    }
+
+    const parsedJsonLd: Record<string, unknown>[] = jsonLdString ? JSON.parse(jsonLdString) : [];
+    const existingScripts = document.querySelectorAll(`script[id^="${JSON_LD_ELEMENT_ID_PREFIX}-"]`);
+
+    existingScripts.forEach((script) => script.remove());
+
+    parsedJsonLd.forEach((entry, index) => {
+      const script = document.createElement('script');
+      script.id = `${JSON_LD_ELEMENT_ID_PREFIX}-${index}`;
+      script.type = 'application/ld+json';
+      script.textContent = JSON.stringify(entry);
+      document.head.appendChild(script);
+    });
   }, [title, description, canonicalPath, ogImage, ogType, jsonLdString]);
 
   return null;

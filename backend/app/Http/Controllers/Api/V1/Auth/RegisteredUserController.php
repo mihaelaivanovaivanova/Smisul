@@ -14,7 +14,7 @@ class RegisteredUserController extends Controller
 
     public function store(RegisterRequest $request): JsonResponse
     {
-        $user = $this->authService->register($request->validated());
+        $user = $this->authService->register($request->validated(), $request->ip(), $request->userAgent());
 
         return (new UserResource($user))
             ->response()

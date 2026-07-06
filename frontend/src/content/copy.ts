@@ -28,6 +28,47 @@ export const footer = {
   tagline: 'Smisul — естествени продукти с ясен смисъл.',
   description: 'Създаваме с грижа за природата, за качеството и за теб.',
   columnsAria: 'Долна навигация',
+  legalHeading: 'Правна информация',
+  companyHeading: 'Компания',
+  about: 'За нас',
+  contact: 'Контакти',
+  cookieSettings: 'Настройки на бисквитките',
+};
+
+export const cookieConsent = {
+  banner: {
+    message:
+      'Използваме бисквитки, за да подобрим работата на сайта, да анализираме трафика и да ти предложим по-подходящо съдържание. Можеш да приемеш всички бисквитки или да персонализираш избора си.',
+    acceptAll: 'Приеми всички',
+    rejectAll: 'Само необходими',
+    customize: 'Персонализирай',
+    privacyLinkLabel: 'Политика за бисквитки',
+  },
+  modal: {
+    title: 'Настройки на бисквитките',
+    description: 'Необходимите бисквитки са винаги активни, защото сайтът не може да функционира правилно без тях. За останалите категории избираш ти.',
+    save: 'Запази избора',
+    cancel: 'Отказ',
+    categories: {
+      necessary: {
+        title: 'Необходими',
+        description: 'Осигуряват основни функции като количката, влизането в профил и сигурността на сайта. Не могат да бъдат изключени.',
+      },
+      analytics: {
+        title: 'Аналитични',
+        description: 'Помагат ни да разберем как се използва сайтът, за да го подобряваме.',
+      },
+      marketing: {
+        title: 'Маркетингови',
+        description: 'Използват се за показване на по-подходящи реклами и предложения.',
+      },
+      preferences: {
+        title: 'Предпочитания',
+        description: 'Запомнят твоите настройки и предпочитания за по-удобно преживяване.',
+      },
+    },
+    alwaysActive: 'Винаги активни',
+  },
 };
 
 export const auth = {
@@ -178,6 +219,49 @@ export const breadcrumbLabels = {
   search: 'Търсене',
 };
 
+export const legalPage = {
+  loading: 'Зареждане на документа…',
+  loadError: 'Този документ не е намерен.',
+  seoTitleSuffix: ` — ${siteName}`,
+  lastUpdatedLabel: 'Версия',
+};
+
+export const about = {
+  seoTitle: `За нас — ${siteName}`,
+  seoDescription: 'Опознай историята и ценностите на Smisul.',
+  title: 'За нас',
+  intro:
+    'Smisul е създаден от вярата, че естествените продукти трябва да са семпли, честни и достъпни. Работим директно с внимателно подбрани доставчици, за да предложим продукти с ясен произход и състав.',
+  // Placeholder copy — replace with the real company story/team/mission before production.
+  sections: [
+    {
+      title: 'Нашата мисия',
+      text: 'Стремим се да направим грижата за тялото и ума по-семпла — без излишни съставки и без сложни обещания.',
+    },
+    {
+      title: 'Как работим',
+      text: 'Всеки продукт преминава през внимателен подбор на съставки и партньори, с фокус върху качеството и прозрачността.',
+    },
+  ],
+};
+
+export const contact = {
+  seoTitle: `Контакти — ${siteName}`,
+  seoDescription: 'Свържи се с екипа на Smisul.',
+  title: 'Контакти',
+  intro: 'Имаш въпрос за поръчка, продукт или нещо друго? Пиши ни — ще се радваме да помогнем.',
+  // Placeholder contact details — replace with the real company details before production.
+  companyName: '[Юридическо име на дружеството]',
+  email: '[имейл за връзка]',
+  phone: '[телефон за връзка]',
+  address: '[адрес на дружеството]',
+  vatNumber: '[ЕИК номер]',
+  emailLabel: 'Имейл',
+  phoneLabel: 'Телефон',
+  addressLabel: 'Адрес',
+  companyLabel: 'Дружество',
+};
+
 export const notFound = {
   title: '404',
   lead: 'Страницата, която търсиш, не съществува или е преместена.',
@@ -319,6 +403,7 @@ export const checkout = {
     loading: 'Зареждане…',
     loadError: 'Неуспешно зареждане на правната информация.',
     acceptPrefix: 'Приемам',
+    viewDocument: 'Прочети документа',
   },
 
   review: {

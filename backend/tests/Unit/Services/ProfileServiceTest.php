@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\ConsentType;
 use App\Models\User;
 use App\Services\ProfileService;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -20,7 +21,7 @@ class ProfileServiceTest extends TestCase
     {
         $user = User::factory()->create(['first_name' => 'Old']);
 
-        $updated = (new ProfileService)->updateProfile($user, ['first_name' => 'New']);
+        $updated = $this->app->make(ProfileService::class)->updateProfile($user, ['first_name' => 'New']);
 
         $this->assertSame('New', $updated->first_name);
     }
@@ -33,7 +34,7 @@ class ProfileServiceTest extends TestCase
         $user = User::factory()->create(['email' => 'old@example.com']);
         $this->assertNotNull($user->email_verified_at);
 
-        $updated = (new ProfileService)->updateProfile($user, ['email' => 'new@example.com']);
+        $updated = $this->app->make(ProfileService::class)->updateProfile($user, ['email' => 'new@example.com']);
 
         $this->assertSame('new@example.com', $updated->email);
         $this->assertNull($updated->email_verified_at);
@@ -48,7 +49,7 @@ class ProfileServiceTest extends TestCase
 
         $user = User::factory()->create(['email' => 'same@example.com']);
 
-        $updated = (new ProfileService)->updateProfile($user, ['email' => 'same@example.com']);
+        $updated = $this->app->make(ProfileService::class)->updateProfile($user, ['email' => 'same@example.com']);
 
         $this->assertNotNull($updated->email_verified_at);
         Notification::assertNothingSent();
@@ -59,8 +60,32 @@ class ProfileServiceTest extends TestCase
     {
         $user = User::factory()->create();
 
-        (new ProfileService)->updatePassword($user, 'brand-new-password');
+        $this->app->make(ProfileService::class)->updatePassword($user, 'brand-new-password');
 
         $this->assertTrue(Hash::check('brand-new-password', $user->fresh()->password));
+    }
+
+    #[Test]
+    public function it_records_consent_when_marketing_and_newsletter_preferences_are_sent(): void
+    {
+        $user = User::factory()->create();
+
+        $this->app->make(ProfileService::class)->updateProfile($user, [
+            'marketing_consent' => true,
+            'newsletter_subscription' => false,
+        ]);
+
+        $this->assertDatabaseHas('consents', ['user_id' => $user->id, 'type' => ConsentType::Marketing->value, 'accepted' => true]);
+        $this->assertDatabaseHas('consents', ['user_id' => $user->id, 'type' => ConsentType::Newsletter->value, 'accepted' => false]);
+    }
+
+    #[Test]
+    public function it_does_not_record_consent_when_those_fields_are_absent_from_the_update(): void
+    {
+        $user = User::factory()->create();
+
+        $this->app->make(ProfileService::class)->updateProfile($user, ['first_name' => 'New']);
+
+        $this->assertDatabaseMissing('consents', ['user_id' => $user->id]);
     }
 }

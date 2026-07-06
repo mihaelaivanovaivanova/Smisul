@@ -25,6 +25,9 @@ import ReviewsPage from './pages/ReviewsPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailedPage from './pages/PaymentFailedPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
+import LegalPage from './pages/LegalPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
@@ -54,6 +57,9 @@ export default function App() {
         <Route path="/payment/success" element={<PaymentSuccessPage />} />
         <Route path="/payment/failed" element={<PaymentFailedPage />} />
         <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
+        <Route path="/legal/:slug" element={<LegalPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         <Route element={<GuestRoute />}>
           <Route path="/register" element={<RegisterPage />} />

@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import { fetchLegalDocuments } from '../api/legal';
+import { useAsync } from '../hooks/useAsync';
+import { useCookieConsent } from '../hooks/useCookieConsent';
 import { footer, nav, siteName } from '../content/copy';
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const { data: legalDocuments } = useAsync(fetchLegalDocuments, [], '');
+  const { openPreferencesModal } = useCookieConsent();
 
   return (
     <footer className="section-tint border-top mt-auto py-5">
@@ -15,13 +20,49 @@ export default function Footer() {
               {footer.description}
             </p>
           </div>
-          <nav className="d-flex gap-3" aria-label={footer.columnsAria}>
-            <Link className="text-decoration-none text-muted" to="/">
-              {nav.home}
-            </Link>
-            <Link className="text-decoration-none text-muted" to="/search">
-              {nav.browseProducts}
-            </Link>
+
+          <nav aria-label={footer.companyHeading}>
+            <h2 className="h6">{footer.companyHeading}</h2>
+            <ul className="list-unstyled d-flex flex-column gap-1">
+              <li>
+                <Link className="text-decoration-none text-muted" to="/">
+                  {nav.home}
+                </Link>
+              </li>
+              <li>
+                <Link className="text-decoration-none text-muted" to="/search">
+                  {nav.browseProducts}
+                </Link>
+              </li>
+              <li>
+                <Link className="text-decoration-none text-muted" to="/about">
+                  {footer.about}
+                </Link>
+              </li>
+              <li>
+                <Link className="text-decoration-none text-muted" to="/contact">
+                  {footer.contact}
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          <nav aria-label={footer.legalHeading}>
+            <h2 className="h6">{footer.legalHeading}</h2>
+            <ul className="list-unstyled d-flex flex-column gap-1">
+              {legalDocuments?.map((document) => (
+                <li key={document.slug}>
+                  <Link className="text-decoration-none text-muted" to={`/legal/${document.slug}`}>
+                    {document.title}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <button type="button" className="btn btn-link p-0 text-decoration-none text-muted" onClick={openPreferencesModal}>
+                  {footer.cookieSettings}
+                </button>
+              </li>
+            </ul>
           </nav>
         </div>
         <hr className="my-4" style={{ borderColor: 'var(--color-border)' }} />

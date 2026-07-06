@@ -51,19 +51,25 @@ class PaymentWebhookTest extends TestCase
     /**
      * @return array{0: Order, 1: Payment, 2: ProductVariant}
      */
-    private function placeAwaitingPaymentOrder(int $stock = 10, int $quantity = 2): array
+    private function placeAwaitingPaymentOrder(int $stock = 10, int $quantity = 2, ?string $paymentMethod = null): array
     {
         $variant = $this->purchasableVariant($stock);
         $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => $quantity]);
         $guestToken = $addToCart->json('meta.guest_token');
 
-        $placed = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/checkout/orders', [
+        $payload = [
             'customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => '+359888123456'],
             'address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
             'shipping_carrier' => 'econt',
             'shipping_delivery_type' => 'address',
             'legal_document_ids' => $this->acceptAllCurrentLegalDocuments(),
-        ]);
+        ];
+
+        if ($paymentMethod !== null) {
+            $payload['payment_method'] = $paymentMethod;
+        }
+
+        $placed = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/checkout/orders', $payload);
 
         $order = Order::findOrFail($placed->json('data.id'));
         $payment = Payment::findOrFail($placed->json('payment.id'));
@@ -190,6 +196,41 @@ class PaymentWebhookTest extends TestCase
 
         $this->assertDatabaseCount('payment_webhook_logs', 1);
         $this->assertDatabaseCount('payment_transactions', 2); // initiated + webhook, not two webhooks
+    }
+
+    /**
+     * Idempotency is keyed off the raw webhook body hash, entirely
+     * independent of which payment_method the payment used — a wallet
+     * payment's webhook must dedupe exactly like a card payment's does.
+     */
+    #[Test]
+    public function a_wallet_payments_webhook_is_just_as_idempotent_as_cards(): void
+    {
+        config(['services.apple_pay.enabled' => true, 'services.icard.apple_pay_enabled' => true]);
+
+        [$order, $payment] = $this->placeAwaitingPaymentOrder(paymentMethod: 'apple_pay');
+        $this->assertSame('apple_pay', $payment->payment_method->value);
+
+        $payload = $this->signICardPayload([
+            'Payment' => [
+                'OrderId' => $payment->transaction_reference,
+                'Status' => 'success',
+                'Sum' => ['Amount' => number_format((float) $payment->amount, 2, '.', ''), 'Currency' => (int) config('services.icard.currency_numeric')],
+            ],
+            'Operation' => ['Type' => 'authorization', 'Status' => 'success'],
+        ]);
+
+        $this->postJson('/api/v1/payments/webhook/icard', $payload)->assertOk();
+        $this->postJson('/api/v1/payments/webhook/icard', $payload)->assertOk();
+
+        $this->assertDatabaseCount('payment_webhook_logs', 1);
+        $this->assertDatabaseCount('payment_transactions', 2); // initiated + webhook, not two webhooks
+
+        $payment->refresh();
+        $order->refresh();
+        $this->assertSame(PaymentStatus::Paid, $payment->status);
+        $this->assertSame(OrderStatus::Paid, $order->status);
+        $this->assertSame('apple_pay', $payment->payment_method->value);
     }
 
     #[Test]

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\PaymentTransaction;
@@ -19,6 +20,7 @@ class PaymentTransactionFactory extends Factory
         return [
             'payment_id' => Payment::factory(),
             'type' => 'initiated',
+            'payment_method' => PaymentMethod::Card,
             'status' => PaymentStatus::Initiated,
             'raw_payload' => null,
         ];

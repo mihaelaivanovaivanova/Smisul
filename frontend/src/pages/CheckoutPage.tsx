@@ -21,6 +21,7 @@ import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
 import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
+import type { PaymentMethodValue } from '../types/payment';
 
 const STEP_LABELS = [
   checkoutCopy.steps.customer,
@@ -68,6 +69,7 @@ export default function CheckoutPage() {
   const [isLoadingOffices, setIsLoadingOffices] = useState(false);
   const [officesError, setOfficesError] = useState<string | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodValue>('card');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -266,6 +268,7 @@ export default function CheckoutPage() {
         shipping_office_id: selectedOffice?.id,
         shipping_office_name: selectedOffice?.name,
         legal_document_ids: acceptedLegalDocumentIds,
+        payment_method: selectedPaymentMethod,
       });
 
       await refreshCart();
@@ -363,7 +366,14 @@ export default function CheckoutPage() {
                   />
                 )}
 
-                {step === 3 && <PaymentStep cart={cart} shippingMethod={selectedShippingMethod} />}
+                {step === 3 && (
+                  <PaymentStep
+                    cart={cart}
+                    shippingMethod={selectedShippingMethod}
+                    selectedMethod={selectedPaymentMethod}
+                    onSelectMethod={setSelectedPaymentMethod}
+                  />
+                )}
 
                 <div className="d-flex justify-content-between mt-4">
                   {step > 0 ? (
@@ -388,7 +398,11 @@ export default function CheckoutPage() {
                       disabled={isSubmitting}
                     >
                       {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-                      {isSubmitting ? checkoutCopy.paymentStep.payingButton : checkoutCopy.paymentStep.payButton}
+                      {isSubmitting
+                        ? checkoutCopy.paymentStep.payingButton
+                        : checkoutCopy.paymentStep.payButtonWithMethod(
+                            checkoutCopy.paymentStep.methods[selectedPaymentMethod] ?? checkoutCopy.paymentStep.methods.card,
+                          )}
                     </button>
                   )}
                 </div>

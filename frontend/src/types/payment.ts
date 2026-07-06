@@ -8,10 +8,18 @@ export type PaymentStatus =
   | 'expired'
   | 'refunded';
 
+export type PaymentMethodValue = 'card' | 'apple_pay' | 'google_pay';
+
+export interface PaymentMethodOption {
+  value: PaymentMethodValue;
+  label: string;
+}
+
 export interface Payment {
   id: number;
   order_id: number;
   provider: string;
+  payment_method: PaymentMethodValue;
   status: PaymentStatus;
   amount: number;
   currency: string;

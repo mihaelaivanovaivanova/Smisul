@@ -153,6 +153,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/shipping-quote', [CheckoutController::class, 'shippingQuote'])->name('checkout.shipping-quote');
         Route::get('/shipping-offices', [CheckoutController::class, 'shippingOffices'])->name('checkout.shipping-offices');
         Route::get('/legal-documents', [CheckoutController::class, 'legalDocuments'])->name('checkout.legal-documents');
+        Route::get('/payment-methods', [CheckoutController::class, 'paymentMethods'])->name('checkout.payment-methods');
         Route::post('/orders', [CheckoutController::class, 'placeOrder'])
             ->middleware('throttle:checkout')
             ->name('checkout.orders.store');

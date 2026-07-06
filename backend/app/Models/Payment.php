@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
 use Carbon\Carbon;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property PaymentProvider $provider
+ * @property PaymentMethod $payment_method
  * @property PaymentStatus $status
  * @property ?array<string, mixed> $raw_response
  * @property ?Carbon $initiated_at
@@ -26,6 +28,7 @@ class Payment extends Model
     protected $fillable = [
         'order_id',
         'provider',
+        'payment_method',
         'status',
         'amount',
         'currency',
@@ -41,6 +44,7 @@ class Payment extends Model
     {
         return [
             'provider' => PaymentProvider::class,
+            'payment_method' => PaymentMethod::class,
             'status' => PaymentStatus::class,
             'amount' => 'decimal:2',
             'raw_response' => 'array',

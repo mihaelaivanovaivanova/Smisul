@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1\Payment;
 
+use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaymentResource;
 use App\Models\Order;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
 {
@@ -16,13 +18,21 @@ class PaymentController extends Controller
      * Starts (or, if one is already in flight, returns) the payment
      * session for an order — normally triggered automatically right after
      * checkout (see CheckoutController::placeOrder), but exposed
-     * separately for a customer retrying after a Failed/Cancelled payment.
+     * separately for a customer retrying after a Failed/Cancelled payment,
+     * optionally with a different payment_method than the original attempt.
      */
     public function initiate(Request $request, Order $order): PaymentResource
     {
         $this->authorizeAccess($request, $order);
 
-        return new PaymentResource($this->payments->initiate($order));
+        $enabledMethods = array_map(fn ($method) => $method->value, $this->payments->availablePaymentMethods());
+        $request->validate([
+            'payment_method' => ['sometimes', 'string', Rule::in($enabledMethods)],
+        ]);
+
+        $method = PaymentMethod::from($request->input('payment_method', PaymentMethod::Card->value));
+
+        return new PaymentResource($this->payments->initiate($order, $method));
     }
 
     /**

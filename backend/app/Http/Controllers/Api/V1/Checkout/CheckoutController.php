@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1\Checkout;
 
 use App\DataTransferObjects\Checkout\PlaceOrderData;
 use App\DataTransferObjects\Shipping\ShippingQuoteRequestData;
+use App\Enums\PaymentMethod;
 use App\Enums\ShippingDeliveryType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Requests\Checkout\ShippingQuoteRequest;
 use App\Http\Resources\Checkout\LegalDocumentResource;
+use App\Http\Resources\Checkout\PaymentMethodResource;
 use App\Http\Resources\Checkout\ShippingMethodResource;
 use App\Http\Resources\Checkout\ShippingOfficeResource;
 use App\Http\Resources\Checkout\ShippingQuoteResource;
@@ -89,6 +91,18 @@ class CheckoutController extends Controller
     }
 
     /**
+     * Card is always returned; Apple Pay/Google Pay only appear once both
+     * their app-level and iCard-specific config flags are on (see
+     * PaymentService::availablePaymentMethods) — the frontend renders
+     * exactly what this returns, nothing is ever hidden/shown client-side
+     * based on its own guess.
+     */
+    public function paymentMethods(): JsonResponse
+    {
+        return PaymentMethodResource::collection($this->payments->availablePaymentMethods())->response();
+    }
+
+    /**
      * Places the order, then immediately starts its payment session —
      * the frontend redirects the customer's browser straight to the
      * returned payment.redirect_url (see the sprint's checkout flow).
@@ -98,8 +112,10 @@ class CheckoutController extends Controller
         $cart = $this->resolveCart($request);
         $user = $request->user();
 
+        $paymentMethod = PaymentMethod::from($request->validated('payment_method') ?? PaymentMethod::Card->value);
+
         $order = $this->orders->placeOrder($cart, PlaceOrderData::fromArray($request->validated()), $user);
-        $payment = $this->payments->initiate($order);
+        $payment = $this->payments->initiate($order, $paymentMethod);
 
         // initiate() moves the order Pending -> AwaitingPayment via a
         // separately-fetched model instance (see OrderStatusService) — this

@@ -1,3 +1,5 @@
+import type { PaymentMethodValue } from './payment';
+
 export interface CustomerInfo {
   first_name: string;
   last_name: string;
@@ -77,6 +79,7 @@ export interface PlaceOrderPayload {
   shipping_office_id?: string;
   shipping_office_name?: string;
   legal_document_ids: number[];
+  payment_method?: PaymentMethodValue;
 }
 
 export interface OrderItem {

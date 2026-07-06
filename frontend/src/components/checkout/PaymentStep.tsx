@@ -1,33 +1,124 @@
+import { useEffect, useState } from 'react';
+import { fetchPaymentMethods } from '../../api/checkout';
 import { formatPrice } from '../../services/productCatalog';
 import { cart as cartCopy, checkout as checkoutCopy } from '../../content/copy';
 import type { Cart } from '../../types/cart';
 import type { ShippingMethod } from '../../types/checkout';
+import type { PaymentMethodOption, PaymentMethodValue } from '../../types/payment';
 
 interface PaymentStepProps {
   cart: Cart;
   shippingMethod: ShippingMethod | null;
+  selectedMethod: PaymentMethodValue;
+  onSelectMethod: (method: PaymentMethodValue) => void;
 }
 
 /**
- * The last step before iCard: everything here is display-only (totals
- * recap) plus the actual "pay" trigger, which CheckoutPage wires to the
- * same handlePlaceOrder() that creates the order and redirects — there's
- * no separate "confirm" action between them since iCard's hosted page is
- * itself the confirmation step.
+ * Apple Pay's availability is a real, standard browser check
+ * (`window.ApplePaySession`) built into Safari — no SDK load required for
+ * just this — so the option can honestly be greyed out where it could
+ * never work, rather than shown as clickable and failing later. Google
+ * Pay has no equivalent zero-SDK check, so it's left selectable whenever
+ * the backend says it's enabled.
  */
-export default function PaymentStep({ cart, shippingMethod }: PaymentStepProps) {
+function isApplePayAvailableInBrowser(): boolean {
+  return typeof window !== 'undefined' && 'ApplePaySession' in window;
+}
+
+/**
+ * The last step before iCard: totals recap, the payment method selector,
+ * and the actual "pay" trigger, which CheckoutPage wires to the same
+ * handlePlaceOrder() that creates the order and redirects — there's no
+ * separate "confirm" action between them since iCard's hosted page is
+ * itself the confirmation step. The radio cards below are a preference
+ * selector, not real wallet buttons — the actual Apple Pay/Google Pay UI
+ * (if iCard's hosted page offers it) renders on iCard's own page after
+ * redirect, not here (see docs/wallet-payments.md).
+ */
+export default function PaymentStep({ cart, shippingMethod, selectedMethod, onSelectMethod }: PaymentStepProps) {
   const grandTotal = cart.totals.subtotal + (shippingMethod?.price ?? 0);
+
+  const [methods, setMethods] = useState<PaymentMethodOption[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchPaymentMethods()
+      .then((result) => {
+        if (isMounted) setMethods(result);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLoadError(true);
+          setMethods([{ value: 'card', label: checkoutCopy.paymentStep.methods.card }]);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // If a previously-available method disappears (e.g. re-fetched after
+  // being disabled) or nothing has been picked yet, fall back to card —
+  // never leave the selection pointing at something no longer offered.
+  useEffect(() => {
+    if (methods && !methods.some((method) => method.value === selectedMethod)) {
+      onSelectMethod('card');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [methods]);
 
   return (
     <div>
       <h2 className="h6 mb-3">{checkoutCopy.paymentStep.title}</h2>
       <p className="text-muted">{checkoutCopy.paymentStep.description}</p>
 
-      <div className="border rounded-3 p-3 mb-3">
-        <div className="d-flex justify-content-between small text-muted mb-1">
-          <span>{checkoutCopy.paymentStep.methodLabel}</span>
-        </div>
-        <div className="fw-semibold">{checkoutCopy.paymentStep.methodValue}</div>
+      <div className="mb-3">
+        <div className="small text-muted mb-2">{checkoutCopy.paymentStep.methodLabel}</div>
+
+        {isLoading && <div className="text-muted small">{checkoutCopy.paymentStep.methodsLoading}</div>}
+
+        {!isLoading && loadError && <div className="text-danger small mb-2">{checkoutCopy.paymentStep.methodsLoadError}</div>}
+
+        {!isLoading && methods && (
+          <div className="d-flex flex-column gap-2">
+            {methods.map((method) => {
+              const isSelected = selectedMethod === method.value;
+              const isApplePayUnavailable = method.value === 'apple_pay' && !isApplePayAvailableInBrowser();
+
+              return (
+                <label
+                  key={method.value}
+                  className={`d-flex align-items-center gap-2 border rounded-3 p-3 ${isSelected ? 'border-primary' : ''} ${
+                    isApplePayUnavailable ? 'opacity-50' : ''
+                  }`}
+                  style={{ cursor: isApplePayUnavailable ? 'not-allowed' : 'pointer' }}
+                >
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    className="form-check-input mt-0"
+                    checked={isSelected}
+                    disabled={isApplePayUnavailable}
+                    onChange={() => onSelectMethod(method.value)}
+                  />
+                  <span>
+                    <span className="d-block fw-semibold">{checkoutCopy.paymentStep.methods[method.value] ?? method.label}</span>
+                    {isApplePayUnavailable && (
+                      <span className="d-block text-muted small">{checkoutCopy.paymentStep.applePayUnavailable}</span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="d-flex justify-content-between fw-bold fs-5 border-top pt-3">

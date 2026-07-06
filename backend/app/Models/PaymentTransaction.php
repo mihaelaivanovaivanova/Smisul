@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use Carbon\Carbon;
 use Database\Factories\PaymentTransactionFactory;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * cancel_return, webhook, status_check) — an immutable log, never updated
  * after creation (hence no updated_at). See PaymentService, the sole writer.
  *
+ * @property PaymentMethod $payment_method
  * @property PaymentStatus $status
  * @property Carbon $created_at
  */
@@ -27,6 +29,7 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'payment_id',
         'type',
+        'payment_method',
         'status',
         'raw_payload',
     ];
@@ -34,6 +37,7 @@ class PaymentTransaction extends Model
     protected function casts(): array
     {
         return [
+            'payment_method' => PaymentMethod::class,
             'status' => PaymentStatus::class,
             'raw_payload' => 'array',
         ];

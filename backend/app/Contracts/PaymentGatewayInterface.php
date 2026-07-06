@@ -4,17 +4,21 @@ namespace App\Contracts;
 
 use App\DataTransferObjects\Payment\PaymentSessionData;
 use App\DataTransferObjects\Payment\WebhookPayloadData;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 
 /**
- * Every payment provider (iCard today; Apple Pay/Google Pay/others later —
- * see the sprint brief) implements this and nothing else touches provider
- * specifics: PaymentService only ever calls through this contract, so
- * adding a provider means a new class implementing it plus a resolution
- * rule in PaymentService, not changes scattered through the payment flow.
+ * Every payment provider (iCard today) implements this and nothing else
+ * touches provider specifics: PaymentService only ever calls through this
+ * contract, so adding a genuinely different provider means a new class
+ * implementing it plus a resolution rule in PaymentService, not changes
+ * scattered through the payment flow. Apple Pay and Google Pay are NOT
+ * separate providers — they're PaymentMethod values routed through the
+ * same iCard implementation, since both go through iCard's own hosted
+ * checkout (see ICardPaymentGateway and docs/wallet-payments.md).
  *
  * No method here ever receives or returns card data — the hosted-flow
  * model this is built around means card numbers/CVV never reach this
@@ -27,9 +31,13 @@ interface PaymentGatewayInterface
 
     /**
      * Creates the provider-side payment session/link for this Payment and
-     * returns where to send the customer's browser next.
+     * returns where to send the customer's browser next. $method is the
+     * instrument the customer chose (card/apple_pay/google_pay) — already
+     * validated as enabled by PaymentService before this is called, so
+     * implementations don't need to re-check availability, only adapt the
+     * request they build for it.
      */
-    public function createSession(Payment $payment, string $returnUrl, string $cancelUrl): PaymentSessionData;
+    public function createSession(Payment $payment, PaymentMethod $method, string $returnUrl, string $cancelUrl): PaymentSessionData;
 
     /**
      * Verifies the webhook request actually came from the provider (see

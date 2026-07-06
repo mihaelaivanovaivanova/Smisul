@@ -1,5 +1,5 @@
 import { apiClient, ensureCsrfCookie } from './client';
-import type { Payment } from '../types/payment';
+import type { Payment, PaymentMethodValue } from '../types/payment';
 
 /**
  * iCard's IPG API has no "give me a redirect URL" API call — createSession()
@@ -70,12 +70,12 @@ export async function cancelPayment(orderId: number, token?: string | null): Pro
   return data.data;
 }
 
-/** Retries payment for an order whose previous attempt was Failed/Cancelled. */
-export async function initiatePayment(orderId: number, token?: string | null): Promise<Payment> {
+/** Retries payment for an order whose previous attempt was Failed/Cancelled, optionally with a different payment method. */
+export async function initiatePayment(orderId: number, token?: string | null, paymentMethod?: PaymentMethodValue): Promise<Payment> {
   await ensureCsrfCookie();
   const { data } = await apiClient.post<PaymentResponse>(
     `/payments/${orderId}/initiate`,
-    {},
+    paymentMethod ? { payment_method: paymentMethod } : {},
     { params: token ? { token } : undefined },
   );
   return data.data;

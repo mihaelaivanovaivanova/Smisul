@@ -5,6 +5,7 @@ namespace App\Services\Payments;
 use App\Contracts\PaymentGatewayInterface;
 use App\DataTransferObjects\Payment\PaymentSessionData;
 use App\DataTransferObjects\Payment\WebhookPayloadData;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
 use App\Exceptions\Payment\InvalidWebhookPayloadException;
@@ -26,6 +27,11 @@ use RuntimeException;
  * call, so checkStatus() has nothing to call — reconciliation for a
  * delayed/missing webhook relies on the return-page best-effort log only
  * (see PaymentService::reconcile()).
+ *
+ * Apple Pay / Google Pay ride the same IPGPurchase form-POST as card
+ * payments — see walletFields() for the one (unverified) extra field
+ * added for those methods, and docs/wallet-payments.md for what real
+ * production setup each wallet needs beyond iCard itself.
  */
 class ICardPaymentGateway implements PaymentGatewayInterface
 {
@@ -34,7 +40,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         return PaymentProvider::ICard;
     }
 
-    public function createSession(Payment $payment, string $returnUrl, string $cancelUrl): PaymentSessionData
+    public function createSession(Payment $payment, PaymentMethod $method, string $returnUrl, string $cancelUrl): PaymentSessionData
     {
         $order = $payment->order;
 
@@ -87,6 +93,8 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         $fields['BillAddrPostCode'] = (string) $order->billing_postal_code;
         $fields['BillAddrLine1'] = base64_encode((string) $order->billing_address_line);
 
+        $fields = [...$fields, ...$this->walletFields($method)];
+
         $fields['Signature'] = $this->sign($fields);
 
         $actionUrl = rtrim((string) config('services.icard.base_url'), '/').'/';
@@ -96,6 +104,29 @@ class ICardPaymentGateway implements PaymentGatewayInterface
             formFields: $fields,
             providerReference: $payment->transaction_reference,
         );
+    }
+
+    /**
+     * UNVERIFIED — no real iCard wallet-payment merchant account exists to
+     * test this against (unlike the rest of this class's IPGPurchase field
+     * set, which is confirmed against iCard's real sandbox). `PayMethod`
+     * is a placeholder field name modeled on how other hosted-checkout
+     * gateways restrict/pre-select a wallet on their own payment page —
+     * it is NOT confirmed against iCard's actual API. Card payments never
+     * call this (returns [] for PaymentMethod::Card), so this can ship
+     * without any risk to the working card flow; confirm the real field
+     * name/values with iCard support before enabling either wallet flag in
+     * production. See docs/wallet-payments.md.
+     *
+     * @return array<string, string>
+     */
+    private function walletFields(PaymentMethod $method): array
+    {
+        return match ($method) {
+            PaymentMethod::Card => [],
+            PaymentMethod::ApplePay => ['PayMethod' => 'ApplePay'],
+            PaymentMethod::GooglePay => ['PayMethod' => 'GooglePay'],
+        };
     }
 
     public function verifySignature(Request $request): bool

@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Contracts\PaymentGatewayInterface;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Exceptions\Payment\InvalidPaymentMethodException;
 use App\Exceptions\Payment\InvalidWebhookSignatureException;
 use App\Models\Order;
 use App\Models\Payment;
@@ -47,12 +49,15 @@ class PaymentService
      * behind as a non-final, never-confirmed attempt — harmless audit
      * clutter, not a live session anything still points at.
      */
-    public function initiate(Order $order): Payment
+    public function initiate(Order $order, PaymentMethod $method = PaymentMethod::Card): Payment
     {
-        return DB::transaction(function () use ($order) {
+        $this->assertMethodEnabled($method);
+
+        return DB::transaction(function () use ($order, $method) {
             $payment = Payment::create([
                 'order_id' => $order->id,
                 'provider' => $this->gateway->provider(),
+                'payment_method' => $method,
                 'status' => PaymentStatus::Pending,
                 'amount' => $order->grand_total,
                 'currency' => $order->currency,
@@ -62,7 +67,7 @@ class PaymentService
             $returnUrl = $this->buildRedirectUrl((string) config('services.icard.return_url'), $order);
             $cancelUrl = $this->buildRedirectUrl((string) config('services.icard.cancel_url'), $order);
 
-            $session = $this->gateway->createSession($payment, $returnUrl, $cancelUrl);
+            $session = $this->gateway->createSession($payment, $method, $returnUrl, $cancelUrl);
 
             $payment->update([
                 'status' => PaymentStatus::Initiated,
@@ -74,6 +79,7 @@ class PaymentService
 
             $payment->transactions()->create([
                 'type' => 'initiated',
+                'payment_method' => $method,
                 'status' => PaymentStatus::Initiated,
                 'raw_payload' => ['action_url' => $session->actionUrl, 'fields' => $session->formFields],
             ]);
@@ -84,6 +90,44 @@ class PaymentService
 
             return $payment->fresh();
         });
+    }
+
+    /**
+     * The methods available to offer at checkout right now — Card is
+     * always available; Apple Pay/Google Pay only appear once both their
+     * app-level flag (apple_pay.enabled/google_pay.enabled) and iCard's
+     * own wallet flag (icard.apple_pay_enabled/icard.google_pay_enabled)
+     * are on. See config/services.php for why there are two flags per
+     * wallet.
+     *
+     * @return list<PaymentMethod>
+     */
+    public function availablePaymentMethods(): array
+    {
+        $methods = [PaymentMethod::Card];
+
+        if (config('services.apple_pay.enabled') && config('services.icard.apple_pay_enabled')) {
+            $methods[] = PaymentMethod::ApplePay;
+        }
+
+        if (config('services.google_pay.enabled') && config('services.icard.google_pay_enabled')) {
+            $methods[] = PaymentMethod::GooglePay;
+        }
+
+        return $methods;
+    }
+
+    /**
+     * Defense in depth beyond the FormRequest validation layer (see
+     * PlaceOrderRequest/InitiatePaymentRequest) — initiate() is a public
+     * method any future caller could reach directly with a method that
+     * was never checked against current config.
+     */
+    private function assertMethodEnabled(PaymentMethod $method): void
+    {
+        if (! in_array($method, $this->availablePaymentMethods(), strict: true)) {
+            throw InvalidPaymentMethodException::disabled($method->value);
+        }
     }
 
     public function latestForOrder(Order $order): ?Payment
@@ -102,6 +146,7 @@ class PaymentService
     {
         $payment->transactions()->create([
             'type' => 'return',
+            'payment_method' => $payment->payment_method,
             'status' => $payment->status,
             'raw_payload' => null,
         ]);
@@ -124,6 +169,7 @@ class PaymentService
                 $payment->update(['status' => PaymentStatus::Cancelled, 'completed_at' => now()]);
                 $payment->transactions()->create([
                     'type' => 'cancel_return',
+                    'payment_method' => $payment->payment_method,
                     'status' => PaymentStatus::Cancelled,
                     'raw_payload' => null,
                 ]);
@@ -174,6 +220,7 @@ class PaymentService
 
             $payment->transactions()->create([
                 'type' => 'status_check',
+                'payment_method' => $payment->payment_method,
                 'status' => $status,
                 'raw_payload' => null,
             ]);
@@ -251,6 +298,7 @@ class PaymentService
         if ($webhookData->amount !== null && bccomp((string) $webhookData->amount, (string) $payment->amount, 2) !== 0) {
             $payment->transactions()->create([
                 'type' => 'webhook',
+                'payment_method' => $payment->payment_method,
                 'status' => $payment->status,
                 'raw_payload' => $webhookData->raw + ['_rejected_reason' => 'amount_mismatch'],
             ]);
@@ -274,6 +322,7 @@ class PaymentService
 
             $payment->transactions()->create([
                 'type' => 'webhook',
+                'payment_method' => $payment->payment_method,
                 'status' => $webhookData->status,
                 'raw_payload' => $webhookData->raw,
             ]);

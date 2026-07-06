@@ -4,6 +4,7 @@ namespace App\Http\Requests\Checkout;
 
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
+use App\Services\PaymentService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,17 @@ class PlaceOrderRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Validated against currently-*enabled* methods, not just any
+        // PaymentMethod case — a disabled wallet must fail here with a
+        // clean 422, not reach PaymentService::initiate() (which would
+        // also reject it, but with a less specific error for the caller).
+        $enabledMethods = array_map(
+            fn ($method) => $method->value,
+            app(PaymentService::class)->availablePaymentMethods(),
+        );
+
         return [
+            'payment_method' => ['sometimes', 'string', Rule::in($enabledMethods)],
             'customer.first_name' => ['required', 'string', 'max:100'],
             'customer.last_name' => ['required', 'string', 'max:100'],
             'customer.email' => ['required', 'string', 'email', 'max:255'],

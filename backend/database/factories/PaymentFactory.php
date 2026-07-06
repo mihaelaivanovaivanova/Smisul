@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
@@ -21,6 +22,7 @@ class PaymentFactory extends Factory
         return [
             'order_id' => Order::factory(),
             'provider' => PaymentProvider::ICard,
+            'payment_method' => PaymentMethod::Card,
             'status' => PaymentStatus::Pending,
             'amount' => fake()->randomFloat(2, 10, 200),
             'currency' => 'EUR',
@@ -51,5 +53,15 @@ class PaymentFactory extends Factory
             'initiated_at' => now()->subMinutes(5),
             'completed_at' => now(),
         ]);
+    }
+
+    public function applePay(): static
+    {
+        return $this->state(fn (array $attributes) => ['payment_method' => PaymentMethod::ApplePay]);
+    }
+
+    public function googlePay(): static
+    {
+        return $this->state(fn (array $attributes) => ['payment_method' => PaymentMethod::GooglePay]);
     }
 }

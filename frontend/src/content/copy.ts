@@ -172,12 +172,20 @@ export const checkout = {
   placingOrder: 'Изпращане на поръчката…',
 
   paymentStep: {
-    title: 'Плащане с карта',
+    title: 'Плащане',
     description:
-      'Плащанията се обработват сигурно от iCard. Ще бъдеш пренасочен/а към страницата на iCard, за да въведеш данните на картата си — ние никога не съхраняваме тези данни.',
+      'Плащанията се обработват сигурно от iCard. Ще бъдеш пренасочен/а към страницата на iCard, за да завършиш плащането — ние никога не съхраняваме данните ти за плащане.',
     methodLabel: 'Начин на плащане',
-    methodValue: 'Карта (Visa / Mastercard) чрез iCard',
-    payButton: 'Плати с карта',
+    methodsLoading: 'Зареждане на начините на плащане…',
+    methodsLoadError: 'Неуспешно зареждане на начините на плащане — ще продължим с плащане с карта.',
+    methods: {
+      card: 'Карта (Visa / Mastercard)',
+      apple_pay: 'Apple Pay',
+      google_pay: 'Google Pay',
+    } as Record<string, string>,
+    applePayUnavailable: 'Наличен само в Safari на устройства на Apple',
+    payButton: 'Плати',
+    payButtonWithMethod: (methodLabel: string) => `Плати с ${methodLabel}`,
     payingButton: 'Пренасочване към iCard…',
   },
 

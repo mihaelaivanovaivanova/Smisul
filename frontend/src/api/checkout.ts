@@ -10,7 +10,7 @@ import type {
   ShippingOffice,
 } from '../types/checkout';
 import type { PaginatedResponse } from '../types/product';
-import type { Payment } from '../types/payment';
+import type { Payment, PaymentMethodOption } from '../types/payment';
 
 const GUEST_TOKEN_HEADER = 'X-Guest-Cart-Token';
 
@@ -34,6 +34,12 @@ export async function fetchShippingOffices(carrier: ShippingCarrier, city?: stri
 
 export async function fetchLegalDocuments(): Promise<LegalDocument[]> {
   const { data } = await apiClient.get<{ data: LegalDocument[] }>('/checkout/legal-documents');
+  return data.data;
+}
+
+/** Card is always included; Apple Pay/Google Pay only appear when enabled server-side (see PaymentService::availablePaymentMethods). */
+export async function fetchPaymentMethods(): Promise<PaymentMethodOption[]> {
+  const { data } = await apiClient.get<{ data: PaymentMethodOption[] }>('/checkout/payment-methods');
   return data.data;
 }
 

@@ -69,6 +69,53 @@ return [
         'return_url' => env('ICARD_RETURN_URL'),
         'cancel_url' => env('ICARD_CANCEL_URL'),
         'webhook_url' => env('ICARD_WEBHOOK_URL'),
+
+        // Provider-specific wallet toggles — distinct from the app-level
+        // apple_pay.enabled/google_pay.enabled below. Both must be true for
+        // a wallet method to actually show up (see
+        // PaymentService::availablePaymentMethods): this one specifically
+        // means "iCard's own merchant configuration has the wallet turned
+        // on", which the app-level flag can't know on its own. See
+        // docs/wallet-payments.md — the exact IPGPurchase field iCard
+        // expects for wallet restriction is unverified; confirm against
+        // iCard's real merchant documentation before enabling in production.
+        'apple_pay_enabled' => (bool) env('ICARD_APPLE_PAY_ENABLED', false),
+        'google_pay_enabled' => (bool) env('ICARD_GOOGLE_PAY_ENABLED', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Wallet payment methods (Apple Pay / Google Pay)
+    |--------------------------------------------------------------------------
+    |
+    | App-level master switches — see docs/wallet-payments.md. Effective
+    | availability is this flag AND the matching services.icard.*_enabled
+    | flag (PaymentService::availablePaymentMethods), so a wallet method
+    | can be disabled from either side independently. Both default to
+    | false: enabling either wallet in production requires real iCard
+    | merchant wallet configuration, and Apple Pay additionally requires a
+    | registered Apple Merchant ID and a domain-verification file hosted on
+    | a real HTTPS domain — neither exists in this project yet.
+    |
+    */
+
+    'apple_pay' => [
+        'enabled' => (bool) env('APPLE_PAY_ENABLED', false),
+
+        // Apple's own domain-verification/merchant setup — placeholders
+        // only; see docs/wallet-payments.md for what real values require.
+        'merchant_id' => env('APPLE_PAY_MERCHANT_ID'),
+        'merchant_domain' => env('APPLE_PAY_MERCHANT_DOMAIN'),
+    ],
+
+    'google_pay' => [
+        'enabled' => (bool) env('GOOGLE_PAY_ENABLED', false),
+
+        // 'TEST' renders Google's test-mode button/flow; 'PRODUCTION'
+        // requires a Google Pay Business Console merchant ID paired with
+        // iCard as the payment gateway — see docs/wallet-payments.md.
+        'environment' => env('GOOGLE_PAY_ENVIRONMENT', 'TEST'),
+        'merchant_id' => env('GOOGLE_PAY_MERCHANT_ID'),
     ],
 
     /*

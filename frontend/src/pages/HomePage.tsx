@@ -19,7 +19,7 @@ import AddToCartButton from '../components/product/AddToCartButton';
 import Seo from '../components/Seo';
 import Icon from '../components/icons/Icon';
 import { organizationJsonLd, websiteJsonLd } from '../services/structuredData';
-import { product as productCopy, seo, states } from '../content/copy';
+import { homeSectionEyebrows, product as productCopy, seo, states } from '../content/copy';
 import type { Product, ProductVariant } from '../types/product';
 
 /** The admin's chosen product (by slug, resolved server-side), falling back to the newest published one when none is set. */
@@ -152,6 +152,7 @@ export default function HomePage() {
       {/* ---- Benefits ---- */}
       <section className="section section-tint">
         <div className="container">
+          <span className="section-eyebrow">{homeSectionEyebrows.benefits}</span>
           <h2 className="section-title">{benefits.title}</h2>
           <p className="section-lead mb-5">{benefits.lead}</p>
           <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
@@ -191,6 +192,7 @@ export default function HomePage() {
       {/* ---- Usage ---- */}
       <section className="section section-tint">
         <div className="container">
+          <span className="section-eyebrow">{homeSectionEyebrows.usage}</span>
           <h2 className="section-title">{usage.title}</h2>
           <div className="row row-cols-1 row-cols-md-3 g-4 mt-2">
             {usage.steps.map((step, index) => (
@@ -211,6 +213,7 @@ export default function HomePage() {
         <div className="container">
           <div className="row g-5">
             <div className="col-12 col-lg-6">
+              <span className="section-eyebrow">{homeSectionEyebrows.trust}</span>
               <h2 className="section-title">{trust.title}</h2>
               <ul className="trust-list">
                 {trust.items.map((item) => (
@@ -224,6 +227,7 @@ export default function HomePage() {
               </ul>
             </div>
             <div className="col-12 col-lg-6">
+              <span className="section-eyebrow">{homeSectionEyebrows.delivery}</span>
               <h2 className="section-title">{delivery.title}</h2>
               <div className="d-flex gap-3">
                 <span className="icon-tile flex-shrink-0">
@@ -239,6 +243,7 @@ export default function HomePage() {
       {/* ---- FAQ ---- */}
       <section className="section section-tint">
         <div className="container">
+          <span className="section-eyebrow">{homeSectionEyebrows.faq}</span>
           <h2 className="section-title mb-4">{faq.title}</h2>
           <div className="accordion" id="faq-accordion" style={{ maxWidth: '48rem' }}>
             {faq.items.map((item, index) => {

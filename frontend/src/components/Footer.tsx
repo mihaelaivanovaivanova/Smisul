@@ -14,11 +14,11 @@ export default function Footer() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   return (
-    <footer className="section-tint border-top mt-auto py-5">
+    <footer className="footer-dark mt-auto py-5">
       <div className="container">
         <div className="d-flex flex-column flex-md-row justify-content-between gap-4">
           <div>
-            <Logo tagline />
+            <Logo tagline light />
             <p className="text-muted mt-2 mb-0" style={{ maxWidth: '24rem' }}>
               {footer.description}
             </p>
@@ -77,7 +77,7 @@ export default function Footer() {
             </ul>
           </nav>
         </div>
-        <hr className="my-4" style={{ borderColor: 'var(--color-border)' }} />
+        <hr className="my-4" style={{ borderColor: 'rgba(255, 255, 255, 0.18)' }} />
         <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 text-center text-sm-start">
           <span className="text-muted small">{footer.tagline}</span>
           <span className="text-muted small">

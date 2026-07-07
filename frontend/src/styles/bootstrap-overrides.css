@@ -11,8 +11,42 @@
 
 .btn {
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.01em;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out,
+    background-color 0.15s ease-in-out;
+}
+
+.btn:hover,
+.btn:focus {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn:disabled,
+.btn.disabled {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Text-only buttons (e.g. the footer's "Email us"/"Cookie settings"
+   actions) shouldn't float a card-like shadow under plain text. */
+.btn-link {
+  box-shadow: none;
+}
+
+.btn-link:hover,
+.btn-link:focus,
+.btn-link:active {
+  box-shadow: none;
+  transform: none;
 }
 
 .btn-primary {
@@ -82,18 +116,20 @@
   box-shadow: var(--shadow-sm) !important;
   transition:
     box-shadow 0.2s ease-in-out,
-    transform 0.2s ease-in-out;
+    transform 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
 }
 
 .card.shadow-sm:hover {
   box-shadow: var(--shadow-md) !important;
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  border-color: var(--color-sage);
 }
 
 /* ---- Badges ---- */
 
 .badge {
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.01em;
   border-radius: var(--radius-pill);
   padding-inline: var(--space-3);
@@ -126,6 +162,12 @@
   background-color: #f3e3dd;
   border-color: #e3c3b4;
   color: #6b3521;
+}
+
+.alert-warning {
+  background-color: var(--color-sand);
+  border-color: var(--color-border);
+  color: var(--color-forest-dark);
 }
 
 /* ---- Breadcrumbs ---- */
@@ -178,7 +220,7 @@
 }
 
 .accordion-button {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-forest-dark);
   background-color: var(--color-surface);
 }

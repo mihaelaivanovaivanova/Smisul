@@ -15,6 +15,21 @@
 /* ---- Navbar ---- */
 
 /*
+ * Sticky, frosted-glass header — stays visible while scrolling with a
+ * translucent surface color + blur behind it, rather than a flat opaque
+ * bar. z-index:1020 sits below Bootstrap's own modal/dropdown layers but
+ * above ordinary page content.
+ */
+.navbar-frosted {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background-color: rgba(255, 253, 249, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/*
  * Bootstrap's width utilities (w-*) aren't responsive out of the box, so
  * the mobile-full-width / desktop-grows-inline behavior needs an explicit
  * rule instead. flex-basis:100% on mobile guarantees the search form
@@ -44,6 +59,41 @@
  */
 .minicart-dropdown {
   width: min(320px, calc(100vw - 2rem));
+}
+
+/* ---- Footer ---- */
+
+/*
+ * A solid dark-forest band (matching the reference brand site's footer)
+ * instead of the light sand tint used for storefront sections — every
+ * text/link color inside needs its own override since the rest of the
+ * site assumes a light background.
+ */
+.footer-dark {
+  background-color: var(--color-forest);
+}
+
+.footer-dark h1,
+.footer-dark h2,
+.footer-dark h3,
+.footer-dark h4,
+.footer-dark h5,
+.footer-dark h6 {
+  color: #fff;
+}
+
+.footer-dark .text-muted,
+.footer-dark .btn-link {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.footer-dark a {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.footer-dark a:hover,
+.footer-dark .btn-link:hover {
+  color: #fff !important;
 }
 
 /* ---- Hero ---- */
@@ -104,6 +154,7 @@
 
 .step-card__index {
   font-family: var(--font-heading);
+  font-weight: 700;
   font-size: var(--fs-xl);
   color: var(--color-terracotta);
   line-height: 1;
@@ -143,6 +194,7 @@
 
 .price__current {
   font-family: var(--font-heading);
+  font-weight: 700;
   color: var(--color-forest-dark);
 }
 
@@ -312,6 +364,69 @@
   font-size: var(--fs-xs);
   text-align: center;
   padding: var(--space-3);
+}
+
+/* ---- Payment (checkout method selector + embedded iCard modal/wallet) ---- */
+
+.payment-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
+}
+
+.payment-option:hover {
+  border-color: var(--color-sage);
+}
+
+.payment-option.is-selected {
+  border-color: var(--color-forest);
+  background-color: rgba(36, 54, 44, 0.06);
+}
+
+.payment-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.payment-option.is-disabled:hover {
+  border-color: var(--color-border);
+}
+
+.payment-option__label {
+  font-weight: 700;
+  color: var(--color-forest-dark);
+}
+
+.payment-option__hint {
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+}
+
+.payment-sandbox-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding-inline: var(--space-3);
+  padding-block: 0.25em;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background-color: var(--color-sand);
+  color: var(--color-forest-dark);
 }
 
 /* ---- Admin panel ---- */

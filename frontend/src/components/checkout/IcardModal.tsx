@@ -60,7 +60,7 @@ export default function IcardModal({ session, onSuccess, onError, onCancel }: Ic
   }, [session.modal_js_url, session.token, session.theme]);
 
   return (
-    <div>
+    <div className="payment-panel">
       {isLoading && <LoadingState message={checkoutCopy.paymentStep.modal.loading} />}
       {loadError && <ErrorState message={checkoutCopy.paymentStep.modal.loadError} />}
       <div id="ipg" />

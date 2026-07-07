@@ -23,7 +23,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar navbar-expand-md bg-white border-bottom" aria-label={nav.mainNavAria}>
+    <nav className="navbar navbar-expand-md border-bottom navbar-frosted" aria-label={nav.mainNavAria}>
       <div className="container d-flex flex-wrap justify-content-between align-items-center gap-2">
         <Link to="/" aria-label={nav.home}>
           <Logo />
@@ -44,51 +44,52 @@ export default function Navbar() {
           {!isLoading && (
             <>
               {isAuthenticated ? (
-                <>
-                  <span className="text-muted d-none d-sm-inline me-1">
-                    {nav.greeting(user?.first_name ?? '')}
-                  </span>
-                  <div className="dropdown">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm dropdown-toggle"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      {nav.profile}
-                    </button>
-                    <ul className="dropdown-menu dropdown-menu-end">
-                      <li>
-                        <Link className="dropdown-item" to="/profile">
-                          {nav.profile}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item" to="/profile/orders">
-                          {ordersCopy.title}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item" to="/profile/favorites">
-                          {favoritesCopy.title}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item" to="/profile/reviews">
-                          {reviewsCopy.myReviews.title}
-                        </Link>
-                      </li>
-                      <li>
-                        <hr className="dropdown-divider" />
-                      </li>
-                      <li>
-                        <button type="button" className="dropdown-item text-danger" onClick={() => void handleLogout()}>
-                          {nav.logout}
-                        </button>
-                      </li>
-                    </ul>
-                  </div>
-                </>
+                <div className="dropdown">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm dropdown-toggle"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    {nav.profile}
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <h6 className="dropdown-header">{nav.greeting(user?.first_name ?? '')}</h6>
+                    </li>
+                    <li>
+                      <hr className="dropdown-divider" />
+                    </li>
+                    <li>
+                      <Link className="dropdown-item" to="/profile">
+                        {nav.profile}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link className="dropdown-item" to="/profile/orders">
+                        {ordersCopy.title}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link className="dropdown-item" to="/profile/favorites">
+                        {favoritesCopy.title}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link className="dropdown-item" to="/profile/reviews">
+                        {reviewsCopy.myReviews.title}
+                      </Link>
+                    </li>
+                    <li>
+                      <hr className="dropdown-divider" />
+                    </li>
+                    <li>
+                      <button type="button" className="dropdown-item text-danger" onClick={() => void handleLogout()}>
+                        {nav.logout}
+                      </button>
+                    </li>
+                  </ul>
+                </div>
               ) : (
                 <>
                   <Link className="btn btn-outline-primary btn-sm" to="/login">

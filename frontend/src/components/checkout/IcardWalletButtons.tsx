@@ -112,9 +112,13 @@ export default function IcardWalletButtons({
   }, [orderId, guestAccessToken, session, method, amount, containerId]);
 
   return (
-    <div>
-      <p className="text-muted small">{checkoutCopy.paymentStep.wallet.securedByIcard}</p>
-      {session.environment === 'sandbox' && <p className="text-muted small">{checkoutCopy.paymentStep.wallet.sandboxNotice}</p>}
+    <div className="payment-panel">
+      <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <p className="text-muted small mb-0">{checkoutCopy.paymentStep.wallet.securedByIcard}</p>
+        {session.environment === 'sandbox' && (
+          <span className="payment-sandbox-badge">{checkoutCopy.paymentStep.wallet.sandboxNotice}</span>
+        )}
+      </div>
       {isLoading && <LoadingState message={checkoutCopy.paymentStep.wallet.loading} />}
       <div id={containerId} />
       {error && <ErrorState message={error} />}

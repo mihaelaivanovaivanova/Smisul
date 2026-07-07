@@ -301,6 +301,22 @@ export const seo = {
   searchDescription: 'Разгледай и намери продуктите на Smisul по твоите критерии.',
 };
 
+/**
+ * Short category-tag eyebrow labels for homepage sections whose heading/
+ * body copy comes from the admin-editable CMS (see types/content.ts —
+ * BenefitsContent/UsageContent/TrustContent/DeliveryContent/FaqContent
+ * have no eyebrow field). These are structural labels, not marketing
+ * copy, so they live here as static UI strings instead of going through
+ * the CMS.
+ */
+export const homeSectionEyebrows = {
+  benefits: 'Ползи',
+  usage: 'Как се използва',
+  trust: 'Защо да ни се довериш',
+  delivery: 'Доставка',
+  faq: 'Въпроси',
+};
+
 export const cart = {
   title: 'Количка',
   badgeAria: (count: number) => `Количка, ${count} артикула`,
@@ -371,6 +387,11 @@ export const checkout = {
       card: 'Карта (Visa / Mastercard)',
       apple_pay: 'Apple Pay',
       google_pay: 'Google Pay',
+    } as Record<string, string>,
+    methodHints: {
+      card: 'Ще се отвори защитен прозорец на iCard, направо на тази страница.',
+      apple_pay: 'Плати бързо и сигурно с Apple Pay.',
+      google_pay: 'Плати бързо и сигурно с Google Pay.',
     } as Record<string, string>,
     applePayUnavailable: 'Наличен само в Safari на устройства на Apple',
     payButton: 'Плати',

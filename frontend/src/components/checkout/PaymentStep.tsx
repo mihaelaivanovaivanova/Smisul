@@ -77,8 +77,8 @@ export default function PaymentStep({ cart, shippingMethod, selectedMethod, onSe
       <h2 className="h6 mb-3">{checkoutCopy.paymentStep.title}</h2>
       <p className="text-muted">{checkoutCopy.paymentStep.description}</p>
 
-      <div className="mb-3">
-        <div className="small text-muted mb-2">{checkoutCopy.paymentStep.methodLabel}</div>
+      <div className="payment-panel mb-3">
+        <div className="small text-muted mb-3">{checkoutCopy.paymentStep.methodLabel}</div>
 
         {isLoading && <div className="text-muted small">{checkoutCopy.paymentStep.methodsLoading}</div>}
 
@@ -93,10 +93,7 @@ export default function PaymentStep({ cart, shippingMethod, selectedMethod, onSe
               return (
                 <label
                   key={method.value}
-                  className={`d-flex align-items-center gap-2 border rounded-3 p-3 ${isSelected ? 'border-primary' : ''} ${
-                    isApplePayUnavailable ? 'opacity-50' : ''
-                  }`}
-                  style={{ cursor: isApplePayUnavailable ? 'not-allowed' : 'pointer' }}
+                  className={`payment-option ${isSelected ? 'is-selected' : ''} ${isApplePayUnavailable ? 'is-disabled' : ''}`}
                 >
                   <input
                     type="radio"
@@ -107,10 +104,14 @@ export default function PaymentStep({ cart, shippingMethod, selectedMethod, onSe
                     onChange={() => onSelectMethod(method.value)}
                   />
                   <span>
-                    <span className="d-block fw-semibold">{checkoutCopy.paymentStep.methods[method.value] ?? method.label}</span>
-                    {isApplePayUnavailable && (
-                      <span className="d-block text-muted small">{checkoutCopy.paymentStep.applePayUnavailable}</span>
-                    )}
+                    <span className="payment-option__label d-block">
+                      {checkoutCopy.paymentStep.methods[method.value] ?? method.label}
+                    </span>
+                    <span className="payment-option__hint d-block">
+                      {isApplePayUnavailable
+                        ? checkoutCopy.paymentStep.applePayUnavailable
+                        : checkoutCopy.paymentStep.methodHints[method.value]}
+                    </span>
                   </span>
                 </label>
               );

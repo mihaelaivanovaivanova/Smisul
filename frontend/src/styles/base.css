@@ -3,10 +3,33 @@
 body {
   margin: 0;
   min-height: 100svh;
-  background-color: var(--color-cream);
+  background:
+    radial-gradient(circle at 88% 6%, rgba(168, 80, 47, 0.08), transparent 32rem),
+    radial-gradient(circle at 12% 96%, rgba(36, 54, 44, 0.07), transparent 30rem),
+    linear-gradient(180deg, var(--color-cream) 0%, var(--color-sand) 55%, var(--color-cream) 100%);
   color: var(--color-charcoal);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * A near-invisible 52px grid-line texture behind every page, fading out
+ * toward the bottom via mask-image — purely decorative ambient texture,
+ * not a layout aid. Fixed + z-index:-1 so it sits behind all content
+ * without affecting document flow or scroll performance.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(36, 54, 44, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 54, 44, 0.018) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 78%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 78%);
 }
 
 h1,
@@ -16,6 +39,10 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
+  /* Bootstrap's Reboot sets headings to font-weight:500 — too light for
+     Georgia to read as a distinct, elegant serif; bold brings out its
+     actual character. */
+  font-weight: 700;
   color: var(--color-forest-dark);
   letter-spacing: -0.01em;
 }
@@ -75,7 +102,7 @@ textarea:focus-visible,
   display: inline-block;
   font-family: var(--font-body);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-terracotta);

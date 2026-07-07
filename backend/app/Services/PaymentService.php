@@ -64,16 +64,16 @@ class PaymentService
                 'transaction_reference' => (string) Str::uuid(),
             ]);
 
-            $returnUrl = $this->buildRedirectUrl((string) config('services.icard.return_url'), $order);
-            $cancelUrl = $this->buildRedirectUrl((string) config('services.icard.cancel_url'), $order);
+            $session = $this->gateway->createSession($payment, $method);
 
-            $session = $this->gateway->createSession($payment, $method, $returnUrl, $cancelUrl);
+            $sessionData = $session->mode === 'modal'
+                ? ['modal_token' => $session->modalToken, 'modal_js_url' => $session->modalJsUrl, 'theme' => $session->theme]
+                : ['wallet' => $session->walletConfig];
 
             $payment->update([
                 'status' => PaymentStatus::Initiated,
                 'provider_reference' => $session->providerReference,
-                'redirect_url' => $session->actionUrl,
-                'raw_response' => ['fields' => $session->formFields] + $session->rawResponse,
+                'raw_response' => $sessionData + $session->rawResponse,
                 'initiated_at' => now(),
             ]);
 
@@ -81,7 +81,7 @@ class PaymentService
                 'type' => 'initiated',
                 'payment_method' => $method,
                 'status' => PaymentStatus::Initiated,
-                'raw_payload' => ['action_url' => $session->actionUrl, 'fields' => $session->formFields],
+                'raw_payload' => $sessionData,
             ]);
 
             if ($order->status === OrderStatus::Pending) {
@@ -342,23 +342,48 @@ class PaymentService
     }
 
     /**
-     * Guests have no session to prove ownership with when their browser
-     * lands back on the frontend result page, so the order's
-     * guest_access_token rides along in the URL we hand to iCard — the
-     * same token already handed to the frontend in the checkout response,
-     * just also echoed back via the redirect instead of requiring the
-     * frontend to have persisted it itself.
+     * Apple Pay's merchant-validation step, called by the frontend's
+     * wallet SDK (ICardIpgGAPay) itself via WalletPaymentController — not
+     * part of initiate()/createSession(), which returns before any wallet
+     * interaction happens. Doesn't touch payment.status: this is just
+     * merchant validation, not a charge.
+     *
+     * @return array<string, mixed>
      */
-    private function buildRedirectUrl(string $baseUrl, Order $order): string
+    public function createWalletValidationSession(Payment $payment, string $merchantUrl, string $validationUrl, string $displayName): array
     {
-        $params = ['order' => $order->id];
+        $response = $this->gateway->createWalletValidationSession($payment, $merchantUrl, $validationUrl, $displayName);
 
-        if ($order->guest_access_token !== null) {
-            $params['token'] = $order->guest_access_token;
-        }
+        $payment->transactions()->create([
+            'type' => 'wallet_validation_session',
+            'payment_method' => $payment->payment_method,
+            'status' => $payment->status,
+            'raw_payload' => $response,
+        ]);
 
-        $separator = str_contains($baseUrl, '?') ? '&' : '?';
+        return $response;
+    }
 
-        return "{$baseUrl}{$separator}".http_build_query($params);
+    /**
+     * Submits the tokenized card the wallet SDK produced. The response
+     * only acknowledges receipt — final status still only ever comes from
+     * the async notify webhook (see handleWebhook()), exactly like the
+     * card modal flow, so payment.status is deliberately left untouched
+     * here.
+     *
+     * @return array<string, mixed>
+     */
+    public function processTokenizedWalletPurchase(Payment $payment, PaymentMethod $method, string $tokenizedCard): array
+    {
+        $response = $this->gateway->processTokenizedWalletPurchase($payment, $method, $tokenizedCard);
+
+        $payment->transactions()->create([
+            'type' => 'wallet_purchase_ack',
+            'payment_method' => $payment->payment_method,
+            'status' => $payment->status,
+            'raw_payload' => $response,
+        ]);
+
+        return $response;
     }
 }

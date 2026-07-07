@@ -1,34 +1,5 @@
-import { apiClient, ensureCsrfCookie } from './client';
+import { apiBaseUrl, apiClient, ensureCsrfCookie } from './client';
 import type { Payment, PaymentMethodValue } from '../types/payment';
-
-/**
- * iCard's IPG API has no "give me a redirect URL" API call — createSession()
- * on the backend builds an RSA-signed field set that the customer's own
- * browser must POST directly to iCard (see ICardPaymentGateway::createSession
- * and PaymentSessionData). This builds and submits that form, which
- * navigates the browser away from the SPA entirely.
- */
-export function redirectToGateway(payment: Payment): void {
-  if (!payment.redirect_url || !payment.form_fields) {
-    return;
-  }
-
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = payment.redirect_url;
-  form.style.display = 'none';
-
-  for (const [name, value] of Object.entries(payment.form_fields)) {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  }
-
-  document.body.appendChild(form);
-  form.submit();
-}
 
 interface PaymentResponse {
   data: Payment;
@@ -41,29 +12,12 @@ interface PaymentResponse {
  * checked via their session instead. Every function below takes it for
  * the same reason.
  */
-export async function fetchPaymentStatus(orderId: number, token?: string | null): Promise<Payment> {
-  const { data } = await apiClient.get<PaymentResponse>(`/payments/${orderId}/status`, {
-    params: token ? { token } : undefined,
-  });
-  return data.data;
-}
 
-/** Called once when the success/failed page mounts — logs the return and reconciles with the gateway if no webhook has landed yet. */
+/** Called once the in-page iCard modal reports success/failure — logs the outcome and reconciles with the gateway if no webhook has landed yet. */
 export async function recordPaymentReturn(orderId: number, token?: string | null): Promise<Payment> {
   await ensureCsrfCookie();
   const { data } = await apiClient.post<PaymentResponse>(
     `/payments/${orderId}/return`,
-    {},
-    { params: token ? { token } : undefined },
-  );
-  return data.data;
-}
-
-/** Called by the cancelled page on mount, or by a customer-initiated "cancel" action before completing payment. */
-export async function cancelPayment(orderId: number, token?: string | null): Promise<Payment> {
-  await ensureCsrfCookie();
-  const { data } = await apiClient.post<PaymentResponse>(
-    `/payments/${orderId}/cancel`,
     {},
     { params: token ? { token } : undefined },
   );
@@ -79,4 +33,78 @@ export async function initiatePayment(orderId: number, token?: string | null, pa
     { params: token ? { token } : undefined },
   );
   return data.data;
+}
+
+/**
+ * The absolute URLs for the two wallet-SDK-driven endpoints (Apple Pay
+ * merchant validation / tokenized purchase) — the wallet SDK (ICardIpgGAPay)
+ * calls these directly with its own fetch/XHR, not through apiClient, so it
+ * needs full URLs rather than apiClient's relative paths. See
+ * components/checkout/IcardWalletButtons.tsx.
+ */
+export function walletEndpointUrls(orderId: number, token?: string | null): { tokenProviderSessionUrl: string; processPaymentUrl: string } {
+  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+
+  return {
+    tokenProviderSessionUrl: `${apiBaseUrl}/payments/${orderId}/wallet/token-provider-session${query}`,
+    processPaymentUrl: `${apiBaseUrl}/payments/${orderId}/wallet/tokenized-card-purchase${query}`,
+  };
+}
+
+const MODAL_SCRIPT_ID = 'ipg-io-js';
+const MODAL_CONTAINER_ID = 'ipg';
+const MODAL_LOAD_TIMEOUT_MS = 30000;
+
+/**
+ * Injects iCard's own hosted JS (given a token from IPGPaymentToken), which
+ * renders a payment overlay directly into the page's #ipg container — the
+ * embedded-modal equivalent of what used to be a full-page redirect (see
+ * components/checkout/IcardModal.tsx). Resolves once iCard's script reports
+ * the modal actually rendered (`ipg.formload.success`); rejects on a load
+ * error or timeout, mirroring the DOM CustomEvents iCard's script dispatches
+ * on `document`.
+ */
+export function loadIcardModalScript(modalJsUrl: string, token: string, theme: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    document.getElementById(MODAL_SCRIPT_ID)?.remove();
+    const container = document.getElementById(MODAL_CONTAINER_ID);
+    if (container) {
+      container.innerHTML = '';
+    }
+
+    let settled = false;
+
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      document.removeEventListener('ipg.formload.success', handleLoadSuccess);
+      document.removeEventListener('ipg.loadmodal.error', handleLoadError);
+      document.removeEventListener('ipg.error', handleLoadError);
+
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+
+    const handleLoadSuccess = () => finish();
+    const handleLoadError = () => finish(new Error('iCard modal failed to load.'));
+
+    const timeout = window.setTimeout(() => {
+      finish(new Error('iCard modal did not load in time.'));
+    }, MODAL_LOAD_TIMEOUT_MS);
+
+    document.addEventListener('ipg.formload.success', handleLoadSuccess);
+    document.addEventListener('ipg.loadmodal.error', handleLoadError);
+    document.addEventListener('ipg.error', handleLoadError);
+
+    const script = document.createElement('script');
+    script.id = MODAL_SCRIPT_ID;
+    script.async = true;
+    script.src = `${modalJsUrl}?token=${encodeURIComponent(token)}&theme=${encodeURIComponent(theme)}`;
+    script.onerror = () => finish(new Error('iCard modal script could not be loaded.'));
+    document.body.appendChild(script);
+  });
 }

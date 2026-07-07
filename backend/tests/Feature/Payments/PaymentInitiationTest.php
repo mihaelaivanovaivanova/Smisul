@@ -13,6 +13,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -64,20 +65,24 @@ class PaymentInitiationTest extends TestCase
     #[Test]
     public function placing_an_order_automatically_initiates_a_payment_session(): void
     {
+        // Uses TestCase::setUp()'s default iCard fake (a real IPGPaymentToken
+        // response with a random token) rather than a custom one — this
+        // test cares about the request shape and the response being wired
+        // through correctly, not a specific token value.
         $response = $this->placeOrder();
 
         $response->assertCreated();
         $response->assertJsonPath('data.status', 'awaiting_payment');
         $response->assertJsonPath('payment.status', 'initiated');
         $response->assertJsonPath('payment.provider', 'icard');
-        $this->assertNotNull($response->json('payment.redirect_url'));
-        $this->assertStringContainsString('icard', $response->json('payment.redirect_url'));
+        $this->assertNotEmpty($response->json('payment.modal_session.token'));
+        $this->assertNotNull($response->json('payment.modal_session.modal_js_url'));
 
-        $fields = $response->json('payment.form_fields');
-        $this->assertIsArray($fields);
-        $this->assertSame('IPGPurchase', $fields['IPGmethod']);
-        $this->assertArrayHasKey('Signature', $fields);
-        $this->assertNotEmpty($fields['Signature']);
+        Http::assertSent(function ($request) {
+            return $request['IPGmethod'] === 'IPGPaymentToken'
+                && $request['ModalType'] === 'IPGPurchase'
+                && ! empty($request['Signature']);
+        });
 
         $this->assertDatabaseHas('payments', [
             'order_id' => $response->json('data.id'),

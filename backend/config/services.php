@@ -63,11 +63,16 @@ return [
         'environment' => env('ICARD_ENVIRONMENT', 'sandbox'),
         'base_url' => env('ICARD_BASE_URL', 'https://dev-ipg.icards.eu/sandbox/'),
 
+        // iCard's own hosted JS: modal_js_url renders the embedded card
+        // payment overlay given a token from IPGPaymentToken (see
+        // ICardPaymentGateway::createModalSession); wallet_js_url is the
+        // separate Apple Pay/Google Pay SDK (ICardIpgGAPay).
+        'modal_js_url' => env('ICARD_MODAL_JS_URL', 'https://dev-ipg.icards.eu/sandbox/js/payment-modal.js'),
+        'wallet_js_url' => env('ICARD_WALLET_JS_URL', 'https://dev-ipg.icards.eu/sandbox/js/icard-g-a-pay.min.js'),
+
         'private_key_path' => env('ICARD_PRIVATE_KEY_PATH', storage_path('icard/private_key.pem')),
         'public_key_path' => env('ICARD_PUBLIC_KEY_PATH', storage_path('icard/public_key.pem')),
 
-        'return_url' => env('ICARD_RETURN_URL'),
-        'cancel_url' => env('ICARD_CANCEL_URL'),
         'webhook_url' => env('ICARD_WEBHOOK_URL'),
 
         // Provider-specific wallet toggles — distinct from the app-level
@@ -76,9 +81,7 @@ return [
         // PaymentService::availablePaymentMethods): this one specifically
         // means "iCard's own merchant configuration has the wallet turned
         // on", which the app-level flag can't know on its own. See
-        // docs/wallet-payments.md — the exact IPGPurchase field iCard
-        // expects for wallet restriction is unverified; confirm against
-        // iCard's real merchant documentation before enabling in production.
+        // docs/wallet-payments.md.
         'apple_pay_enabled' => (bool) env('ICARD_APPLE_PAY_ENABLED', false),
         'google_pay_enabled' => (bool) env('ICARD_GOOGLE_PAY_ENABLED', false),
     ],

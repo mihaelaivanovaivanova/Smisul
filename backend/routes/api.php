@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
 use App\Http\Controllers\Api\V1\ConsentController;
+use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\LegalController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
 use App\Http\Controllers\Api\V1\Payment\PaymentController;
+use App\Http\Controllers\Api\V1\Payment\WalletPaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReviewController;
@@ -148,6 +150,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/cookies', [ConsentController::class, 'storeCookiePreferences'])->name('consent.cookies.store');
     });
 
+    // Public contact form (frontend footer modal) — no auth, throttled.
+    Route::post('/contact', [ContactController::class, 'store'])
+        ->middleware('throttle:contact')
+        ->name('contact.store');
+
     // Cart: open to both guests (identified by the X-Guest-Cart-Token
     // header) and authenticated users (identified by their session) — no
     // auth:sanctum middleware, since that would 401 guests. See
@@ -197,6 +204,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/{order}/status', [PaymentController::class, 'status'])->name('payments.status');
         Route::post('/{order}/return', [PaymentController::class, 'handleReturn'])->name('payments.return');
         Route::post('/{order}/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
+
+        // Called directly by iCard's wallet SDK (ICardIpgGAPay) on the
+        // frontend, not by our own checkout flow — see WalletPaymentController.
+        Route::post('/{order}/wallet/token-provider-session', [WalletPaymentController::class, 'tokenProviderSession'])
+            ->name('payments.wallet.token-provider-session');
+        Route::post('/{order}/wallet/tokenized-card-purchase', [WalletPaymentController::class, 'tokenizedCardPurchase'])
+            ->name('payments.wallet.tokenized-card-purchase');
     });
 
     // Webhook: public, unauthenticated — iCard's servers call this

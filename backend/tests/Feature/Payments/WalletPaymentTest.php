@@ -8,10 +8,12 @@ use App\Enums\PaymentMethod;
 use App\Exceptions\Payment\InvalidPaymentMethodException;
 use App\Models\LegalDocument;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -162,22 +164,100 @@ class WalletPaymentTest extends TestCase
     }
 
     /**
-     * The wallet-specific IPGPurchase field is additive — the rest of the
-     * signed field set (and therefore the working card flow) is untouched.
+     * Apple Pay/Google Pay bootstrap is config only — the wallet SDK
+     * itself drives IPGTokenProviderSession/IPGTokenizedCardPurchase later
+     * (see WalletPaymentTest's endpoint-specific tests below), not
+     * createSession(), which must make no iCard API call at all here.
      */
     #[Test]
-    public function an_apple_pay_session_still_produces_a_valid_signed_form(): void
+    public function an_apple_pay_session_returns_wallet_bootstrap_config_without_calling_icard(): void
     {
         $this->enableWallets();
+        Http::fake();
 
         $response = $this->placeOrder('apple_pay');
 
-        $fields = $response->json('payment.form_fields');
-        $this->assertIsArray($fields);
-        $this->assertSame('IPGPurchase', $fields['IPGmethod']);
-        $this->assertSame('ApplePay', $fields['PayMethod']);
-        $this->assertArrayHasKey('Signature', $fields);
-        $this->assertNotEmpty($fields['Signature']);
+        $response->assertCreated();
+        $wallet = $response->json('payment.wallet_session');
+        $this->assertIsArray($wallet);
+        $this->assertSame(config('services.icard.mid'), $wallet['mid']);
+        $this->assertSame('sandbox', $wallet['environment']);
+        $this->assertArrayHasKey('wallet_js_url', $wallet);
+        $this->assertNull($response->json('payment.modal_session'));
+
+        Http::assertNothingSent();
+    }
+
+    #[Test]
+    public function the_wallet_token_provider_session_endpoint_proxies_icards_response(): void
+    {
+        $this->enableWallets();
+        Http::fake([
+            '*' => Http::response(['MerchantSessionIdentifier' => 'abc', 'Nonce' => 'xyz']),
+        ]);
+
+        $placed = $this->placeOrder('apple_pay');
+        $orderId = $placed->json('data.id');
+        $token = $placed->json('meta.guest_access_token');
+
+        $response = $this->postJson("/api/v1/payments/{$orderId}/wallet/token-provider-session?token={$token}", [
+            'MerchantUrl' => 'https://smisul.bg',
+            'ValidationURL' => 'https://apple-pay-gateway.apple.com/validate',
+            'DisplayName' => 'Smisul',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('MerchantSessionIdentifier', 'abc');
+
+        Http::assertSent(fn ($request) => $request['IPGmethod'] === 'IPGTokenProviderSession'
+            && $request['TokenizedCardProvider'] === 'Apple'
+            && ! empty($request['Signature']));
+
+        $this->assertDatabaseHas('payment_transactions', ['type' => 'wallet_validation_session']);
+    }
+
+    #[Test]
+    public function the_tokenized_card_purchase_endpoint_proxies_icards_response_without_finalizing_payment_status(): void
+    {
+        $this->enableWallets();
+        Http::fake([
+            '*' => Http::response(['Status' => '0', 'StatusMsg' => 'Accepted for processing']),
+        ]);
+
+        $placed = $this->placeOrder('google_pay');
+        $orderId = $placed->json('data.id');
+        $paymentId = $placed->json('payment.id');
+        $token = $placed->json('meta.guest_access_token');
+
+        $response = $this->postJson("/api/v1/payments/{$orderId}/wallet/tokenized-card-purchase?token={$token}", [
+            'TokenizedCard' => 'base64-tokenized-card-data',
+            'TokenizedCardProvider' => 'Google',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('Status', '0');
+
+        Http::assertSent(fn ($request) => $request['IPGmethod'] === 'IPGTokenizedCardPurchase'
+            && $request['TokenizedCardProvider'] === 'Google'
+            && $request['TokenizedCard'] === 'base64-tokenized-card-data');
+
+        $this->assertDatabaseHas('payment_transactions', ['type' => 'wallet_purchase_ack']);
+        // Final status only ever comes from the async notify webhook.
+        $this->assertSame('initiated', Payment::find($paymentId)->status->value);
+    }
+
+    #[Test]
+    public function the_tokenized_card_purchase_endpoint_rejects_a_missing_token(): void
+    {
+        $this->enableWallets();
+
+        $placed = $this->placeOrder('apple_pay');
+        $orderId = $placed->json('data.id');
+        $token = $placed->json('meta.guest_access_token');
+
+        $response = $this->postJson("/api/v1/payments/{$orderId}/wallet/tokenized-card-purchase?token={$token}", []);
+
+        $response->assertStatus(422);
     }
 
     #[Test]

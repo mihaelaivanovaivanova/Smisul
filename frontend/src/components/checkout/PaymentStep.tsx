@@ -26,14 +26,12 @@ function isApplePayAvailableInBrowser(): boolean {
 }
 
 /**
- * The last step before iCard: totals recap, the payment method selector,
- * and the actual "pay" trigger, which CheckoutPage wires to the same
- * handlePlaceOrder() that creates the order and redirects — there's no
- * separate "confirm" action between them since iCard's hosted page is
- * itself the confirmation step. The radio cards below are a preference
- * selector, not real wallet buttons — the actual Apple Pay/Google Pay UI
- * (if iCard's hosted page offers it) renders on iCard's own page after
- * redirect, not here (see docs/wallet-payments.md).
+ * The last step before payment: totals recap and the payment method
+ * selector. Once "pay" is pressed, CheckoutPage places the order and
+ * renders the actual embedded iCard modal (card) or wallet SDK buttons
+ * (Apple/Google Pay) in place of this step — see IcardModal/
+ * IcardWalletButtons and docs/wallet-payments.md. The radio cards below
+ * are just a preference selector, not the real wallet buttons themselves.
  */
 export default function PaymentStep({ cart, shippingMethod, selectedMethod, onSelectMethod }: PaymentStepProps) {
   const grandTotal = cart.totals.subtotal + (shippingMethod?.price ?? 0);

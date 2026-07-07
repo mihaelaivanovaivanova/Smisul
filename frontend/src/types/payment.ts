@@ -15,6 +15,22 @@ export interface PaymentMethodOption {
   label: string;
 }
 
+export interface PaymentModalSession {
+  token: string;
+  modal_js_url: string;
+  theme: string;
+}
+
+export interface PaymentWalletSession {
+  wallet_js_url: string;
+  environment: 'sandbox' | 'prod';
+  mid: string;
+  mid_name: string;
+  currency_alpha: string;
+  apple_merchant_domain: string | null;
+  google_merchant_id: string | null;
+}
+
 export interface Payment {
   id: number;
   order_id: number;
@@ -23,8 +39,8 @@ export interface Payment {
   status: PaymentStatus;
   amount: number;
   currency: string;
-  redirect_url: string | null;
-  form_fields: Record<string, string> | null;
+  modal_session: PaymentModalSession | null;
+  wallet_session: PaymentWalletSession | null;
   initiated_at: string | null;
   completed_at: string | null;
 }

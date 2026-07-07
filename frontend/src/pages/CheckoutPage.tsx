@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
 import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments } from '../api/checkout';
-import { redirectToGateway } from '../api/payment';
+import { initiatePayment, recordPaymentReturn } from '../api/payment';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
@@ -19,9 +19,17 @@ import DeliveryStep from '../components/checkout/DeliveryStep';
 import OrderReviewStep from '../components/checkout/OrderReviewStep';
 import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
+import IcardModal from '../components/checkout/IcardModal';
+import IcardWalletButtons from '../components/checkout/IcardWalletButtons';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
 import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
-import type { PaymentMethodValue } from '../types/payment';
+import type { Payment, PaymentMethodValue } from '../types/payment';
+
+interface ActivePayment {
+  orderId: number;
+  guestAccessToken: string | null;
+  payment: Payment;
+}
 
 const STEP_LABELS = [
   checkoutCopy.steps.customer,
@@ -73,6 +81,9 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activePayment, setActivePayment] = useState<ActivePayment | null>(null);
+  const [paymentOutcome, setPaymentOutcome] = useState<'error' | 'cancelled' | null>(null);
+  const [isRetryingPayment, setIsRetryingPayment] = useState(false);
 
   const { data: shippingMethods, isLoading: isLoadingShippingMethods, error: shippingMethodsError } = useAsync(
     fetchShippingMethods,
@@ -273,22 +284,55 @@ export default function CheckoutPage() {
 
       await refreshCart();
 
-      if (payment.redirect_url) {
-        // Leaving the SPA entirely — the customer enters their card
-        // details on iCard's own hosted page, never ours (see the
-        // sprint's "no card data" requirement). isSubmitting stays true
-        // so the button shows a spinner during the brief moment before
-        // the browser actually navigates away. iCard's IPG API requires a
-        // signed form POST rather than a plain redirect URL.
-        redirectToGateway(payment);
-        return;
-      }
-
-      navigate(`/order-confirmation/${order.id}`, { state: { order, guestAccessToken } });
+      // Card renders an embedded iCard modal, Apple/Google Pay their own
+      // wallet SDK buttons — either way the customer never leaves this
+      // page (see IcardModal/IcardWalletButtons). There's no redirect
+      // branch anymore: every payment method resolves in-page.
+      setActivePayment({ orderId: order.id, guestAccessToken, payment });
+      setIsSubmitting(false);
     } catch (error) {
       setErrors(getValidationErrors(error));
       setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
       setIsSubmitting(false);
+    }
+  }
+
+  async function handlePaymentSuccess(): Promise<void> {
+    if (!activePayment) return;
+
+    try {
+      await recordPaymentReturn(activePayment.orderId, activePayment.guestAccessToken);
+    } catch {
+      // Best-effort — the confirmation page re-fetches payment status on
+      // its own, so a failure here just means one fewer early reconcile.
+    }
+
+    navigate(`/order-confirmation/${activePayment.orderId}`, {
+      state: { guestAccessToken: activePayment.guestAccessToken },
+    });
+  }
+
+  function handlePaymentError(): void {
+    setPaymentOutcome('error');
+  }
+
+  function handlePaymentCancel(): void {
+    setPaymentOutcome('cancelled');
+  }
+
+  async function handleRetryPayment(): Promise<void> {
+    if (!activePayment) return;
+
+    setIsRetryingPayment(true);
+    setPaymentOutcome(null);
+
+    try {
+      const payment = await initiatePayment(activePayment.orderId, activePayment.guestAccessToken, selectedPaymentMethod);
+      setActivePayment({ ...activePayment, payment });
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+    } finally {
+      setIsRetryingPayment(false);
     }
   }
 
@@ -366,7 +410,7 @@ export default function CheckoutPage() {
                   />
                 )}
 
-                {step === 3 && (
+                {step === 3 && !activePayment && (
                   <PaymentStep
                     cart={cart}
                     shippingMethod={selectedShippingMethod}
@@ -375,37 +419,87 @@ export default function CheckoutPage() {
                   />
                 )}
 
-                <div className="d-flex justify-content-between mt-4">
-                  {step > 0 ? (
-                    <button type="button" className="btn btn-outline-secondary" onClick={handleBack} disabled={isSubmitting}>
-                      {checkoutCopy.back}
-                    </button>
-                  ) : (
-                    <span />
-                  )}
+                {activePayment && (
+                  <div>
+                    <h2 className="h6 mb-3">{checkoutCopy.paymentStep.title}</h2>
 
-                  {step < LAST_STEP && (
-                    <button type="button" className="btn btn-primary" onClick={handleNext}>
-                      {checkoutCopy.next}
-                    </button>
-                  )}
+                    {paymentOutcome === 'error' && <Alert variant="danger">{checkoutCopy.paymentStep.modal.paymentError}</Alert>}
+                    {paymentOutcome === 'cancelled' && (
+                      <Alert variant="warning">{checkoutCopy.paymentStep.modal.cancelled}</Alert>
+                    )}
 
-                  {step === LAST_STEP && (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => void handlePlaceOrder()}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-                      {isSubmitting
-                        ? checkoutCopy.paymentStep.payingButton
-                        : checkoutCopy.paymentStep.payButtonWithMethod(
-                            checkoutCopy.paymentStep.methods[selectedPaymentMethod] ?? checkoutCopy.paymentStep.methods.card,
-                          )}
-                    </button>
-                  )}
-                </div>
+                    {paymentOutcome && (
+                      <button
+                        type="button"
+                        className="btn btn-primary mb-3"
+                        onClick={() => void handleRetryPayment()}
+                        disabled={isRetryingPayment}
+                      >
+                        {isRetryingPayment && (
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                        )}
+                        {checkoutCopy.paymentStep.modal.retry}
+                      </button>
+                    )}
+
+                    {!paymentOutcome && activePayment.payment.modal_session && (
+                      <IcardModal
+                        session={activePayment.payment.modal_session}
+                        onSuccess={() => void handlePaymentSuccess()}
+                        onError={handlePaymentError}
+                        onCancel={handlePaymentCancel}
+                      />
+                    )}
+
+                    {!paymentOutcome &&
+                      activePayment.payment.wallet_session &&
+                      (selectedPaymentMethod === 'apple_pay' || selectedPaymentMethod === 'google_pay') && (
+                        <IcardWalletButtons
+                          orderId={activePayment.orderId}
+                          guestAccessToken={activePayment.guestAccessToken}
+                          session={activePayment.payment.wallet_session}
+                          method={selectedPaymentMethod}
+                          amount={activePayment.payment.amount}
+                          onSuccess={() => void handlePaymentSuccess()}
+                          onDecline={handlePaymentError}
+                        />
+                      )}
+                  </div>
+                )}
+
+                {!activePayment && (
+                  <div className="d-flex justify-content-between mt-4">
+                    {step > 0 ? (
+                      <button type="button" className="btn btn-outline-secondary" onClick={handleBack} disabled={isSubmitting}>
+                        {checkoutCopy.back}
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+
+                    {step < LAST_STEP && (
+                      <button type="button" className="btn btn-primary" onClick={handleNext}>
+                        {checkoutCopy.next}
+                      </button>
+                    )}
+
+                    {step === LAST_STEP && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => void handlePlaceOrder()}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
+                        {isSubmitting
+                          ? checkoutCopy.paymentStep.payingButton
+                          : checkoutCopy.paymentStep.payButtonWithMethod(
+                              checkoutCopy.paymentStep.methods[selectedPaymentMethod] ?? checkoutCopy.paymentStep.methods.card,
+                            )}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

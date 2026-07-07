@@ -128,4 +128,17 @@ return [
 
     'admin_address' => env('ADMIN_EMAIL'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contact Form Address
+    |--------------------------------------------------------------------------
+    |
+    | Where the public contact form (frontend footer) delivers submissions.
+    | Defaults to the real published contact mailbox rather than null, since
+    | this form has no purpose if nothing is configured to receive it.
+    |
+    */
+
+    'contact_address' => env('CONTACT_EMAIL', 'contact@smisul.bg'),
+
 ];

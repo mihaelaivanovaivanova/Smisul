@@ -9,29 +9,40 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
 use App\Exceptions\Payment\InvalidWebhookPayloadException;
+use App\Exceptions\Payment\PaymentGatewayException;
 use App\Models\Payment;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * Real iCard IPG API integration (protocol v4.5, Redirect Checkout /
- * IPGPurchase — see the "IPG API BM ECommerce" integration guide). Unlike a
- * typical hosted-page gateway, iCard does not expose a "create session" API
- * call: createSession() instead builds and RSA-signs the full IPGPurchase
- * form field set locally, and the customer's own browser POSTs it directly
- * to IPG (see PaymentSessionData — the frontend builds and submits that
- * form). Every request, response, and callback is signed/verified with an
- * RSA key pair exchanged out-of-band with iCard, not a shared secret.
+ * Real iCard IPG API integration (protocol v4.5 — see the "IPG API BM
+ * ECommerce" integration guide). Every payment method renders entirely
+ * in-page, never navigating the customer away from this site:
+ *
+ *  - Card: createModalSession() calls IPGPaymentToken server-to-server to
+ *    get a short-lived Token, which the frontend uses to load iCard's own
+ *    hosted JS (modalJsUrl?token=...) — that script renders a payment
+ *    overlay directly on the checkout page (see PaymentSessionData and
+ *    components/checkout/IcardModal.tsx).
+ *  - Apple Pay / Google Pay: createWalletBootstrap() makes no iCard call
+ *    at all — it just returns the config iCard's separate wallet SDK
+ *    (ICardIpgGAPay) needs to render its own buttons. That SDK drives the
+ *    two wallet-specific iCard calls itself, via WalletPaymentController
+ *    (createWalletValidationSession() for Apple's merchant validation,
+ *    processTokenizedWalletPurchase() once a wallet returns a payment
+ *    token) — see components/checkout/IcardWalletButtons.tsx.
+ *
+ * Every request, response headers aside, is signed/verified with an RSA
+ * key pair exchanged out-of-band with iCard, not a shared secret. Not
+ * every response carries a Signature (IPGPaymentToken/wallet replies
+ * aren't guaranteed to) — see verifyResponseSignature().
  *
  * iCard's E-commerce guide documents no server-to-server status-inquiry
  * call, so checkStatus() has nothing to call — reconciliation for a
  * delayed/missing webhook relies on the return-page best-effort log only
  * (see PaymentService::reconcile()).
- *
- * Apple Pay / Google Pay ride the same IPGPurchase form-POST as card
- * payments — see walletFields() for the one (unverified) extra field
- * added for those methods, and docs/wallet-payments.md for what real
- * production setup each wallet needs beyond iCard itself.
  */
 class ICardPaymentGateway implements PaymentGatewayInterface
 {
@@ -40,20 +51,30 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         return PaymentProvider::ICard;
     }
 
-    public function createSession(Payment $payment, PaymentMethod $method, string $returnUrl, string $cancelUrl): PaymentSessionData
+    public function createSession(Payment $payment, PaymentMethod $method): PaymentSessionData
+    {
+        return match ($method) {
+            PaymentMethod::Card => $this->createModalSession($payment),
+            PaymentMethod::ApplePay, PaymentMethod::GooglePay => $this->createWalletBootstrap($payment),
+        };
+    }
+
+    /**
+     * IPGPaymentToken + ModalType=IPGPurchase: the field set is otherwise
+     * identical to what a full IPGPurchase request would carry (customer/
+     * address details, mandatory MobileNumber, recommended-but-optional
+     * BillAddr/ShipAddr fields — see isoNumericCountryCode()), just
+     * requested as a token for the embedded modal instead of a
+     * browser-submitted redirect form.
+     */
+    private function createModalSession(Payment $payment): PaymentSessionData
     {
         $order = $payment->order;
 
         $fields = [
-            'IPGmethod' => 'IPGPurchase',
-            'KeyIndex' => (string) config('services.icard.key_index'),
-            'KeyIndexResp' => (string) config('services.icard.key_index_resp'),
-            'IPGVersion' => (string) config('services.icard.ipg_version'),
+            ...$this->baseFields('IPGPaymentToken'),
+            'ModalType' => 'IPGPurchase',
             'Language' => 'BG',
-            'Originator' => (string) config('services.icard.originator'),
-            'BannerIndex' => '1',
-            'PostResultAction' => 'Redirect',
-            'MID' => (string) config('services.icard.mid'),
             'MIDName' => (string) config('services.icard.mid_name'),
             'Amount' => number_format((float) $payment->amount, 2, '.', ''),
             'Currency' => (string) config('services.icard.currency_numeric'),
@@ -64,9 +85,8 @@ class ICardPaymentGateway implements PaymentGatewayInterface
             'OrderID' => $payment->transaction_reference,
             'CustomerIdentifier' => (string) $order->id,
             'Email' => (string) $order->customer_email,
-            'URL_OK' => $returnUrl,
-            'URL_Cancel' => $cancelUrl,
             'URL_Notify' => (string) config('services.icard.webhook_url'),
+            'Note' => (string) $order->order_number,
             // Mandatory per spec — checkout requires customer.phone, so this
             // is always present (PlaceOrderRequest::rules()).
             'MobileNumber' => (string) $order->customer_phone,
@@ -93,40 +113,200 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         $fields['BillAddrPostCode'] = (string) $order->billing_postal_code;
         $fields['BillAddrLine1'] = base64_encode((string) $order->billing_address_line);
 
-        $fields = [...$fields, ...$this->walletFields($method)];
+        $response = $this->callIcard($fields);
 
-        $fields['Signature'] = $this->sign($fields);
+        $token = $this->extractField($response, 'Token')
+            ?? $this->extractField($response, 'PaymentToken')
+            ?? $this->extractField($response, 'PaymentTokenID');
 
-        $actionUrl = rtrim((string) config('services.icard.base_url'), '/').'/';
+        if ($token === null) {
+            throw PaymentGatewayException::missingField('Token');
+        }
 
-        return new PaymentSessionData(
-            actionUrl: $actionUrl,
-            formFields: $fields,
+        return PaymentSessionData::modal(
             providerReference: $payment->transaction_reference,
+            token: $token,
+            modalJsUrl: (string) config('services.icard.modal_js_url'),
+            theme: 'dark',
+            rawResponse: $response,
         );
     }
 
     /**
-     * UNVERIFIED — no real iCard wallet-payment merchant account exists to
-     * test this against (unlike the rest of this class's IPGPurchase field
-     * set, which is confirmed against iCard's real sandbox). `PayMethod`
-     * is a placeholder field name modeled on how other hosted-checkout
-     * gateways restrict/pre-select a wallet on their own payment page —
-     * it is NOT confirmed against iCard's actual API. Card payments never
-     * call this (returns [] for PaymentMethod::Card), so this can ship
-     * without any risk to the working card flow; confirm the real field
-     * name/values with iCard support before enabling either wallet flag in
-     * production. See docs/wallet-payments.md.
+     * No iCard API call — the wallet SDK (ICardIpgGAPay) itself drives
+     * IPGTokenProviderSession/IPGTokenizedCardPurchase once the customer
+     * actually interacts with the Apple/Google Pay button (see
+     * WalletPaymentController). This just hands the frontend what it
+     * needs to render those buttons in the first place.
+     */
+    private function createWalletBootstrap(Payment $payment): PaymentSessionData
+    {
+        return PaymentSessionData::wallet($payment->transaction_reference, [
+            'wallet_js_url' => (string) config('services.icard.wallet_js_url'),
+            'environment' => config('services.icard.environment') === 'production' ? 'prod' : 'sandbox',
+            'mid' => (string) config('services.icard.mid'),
+            'mid_name' => (string) config('services.icard.mid_name'),
+            'currency_alpha' => (string) $payment->currency,
+            'apple_merchant_domain' => config('services.apple_pay.merchant_domain'),
+            'google_merchant_id' => config('services.google_pay.merchant_id'),
+        ]);
+    }
+
+    /**
+     * Apple Pay's merchant-validation step: the frontend's onvalidatemerchant
+     * callback needs iCard's raw IPGTokenProviderSession response (Apple's
+     * own merchant session object), so this proxies it back verbatim
+     * rather than reshaping it.
      *
+     * @return array<string, mixed>
+     */
+    public function createWalletValidationSession(Payment $payment, string $merchantUrl, string $validationUrl, string $displayName): array
+    {
+        return $this->callIcard([
+            ...$this->baseFields('IPGTokenProviderSession'),
+            'OrderID' => $payment->transaction_reference,
+            'MerchantUrl' => $merchantUrl,
+            'ValidationURL' => $validationUrl,
+            'DisplayName' => $displayName,
+            'TokenizedCardProvider' => 'Apple',
+        ]);
+    }
+
+    /**
+     * Once Apple/Google Pay hands back a tokenized card, this submits it
+     * to iCard for the actual charge. The immediate response only
+     * acknowledges receipt (Status "0" = accepted for processing) — the
+     * real terminal outcome still only ever arrives via the async notify
+     * webhook, exactly like the card modal flow (see
+     * PaymentService::handleWebhook). Response is proxied back verbatim,
+     * same reasoning as createWalletValidationSession().
+     *
+     * @return array<string, mixed>
+     */
+    public function processTokenizedWalletPurchase(Payment $payment, PaymentMethod $method, string $tokenizedCard): array
+    {
+        $order = $payment->order;
+
+        return $this->callIcard([
+            ...$this->baseFields('IPGTokenizedCardPurchase'),
+            'OrderID' => $payment->transaction_reference,
+            'Email' => (string) $order->customer_email,
+            'CustomerIdentifier' => (string) $order->id,
+            'Amount' => number_format((float) $payment->amount, 2, '.', ''),
+            'Currency' => (string) config('services.icard.currency_numeric'),
+            'URL_Notify' => (string) config('services.icard.webhook_url'),
+            'TokenizedCardProvider' => $method === PaymentMethod::GooglePay ? 'Google' : 'Apple',
+            'TokenizedCard' => $tokenizedCard,
+        ]);
+    }
+
+    /**
      * @return array<string, string>
      */
-    private function walletFields(PaymentMethod $method): array
+    private function baseFields(string $ipgMethod): array
     {
-        return match ($method) {
-            PaymentMethod::Card => [],
-            PaymentMethod::ApplePay => ['PayMethod' => 'ApplePay'],
-            PaymentMethod::GooglePay => ['PayMethod' => 'GooglePay'],
-        };
+        return [
+            'IPGmethod' => $ipgMethod,
+            'KeyIndex' => (string) config('services.icard.key_index'),
+            'KeyIndexResp' => (string) config('services.icard.key_index_resp'),
+            'IPGVersion' => (string) config('services.icard.ipg_version'),
+            'Originator' => (string) config('services.icard.originator'),
+            'OutputFormat' => 'json',
+            'MID' => (string) config('services.icard.mid'),
+        ];
+    }
+
+    /**
+     * Signs $fields and POSTs them to iCard's IPG API, returning the
+     * parsed response. Every server-to-server call (modal token creation,
+     * wallet validation session, tokenized purchase) goes through this
+     * single path rather than three near-identical copies.
+     *
+     * @param  array<string, mixed>  $fields
+     * @return array<string, mixed>
+     */
+    private function callIcard(array $fields): array
+    {
+        $fields['Signature'] = $this->sign($fields);
+
+        try {
+            $response = Http::asForm()
+                ->timeout(15)
+                ->post(rtrim((string) config('services.icard.base_url'), '/').'/', $fields);
+        } catch (ConnectionException $exception) {
+            throw PaymentGatewayException::requestFailed($exception->getMessage());
+        }
+
+        if ($response->failed()) {
+            throw PaymentGatewayException::requestFailed("HTTP {$response->status()}");
+        }
+
+        $parsed = $this->parseIcardResponse($response->body());
+
+        if (! $this->verifyResponseSignature($parsed)) {
+            throw PaymentGatewayException::requestFailed('response signature verification failed');
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseIcardResponse(string $body): array
+    {
+        $decoded = json_decode($body, true);
+
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        parse_str($body, $parsed);
+
+        return $parsed;
+    }
+
+    /**
+     * Not every iCard API response is signed (IPGPaymentToken/wallet
+     * replies aren't guaranteed to be) — absence of a Signature key means
+     * there's nothing to verify, not that verification failed. This is
+     * separate from verifySignature() below, which verifies the async
+     * notify webhook and is always mandatory.
+     *
+     * @param  array<int|string, mixed>  $response
+     */
+    private function verifyResponseSignature(array $response): bool
+    {
+        $signature = null;
+        $withoutSignature = [];
+
+        foreach ($response as $key => $value) {
+            if (is_string($key) && strcasecmp($key, 'signature') === 0) {
+                $signature = $value;
+            } else {
+                $withoutSignature[$key] = $value;
+            }
+        }
+
+        if ($signature === null) {
+            return true;
+        }
+
+        return $this->verify($withoutSignature, (string) $signature);
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $response
+     */
+    private function extractField(array $response, string $key): ?string
+    {
+        foreach ($response as $candidate => $value) {
+            if (is_string($candidate) && strcasecmp($candidate, $key) === 0) {
+                return $value === null ? null : (string) $value;
+            }
+        }
+
+        return null;
     }
 
     public function verifySignature(Request $request): bool
@@ -169,7 +349,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
     public function checkStatus(string $providerReference): PaymentStatus
     {
         throw new RuntimeException(
-            "iCard's IPG Redirect Checkout API has no status-inquiry call — reconciliation for [{$providerReference}] must rely on the webhook or the customer's return-page visit.",
+            "iCard's IPG API has no status-inquiry call — reconciliation for [{$providerReference}] must rely on the webhook or the customer's return-page visit.",
         );
     }
 

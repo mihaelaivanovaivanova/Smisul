@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import ContactModal from './ContactModal';
 import { fetchLegalDocuments } from '../api/legal';
 import { useAsync } from '../hooks/useAsync';
 import { useCookieConsent } from '../hooks/useCookieConsent';
@@ -9,6 +11,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
   const { data: legalDocuments } = useAsync(fetchLegalDocuments, [], '');
   const { openPreferencesModal } = useCookieConsent();
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   return (
     <footer className="section-tint border-top mt-auto py-5">
@@ -44,6 +47,15 @@ export default function Footer() {
                   {footer.contact}
                 </Link>
               </li>
+              <li>
+                <button
+                  type="button"
+                  className="btn btn-link p-0 text-decoration-none text-muted"
+                  onClick={() => setIsContactModalOpen(true)}
+                >
+                  {footer.emailUs}
+                </button>
+              </li>
             </ul>
           </nav>
 
@@ -73,6 +85,8 @@ export default function Footer() {
           </span>
         </div>
       </div>
+
+      <ContactModal show={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
     </footer>
   );
 }

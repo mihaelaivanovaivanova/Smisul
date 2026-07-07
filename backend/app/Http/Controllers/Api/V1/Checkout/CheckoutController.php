@@ -103,9 +103,10 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Places the order, then immediately starts its payment session —
-     * the frontend redirects the customer's browser straight to the
-     * returned payment.redirect_url (see the sprint's checkout flow).
+     * Places the order, then immediately starts its payment session — the
+     * frontend renders the returned payment.modal_session (card, an
+     * embedded iCard overlay) or payment.wallet_session (Apple/Google Pay,
+     * iCard's wallet SDK buttons) in place, without leaving the page.
      */
     public function placeOrder(PlaceOrderRequest $request): JsonResponse
     {

@@ -86,7 +86,7 @@ class GuestCheckoutTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/legal-documents');
 
         $response->assertOk();
-        $response->assertJsonCount(5, 'data');
+        $response->assertJsonCount(4, 'data');
     }
 
     #[Test]

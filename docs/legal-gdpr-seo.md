@@ -3,9 +3,10 @@
 ## ⚠️ Legal copy is placeholder — lawyer review required before production
 
 Every legal document seeded by `LegalDocumentSeeder` (Общи условия,
-Политика за поверителност, GDPR Политика, Право на отказ от договора,
-Политика за бисквитки, Политика за доставка, Политика за връщане и
-рекламации) is realistic-**shaped** Bulgarian placeholder copy: it follows
+Политика за поверителност (includes GDPR-specific disclosures — see
+below), Право на отказ от договора, Политика за бисквитки, Политика за
+доставка, Политика за връщане и рекламации) is realistic-**shaped**
+Bulgarian placeholder copy: it follows
 the section structure a real document would have, but every
 company-specific fact (`[Юридическо име на дружеството]`, `[ЕИК номер]`,
 `[адрес]`, etc.) is a bracketed placeholder, and no clause should be
@@ -24,13 +25,21 @@ mutating an already-accepted row — so a past order's
 `OrderLegalAcceptance` always points at the exact version the customer
 actually saw.
 
-`LegalDocumentType` has 7 cases. Only 5 (`requiredAtCheckout()`) are
+`LegalDocumentType` has 6 cases. Only 4 (`requiredAtCheckout()`) are
 presented as checkout checkboxes — `ShippingPolicy` and `ReturnsPolicy`
 are informational-only public pages, added this sprint without changing
-checkout's existing 5-checkbox behavior. Every current document (all 7)
+checkout's existing checkbox behavior. Every current document (all 6)
 is listed at `GET /api/v1/legal-documents` and readable individually at
 `GET /api/v1/legal-documents/{slug}` — this is what the footer links and
 `/legal/:slug` pages use.
+
+**GDPR is folded into the Privacy Policy, not a separate document.**
+There used to be a distinct `GdprPolicy` type, but a GDPR-compliant
+Privacy Policy already covers everything that document did (lawful
+basis, data subject rights, retention, international transfers,
+automated decision-making) — keeping them apart was redundant, so the
+GDPR-specific sections were merged into `PrivacyPolicy`'s seeded content
+and the separate type/slug (`gdpr-policy`) was removed.
 
 ## GDPR consent audit log
 

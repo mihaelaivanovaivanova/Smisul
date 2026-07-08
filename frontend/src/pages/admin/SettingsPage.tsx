@@ -20,7 +20,7 @@ const TABS: { key: string; label: string }[] = [
   { key: 'system', label: 'System' },
 ];
 
-const LEGAL_TYPES = ['terms_of_service', 'privacy_policy', 'gdpr_policy', 'right_of_withdrawal', 'cookie_policy'];
+const LEGAL_TYPES = ['terms_of_service', 'privacy_policy', 'right_of_withdrawal', 'cookie_policy'];
 
 function SettingField({ item, value, onChange }: { item: SettingItem; value: string | number | boolean; onChange: (value: string | number | boolean) => void }) {
   if (item.type === 'boolean') {

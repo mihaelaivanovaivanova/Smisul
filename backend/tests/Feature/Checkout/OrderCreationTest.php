@@ -129,9 +129,9 @@ class OrderCreationTest extends TestCase
 
         $reloaded = $this->getJson("/api/v1/orders/{$orderId}?token={$accessToken}");
 
-        $reloaded->assertJsonCount(5, 'data.legal_acceptances');
+        $reloaded->assertJsonCount(4, 'data.legal_acceptances');
         $this->assertNotNull($reloaded->json('data.legal_acceptances.0.accepted_at'));
 
-        $this->assertDatabaseCount('order_legal_acceptances', 5);
+        $this->assertDatabaseCount('order_legal_acceptances', 4);
     }
 }

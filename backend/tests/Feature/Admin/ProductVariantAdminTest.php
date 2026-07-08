@@ -74,4 +74,48 @@ class ProductVariantAdminTest extends TestCase
 
         $this->assertSoftDeleted($variant);
     }
+
+    #[Test]
+    public function an_administrator_can_set_a_variants_stock(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $variant = $product->variants()->create(['sku' => 'SKU-1', 'name' => '1-pack', 'pack_size' => 1]);
+        $variant->inventory()->create(['quantity_on_hand' => 0]);
+
+        $response = $this->actingAs($admin)->putJson(
+            "/api/v1/admin/products/{$product->id}/variants/{$variant->id}/inventory",
+            ['quantity_on_hand' => 50],
+        );
+
+        $response->assertOk();
+        $response->assertJsonPath('data.available_quantity', 50);
+        $this->assertDatabaseHas('inventories', ['product_variant_id' => $variant->id, 'quantity_on_hand' => 50]);
+    }
+
+    #[Test]
+    public function setting_stock_requires_a_non_negative_integer(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $variant = $product->variants()->create(['sku' => 'SKU-1', 'name' => '1-pack', 'pack_size' => 1]);
+        $variant->inventory()->create(['quantity_on_hand' => 0]);
+
+        $this->actingAs($admin)
+            ->putJson("/api/v1/admin/products/{$product->id}/variants/{$variant->id}/inventory", ['quantity_on_hand' => -5])
+            ->assertUnprocessable();
+    }
+
+    #[Test]
+    public function a_customer_cannot_set_a_variants_stock(): void
+    {
+        $customer = User::factory()->create();
+        $product = Product::factory()->create();
+        $variant = $product->variants()->create(['sku' => 'SKU-1', 'name' => '1-pack', 'pack_size' => 1]);
+        $variant->inventory()->create(['quantity_on_hand' => 0]);
+
+        $this->actingAs($customer)
+            ->putJson("/api/v1/admin/products/{$product->id}/variants/{$variant->id}/inventory", ['quantity_on_hand' => 10])
+            ->assertForbidden();
+    }
 }

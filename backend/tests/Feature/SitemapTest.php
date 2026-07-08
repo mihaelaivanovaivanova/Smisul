@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\LegalDocumentType;
 use App\Enums\ProductStatus;
 use App\Models\Category;
+use App\Models\FunnelConfig;
 use App\Models\LegalDocument;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,6 +47,18 @@ class SitemapTest extends TestCase
 
         $response->assertOk();
         $this->assertStringNotContainsString('/legal/', $response->getContent());
+    }
+
+    #[Test]
+    public function it_omits_search_when_funnel_mode_is_enabled(): void
+    {
+        $before = $this->get('/sitemap.xml');
+        $this->assertStringContainsString('/search', $before->getContent());
+
+        FunnelConfig::current()->update(['is_enabled' => true]);
+
+        $after = $this->get('/sitemap.xml');
+        $this->assertStringNotContainsString('/search', $after->getContent());
     }
 
     #[Test]

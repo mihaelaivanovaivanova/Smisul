@@ -12,6 +12,10 @@ interface AddToCartButtonProps {
   inventory: Inventory | null | undefined;
   /** Icon-only button + smaller stepper, for tight spaces like listing cards. */
   compact?: boolean;
+  /** Overrides the button's text (non-compact only) — e.g. the funnel page's per-package "Вземи стартов пакет" copy. */
+  label?: string;
+  /** Fired after a successful add — e.g. the funnel landing page's conversion tracking. */
+  onAdded?: () => void;
 }
 
 /**
@@ -35,7 +39,7 @@ const BACKORDER_SOFT_MAX = 10;
  * changes, so quantity/pending/error/success state never leaks from one
  * variant's attempt onto another.
  */
-export default function AddToCartButton({ productVariantId, inventory, compact = false }: AddToCartButtonProps) {
+export default function AddToCartButton({ productVariantId, inventory, compact = false, label, onAdded }: AddToCartButtonProps) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isPending, setIsPending] = useState(false);
@@ -59,6 +63,7 @@ export default function AddToCartButton({ productVariantId, inventory, compact =
       await addItem(productVariantId, quantity);
       setAdded(true);
       setQuantity(1);
+      onAdded?.();
     } catch (err) {
       setError(getErrorMessage(err, cartCopy.addToCartError));
     } finally {
@@ -78,7 +83,7 @@ export default function AddToCartButton({ productVariantId, inventory, compact =
           aria-label={cartCopy.addToCart}
         >
           {isPending && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-          {compact ? <Icon name="cart" /> : cartCopy.addToCart}
+          {compact ? <Icon name="cart" /> : (label ?? cartCopy.addToCart)}
         </button>
       </div>
 

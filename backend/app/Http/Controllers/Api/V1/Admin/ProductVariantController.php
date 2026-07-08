@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\DataTransferObjects\ProductVariantData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Product\InventoryUpdateRequest;
 use App\Http\Requests\Product\StoreProductVariantRequest;
 use App\Http\Requests\Product\UpdateProductVariantRequest;
+use App\Http\Resources\InventoryResource;
 use App\Http\Resources\ProductVariantResource;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -38,5 +40,18 @@ class ProductVariantController extends Controller
         $this->variants->delete($variant);
 
         return response()->noContent();
+    }
+
+    /**
+     * Sets a variant's on-hand stock. Kept separate from update() (which
+     * only ever touches sku/name/pack_size/etc — see ProductVariantData)
+     * the same way price has its own endpoint: stock and price are each
+     * their own concern, not bundled into the general variant attributes.
+     */
+    public function updateInventory(InventoryUpdateRequest $request, Product $product, ProductVariant $variant): JsonResponse
+    {
+        $variant->inventory()->update($request->validated());
+
+        return (new InventoryResource($variant->inventory()->firstOrFail()))->response()->setStatusCode(200);
     }
 }

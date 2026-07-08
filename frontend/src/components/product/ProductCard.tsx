@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Product } from '../../types/product';
 import { getActivePromotion, getDefaultVariant, getDisplayPrice, getPrimaryImage } from '../../services/productCatalog';
 import { product as productCopy } from '../../content/copy';
+import { useSettings } from '../../hooks/useSettings';
 import PriceBlock from './PriceBlock';
 import StockStatus from './StockStatus';
 import AddToCartButton from './AddToCartButton';
@@ -12,6 +13,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { funnelModeEnabled } = useSettings();
   const image = getPrimaryImage(product);
   const variant = getDefaultVariant(product);
   const price = getDisplayPrice(product);
@@ -23,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Add-to-cart and favorite below are siblings, not nested inside
             this link — a <button>/<a> inside an <a> is invalid HTML and
             breaks click handling. */}
-        {variant && (
+        {variant && !funnelModeEnabled && (
           <div className="position-absolute top-0 end-0 m-2" style={{ zIndex: 1 }}>
             <FavoriteButton productVariantId={variant.id} compact />
           </div>

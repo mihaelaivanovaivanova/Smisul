@@ -12,8 +12,9 @@ import FormModal from '../../components/admin/FormModal';
 import ConfirmModal from '../../components/admin/ConfirmModal';
 import StatusBadge from '../../components/admin/StatusBadge';
 import ProductMediaManager from '../../components/admin/ProductMediaManager';
+import VariantManager from '../../components/admin/VariantManager';
 import FieldError from '../../components/FieldError';
-import type { Media, ProductStatus } from '../../types/product';
+import type { Media, ProductStatus, ProductVariant } from '../../types/product';
 import type { AdminProduct } from '../../types/admin';
 
 const EMPTY_FORM: ProductPayload = {
@@ -38,6 +39,7 @@ export default function ProductsPage() {
 
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [media, setMedia] = useState<Media[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [justCreated, setJustCreated] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ProductPayload>(EMPTY_FORM);
@@ -51,6 +53,7 @@ export default function ProductsPage() {
   function openCreate() {
     setEditing(null);
     setMedia([]);
+    setVariants([]);
     setJustCreated(false);
     setForm(EMPTY_FORM);
     setFormErrors({});
@@ -61,6 +64,7 @@ export default function ProductsPage() {
   async function openEdit(product: AdminProduct) {
     setEditing(product);
     setMedia(product.media ?? []);
+    setVariants(product.variants ?? []);
     setJustCreated(false);
     setForm({
       name: product.name,
@@ -80,6 +84,7 @@ export default function ProductsPage() {
     const fresh = await fetchAdminProduct(product.id);
     setEditing(fresh);
     setMedia(fresh.media);
+    setVariants(fresh.variants);
     setForm((current) => ({ ...current, quantity: fresh.quantity ?? 0, price: fresh.price ?? 0 }));
   }
 
@@ -93,12 +98,13 @@ export default function ProductsPage() {
         await updateProduct(editing.id, form);
         setShowForm(false);
       } else {
-        // Media can only be attached to a product that already exists, so
-        // creating stays in the same modal (now in "edit" mode) instead of
-        // closing, letting the admin add photos immediately.
+        // Media and variants can only be attached to a product that already
+        // exists, so creating stays in the same modal (now in "edit" mode)
+        // instead of closing, letting the admin add photos/pack sizes right away.
         const created = await createProduct(form);
         setEditing(created);
         setMedia(created.media ?? []);
+        setVariants(created.variants ?? []);
         setJustCreated(true);
       }
       setReloadKey((key) => key + 1);
@@ -292,6 +298,8 @@ export default function ProductsPage() {
             <FieldError message={formErrors.price} />
           </div>
         </div>
+
+        {editing && <VariantManager productId={editing.id} variants={variants} onChange={setVariants} />}
 
         {editing && <ProductMediaManager productId={editing.id} media={media} onChange={setMedia} />}
       </FormModal>

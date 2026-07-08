@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
 use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\V1\ConsentController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\FavoriteController;
+use App\Http\Controllers\Api\V1\FunnelController;
 use App\Http\Controllers\Api\V1\LegalController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
@@ -40,6 +42,7 @@ use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ShipmentController;
 use App\Http\Resources\UserResource;
 use App\Services\ContentBlockService;
+use App\Services\FunnelContentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -138,6 +141,11 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/content/homepage', [ContentController::class, 'homepage'])->name('content.homepage');
 
+    // Funnel mode: public, unauthenticated — the storefront reads this at
+    // boot to decide whether to render the normal homepage or the funnel
+    // landing page (see FunnelService).
+    Route::get('/funnel', [FunnelController::class, 'show'])->name('funnel.show');
+
     // Legal pages: public, no auth — every current document (superset of
     // checkout's required-only subset, see CheckoutController::legalDocuments).
     Route::get('/legal-documents', [LegalController::class, 'index'])->name('legal-documents.index');
@@ -233,6 +241,8 @@ Route::prefix('v1')->group(function () {
 
         Route::put('/products/{product}/variants/{variant}/price', [AdminPriceController::class, 'update'])
             ->name('products.variants.price.update');
+        Route::put('/products/{product}/variants/{variant}/inventory', [AdminProductVariantController::class, 'updateInventory'])
+            ->name('products.variants.inventory.update');
 
         Route::post('/products/{product}/media', [AdminProductMediaController::class, 'store'])
             ->name('products.media.store');
@@ -280,5 +290,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/content/homepage/{section}', [AdminContentBlockController::class, 'update'])
             ->where('section', implode('|', ContentBlockService::HOMEPAGE_SECTIONS))
             ->name('content.homepage.update');
+
+        Route::get('/funnel', [AdminFunnelController::class, 'show'])->name('funnel.show');
+        Route::put('/funnel/toggle', [AdminFunnelController::class, 'toggle'])->name('funnel.toggle');
+        Route::put('/funnel/packages', [AdminFunnelController::class, 'updatePackages'])->name('funnel.packages.update');
+        Route::put('/funnel/content/{section}', [AdminFunnelController::class, 'updateContent'])
+            ->where('section', implode('|', FunnelContentService::FUNNEL_SECTIONS))
+            ->name('funnel.content.update');
     });
 });

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProductStatus;
 use App\Models\Category;
+use App\Models\FunnelConfig;
 use App\Models\LegalDocument;
 use App\Models\Product;
 
@@ -25,8 +26,14 @@ class SitemapService
 
         $entries = [
             ['loc' => $baseUrl.'/', 'changefreq' => 'daily', 'priority' => '1.0'],
-            ['loc' => $baseUrl.'/search', 'changefreq' => 'daily', 'priority' => '0.6'],
         ];
+
+        // /search redirects away to / when funnel mode is on (see
+        // FunnelSearchGuard on the frontend) — listing it would put a
+        // redirecting URL in the sitemap, which search engines penalize.
+        if (! FunnelConfig::current()->is_enabled) {
+            $entries[] = ['loc' => $baseUrl.'/search', 'changefreq' => 'daily', 'priority' => '0.6'];
+        }
 
         foreach ($this->categorySlugs() as $slug) {
             $entries[] = ['loc' => "{$baseUrl}/categories/{$slug}", 'changefreq' => 'weekly', 'priority' => '0.8'];
@@ -41,7 +48,6 @@ class SitemapService
         }
 
         $entries[] = ['loc' => $baseUrl.'/about', 'changefreq' => 'monthly', 'priority' => '0.4'];
-        $entries[] = ['loc' => $baseUrl.'/contact', 'changefreq' => 'monthly', 'priority' => '0.4'];
 
         return $entries;
     }

@@ -5,12 +5,14 @@ import ContactModal from './ContactModal';
 import { fetchLegalDocuments } from '../api/legal';
 import { useAsync } from '../hooks/useAsync';
 import { useCookieConsent } from '../hooks/useCookieConsent';
+import { useSettings } from '../hooks/useSettings';
 import { footer, nav, siteName } from '../content/copy';
 
 export default function Footer() {
   const year = new Date().getFullYear();
   const { data: legalDocuments } = useAsync(fetchLegalDocuments, [], '');
   const { openPreferencesModal } = useCookieConsent();
+  const { funnelModeEnabled } = useSettings();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   return (
@@ -32,19 +34,16 @@ export default function Footer() {
                   {nav.home}
                 </Link>
               </li>
-              <li>
-                <Link className="text-decoration-none text-muted" to="/search">
-                  {nav.browseProducts}
-                </Link>
-              </li>
+              {!funnelModeEnabled && (
+                <li>
+                  <Link className="text-decoration-none text-muted" to="/search">
+                    {nav.browseProducts}
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link className="text-decoration-none text-muted" to="/about">
                   {footer.about}
-                </Link>
-              </li>
-              <li>
-                <Link className="text-decoration-none text-muted" to="/contact">
-                  {footer.contact}
                 </Link>
               </li>
               <li>
@@ -53,7 +52,7 @@ export default function Footer() {
                   className="btn btn-link p-0 text-decoration-none text-muted"
                   onClick={() => setIsContactModalOpen(true)}
                 >
-                  {footer.emailUs}
+                  {footer.contact}
                 </button>
               </li>
             </ul>

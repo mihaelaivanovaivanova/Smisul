@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useProduct } from '../hooks/useProduct';
+import { useSettings } from '../hooks/useSettings';
 import {
   getActivePromotion,
   getDefaultVariant,
@@ -33,6 +34,7 @@ interface ReviewPromptState {
 export default function ProductPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const location = useLocation();
+  const { funnelModeEnabled } = useSettings();
   const { product, isLoading, error } = useProduct(slug);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const writePrompt = (location.state as ReviewPromptState | null)?.reviewPrompt;
@@ -108,7 +110,7 @@ export default function ProductPage() {
         <div className="col-12 col-lg-6">
           <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
             <h1 className="h3 mb-0">{product.name}</h1>
-            {activeVariant && <FavoriteButton productVariantId={activeVariant.id} compact />}
+            {activeVariant && !funnelModeEnabled && <FavoriteButton productVariantId={activeVariant.id} compact />}
           </div>
 
           <div className="mb-3">
@@ -133,7 +135,7 @@ export default function ProductPage() {
 
           {/* AddToCartButton renders nothing when out of stock — this fills
               that gap with a clear next step instead of leaving it empty. */}
-          {activeVariant && !activeVariant.inventory?.is_in_stock && (
+          {activeVariant && !activeVariant.inventory?.is_in_stock && !funnelModeEnabled && (
             <FavoriteButton key={activeVariant.id} productVariantId={activeVariant.id} mode="wishlist" />
           )}
         </div>

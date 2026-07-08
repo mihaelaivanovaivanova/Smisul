@@ -2,9 +2,12 @@ import { Routes, Route } from 'react-router-dom';
 import PublicLayout from './components/layout/PublicLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
+import FunnelSearchGuard from './components/FunnelSearchGuard';
 import AdminRoute from './components/admin/AdminRoute';
 import AdminLayout from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
+import FunnelLandingPage from './pages/FunnelLandingPage';
+import { useSettings } from './hooks/useSettings';
 import ProductPage from './pages/ProductPage';
 import CategoryPage from './pages/CategoryPage';
 import SearchPage from './pages/SearchPage';
@@ -24,7 +27,6 @@ import FavoritesPage from './pages/FavoritesPage';
 import ReviewsPage from './pages/ReviewsPage';
 import LegalPage from './pages/LegalPage';
 import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
@@ -38,22 +40,26 @@ import CustomerDetailPage from './pages/admin/CustomerDetailPage';
 import MediaLibraryPage from './pages/admin/MediaLibraryPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import LogsPage from './pages/admin/LogsPage';
+import FunnelPage from './pages/admin/FunnelPage';
 
 export default function App() {
+  const { funnelModeEnabled } = useSettings();
+
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={funnelModeEnabled ? <FunnelLandingPage /> : <HomePage />} />
         <Route path="/products/:slug" element={<ProductPage />} />
         <Route path="/categories/:slug" element={<CategoryPage />} />
-        <Route path="/search" element={<SearchPage />} />
+        <Route element={<FunnelSearchGuard />}>
+          <Route path="/search" element={<SearchPage />} />
+        </Route>
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
         <Route path="/orders/:orderId/tracking" element={<OrderTrackingPage />} />
         <Route path="/legal/:slug" element={<LegalPage />} />
         <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
 
         <Route element={<GuestRoute />}>
           <Route path="/register" element={<RegisterPage />} />
@@ -81,6 +87,7 @@ export default function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="content" element={<ContentPage />} />
+          <Route path="funnel" element={<FunnelPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />

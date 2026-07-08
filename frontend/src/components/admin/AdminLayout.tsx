@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import Logo from '../Logo';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', end: true },
@@ -7,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/promotions', label: 'Promotions' },
   { to: '/admin/content', label: 'Content' },
+  { to: '/admin/funnel', label: 'Funnel' },
   { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/reviews', label: 'Reviews' },
   { to: '/admin/customers', label: 'Customers' },
@@ -70,16 +72,22 @@ export default function AdminLayout() {
 
       <div className="flex-grow-1 d-flex flex-column">
         <header className="border-bottom d-flex align-items-center justify-content-between px-3 py-2">
-          <button
-            type="button"
-            className="btn btn-outline-secondary d-lg-none"
-            data-bs-toggle="offcanvas"
-            data-bs-target="#adminSidebarOffcanvas"
-            aria-controls="adminSidebarOffcanvas"
-          >
-            <span aria-hidden="true">&#9776;</span>
-            <span className="visually-hidden">Toggle navigation</span>
-          </button>
+          <div className="d-flex align-items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-outline-secondary d-lg-none"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#adminSidebarOffcanvas"
+              aria-controls="adminSidebarOffcanvas"
+            >
+              <span aria-hidden="true">&#9776;</span>
+              <span className="visually-hidden">Toggle navigation</span>
+            </button>
+
+            <Link to="/">
+              <Logo />
+            </Link>
+          </div>
 
           <div className="d-flex align-items-center gap-3 ms-auto">
             <button type="button" className="btn btn-outline-secondary btn-sm position-relative" title="Notifications" disabled>
@@ -97,6 +105,14 @@ export default function AdminLayout() {
                 {user?.full_name}
               </button>
               <ul className="dropdown-menu dropdown-menu-end">
+                <li>
+                  <Link className="dropdown-item" to="/profile">
+                    Profile
+                  </Link>
+                </li>
+                <li>
+                  <hr className="dropdown-divider" />
+                </li>
                 <li>
                   <button type="button" className="dropdown-item" onClick={() => void logout()}>
                     Log out

@@ -2,12 +2,15 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useSettings } from '../hooks/useSettings';
 import Logo from './Logo';
 import MiniCart from './cart/MiniCart';
-import { favorites as favoritesCopy, nav, orders as ordersCopy, reviews as reviewsCopy } from '../content/copy';
+import { favorites as favoritesCopy, funnelNav, nav, orders as ordersCopy, reviews as reviewsCopy } from '../content/copy';
 
 export default function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { funnelModeEnabled } = useSettings();
+  const isAdmin = user?.role === 'administrator';
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -65,21 +68,33 @@ export default function Navbar() {
                         {nav.profile}
                       </Link>
                     </li>
-                    <li>
-                      <Link className="dropdown-item" to="/profile/orders">
-                        {ordersCopy.title}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link className="dropdown-item" to="/profile/favorites">
-                        {favoritesCopy.title}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link className="dropdown-item" to="/profile/reviews">
-                        {reviewsCopy.myReviews.title}
-                      </Link>
-                    </li>
+                    {isAdmin ? (
+                      <li>
+                        <Link className="dropdown-item" to="/admin">
+                          {nav.settings}
+                        </Link>
+                      </li>
+                    ) : (
+                      <li>
+                        <Link className="dropdown-item" to="/profile/orders">
+                          {ordersCopy.title}
+                        </Link>
+                      </li>
+                    )}
+                    {!funnelModeEnabled && (
+                      <li>
+                        <Link className="dropdown-item" to="/profile/favorites">
+                          {favoritesCopy.title}
+                        </Link>
+                      </li>
+                    )}
+                    {!isAdmin && (
+                      <li>
+                        <Link className="dropdown-item" to="/profile/reviews">
+                          {reviewsCopy.myReviews.title}
+                        </Link>
+                      </li>
+                    )}
                     <li>
                       <hr className="dropdown-divider" />
                     </li>
@@ -104,16 +119,40 @@ export default function Navbar() {
           )}
         </div>
 
-        <form className="navbar-search order-3 order-md-2 d-flex mx-md-4" role="search" onSubmit={handleSearchSubmit}>
-          <input
-            type="search"
-            className="form-control"
-            placeholder={nav.searchPlaceholder}
-            aria-label={nav.searchAria}
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-        </form>
+        {!funnelModeEnabled && (
+          <form className="navbar-search order-3 order-md-2 d-flex mx-md-4" role="search" onSubmit={handleSearchSubmit}>
+            <input
+              type="search"
+              className="form-control"
+              placeholder={nav.searchPlaceholder}
+              aria-label={nav.searchAria}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </form>
+        )}
+
+        {/* Section-anchor nav shown instead of search while funnel mode is
+            on — desktop only, same as the reference site's header. */}
+        {funnelModeEnabled && (
+          <div className="d-none d-md-flex align-items-center gap-3 order-md-2 mx-md-4">
+            <Link to="/" className="text-decoration-none text-muted fw-semibold">
+              {funnelNav.home}
+            </Link>
+            <a href="#benefits" className="text-decoration-none text-muted fw-semibold">
+              {funnelNav.benefits}
+            </a>
+            <a href="#how" className="text-decoration-none text-muted fw-semibold">
+              {funnelNav.howTo}
+            </a>
+            <a href="#packages" className="text-decoration-none text-muted fw-semibold">
+              {funnelNav.products}
+            </a>
+            <a href="#faq" className="text-decoration-none text-muted fw-semibold">
+              {funnelNav.faq}
+            </a>
+          </div>
+        )}
       </div>
     </nav>
   );

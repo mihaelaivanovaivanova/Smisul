@@ -9,19 +9,22 @@ import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { FavoritesProvider } from './context/FavoritesContext'
 import { CookieConsentProvider } from './context/CookieConsentContext'
+import { SettingsProvider } from './context/SettingsContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <CookieConsentProvider>
-          <CartProvider>
-            <FavoritesProvider>
-              <App />
-            </FavoritesProvider>
-          </CartProvider>
-        </CookieConsentProvider>
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <CookieConsentProvider>
+            <CartProvider>
+              <FavoritesProvider>
+                <App />
+              </FavoritesProvider>
+            </CartProvider>
+          </CookieConsentProvider>
+        </AuthProvider>
+      </SettingsProvider>
     </BrowserRouter>
   </StrictMode>,
 )

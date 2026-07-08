@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { fetchAdminHomepageContent, updateHomepageSection } from '../../api/admin/content';
 import { fetchAdminProducts } from '../../api/admin/products';
 import { useAsync } from '../../hooks/useAsync';
+import { useSettings } from '../../hooks/useSettings';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
@@ -440,11 +441,19 @@ export default function ContentPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const { data, isLoading, error } = useAsync(fetchAdminHomepageContent, [reloadKey], 'Could not load homepage content.');
   const [activeTab, setActiveTab] = useState<HomepageSection>('hero');
+  const { funnelModeEnabled } = useSettings();
 
   return (
     <div>
       <h1 className="h3 mb-1">Homepage content</h1>
       <p className="text-muted mb-4">Edits here go live on the public homepage immediately.</p>
+
+      {funnelModeEnabled && (
+        <div className="alert alert-warning">
+          Funnel mode is active — the homepage isn't currently visible to visitors. See the Funnel tab to edit what
+          they see instead.
+        </div>
+      )}
 
       {isLoading && <LoadingState message="Loading content..." />}
       {!isLoading && error && <ErrorState message={error} />}

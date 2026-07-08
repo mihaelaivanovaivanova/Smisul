@@ -20,8 +20,23 @@ export const nav = {
   register: 'Регистрация',
   logout: 'Изход',
   profile: 'Профил',
+  settings: 'Настройки',
   greeting: (firstName: string) => `Здравей, ${firstName}`,
   mainNavAria: 'Основна навигация',
+};
+
+/**
+ * The section-anchor nav shown in the header instead of the search bar
+ * while funnel mode is on — same labels/targets as the reference site's
+ * SiteHeader (D:\Projects\miswak-website), pointing at the funnel
+ * landing page's own section ids (see FunnelLandingPage.tsx).
+ */
+export const funnelNav = {
+  home: nav.home,
+  benefits: 'Ползи',
+  howTo: 'Как се използва',
+  products: 'Продукти',
+  faq: 'FAQ',
 };
 
 export const footer = {
@@ -32,7 +47,6 @@ export const footer = {
   companyHeading: 'Компания',
   about: 'За нас',
   contact: 'Контакти',
-  emailUs: 'Изпрати имейл',
   cookieSettings: 'Настройки на бисквитките',
 };
 
@@ -262,23 +276,6 @@ export const about = {
   ],
 };
 
-export const contact = {
-  seoTitle: `Контакти — ${siteName}`,
-  seoDescription: 'Свържи се с екипа на Smisul.',
-  title: 'Контакти',
-  intro: 'Имаш въпрос за поръчка, продукт или нещо друго? Пиши ни — ще се радваме да помогнем.',
-  // Placeholder contact details — replace with the real company details before production.
-  companyName: '[Юридическо име на дружеството]',
-  email: '[имейл за връзка]',
-  phone: '[телефон за връзка]',
-  address: '[адрес на дружеството]',
-  vatNumber: '[ЕИК номер]',
-  emailLabel: 'Имейл',
-  phoneLabel: 'Телефон',
-  addressLabel: 'Адрес',
-  companyLabel: 'Дружество',
-};
-
 export const notFound = {
   title: '404',
   lead: 'Страницата, която търсиш, не съществува или е преместена.',
@@ -290,6 +287,11 @@ export const notFound = {
 export const seo = {
   homeTitle: `${siteName} — естествени продукти с ясен смисъл`,
   homeDescription: 'Открий Smisul: естествени продукти с ясен произход, семпъл състав и грижа във всеки детайл.',
+  // Shown at "/" instead of homeTitle/homeDescription while funnel mode is
+  // on (see FunnelLandingPage) — the funnel page markets a single product,
+  // not the general catalog, so it needs its own meta copy.
+  funnelTitle: `Miswak — натурална четка за зъби | ${siteName}`,
+  funnelDescription: 'Открий Miswak — 100% натурална четка за зъби от Salvadora persica. Без паста, без вода, без пластмаса.',
   productTitleSuffix: ` — ${siteName}`,
   productDescriptionFallback: 'Естествен продукт от Smisul — семпъл състав, ясен произход и грижа във всеки детайл.',
   categoryTitleSuffix: ` — ${siteName}`,

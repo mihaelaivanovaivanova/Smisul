@@ -15,6 +15,7 @@ use App\Models\PaymentWebhookLog;
 use App\Models\StoredPaymentMethod;
 use App\Models\User;
 use App\Services\Payments\ICardConfigurationService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -178,7 +179,7 @@ class PaymentService
         return Payment::where('order_id', $order->id)->latest()->first();
     }
 
-    /** @return \Illuminate\Database\Eloquent\Collection<int, StoredPaymentMethod> */
+    /** @return Collection<int, StoredPaymentMethod> */
     public function storedMethodsFor(User $user)
     {
         return $user->storedPaymentMethods()->where('is_active', true)->latest()->get();
@@ -218,6 +219,7 @@ class PaymentService
             if (in_array($payment->order->status, [OrderStatus::Paid, OrderStatus::AwaitingPayment], true)) {
                 $this->orderStatus->transitionTo($payment->order, OrderStatus::Cancelled, $administrator, 'iCard payment reversed');
             }
+
             return $payment->fresh();
         });
     }
@@ -255,6 +257,7 @@ class PaymentService
             if ($full && $payment->order->status !== OrderStatus::Refunded) {
                 $this->orderStatus->transitionTo($payment->order, OrderStatus::Refunded, $administrator, 'iCard payment fully refunded');
             }
+
             return $payment->fresh();
         });
     }
@@ -374,12 +377,15 @@ class PaymentService
             if (! $existingDelivery->signature_valid) {
                 throw InvalidWebhookSignatureException::create();
             }
+
             return;
         }
 
         $signatureValid = $this->gateway->verifySignature($request);
         $rawPayload = $request->json()->all();
-        if ($rawPayload === []) $rawPayload = $request->all();
+        if ($rawPayload === []) {
+            $rawPayload = $request->all();
+        }
 
         if (! $signatureValid) {
             PaymentWebhookLog::create([
@@ -456,6 +462,7 @@ class PaymentService
             Log::error('iCard webhook currency mismatch — payment not updated', [
                 'payment_id' => $payment->id, 'expected' => $expectedCurrency, 'received' => $webhookData->currency,
             ]);
+
             return;
         }
 
@@ -505,7 +512,9 @@ class PaymentService
         if ($token === null && mb_strtolower((string) $this->payloadValue($payload, ['Operation', 'Type'])) === 'store_card') {
             $token = $this->payloadValue($payload, ['CardData', 'CardToken']);
         }
-        if (! is_string($token) || $token === '' || $payment->order->user_id === null) return;
+        if (! is_string($token) || $token === '' || $payment->order->user_id === null) {
+            return;
+        }
 
         $pan = (string) ($this->payloadValue($payload, ['CardData', 'Pan']) ?? '');
         preg_match('/(\d{4})$/', $pan, $matches);
@@ -547,15 +556,21 @@ class PaymentService
     {
         $value = $payload;
         foreach ($path as $segment) {
-            if (! is_array($value)) return null;
+            if (! is_array($value)) {
+                return null;
+            }
             $found = false;
             foreach ($value as $key => $child) {
-                if (strcasecmp((string) $key, $segment) !== 0) continue;
+                if (strcasecmp((string) $key, $segment) !== 0) {
+                    continue;
+                }
                 $value = $child;
                 $found = true;
                 break;
             }
-            if (! $found) return null;
+            if (! $found) {
+                return null;
+            }
         }
 
         return $value;
@@ -571,57 +586,15 @@ class PaymentService
 
     private function maskPan(?string $pan): ?string
     {
-        if ($pan === null || trim($pan) === '') return null;
+        if ($pan === null || trim($pan) === '') {
+            return null;
+        }
 
         $digits = preg_replace('/\D/', '', $pan) ?? '';
-        if (strlen($digits) < 4) return '[REDACTED]';
+        if (strlen($digits) < 4) {
+            return '[REDACTED]';
+        }
 
         return str_repeat('*', max(4, strlen($digits) - 4)).substr($digits, -4);
-    }
-
-    /**
-     * Apple Pay's merchant-validation step, called by the frontend's
-     * wallet SDK (ICardIpgGAPay) itself via WalletPaymentController — not
-     * part of initiate()/createSession(), which returns before any wallet
-     * interaction happens. Doesn't touch payment.status: this is just
-     * merchant validation, not a charge.
-     *
-     * @return array<string, mixed>
-     */
-    public function createWalletValidationSession(Payment $payment, string $merchantUrl, string $validationUrl, string $displayName): array
-    {
-        $response = $this->gateway->createWalletValidationSession($payment, $merchantUrl, $validationUrl, $displayName);
-
-        $payment->transactions()->create([
-            'type' => 'wallet_validation_session',
-            'payment_method' => $payment->payment_method,
-            'status' => $payment->status,
-            'raw_payload' => $response,
-        ]);
-
-        return $response;
-    }
-
-    /**
-     * Submits the tokenized card the wallet SDK produced. The response
-     * only acknowledges receipt — final status still only ever comes from
-     * the async notify webhook (see handleWebhook()), exactly like the
-     * card modal flow, so payment.status is deliberately left untouched
-     * here.
-     *
-     * @return array<string, mixed>
-     */
-    public function processTokenizedWalletPurchase(Payment $payment, PaymentMethod $method, string $tokenizedCard): array
-    {
-        $response = $this->gateway->processTokenizedWalletPurchase($payment, $method, $tokenizedCard);
-
-        $payment->transactions()->create([
-            'type' => 'wallet_purchase_ack',
-            'payment_method' => $payment->payment_method,
-            'status' => $payment->status,
-            'raw_payload' => $response,
-        ]);
-
-        return $response;
     }
 }

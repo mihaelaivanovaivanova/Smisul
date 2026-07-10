@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * idempotency_key before doing anything else).
  *
  * @property Carbon $created_at
+ * @property ?Carbon $processed_at
  */
 class PaymentWebhookLog extends Model
 {

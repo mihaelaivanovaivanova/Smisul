@@ -55,14 +55,14 @@ class PaymentResource extends JsonResource
                 'error_message' => $log->error_message,
                 'payload' => $log->payload,
                 'processed_at' => $log->processed_at?->toIso8601String(),
-                'created_at' => $log->created_at?->toIso8601String(),
+                'created_at' => $log->created_at->toIso8601String(),
             ])->values()),
             'transactions' => $this->when($isAdministrator, fn () => $this->transactions->map(fn ($transaction) => [
                 'id' => $transaction->id,
                 'type' => $transaction->type,
                 'status' => $transaction->status->value,
                 'payload' => $transaction->raw_payload,
-                'created_at' => $transaction->created_at?->toIso8601String(),
+                'created_at' => $transaction->created_at->toIso8601String(),
             ])->values()),
         ];
     }

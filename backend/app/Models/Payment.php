@@ -19,6 +19,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ?array<string, mixed> $raw_response
  * @property ?Carbon $initiated_at
  * @property ?Carbon $completed_at
+ * @property ?Carbon $paid_at
+ * @property ?Carbon $reversed_at
+ * @property ?Carbon $refunded_at
  */
 class Payment extends Model
 {

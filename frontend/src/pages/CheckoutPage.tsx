@@ -294,9 +294,20 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
     } catch (error) {
       setErrors(getValidationErrors(error));
-      setSubmitError(selectedPaymentMethod === 'card'
-        ? 'Плащането не беше стартирано. Моля, опитайте отново.'
-        : getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+
+      if (selectedPaymentMethod === 'card') {
+        // The real reason (e.g. "iCard API request failed: configuration
+        // incomplete: mid, originator...") is too technical/internal to show
+        // a customer, but swallowing it entirely makes a misconfigured
+        // gateway undiagnosable from the browser — log it so it's at least
+        // visible in devtools without needing server log access.
+        // eslint-disable-next-line no-console
+        console.error('iCard payment could not be started:', getErrorMessage(error, 'unknown error'));
+        setSubmitError('Плащането не беше стартирано. Моля, опитайте отново.');
+      } else {
+        setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+      }
+
       setIsSubmitting(false);
     }
   }
@@ -356,11 +367,11 @@ export default function CheckoutPage() {
       {isCartLoading && <LoadingState message={checkoutCopy.confirmation.loading} />}
       {!isCartLoading && cartError && <ErrorState message={cartError} />}
 
-      {!isCartLoading && !cartError && cart && cart.items.length === 0 && (
+      {!isCartLoading && !cartError && cart && cart.items.length === 0 && !activePayment && (
         <EmptyState title={checkoutCopy.emptyCartTitle} message={checkoutCopy.emptyCartMessage} />
       )}
 
-      {!isCartLoading && !cartError && cart && cart.items.length > 0 && (
+      {!isCartLoading && !cartError && cart && (cart.items.length > 0 || activePayment) && (
         <div className="row g-4">
           <div className="col-12 col-lg-8">
             <StepIndicator steps={STEP_LABELS} currentStep={step} />
@@ -462,6 +473,26 @@ export default function CheckoutPage() {
                       />
                     )}
 
+                    {/* Defensive: the order was placed but no payment
+                        session came back (e.g. the gateway isn't
+                        configured) — without this, the customer would see
+                        a blank panel with no explanation or way forward. */}
+                    {!paymentOutcome && !activePayment.payment.modal_session && (
+                      <>
+                        <Alert variant="danger">{checkoutCopy.paymentStep.modal.unavailable}</Alert>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => void handleRetryPayment()}
+                          disabled={isRetryingPayment}
+                        >
+                          {isRetryingPayment && (
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                          )}
+                          {checkoutCopy.paymentStep.modal.retry}
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 

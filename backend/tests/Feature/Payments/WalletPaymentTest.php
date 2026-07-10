@@ -16,12 +16,20 @@ class WalletPaymentTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @return list<int> */
+    /**
+     * Idempotent — this test calls placeOrder() (and so this helper) more
+     * than once per test method, and a bare factory()->create() would
+     * collide on the (type, version) unique constraint the second time.
+     *
+     * @return list<int>
+     */
     private function legalDocuments(): array
     {
-        return collect(LegalDocumentType::cases())->map(fn (LegalDocumentType $type) =>
-            LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id
-        )->all();
+        return collect(LegalDocumentType::cases())->map(function (LegalDocumentType $type) {
+            $existing = LegalDocument::where('type', $type)->where('version', '1.0')->first();
+
+            return $existing?->id ?? LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id;
+        })->all();
     }
 
     private function placeOrder(string $method)

@@ -20,21 +20,21 @@ use RuntimeException;
 
 /**
  * Real iCard IPG API integration (protocol v4.5 — see the "IPG API BM
- * ECommerce" integration guide). Every payment method renders entirely
- * in-page, never navigating the customer away from this site:
+ * ECommerce" integration guide). Card is the only method with its own
+ * flow today:
  *
  *  - Card: createModalSession() calls IPGPaymentToken server-to-server to
  *    get a short-lived Token, which the frontend uses to load iCard's own
  *    hosted JS (modalJsUrl?token=...) — that script renders a payment
  *    overlay directly on the checkout page (see PaymentSessionData and
  *    components/checkout/IcardModal.tsx).
- *  - Apple Pay / Google Pay: createWalletBootstrap() makes no iCard call
- *    at all — it just returns the config iCard's separate wallet SDK
- *    (ICardIpgGAPay) needs to render its own buttons. That SDK drives the
- *    two wallet-specific iCard calls itself, via WalletPaymentController
- *    (createWalletValidationSession() for Apple's merchant validation,
- *    processTokenizedWalletPurchase() once a wallet returns a payment
- *    token) — see components/checkout/IcardWalletButtons.tsx.
+ *  - Apple Pay / Google Pay: not offered as separate checkout options
+ *    (see PaymentMethod's docblock) — createSession() throws for them.
+ *    A prior separate wallet-SDK integration (ICardIpgGAPay button flow,
+ *    its own WalletPaymentController/tokenProviderSession/
+ *    tokenizedCardPurchase endpoints) existed at one point but was removed;
+ *    if wallets are reintroduced, they may instead be offered inside the
+ *    card modal itself rather than as standalone buttons.
  *
  * Every request, response headers aside, is signed/verified with an RSA
  * key pair exchanged out-of-band with iCard, not a shared secret. Protocol
@@ -63,8 +63,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
     {
         return match ($method) {
             PaymentMethod::Card => $this->createModalSession($payment),
-            PaymentMethod::ApplePay, PaymentMethod::GooglePay, PaymentMethod::CashOnDelivery =>
-                throw PaymentGatewayException::requestFailed('this checkout method does not use a separate iCard flow'),
+            PaymentMethod::ApplePay, PaymentMethod::GooglePay, PaymentMethod::CashOnDelivery => throw PaymentGatewayException::requestFailed('this checkout method does not use a separate iCard flow'),
         };
     }
 
@@ -72,9 +71,10 @@ class ICardPaymentGateway implements PaymentGatewayInterface
      * IPGPaymentToken + ModalType=IPGPurchase: the field set is otherwise
      * identical to what a full IPGPurchase request would carry (customer/
      * address details, mandatory MobileNumber, recommended-but-optional
-     * BillAddr/ShipAddr fields — see isoNumericCountryCode()), just
-     * requested as a token for the embedded modal instead of a
-     * browser-submitted redirect form.
+     * BillAddr/ShipAddr fields — hardcoded to Bulgaria's ISO 3166-1 numeric
+     * code below since every carrier this storefront ships with is
+     * Bulgaria-only), just requested as a token for the embedded modal
+     * instead of a browser-submitted redirect form.
      */
     private function createModalSession(Payment $payment): PaymentSessionData
     {
@@ -85,6 +85,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         $fields = [
             ...$this->baseFields('IPGPaymentToken', $environment),
             'ModalType' => 'IPGPurchase',
+            'BannerIndex' => '1',
             'Language' => 'BG',
             'MIDName' => (string) $config['mid_name'],
             'Amount' => number_format((float) $payment->amount, 2, '.', ''),
@@ -143,6 +144,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         $fields = [
             ...$this->baseFields('IPGPaymentToken', $environment),
             'ModalType' => 'IPG3DSPurchaseWithStoredCard',
+            'BannerIndex' => '1',
             'Language' => 'BG',
             'CardToken' => $storedMethod->card_token,
             'VerifyCVC' => '1',
@@ -158,84 +160,12 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         ];
         $response = $this->callIcard($fields, $environment);
         $token = $this->extractField($response, 'Token') ?? $this->extractField($response, 'PaymentToken');
-        if ($token === null) throw PaymentGatewayException::missingField('Token');
+        if ($token === null) {
+            throw PaymentGatewayException::missingField('Token');
+        }
         $storedMethod->update(['last_used_at' => now()]);
 
         return PaymentSessionData::modal($payment->transaction_reference, $token, (string) $config['modal_js_url'], 'dark', $response);
-    }
-
-    /**
-     * No iCard API call — the wallet SDK (ICardIpgGAPay) itself drives
-     * IPGTokenProviderSession/IPGTokenizedCardPurchase once the customer
-     * actually interacts with the Apple/Google Pay button (see
-     * WalletPaymentController). This just hands the frontend what it
-     * needs to render those buttons in the first place.
-     */
-    private function createWalletBootstrap(Payment $payment): PaymentSessionData
-    {
-        $config = $this->configuration->assertReady($payment->gateway_environment ?: $this->environment());
-        return PaymentSessionData::wallet($payment->transaction_reference, [
-            'wallet_js_url' => (string) $config['wallet_js_url'],
-            'environment' => $config['environment'] === 'production' ? 'prod' : 'sandbox',
-            'mid' => (string) $config['mid'],
-            'mid_name' => (string) $config['mid_name'],
-            'currency_alpha' => (string) $payment->currency,
-            'apple_merchant_domain' => $config['apple_merchant_domain'],
-            'google_merchant_id' => $config['google_merchant_id'],
-        ]);
-    }
-
-    /**
-     * Apple Pay's merchant-validation step: the frontend's onvalidatemerchant
-     * callback needs iCard's raw IPGTokenProviderSession response (Apple's
-     * own merchant session object), so this proxies it back verbatim
-     * rather than reshaping it.
-     *
-     * @return array<string, mixed>
-     */
-    public function createWalletValidationSession(Payment $payment, string $merchantUrl, string $validationUrl, string $displayName): array
-    {
-        $environment = $payment->gateway_environment ?: $this->environment();
-        $config = $this->configuration->assertReady($environment);
-        $merchantHost = parse_url($merchantUrl, PHP_URL_HOST) ?: $merchantUrl;
-        return $this->callIcard([
-            ...$this->baseFields('IPGTokenProviderSession', $environment),
-            'OrderID' => $payment->transaction_reference,
-            'MerchantUrl' => $merchantHost,
-            'ValidationURL' => $validationUrl,
-            'DisplayName' => $displayName !== '' ? $displayName : (string) $config['mid_name'],
-            'TokenizedCardProvider' => 'Apple',
-        ], $environment);
-    }
-
-    /**
-     * Once Apple/Google Pay hands back a tokenized card, this submits it
-     * to iCard for the actual charge. The immediate response only
-     * acknowledges receipt (Status "0" = accepted for processing) — the
-     * real terminal outcome still only ever arrives via the async notify
-     * webhook, exactly like the card modal flow (see
-     * PaymentService::handleWebhook). Response is proxied back verbatim,
-     * same reasoning as createWalletValidationSession().
-     *
-     * @return array<string, mixed>
-     */
-    public function processTokenizedWalletPurchase(Payment $payment, PaymentMethod $method, string $tokenizedCard): array
-    {
-        $environment = $payment->gateway_environment ?: $this->environment();
-        $config = $this->configuration->assertReady($environment);
-        $order = $payment->order;
-
-        return $this->callIcard([
-            ...$this->baseFields('IPGTokenizedCardPurchase', $environment),
-            'OrderID' => $payment->transaction_reference,
-            'Email' => (string) $order->customer_email,
-            'CustomerIdentifier' => (string) $order->id,
-            'Amount' => number_format((float) $payment->amount, 2, '.', ''),
-            'Currency' => (string) $config['currency_numeric'],
-            'URL_Notify' => (string) $config['webhook_url'],
-            'TokenizedCardProvider' => $method === PaymentMethod::GooglePay ? 'Google' : 'Apple',
-            'TokenizedCard' => $tokenizedCard,
-        ], $environment);
     }
 
     public function reverse(Payment $payment): array
@@ -244,6 +174,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         if (! filled($payment->gateway_transaction_reference)) {
             throw PaymentGatewayException::requestFailed('transaction reference is missing; reversal cannot be submitted');
         }
+
         return $this->callIcard([
             ...$this->baseFields('IPGReversal', $environment),
             'OrderID' => $payment->transaction_reference,
@@ -258,6 +189,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         if (! filled($payment->gateway_transaction_reference)) {
             throw PaymentGatewayException::requestFailed('transaction reference is missing; refund cannot be submitted');
         }
+
         return $this->callIcard([
             ...$this->baseFields('IPGRefund', $environment),
             'OrderID' => $payment->transaction_reference,
@@ -274,6 +206,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
     private function baseFields(string $ipgMethod, ?string $environment = null): array
     {
         $config = $this->configuration->assertReady($environment);
+
         return [
             'IPGmethod' => $ipgMethod,
             'KeyIndex' => (string) $config['key_index'],
@@ -329,7 +262,9 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         if ($status !== null && $status !== '0') {
             $message = $this->extractField($parsed, 'StatusMsg') ?? $this->extractField($parsed, 'Message') ?? 'Unknown gateway error';
             $errors = $parsed['Errors'] ?? $parsed['errors'] ?? null;
-            if (is_array($errors)) $message .= ' '.json_encode($errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (is_array($errors)) {
+                $message .= ' '.json_encode($errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
             Log::warning('iCard rejected request', ['method' => $fields['IPGmethod'] ?? null, 'status' => $status, 'message' => $message]);
             throw PaymentGatewayException::requestFailed("{$status} {$message}");
         }
@@ -373,7 +308,9 @@ class ICardPaymentGateway implements PaymentGatewayInterface
             }
         }
 
-        if ($signature === null) return true;
+        if ($signature === null) {
+            return true;
+        }
 
         return $this->verify($withoutSignature, (string) $signature, $publicKey);
     }
@@ -477,35 +414,15 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         return PaymentStatus::Authorized;
     }
 
-    /**
-     * The checkout form collects a free-text country name, not an ISO code,
-     * so BillAddrCountry/ShipAddrCountry (recommended, not mandatory) are
-     * only sent when the name resolves to a known ISO 3166-1 numeric code —
-     * sending a wrong code would be worse than omitting an optional field.
-     * The storefront currently only ships within Bulgaria (all three
-     * carriers — Econt, Speedy, BOX NOW — are Bulgaria-only).
-     */
-    private function isoNumericCountryCode(?string $countryName): ?string
-    {
-        return match (mb_strtolower(trim((string) $countryName))) {
-            'bulgaria', 'българия', 'bg' => '100',
-            default => null,
-        };
-    }
-
-    /** @param array<string, mixed> $fields */
-    private function addAddressFields(array &$fields, string $prefix, ?string $city, ?string $postCode, ?string $line1): void
-    {
-        if ($city !== null && mb_strlen($city) <= 50) $fields[$prefix.'City'] = $city;
-        if ($postCode !== null && mb_strlen($postCode) <= 16) $fields[$prefix.'PostCode'] = $postCode;
-        if ($line1 !== null && mb_strlen($line1) <= 50) $fields[$prefix.'Line1'] = base64_encode($line1);
-    }
-
     private function normalizePhone(string $phone): string
     {
         $phone = preg_replace('/[^\d+]/', '', trim($phone)) ?? '';
-        if (str_starts_with($phone, '0')) $phone = '+359'.substr($phone, 1);
-        if (! str_starts_with($phone, '+') && $phone !== '') $phone = '+'.$phone;
+        if (str_starts_with($phone, '0')) {
+            $phone = '+359'.substr($phone, 1);
+        }
+        if (! str_starts_with($phone, '+') && $phone !== '') {
+            $phone = '+'.$phone;
+        }
 
         return $phone;
     }
@@ -581,7 +498,9 @@ class ICardPaymentGateway implements PaymentGatewayInterface
         foreach ($data as $key => $value) {
             $keySegment = is_int($key) ? (string) $key : mb_strtolower((string) $key);
 
-            if ($keySegment === 'signature') continue;
+            if ($keySegment === 'signature') {
+                continue;
+            }
 
             if (is_array($value)) {
                 if ($value === []) {
@@ -607,22 +526,28 @@ class ICardPaymentGateway implements PaymentGatewayInterface
     private function requestPayload(Request $request): array
     {
         $payload = $request->json()->all();
-        if ($payload !== []) return $payload;
+        if ($payload !== []) {
+            return $payload;
+        }
 
         $payload = $request->all();
-        if ($payload !== []) return $payload;
+        if ($payload !== []) {
+            return $payload;
+        }
 
         $raw = $request->getContent();
         parse_str($raw, $parsed);
 
-        return is_array($parsed) ? $parsed : [];
+        return $parsed;
     }
 
     /** @param array<int|string, mixed> $data */
     private function findKey(array $data, string $wanted): int|string|null
     {
         foreach ($data as $key => $_value) {
-            if (strcasecmp((string) $key, $wanted) === 0) return $key;
+            if (strcasecmp((string) $key, $wanted) === 0) {
+                return $key;
+            }
         }
 
         return null;
@@ -633,13 +558,16 @@ class ICardPaymentGateway implements PaymentGatewayInterface
     {
         $value = $data;
         foreach ($path as $segment) {
-            if (! is_array($value)) return null;
+            if (! is_array($value)) {
+                return null;
+            }
             $key = $this->findKey($value, $segment);
-            if ($key === null) return null;
+            if ($key === null) {
+                return null;
+            }
             $value = $value[$key];
         }
 
         return $value;
     }
-
 }

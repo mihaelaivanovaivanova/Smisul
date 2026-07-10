@@ -12,6 +12,7 @@ $backend = Join-Path $release "backend"
 if (-not $SkipFrontendInstall) {
     Push-Location (Join-Path $root "frontend")
     npm ci
+    if ($LASTEXITCODE -ne 0) { Pop-Location; throw "npm ci failed with exit code $LASTEXITCODE." }
     Pop-Location
 
 }
@@ -19,6 +20,7 @@ if (-not $SkipFrontendInstall) {
 if (-not $SkipComposerInstall) {
     Push-Location (Join-Path $root "backend")
     composer install --no-dev --optimize-autoloader --no-interaction
+    if ($LASTEXITCODE -ne 0) { Pop-Location; throw "composer install failed with exit code $LASTEXITCODE." }
     Pop-Location
 }
 
@@ -26,6 +28,7 @@ if (-not $SkipComposerInstall) {
 $env:VITE_API_URL = "/api"
 Push-Location (Join-Path $root "frontend")
 npm run build
+if ($LASTEXITCODE -ne 0) { Pop-Location; throw "npm run build failed with exit code $LASTEXITCODE." }
 Pop-Location
 
 if (Test-Path $release) { Remove-Item -Recurse -Force -LiteralPath $release }

@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('legal_documents', function (Blueprint $table) {
             $table->id();
-            $table->string('type');
-            $table->string('version');
+            $table->string('type', 64);
+            $table->string('version', 32);
             $table->string('title');
             $table->text('content')->nullable();
             // Exactly one row per type is current at a time — checkout only
@@ -19,7 +19,7 @@ return new class extends Migration
             // version means inserting a new row and flipping this flag,
             // never mutating an existing (possibly already-accepted) row.
             $table->boolean('is_current')->default(true);
-            $table->timestamp('published_at');
+            $table->dateTime('published_at');
             $table->timestamps();
 
             $table->unique(['type', 'version']);

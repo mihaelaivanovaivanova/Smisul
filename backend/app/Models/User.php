@@ -92,6 +92,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Consent::class);
     }
 
+    /** @return HasMany<StoredPaymentMethod, $this> */
+    public function storedPaymentMethods(): HasMany
+    {
+        return $this->hasMany(StoredPaymentMethod::class);
+    }
+
     public function fullName(): string
     {
         return trim("{$this->first_name} {$this->last_name}");

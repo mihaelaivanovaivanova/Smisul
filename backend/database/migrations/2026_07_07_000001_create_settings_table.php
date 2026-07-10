@@ -17,8 +17,8 @@ return new class extends Migration
         // plaintext in this table.
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
-            $table->string('key')->unique();
-            $table->string('group')->index();
+            $table->string('key', 191)->unique();
+            $table->string('group', 64)->index();
             $table->text('value')->nullable();
             $table->string('type')->default('string');
             $table->string('label');

@@ -386,19 +386,17 @@ export const checkout = {
     methodsLoading: 'Зареждане на начините на плащане…',
     methodsLoadError: 'Неуспешно зареждане на начините на плащане — ще продължим с плащане с карта.',
     methods: {
-      card: 'Карта (Visa / Mastercard)',
-      apple_pay: 'Apple Pay',
-      google_pay: 'Google Pay',
+      cash_on_delivery: 'Наложен платеж',
+      card: 'Плащане с карта',
     } as Record<string, string>,
     methodHints: {
-      card: 'Ще се отвори защитен прозорец на iCard, направо на тази страница.',
-      apple_pay: 'Плати бързо и сигурно с Apple Pay.',
-      google_pay: 'Плати бързо и сигурно с Google Pay.',
+      cash_on_delivery: 'Плащаш на куриера при получаване на поръчката.',
+      card: 'Ще се отвори защитеният платежен прозорец на iCard.',
     } as Record<string, string>,
     applePayUnavailable: 'Наличен само в Safari на устройства на Apple',
     payButton: 'Плати',
     payButtonWithMethod: (methodLabel: string) => `Плати с ${methodLabel}`,
-    payingButton: 'Подготовка на плащането…',
+    payingButton: 'Подготвяме защитено плащане...',
 
     modal: {
       loading: 'Зареждаме защитен прозорец на iCard…',

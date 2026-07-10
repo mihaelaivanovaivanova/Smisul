@@ -1,5 +1,5 @@
-import { apiBaseUrl, apiClient, ensureCsrfCookie } from './client';
-import type { Payment, PaymentMethodValue } from '../types/payment';
+import { apiClient, ensureCsrfCookie } from './client';
+import type { Payment, PaymentMethodValue, StoredPaymentMethod } from '../types/payment';
 
 interface PaymentResponse {
   data: Payment;
@@ -25,30 +25,24 @@ export async function recordPaymentReturn(orderId: number, token?: string | null
 }
 
 /** Retries payment for an order whose previous attempt was Failed/Cancelled, optionally with a different payment method. */
-export async function initiatePayment(orderId: number, token?: string | null, paymentMethod?: PaymentMethodValue): Promise<Payment> {
+export async function initiatePayment(orderId: number, token?: string | null, paymentMethod?: PaymentMethodValue, storedPaymentMethodId?: number | null): Promise<Payment> {
   await ensureCsrfCookie();
   const { data } = await apiClient.post<PaymentResponse>(
     `/payments/${orderId}/initiate`,
-    paymentMethod ? { payment_method: paymentMethod } : {},
+    { ...(paymentMethod ? { payment_method: paymentMethod } : {}), ...(storedPaymentMethodId ? { stored_payment_method_id: storedPaymentMethodId } : {}) },
     { params: token ? { token } : undefined },
   );
   return data.data;
 }
 
-/**
- * The absolute URLs for the two wallet-SDK-driven endpoints (Apple Pay
- * merchant validation / tokenized purchase) — the wallet SDK (ICardIpgGAPay)
- * calls these directly with its own fetch/XHR, not through apiClient, so it
- * needs full URLs rather than apiClient's relative paths. See
- * components/checkout/IcardWalletButtons.tsx.
- */
-export function walletEndpointUrls(orderId: number, token?: string | null): { tokenProviderSessionUrl: string; processPaymentUrl: string } {
-  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+export async function fetchStoredPaymentMethods(): Promise<StoredPaymentMethod[]> {
+  const { data } = await apiClient.get<{ data: StoredPaymentMethod[] }>('/stored-payment-methods');
+  return data.data;
+}
 
-  return {
-    tokenProviderSessionUrl: `${apiBaseUrl}/payments/${orderId}/wallet/token-provider-session${query}`,
-    processPaymentUrl: `${apiBaseUrl}/payments/${orderId}/wallet/tokenized-card-purchase${query}`,
-  };
+export async function removeStoredPaymentMethod(id: number): Promise<void> {
+  await ensureCsrfCookie();
+  await apiClient.delete(`/stored-payment-methods/${id}`);
 }
 
 const MODAL_SCRIPT_ID = 'ipg-io-js';

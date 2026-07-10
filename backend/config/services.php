@@ -74,6 +74,7 @@ return [
         'public_key_path' => env('ICARD_PUBLIC_KEY_PATH', storage_path('icard/public_key.pem')),
 
         'webhook_url' => env('ICARD_WEBHOOK_URL'),
+        'callback_ips' => env('ICARD_CALLBACK_IPS', ''),
 
         // Provider-specific wallet toggles — distinct from the app-level
         // apple_pay.enabled/google_pay.enabled below. Both must be true for

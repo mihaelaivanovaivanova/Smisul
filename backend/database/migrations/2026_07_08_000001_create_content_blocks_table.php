@@ -14,7 +14,7 @@ return new class extends Migration
         // requirement that would need a historical trail.
         Schema::create('content_blocks', function (Blueprint $table) {
             $table->id();
-            $table->string('key')->unique();
+            $table->string('key', 191)->unique();
             $table->json('content');
             $table->timestamps();
         });

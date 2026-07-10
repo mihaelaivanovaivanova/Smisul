@@ -11,12 +11,12 @@ return new class extends Migration
         Schema::create('product_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->string('sku')->unique();
+            $table->string('sku', 191)->unique();
             $table->string('name');
             $table->unsignedInteger('pack_size');
             $table->string('barcode')->nullable();
             $table->boolean('is_default')->default(false);
-            $table->string('status')->default('active');
+            $table->string('status', 32)->default('active');
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
             $table->softDeletes();

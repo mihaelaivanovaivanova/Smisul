@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
-            $table->string('provider');
-            $table->string('status');
+            $table->string('provider', 64);
+            $table->string('status', 32);
 
             // Snapshot of what's being charged — never re-derived from the
             // order at read time, so a later order edit (there isn't one
@@ -31,7 +31,7 @@ return new class extends Migration
             // The gateway's own identifier for this payment, learned from
             // its response/webhook — null until the first gateway
             // interaction succeeds.
-            $table->string('provider_reference')->nullable()->unique();
+            $table->string('provider_reference', 191)->nullable()->unique();
 
             $table->text('redirect_url')->nullable();
 

@@ -12,13 +12,17 @@ namespace App\Enums;
 enum PaymentMethod: string
 {
     case Card = 'card';
+    case CashOnDelivery = 'cash_on_delivery';
+
+    /** Historical values only; wallets now appear inside the iCard modal. */
     case ApplePay = 'apple_pay';
     case GooglePay = 'google_pay';
 
     public function label(): string
     {
         return match ($this) {
-            self::Card => 'Карта',
+            self::Card => 'Плащане с карта',
+            self::CashOnDelivery => 'Наложен платеж',
             self::ApplePay => 'Apple Pay',
             self::GooglePay => 'Google Pay',
         };

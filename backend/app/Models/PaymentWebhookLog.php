@@ -30,6 +30,7 @@ class PaymentWebhookLog extends Model
         'provider_reference',
         'idempotency_key',
         'signature_valid',
+        'error_message',
         'payload',
         'processed_at',
     ];

@@ -18,15 +18,15 @@ return new class extends Migration
             // backend support" scope — nothing auto-creates one yet).
             $table->foreignId('order_id')->unique()->constrained()->cascadeOnDelete();
 
-            $table->string('carrier');
+            $table->string('carrier', 64);
             $table->string('delivery_type');
             $table->string('office_id')->nullable();
             $table->string('office_name')->nullable();
 
             // Null until the carrier's createShipment() call succeeds.
-            $table->string('tracking_number')->nullable()->unique();
+            $table->string('tracking_number', 191)->nullable()->unique();
 
-            $table->string('status')->default('pending');
+            $table->string('status', 32)->default('pending');
 
             // Snapshot of what the customer was charged for shipping — never
             // re-derived from the order at read time (same rationale as

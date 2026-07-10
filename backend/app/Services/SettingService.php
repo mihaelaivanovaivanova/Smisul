@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use App\Services\Payments\ICardConfigurationService;
 use Illuminate\Support\Collection;
 
 /**
@@ -14,6 +15,8 @@ use Illuminate\Support\Collection;
  */
 class SettingService
 {
+    public function __construct(private readonly ICardConfigurationService $icardConfiguration) {}
+
     public const EDITABLE_GROUPS = ['general', 'email', 'seo', 'media', 'system'];
 
     /**
@@ -64,11 +67,14 @@ class SettingService
      */
     public function providerStatus(): array
     {
+        $icard = $this->icardConfiguration->status();
+
         return [
             'payments' => [
                 'icard' => [
-                    'configured' => filled(config('services.icard.mid')) && filled(config('services.icard.originator')),
-                    'environment' => config('services.icard.environment'),
+                    'configured' => $icard['configured'],
+                    'environment' => $icard['environment'],
+                    'storage_ready' => $icard['storage_ready'],
                 ],
             ],
             'shipping' => [

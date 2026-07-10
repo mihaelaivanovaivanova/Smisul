@@ -20,7 +20,7 @@ return new class extends Migration
             // When the carrier says the event happened, distinct from
             // created_at (when we recorded it — could lag behind on a
             // delayed tracking sync).
-            $table->timestamp('occurred_at');
+            $table->dateTime('occurred_at');
 
             $table->json('raw_payload')->nullable();
             $table->timestamp('created_at')->nullable();

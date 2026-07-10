@@ -429,6 +429,35 @@
   color: var(--color-forest-dark);
 }
 
+.payment-option__secure-copy {
+  margin-top: 0.65rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.payment-trust-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.payment-trust-mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(28, 48, 37, 0.18);
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #1c3025;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 3px rgba(28, 48, 37, 0.06);
+}
+
 /* ---- Admin panel ---- */
 /* Plain Bootstrap by design (see Sprint 9) — only structural layout rules live here. */
 

@@ -80,6 +80,7 @@ export interface PlaceOrderPayload {
   shipping_office_name?: string;
   legal_document_ids: number[];
   payment_method?: PaymentMethodValue;
+  stored_payment_method_id?: number;
 }
 
 export interface OrderItem {

@@ -26,6 +26,7 @@ use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
@@ -90,24 +91,13 @@ class CheckoutController extends Controller
         return LegalDocumentResource::collection($this->legalDocuments->currentRequiredForCheckout())->response();
     }
 
-    /**
-     * Card is always returned; Apple Pay/Google Pay only appear once both
-     * their app-level and iCard-specific config flags are on (see
-     * PaymentService::availablePaymentMethods) — the frontend renders
-     * exactly what this returns, nothing is ever hidden/shown client-side
-     * based on its own guess.
-     */
+    /** Checkout exposes only cash on delivery and iCard's hosted modal. */
     public function paymentMethods(): JsonResponse
     {
         return PaymentMethodResource::collection($this->payments->availablePaymentMethods())->response();
     }
 
-    /**
-     * Places the order, then immediately starts its payment session — the
-     * frontend renders the returned payment.modal_session (card, an
-     * embedded iCard overlay) or payment.wallet_session (Apple/Google Pay,
-     * iCard's wallet SDK buttons) in place, without leaving the page.
-     */
+    /** Place the order and start iCard only when card was selected. */
     public function placeOrder(PlaceOrderRequest $request): JsonResponse
     {
         $cart = $this->resolveCart($request);
@@ -115,8 +105,15 @@ class CheckoutController extends Controller
 
         $paymentMethod = PaymentMethod::from($request->validated('payment_method') ?? PaymentMethod::Card->value);
 
-        $order = $this->orders->placeOrder($cart, PlaceOrderData::fromArray($request->validated()), $user);
-        $payment = $this->payments->initiate($order, $paymentMethod);
+        [$order, $payment] = DB::transaction(function () use ($cart, $request, $user, $paymentMethod) {
+            $order = $this->orders->placeOrder($cart, PlaceOrderData::fromArray($request->validated()), $user);
+            $payment = $this->payments->initiate(
+                $order,
+                $paymentMethod,
+                $request->filled('stored_payment_method_id') ? (int) $request->validated('stored_payment_method_id') : null,
+            );
+            return [$order, $payment];
+        });
 
         // initiate() moves the order Pending -> AwaitingPayment via a
         // separately-fetched model instance (see OrderStatusService) — this

@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('slug')->unique();
+            $table->string('slug', 191)->unique();
             $table->string('short_description')->nullable();
             $table->longText('description')->nullable();
-            $table->string('status')->default('draft');
+            $table->string('status', 32)->default('draft');
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
             $table->softDeletes();

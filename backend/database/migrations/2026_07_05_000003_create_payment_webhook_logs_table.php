@@ -24,7 +24,7 @@ return new class extends Migration
             // ICardPaymentGateway::webhookIdempotencyKey()) so the exact
             // same delivery retried by the gateway is recognized and
             // skipped instead of being processed twice.
-            $table->string('idempotency_key')->unique();
+            $table->string('idempotency_key', 191)->unique();
 
             $table->boolean('signature_valid');
             $table->json('payload');

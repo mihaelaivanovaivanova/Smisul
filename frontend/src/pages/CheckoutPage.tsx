@@ -20,7 +20,6 @@ import OrderReviewStep from '../components/checkout/OrderReviewStep';
 import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import IcardModal from '../components/checkout/IcardModal';
-import IcardWalletButtons from '../components/checkout/IcardWalletButtons';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
 import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
 import type { Payment, PaymentMethodValue } from '../types/payment';
@@ -78,6 +77,7 @@ export default function CheckoutPage() {
   const [officesError, setOfficesError] = useState<string | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodValue>('card');
+  const [storedPaymentMethodId, setStoredPaymentMethodId] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -280,19 +280,23 @@ export default function CheckoutPage() {
         shipping_office_name: selectedOffice?.name,
         legal_document_ids: acceptedLegalDocumentIds,
         payment_method: selectedPaymentMethod,
+        stored_payment_method_id: selectedPaymentMethod === 'card' ? storedPaymentMethodId ?? undefined : undefined,
       });
 
       await refreshCart();
 
-      // Card renders an embedded iCard modal, Apple/Google Pay their own
-      // wallet SDK buttons — either way the customer never leaves this
-      // page (see IcardModal/IcardWalletButtons). There's no redirect
-      // branch anymore: every payment method resolves in-page.
+      if (selectedPaymentMethod === 'cash_on_delivery') {
+        navigate(`/order-confirmation/${order.id}`, { state: { guestAccessToken } });
+        return;
+      }
+
       setActivePayment({ orderId: order.id, guestAccessToken, payment });
       setIsSubmitting(false);
     } catch (error) {
       setErrors(getValidationErrors(error));
-      setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+      setSubmitError(selectedPaymentMethod === 'card'
+        ? 'Плащането не беше стартирано. Моля, опитайте отново.'
+        : getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
       setIsSubmitting(false);
     }
   }
@@ -327,7 +331,12 @@ export default function CheckoutPage() {
     setPaymentOutcome(null);
 
     try {
-      const payment = await initiatePayment(activePayment.orderId, activePayment.guestAccessToken, selectedPaymentMethod);
+      const payment = await initiatePayment(
+        activePayment.orderId,
+        activePayment.guestAccessToken,
+        selectedPaymentMethod,
+        selectedPaymentMethod === 'card' ? storedPaymentMethodId : null,
+      );
       setActivePayment({ ...activePayment, payment });
     } catch (error) {
       setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
@@ -416,6 +425,8 @@ export default function CheckoutPage() {
                     shippingMethod={selectedShippingMethod}
                     selectedMethod={selectedPaymentMethod}
                     onSelectMethod={setSelectedPaymentMethod}
+                    storedPaymentMethodId={storedPaymentMethodId}
+                    onSelectStoredPaymentMethod={setStoredPaymentMethodId}
                   />
                 )}
 
@@ -451,19 +462,6 @@ export default function CheckoutPage() {
                       />
                     )}
 
-                    {!paymentOutcome &&
-                      activePayment.payment.wallet_session &&
-                      (selectedPaymentMethod === 'apple_pay' || selectedPaymentMethod === 'google_pay') && (
-                        <IcardWalletButtons
-                          orderId={activePayment.orderId}
-                          guestAccessToken={activePayment.guestAccessToken}
-                          session={activePayment.payment.wallet_session}
-                          method={selectedPaymentMethod}
-                          amount={activePayment.payment.amount}
-                          onSuccess={() => void handlePaymentSuccess()}
-                          onDecline={handlePaymentError}
-                        />
-                      )}
                   </div>
                 )}
 
@@ -492,10 +490,8 @@ export default function CheckoutPage() {
                       >
                         {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
                         {isSubmitting
-                          ? checkoutCopy.paymentStep.payingButton
-                          : checkoutCopy.paymentStep.payButtonWithMethod(
-                              checkoutCopy.paymentStep.methods[selectedPaymentMethod] ?? checkoutCopy.paymentStep.methods.card,
-                            )}
+                          ? (selectedPaymentMethod === 'card' ? 'Подготвяме защитено плащане...' : checkoutCopy.placingOrder)
+                          : (selectedPaymentMethod === 'card' ? 'Плати с карта' : 'Завърши поръчката')}
                       </button>
                     )}
                   </div>

@@ -28,11 +28,16 @@ class PaymentController extends Controller
         $enabledMethods = array_map(fn ($method) => $method->value, $this->payments->availablePaymentMethods());
         $request->validate([
             'payment_method' => ['sometimes', 'string', Rule::in($enabledMethods)],
+            'stored_payment_method_id' => ['nullable', 'integer', 'exists:stored_payment_methods,id'],
         ]);
 
         $method = PaymentMethod::from($request->input('payment_method', PaymentMethod::Card->value));
 
-        return new PaymentResource($this->payments->initiate($order, $method));
+        return new PaymentResource($this->payments->initiate(
+            $order,
+            $method,
+            $request->filled('stored_payment_method_id') ? (int) $request->input('stored_payment_method_id') : null,
+        ));
     }
 
     /**

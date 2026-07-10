@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->string('order_number')->unique();
+            $table->string('order_number', 191)->unique();
 
             // Nullable: guest checkout is supported. Set null (not cascaded)
             // on user deletion so historical orders survive account removal.
@@ -21,7 +21,7 @@ return new class extends Migration
             // orders (ownership is user_id).
             $table->uuid('guest_access_token')->nullable()->unique();
 
-            $table->string('status')->default('pending');
+            $table->string('status', 32)->default('pending');
             $table->string('currency', 3);
 
             // --- Customer information (snapshot at order time) ---

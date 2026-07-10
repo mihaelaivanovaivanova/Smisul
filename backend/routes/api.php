@@ -5,10 +5,12 @@ use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBloc
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
 use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
+use App\Http\Controllers\Api\V1\Admin\ICardConfigurationController as AdminICardConfigurationController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
+use App\Http\Controllers\Api\V1\Admin\PaymentOperationController as AdminPaymentOperationController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVariantController;
@@ -35,11 +37,11 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
 use App\Http\Controllers\Api\V1\Payment\ICardWebhookController;
 use App\Http\Controllers\Api\V1\Payment\PaymentController;
-use App\Http\Controllers\Api\V1\Payment\WalletPaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ShipmentController;
+use App\Http\Controllers\Api\V1\StoredPaymentMethodController;
 use App\Http\Resources\UserResource;
 use App\Services\ContentBlockService;
 use App\Services\FunnelContentService;
@@ -191,6 +193,10 @@ Route::prefix('v1')->group(function () {
     // Order history: registered customers only — a guest has no account to
     // list orders against.
     Route::middleware('auth:sanctum')->get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/stored-payment-methods', [StoredPaymentMethodController::class, 'index'])->name('stored-payment-methods.index');
+        Route::delete('/stored-payment-methods/{storedPaymentMethod}', [StoredPaymentMethodController::class, 'destroy'])->name('stored-payment-methods.destroy');
+    });
 
     // Order lookup: registered customers via ownership (OrderPolicy), guests
     // via the guest_access_token minted at placement — see OrderController.
@@ -213,12 +219,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/{order}/return', [PaymentController::class, 'handleReturn'])->name('payments.return');
         Route::post('/{order}/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
 
-        // Called directly by iCard's wallet SDK (ICardIpgGAPay) on the
-        // frontend, not by our own checkout flow — see WalletPaymentController.
-        Route::post('/{order}/wallet/token-provider-session', [WalletPaymentController::class, 'tokenProviderSession'])
-            ->name('payments.wallet.token-provider-session');
-        Route::post('/{order}/wallet/tokenized-card-purchase', [WalletPaymentController::class, 'tokenizedCardPurchase'])
-            ->name('payments.wallet.tokenized-card-purchase');
     });
 
     // Webhook: public, unauthenticated — iCard's servers call this
@@ -267,6 +267,11 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.show');
         Route::put('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
+        Route::get('/payment-settings/icard', [AdminICardConfigurationController::class, 'index'])->name('payment-settings.icard.index');
+        Route::put('/payment-settings/icard/{environment}', [AdminICardConfigurationController::class, 'update'])->name('payment-settings.icard.update');
+        Route::post('/payment-settings/icard/{environment}/activate', [AdminICardConfigurationController::class, 'activate'])->name('payment-settings.icard.activate');
+        Route::post('/payments/{payment}/reverse', [AdminPaymentOperationController::class, 'reverse'])->name('payments.reverse');
+        Route::post('/payments/{payment}/refund', [AdminPaymentOperationController::class, 'refund'])->name('payments.refund');
 
         Route::get('/legal-documents', [AdminLegalDocumentController::class, 'index'])->name('legal-documents.index');
         Route::post('/legal-documents', [AdminLegalDocumentController::class, 'store'])->name('legal-documents.store');

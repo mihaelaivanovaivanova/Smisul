@@ -23,6 +23,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -42,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Keep utf8mb4 while remaining compatible with shared-hosting MySQL /
+        // MariaDB installations whose maximum index key is 1000 bytes.
+        Schema::defaultStringLength(191);
+
         $this->configureRateLimiting();
         $this->configureAuthNotificationUrls();
 

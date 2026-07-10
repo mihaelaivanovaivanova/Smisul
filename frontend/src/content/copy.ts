@@ -386,34 +386,24 @@ export const checkout = {
     methodsLoading: 'Зареждане на начините на плащане…',
     methodsLoadError: 'Неуспешно зареждане на начините на плащане — ще продължим с плащане с карта.',
     methods: {
-      card: 'Карта (Visa / Mastercard)',
-      apple_pay: 'Apple Pay',
-      google_pay: 'Google Pay',
+      cash_on_delivery: 'Наложен платеж',
+      card: 'Плащане с карта',
     } as Record<string, string>,
     methodHints: {
-      card: 'Ще се отвори защитен прозорец на iCard, направо на тази страница.',
-      apple_pay: 'Плати бързо и сигурно с Apple Pay.',
-      google_pay: 'Плати бързо и сигурно с Google Pay.',
+      cash_on_delivery: 'Плащаш на куриера при получаване на поръчката.',
+      card: 'Ще се отвори защитеният платежен прозорец на iCard.',
     } as Record<string, string>,
-    applePayUnavailable: 'Наличен само в Safari на устройства на Apple',
     payButton: 'Плати',
     payButtonWithMethod: (methodLabel: string) => `Плати с ${methodLabel}`,
-    payingButton: 'Подготовка на плащането…',
+    payingButton: 'Подготвяме защитено плащане...',
 
     modal: {
       loading: 'Зареждаме защитен прозорец на iCard…',
       loadError: 'Неуспешно зареждане на прозореца за плащане. Моля, опитай отново.',
       paymentError: 'Плащането не беше успешно. Моля, опитай отново или избери друга карта.',
       cancelled: 'Прозорецът за плащане беше затворен. Можеш да опиташ отново.',
+      unavailable: 'Плащането не можа да се стартира. Моля, опитай отново.',
       retry: 'Опитай отново',
-    },
-
-    wallet: {
-      loading: 'Подготвяме защитено плащане…',
-      loadError: 'Този начин на плащане не е наличен на това устройство.',
-      sandboxNotice: 'Тестова среда — няма да бъде направено реално плащане.',
-      securedByIcard: 'Плащането се обработва сигурно чрез iCard. Данните на картата не се съхраняват в нашия сайт.',
-      declined: 'Плащането не беше успешно. Моля, опитай отново или избери друг метод.',
     },
   },
 

@@ -17,7 +17,7 @@ return new class extends Migration
             // acceptance record is the compliance evidence.
             $table->foreignId('legal_document_id')->constrained()->restrictOnDelete();
 
-            $table->timestamp('accepted_at');
+            $table->dateTime('accepted_at');
             $table->timestamps();
 
             $table->unique(['order_id', 'legal_document_id']);

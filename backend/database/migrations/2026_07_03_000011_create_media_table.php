@@ -10,7 +10,9 @@ return new class extends Migration
     {
         Schema::create('media', function (Blueprint $table) {
             $table->id();
-            $table->morphs('mediable');
+            $table->string('mediable_type', 191);
+            $table->unsignedBigInteger('mediable_id');
+            $table->index(['mediable_type', 'mediable_id']);
             $table->string('disk')->default('public');
             $table->string('path');
             $table->string('filename');

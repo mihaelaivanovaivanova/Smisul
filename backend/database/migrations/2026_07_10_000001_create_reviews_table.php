@@ -23,7 +23,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('rating');
             $table->string('title');
             $table->text('body');
-            $table->string('status')->default('pending');
+            $table->string('status', 32)->default('pending');
             $table->boolean('verified_purchase')->default(true);
             $table->unsignedInteger('helpful_count')->default(0);
 

@@ -3,6 +3,7 @@
 namespace App\Events\Order;
 
 use App\Models\Order;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
@@ -13,7 +14,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  * (analytics, fulfillment webhooks) can be added without touching order
  * placement itself.
  */
-class OrderPlaced
+class OrderPlaced implements ShouldDispatchAfterCommit
 {
     use Dispatchable;
 

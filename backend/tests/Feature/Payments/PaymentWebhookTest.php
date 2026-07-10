@@ -164,7 +164,7 @@ class PaymentWebhookTest extends TestCase
      * non-authorization callbacks must be a safe no-op, not a transition.
      */
     #[Test]
-    public function a_non_authorization_success_callback_does_not_confirm_the_order(): void
+    public function any_successful_payment_and_operation_callback_confirms_the_order_like_miswak(): void
     {
         [$order, $payment] = $this->placeAwaitingPaymentOrder();
 
@@ -173,8 +173,8 @@ class PaymentWebhookTest extends TestCase
         $payment->refresh();
         $order->refresh();
 
-        $this->assertSame(PaymentStatus::Authorized, $payment->status);
-        $this->assertSame(OrderStatus::AwaitingPayment, $order->status);
+        $this->assertSame(PaymentStatus::Paid, $payment->status);
+        $this->assertSame(OrderStatus::Paid, $order->status);
     }
 
     #[Test]
@@ -204,12 +204,10 @@ class PaymentWebhookTest extends TestCase
      * payment's webhook must dedupe exactly like a card payment's does.
      */
     #[Test]
-    public function a_wallet_payments_webhook_is_just_as_idempotent_as_cards(): void
+    public function a_modal_payment_callback_is_idempotent(): void
     {
-        config(['services.apple_pay.enabled' => true, 'services.icard.apple_pay_enabled' => true]);
-
-        [$order, $payment] = $this->placeAwaitingPaymentOrder(paymentMethod: 'apple_pay');
-        $this->assertSame('apple_pay', $payment->payment_method->value);
+        [$order, $payment] = $this->placeAwaitingPaymentOrder(paymentMethod: 'card');
+        $this->assertSame('card', $payment->payment_method->value);
 
         $payload = $this->signICardPayload([
             'Payment' => [
@@ -230,7 +228,7 @@ class PaymentWebhookTest extends TestCase
         $order->refresh();
         $this->assertSame(PaymentStatus::Paid, $payment->status);
         $this->assertSame(OrderStatus::Paid, $order->status);
-        $this->assertSame('apple_pay', $payment->payment_method->value);
+        $this->assertSame('card', $payment->payment_method->value);
     }
 
     #[Test]

@@ -15,7 +15,7 @@ return new class extends Migration
                 ->constrained('categories')
                 ->restrictOnDelete();
             $table->string('name');
-            $table->string('slug')->unique();
+            $table->string('slug', 191)->unique();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedInteger('sort_order')->default(0);

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('seo', function (Blueprint $table) {
             $table->id();
-            $table->string('seoable_type');
+            $table->string('seoable_type', 191);
             $table->unsignedBigInteger('seoable_id');
             $table->unique(['seoable_type', 'seoable_id']);
             $table->string('meta_title')->nullable();

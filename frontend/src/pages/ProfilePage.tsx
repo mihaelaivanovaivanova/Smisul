@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import ProfileDetailsForm from '../components/ProfileDetailsForm';
 import ChangePasswordForm from '../components/ChangePasswordForm';
+import StoredPaymentMethodsPanel from '../components/StoredPaymentMethodsPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { orders as ordersCopy, favorites as favoritesCopy, reviews as reviewsCopy } from '../content/copy';
@@ -26,6 +27,7 @@ export default function ProfilePage() {
         <div className="col-12 col-lg-8">
           <ChangePasswordForm />
         </div>
+        {!isAdmin && <div className="col-12 col-lg-8"><StoredPaymentMethodsPanel /></div>}
         <div className="col-12 col-lg-8 d-flex gap-2">
           {!isAdmin && (
             <Link to="/profile/orders" className="btn btn-outline-primary">

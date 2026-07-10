@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * idempotency_key before doing anything else).
  *
  * @property Carbon $created_at
+ * @property ?Carbon $processed_at
  */
 class PaymentWebhookLog extends Model
 {
@@ -30,6 +31,7 @@ class PaymentWebhookLog extends Model
         'provider_reference',
         'idempotency_key',
         'signature_valid',
+        'error_message',
         'payload',
         'processed_at',
     ];

@@ -16,3 +16,11 @@ desktop.ini
 
 # Logs
 *.log
+# Generated SuperHosting deployment artifacts
+/release-superhosting/
+/smisul-superhosting.zip
+/composer.phar
+/tmp/
+/deployment/private/
+# Filled-in install config with real secrets — never commit this.
+/deployment/install-config.smisul.php

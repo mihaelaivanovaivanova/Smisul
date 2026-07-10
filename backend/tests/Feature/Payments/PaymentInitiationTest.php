@@ -79,8 +79,13 @@ class PaymentInitiationTest extends TestCase
         $this->assertNotNull($response->json('payment.modal_session.modal_js_url'));
 
         Http::assertSent(function ($request) {
+            // BannerIndex is required by IPG 4.5 for IPGPaymentToken (see
+            // the "IPG API BM ECommerce" integration guide) — every
+            // documented example uses "1", and there's no per-merchant
+            // banner selection in this app, so it's a fixed value.
             return $request['IPGmethod'] === 'IPGPaymentToken'
                 && $request['ModalType'] === 'IPGPurchase'
+                && $request['BannerIndex'] === '1'
                 && ! empty($request['Signature']);
         });
 

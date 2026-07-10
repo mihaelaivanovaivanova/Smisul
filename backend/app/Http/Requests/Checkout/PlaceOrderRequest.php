@@ -35,10 +35,11 @@ class PlaceOrderRequest extends FormRequest
 
         return [
             'payment_method' => ['sometimes', 'string', Rule::in($enabledMethods)],
+            'stored_payment_method_id' => ['nullable', 'integer', 'exists:stored_payment_methods,id'],
             'customer.first_name' => ['required', 'string', 'max:100'],
             'customer.last_name' => ['required', 'string', 'max:100'],
             'customer.email' => ['required', 'string', 'email', 'max:255'],
-            'customer.phone' => ['required', 'string', 'max:30'],
+            'customer.phone' => ['required', 'string', 'max:30', 'regex:/^(?:\+|00)?[0-9][0-9\s()-]{7,20}$/'],
             'customer.company' => ['nullable', 'string', 'max:150'],
             'customer.vat_number' => ['nullable', 'string', 'max:50'],
 

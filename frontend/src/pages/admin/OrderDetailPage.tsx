@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchAdminOrder, updateOrderStatus } from '../../api/admin/orders';
+import { fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -19,6 +19,22 @@ export default function OrderDetailPage() {
   const [note, setNote] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [operationPaymentId, setOperationPaymentId] = useState<number | null>(null);
+  const [refundAmounts, setRefundAmounts] = useState<Record<number, number>>({});
+
+  async function handlePaymentOperation(paymentId: number, operation: 'reverse' | 'refund') {
+    setOperationPaymentId(paymentId);
+    setUpdateError(null);
+    try {
+      if (operation === 'reverse') await reversePayment(paymentId);
+      else await refundPayment(paymentId, refundAmounts[paymentId] ?? 0);
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setUpdateError(getErrorMessage(err, `Could not ${operation} the payment.`));
+    } finally {
+      setOperationPaymentId(null);
+    }
+  }
 
   async function handleStatusUpdate() {
     if (!newStatus) return;
@@ -134,22 +150,80 @@ export default function OrderDetailPage() {
                     <th>Status</th>
                     <th className="text-end">Amount</th>
                     <th>Initiated</th>
+                    <th>Gateway actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {order.payments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>{payment.provider}</td>
-                      <td>
-                        <StatusBadge status={payment.status} />
-                      </td>
-                      <td className="text-end">{formatPrice(payment.amount)}</td>
-                      <td>{payment.initiated_at ? new Date(payment.initiated_at).toLocaleString('bg-BG') : '—'}</td>
-                    </tr>
+                    <Fragment key={payment.id}>
+                      <tr>
+                        <td>
+                          <strong>{payment.payment_method === 'cash_on_delivery' ? 'Наложен платеж' : 'Плащане с карта'}</strong>
+                          <div className="small text-muted">Provider: {payment.provider === 'icard' ? 'iCard' : 'Cash on delivery'}</div>
+                          {payment.provider === 'icard' && (
+                            <span className={`badge mt-1 text-bg-${payment.gateway_environment === 'production' ? 'danger' : 'info'}`}>
+                              iCard {payment.gateway_environment === 'production' ? 'Production' : 'Sandbox'}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <StatusBadge status={payment.status} />
+                          {payment.operation_status && <div className="small mt-1">Operation: {payment.operation_status}</div>}
+                          {payment.operation_message && <div className="small text-muted">{payment.operation_message}</div>}
+                        </td>
+                        <td className="text-end">{formatPrice(payment.amount)}</td>
+                        <td>
+                          {payment.initiated_at ? new Date(payment.initiated_at).toLocaleString('bg-BG') : '—'}
+                          {payment.paid_at && <div className="small text-success">Paid: {new Date(payment.paid_at).toLocaleString('bg-BG')}</div>}
+                          {payment.gateway_transaction_reference && <div className="small text-muted">TRN: {payment.gateway_transaction_reference}</div>}
+                          {payment.approval_code && <div className="small text-muted">Approval: {payment.approval_code}</div>}
+                          {payment.masked_pan && <div className="small text-muted">{payment.card_type ?? 'Card'} {payment.masked_pan}</div>}
+                        </td>
+                        <td style={{ minWidth: 260 }}>
+                          <div className="d-flex gap-2 align-items-center">
+                            {payment.provider === 'icard' && (payment.status === 'paid' || payment.status === 'authorized') && !payment.reversed_at && (
+                              <button type="button" className="btn btn-sm btn-outline-danger" disabled={operationPaymentId === payment.id || !payment.gateway_transaction_reference} onClick={() => void handlePaymentOperation(payment.id, 'reverse')}>Reverse</button>
+                            )}
+                            {payment.provider === 'icard' && payment.status === 'paid' && (
+                              <>
+                                <input type="number" min="0.01" step="0.01" className="form-control form-control-sm" style={{ width: 90 }} value={refundAmounts[payment.id] ?? Math.max(0, payment.amount - payment.refunded_amount)} onChange={(event) => setRefundAmounts((values) => ({ ...values, [payment.id]: Number(event.target.value) }))} />
+                                <button type="button" className="btn btn-sm btn-outline-primary" disabled={operationPaymentId === payment.id || !payment.gateway_transaction_reference} onClick={() => void handlePaymentOperation(payment.id, 'refund')}>Refund</button>
+                              </>
+                            )}
+                            {payment.provider === 'icard' && !payment.gateway_transaction_reference && <span className="small text-muted">Awaiting iCard TRN</span>}
+                          </div>
+                        </td>
+                      </tr>
+                      {payment.provider === 'icard' && (
+                        <tr>
+                          <td colSpan={5} className="bg-body-tertiary">
+                            <details>
+                              <summary className="small fw-semibold">Callback logs ({payment.callback_logs?.length ?? 0})</summary>
+                              <div className="mt-2 d-flex flex-column gap-2">
+                                {(payment.callback_logs ?? []).map((log) => (
+                                  <div className="border rounded p-2 bg-body" key={log.id}>
+                                    <div className="small">
+                                      <strong>{log.event_type ?? 'Callback'}</strong>{' '}
+                                      <span className={`badge text-bg-${log.signature_valid ? 'success' : 'danger'}`}>
+                                        Signature {log.signature_valid ? 'valid' : 'invalid'}
+                                      </span>{' '}
+                                      {log.created_at && new Date(log.created_at).toLocaleString('bg-BG')}
+                                    </div>
+                                    {log.error_message && <div className="small text-danger mt-1">{log.error_message}</div>}
+                                    <pre className="small mt-2 mb-0 text-wrap">{JSON.stringify(log.payload, null, 2)}</pre>
+                                  </div>
+                                ))}
+                                {(payment.callback_logs ?? []).length === 0 && <span className="small text-muted">No callbacks received yet.</span>}
+                              </div>
+                            </details>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                   {order.payments.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-muted text-center py-3">
+                      <td colSpan={5} className="text-muted text-center py-3">
                         No payment attempts.
                       </td>
                     </tr>

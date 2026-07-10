@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { loadIcardModalScript } from '../../api/payment';
 import LoadingState from '../LoadingState';
 import ErrorState from '../ErrorState';
@@ -63,7 +64,12 @@ export default function IcardModal({ session, onSuccess, onError, onCancel }: Ic
     <div className="payment-panel">
       {isLoading && <LoadingState message={checkoutCopy.paymentStep.modal.loading} />}
       {loadError && <ErrorState message={checkoutCopy.paymentStep.modal.loadError} />}
-      <div id="ipg" />
+      {/* Portaled to document.body — iCard's own script paints a
+          full-viewport overlay into this container, but Bootstrap's
+          `.card` (an ancestor here) sets `position: relative`, which
+          would hijack the overlay's positioning and confine/clip it to
+          the card's box instead of the viewport if left in place. */}
+      {createPortal(<div id="ipg" />, document.body)}
     </div>
   );
 }

@@ -13,11 +13,13 @@ namespace App\Enums;
 enum PaymentProvider: string
 {
     case ICard = 'icard';
+    case CashOnDelivery = 'cash_on_delivery';
 
     public function label(): string
     {
         return match ($this) {
             self::ICard => 'iCard',
+            self::CashOnDelivery => 'Наложен платеж',
         };
     }
 }

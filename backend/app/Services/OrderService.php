@@ -53,7 +53,8 @@ class OrderService
      */
     public const ADMIN_EAGER_LOAD = [
         ...self::EAGER_LOAD,
-        'payments',
+        'payments.transactions',
+        'payments.webhookLogs',
         'shipment.statusEvents',
     ];
 

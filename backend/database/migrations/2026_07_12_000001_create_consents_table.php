@@ -26,9 +26,9 @@ return new class extends Migration
             // registers) — that linkage isn't attempted here; each row is
             // a snapshot of what was known at the time.
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('guest_identifier')->nullable();
+            $table->string('guest_identifier', 64)->nullable();
 
-            $table->string('type');
+            $table->string('type', 64);
 
             // Denormalized version string (not just a legal_document_id
             // FK) so the exact version accepted survives even if the

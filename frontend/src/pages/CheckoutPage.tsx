@@ -20,7 +20,6 @@ import OrderReviewStep from '../components/checkout/OrderReviewStep';
 import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import IcardModal from '../components/checkout/IcardModal';
-import IcardWalletButtons from '../components/checkout/IcardWalletButtons';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
 import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
 import type { Payment, PaymentMethodValue } from '../types/payment';
@@ -78,6 +77,7 @@ export default function CheckoutPage() {
   const [officesError, setOfficesError] = useState<string | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodValue>('card');
+  const [storedPaymentMethodId, setStoredPaymentMethodId] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -280,19 +280,34 @@ export default function CheckoutPage() {
         shipping_office_name: selectedOffice?.name,
         legal_document_ids: acceptedLegalDocumentIds,
         payment_method: selectedPaymentMethod,
+        stored_payment_method_id: selectedPaymentMethod === 'card' ? storedPaymentMethodId ?? undefined : undefined,
       });
 
       await refreshCart();
 
-      // Card renders an embedded iCard modal, Apple/Google Pay their own
-      // wallet SDK buttons — either way the customer never leaves this
-      // page (see IcardModal/IcardWalletButtons). There's no redirect
-      // branch anymore: every payment method resolves in-page.
+      if (selectedPaymentMethod === 'cash_on_delivery') {
+        navigate(`/order-confirmation/${order.id}`, { state: { guestAccessToken } });
+        return;
+      }
+
       setActivePayment({ orderId: order.id, guestAccessToken, payment });
       setIsSubmitting(false);
     } catch (error) {
       setErrors(getValidationErrors(error));
-      setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+
+      if (selectedPaymentMethod === 'card') {
+        // The real reason (e.g. "iCard API request failed: configuration
+        // incomplete: mid, originator...") is too technical/internal to show
+        // a customer, but swallowing it entirely makes a misconfigured
+        // gateway undiagnosable from the browser — log it so it's at least
+        // visible in devtools without needing server log access.
+        // eslint-disable-next-line no-console
+        console.error('iCard payment could not be started:', getErrorMessage(error, 'unknown error'));
+        setSubmitError('Плащането не беше стартирано. Моля, опитайте отново.');
+      } else {
+        setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+      }
+
       setIsSubmitting(false);
     }
   }
@@ -327,7 +342,12 @@ export default function CheckoutPage() {
     setPaymentOutcome(null);
 
     try {
-      const payment = await initiatePayment(activePayment.orderId, activePayment.guestAccessToken, selectedPaymentMethod);
+      const payment = await initiatePayment(
+        activePayment.orderId,
+        activePayment.guestAccessToken,
+        selectedPaymentMethod,
+        selectedPaymentMethod === 'card' ? storedPaymentMethodId : null,
+      );
       setActivePayment({ ...activePayment, payment });
     } catch (error) {
       setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
@@ -347,11 +367,11 @@ export default function CheckoutPage() {
       {isCartLoading && <LoadingState message={checkoutCopy.confirmation.loading} />}
       {!isCartLoading && cartError && <ErrorState message={cartError} />}
 
-      {!isCartLoading && !cartError && cart && cart.items.length === 0 && (
+      {!isCartLoading && !cartError && cart && cart.items.length === 0 && !activePayment && (
         <EmptyState title={checkoutCopy.emptyCartTitle} message={checkoutCopy.emptyCartMessage} />
       )}
 
-      {!isCartLoading && !cartError && cart && cart.items.length > 0 && (
+      {!isCartLoading && !cartError && cart && (cart.items.length > 0 || activePayment) && (
         <div className="row g-4">
           <div className="col-12 col-lg-8">
             <StepIndicator steps={STEP_LABELS} currentStep={step} />
@@ -416,6 +436,8 @@ export default function CheckoutPage() {
                     shippingMethod={selectedShippingMethod}
                     selectedMethod={selectedPaymentMethod}
                     onSelectMethod={setSelectedPaymentMethod}
+                    storedPaymentMethodId={storedPaymentMethodId}
+                    onSelectStoredPaymentMethod={setStoredPaymentMethodId}
                   />
                 )}
 
@@ -451,19 +473,26 @@ export default function CheckoutPage() {
                       />
                     )}
 
-                    {!paymentOutcome &&
-                      activePayment.payment.wallet_session &&
-                      (selectedPaymentMethod === 'apple_pay' || selectedPaymentMethod === 'google_pay') && (
-                        <IcardWalletButtons
-                          orderId={activePayment.orderId}
-                          guestAccessToken={activePayment.guestAccessToken}
-                          session={activePayment.payment.wallet_session}
-                          method={selectedPaymentMethod}
-                          amount={activePayment.payment.amount}
-                          onSuccess={() => void handlePaymentSuccess()}
-                          onDecline={handlePaymentError}
-                        />
-                      )}
+                    {/* Defensive: the order was placed but no payment
+                        session came back (e.g. the gateway isn't
+                        configured) — without this, the customer would see
+                        a blank panel with no explanation or way forward. */}
+                    {!paymentOutcome && !activePayment.payment.modal_session && (
+                      <>
+                        <Alert variant="danger">{checkoutCopy.paymentStep.modal.unavailable}</Alert>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => void handleRetryPayment()}
+                          disabled={isRetryingPayment}
+                        >
+                          {isRetryingPayment && (
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                          )}
+                          {checkoutCopy.paymentStep.modal.retry}
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -492,10 +521,8 @@ export default function CheckoutPage() {
                       >
                         {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
                         {isSubmitting
-                          ? checkoutCopy.paymentStep.payingButton
-                          : checkoutCopy.paymentStep.payButtonWithMethod(
-                              checkoutCopy.paymentStep.methods[selectedPaymentMethod] ?? checkoutCopy.paymentStep.methods.card,
-                            )}
+                          ? (selectedPaymentMethod === 'card' ? 'Подготвяме защитено плащане...' : checkoutCopy.placingOrder)
+                          : (selectedPaymentMethod === 'card' ? 'Плати с карта' : 'Завърши поръчката')}
                       </button>
                     )}
                   </div>

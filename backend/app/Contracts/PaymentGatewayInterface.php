@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
+use App\Models\StoredPaymentMethod;
 use Illuminate\Http\Request;
 
 /**
@@ -27,39 +28,24 @@ use Illuminate\Http\Request;
  */
 interface PaymentGatewayInterface
 {
+    public function environment(): string;
+
     public function provider(): PaymentProvider;
 
     /**
      * Creates the provider-side payment session for this Payment. $method
-     * is the instrument the customer chose (card/apple_pay/google_pay) —
-     * already validated as enabled by PaymentService before this is
-     * called, so implementations don't need to re-check availability,
-     * only adapt the request they build for it. Every method renders
-     * entirely in-page (an embedded modal for card, a wallet SDK button
-     * for Apple/Google Pay) — see PaymentSessionData.
+     * is the instrument the customer chose. The only gateway-backed method
+     * is card; iCard renders cards and available wallets inside one modal.
      */
     public function createSession(Payment $payment, PaymentMethod $method): PaymentSessionData;
 
-    /**
-     * Apple Pay's merchant-validation step, driven by the wallet SDK
-     * itself (not by createSession(), which returns before any wallet
-     * interaction happens) — see WalletPaymentController. Returns the
-     * provider's raw response, proxied back to the wallet SDK verbatim.
-     *
-     * @return array<string, mixed>
-     */
-    public function createWalletValidationSession(Payment $payment, string $merchantUrl, string $validationUrl, string $displayName): array;
+    public function createStoredCardSession(Payment $payment, StoredPaymentMethod $storedMethod): PaymentSessionData;
 
-    /**
-     * Submits a tokenized card (from Apple/Google Pay) for the actual
-     * charge, once the wallet SDK has produced one. The immediate
-     * response only acknowledges receipt — the real terminal outcome
-     * still only ever arrives via the async notify webhook. Returns the
-     * provider's raw response, proxied back to the wallet SDK verbatim.
-     *
-     * @return array<string, mixed>
-     */
-    public function processTokenizedWalletPurchase(Payment $payment, PaymentMethod $method, string $tokenizedCard): array;
+    /** @return array<string, mixed> */
+    public function reverse(Payment $payment): array;
+
+    /** @return array<string, mixed> */
+    public function refund(Payment $payment, string $amount): array;
 
     /**
      * Verifies the webhook request actually came from the provider (see

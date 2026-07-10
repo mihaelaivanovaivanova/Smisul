@@ -6,6 +6,7 @@ import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
+import ICardSettingsPanel from '../../components/admin/ICardSettingsPanel';
 
 const EDITABLE_GROUPS = new Set(['general', 'email', 'seo', 'media', 'system']);
 
@@ -251,7 +252,7 @@ export default function SettingsPage() {
             ))}
           </ul>
 
-          {activeTab === 'payments' && <ProviderStatusPanel providers={data.providers.payments} />}
+          {activeTab === 'payments' && <ICardSettingsPanel />}
           {activeTab === 'shipping' && <ProviderStatusPanel providers={data.providers.shipping} />}
           {activeTab === 'legal' && <LegalPanel />}
           {EDITABLE_GROUPS.has(activeTab) && (

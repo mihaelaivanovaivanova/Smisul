@@ -14,7 +14,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('type');
             $table->decimal('value', 10, 2);
-            $table->string('code')->nullable()->unique();
+            $table->string('code', 191)->nullable()->unique();
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('ends_at')->nullable();
             $table->unsignedInteger('usage_limit')->nullable();

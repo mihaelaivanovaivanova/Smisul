@@ -35,7 +35,8 @@ abstract class TestCase extends BaseTestCase
         // test registers afterwards; returning null lets it fall through.
         Http::fake([
             rtrim((string) config('services.icard.base_url'), '/').'/*' => function ($request) {
-                if ($request['IPGmethod'] !== 'IPGPaymentToken') {
+                parse_str($request->body(), $fields);
+                if (($fields['IPGmethod'] ?? null) !== 'IPGPaymentToken') {
                     return null;
                 }
 

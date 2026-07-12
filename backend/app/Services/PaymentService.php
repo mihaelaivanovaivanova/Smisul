@@ -142,14 +142,22 @@ class PaymentService
     }
 
     /**
-     * Checkout offers COD and one hosted iCard method. Wallet brands are
-     * rendered by iCard inside that modal, never as separate methods here.
+     * Checkout offers one hosted iCard method. Wallet brands are rendered
+     * by iCard inside that modal, never as separate methods here.
+     *
+     * CashOnDelivery is temporarily withheld here (not removed — the enum
+     * case, PaymentProvider mapping, and PaymentService::initiate() branch
+     * all still fully support it) until it's ready to be offered again;
+     * re-add it to this list to turn it back on everywhere at once
+     * (checkout's method list, PlaceOrderRequest/InitiatePaymentRequest
+     * validation, and PaymentController's enabled-methods check all read
+     * from this single source of truth).
      *
      * @return list<PaymentMethod>
      */
     public function availablePaymentMethods(): array
     {
-        return [PaymentMethod::CashOnDelivery, PaymentMethod::Card];
+        return [PaymentMethod::Card];
     }
 
     /**

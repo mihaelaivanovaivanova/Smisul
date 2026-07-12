@@ -78,6 +78,8 @@ export interface PlaceOrderPayload {
   shipping_delivery_type: ShippingDeliveryType;
   shipping_office_id?: string;
   shipping_office_name?: string;
+  shipping_office_city?: string;
+  shipping_office_address?: string;
   legal_document_ids: number[];
   payment_method?: PaymentMethodValue;
   stored_payment_method_id?: number;

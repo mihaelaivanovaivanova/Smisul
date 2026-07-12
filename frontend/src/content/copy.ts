@@ -465,7 +465,7 @@ export const checkout = {
     lastNameRequired: 'Моля, въведи фамилия.',
     emailRequired: 'Моля, въведи валиден имейл адрес.',
     phoneRequired: 'Моля, въведи телефон.',
-    phoneInvalid: 'Въведи валиден мобилен номер (напр. 0888123456).',
+    phoneInvalid: 'Въведи валиден мобилен номер (напр. 888123456).',
     countryRequired: 'Моля, въведи държава.',
     cityRequired: 'Моля, въведи град.',
     postalCodeRequired: 'Моля, въведи пощенски код.',

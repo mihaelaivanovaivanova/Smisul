@@ -3,7 +3,7 @@ import ErrorState from '../ErrorState';
 import { formatPrice } from '../../services/productCatalog';
 import { checkout as checkoutCopy } from '../../content/copy';
 import type { Cart } from '../../types/cart';
-import type { CustomerInfo, LegalDocument, ShippingAddress, ShippingMethod } from '../../types/checkout';
+import type { CustomerInfo, LegalDocument, ShippingAddress, ShippingMethod, ShippingOffice } from '../../types/checkout';
 
 interface OrderReviewStepProps {
   cart: Cart;
@@ -12,7 +12,7 @@ interface OrderReviewStepProps {
   billingSameAsShipping: boolean;
   billingAddress: ShippingAddress;
   shippingMethod: ShippingMethod | null;
-  officeName?: string | null;
+  office?: ShippingOffice | null;
   legalDocuments: LegalDocument[] | null;
   isLoadingLegalDocuments: boolean;
   legalDocumentsError: string | null;
@@ -28,7 +28,7 @@ export default function OrderReviewStep({
   billingSameAsShipping,
   billingAddress,
   shippingMethod,
-  officeName,
+  office,
   legalDocuments,
   isLoadingLegalDocuments,
   legalDocumentsError,
@@ -36,6 +36,11 @@ export default function OrderReviewStep({
   onToggleLegalDocument,
   errors,
 }: OrderReviewStepProps) {
+  // For office/locker pickup, the actual delivery destination is the
+  // pickup point, not whatever the customer typed in the address form
+  // (which the API still collects, e.g. for billing) — showing the typed
+  // address here would be misleading about where the parcel goes.
+  const isOfficeDelivery = shippingMethod?.requires_office ?? false;
   return (
     <div>
       <h2 className="h6 mb-3">{checkoutCopy.review.itemsHeading}</h2>
@@ -70,14 +75,24 @@ export default function OrderReviewStep({
         </div>
         <div className="col-12 col-sm-6">
           <h2 className="h6 mb-2">{checkoutCopy.review.addressHeading}</h2>
-          <p className="mb-0 small text-muted">
-            {address.address_line}
-            {address.apartment && `, ${address.apartment}`}
-            <br />
-            {address.city}, {address.postal_code}
-            <br />
-            {address.country}
-          </p>
+          {isOfficeDelivery && office ? (
+            <p className="mb-0 small text-muted">
+              {office.name}
+              <br />
+              {office.address}
+              <br />
+              {office.city}
+            </p>
+          ) : (
+            <p className="mb-0 small text-muted">
+              {address.address_line}
+              {address.apartment && `, ${address.apartment}`}
+              <br />
+              {address.city}, {address.postal_code}
+              <br />
+              {address.country}
+            </p>
+          )}
         </div>
       </div>
 
@@ -100,12 +115,6 @@ export default function OrderReviewStep({
           <h2 className="h6 mb-2">{checkoutCopy.review.deliveryHeading}</h2>
           <p className="mb-0 small text-muted">
             {shippingMethod.label} — {formatPrice(shippingMethod.price, shippingMethod.currency as 'EUR')}
-            {officeName && (
-              <>
-                <br />
-                {officeName}
-              </>
-            )}
           </p>
         </div>
       )}

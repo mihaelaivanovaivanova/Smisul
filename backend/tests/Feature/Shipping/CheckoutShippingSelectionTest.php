@@ -73,6 +73,8 @@ class CheckoutShippingSelectionTest extends TestCase
                 'shipping_delivery_type' => 'office',
                 'shipping_office_id' => 'office-42',
                 'shipping_office_name' => 'Econt Sofia Center',
+                'shipping_office_city' => 'Sofia',
+                'shipping_office_address' => 'bul. Vitosha 100',
             ]),
         );
 
@@ -83,6 +85,12 @@ class CheckoutShippingSelectionTest extends TestCase
 
         $order = Order::findOrFail($response->json('data.id'));
         $this->assertSame('office-42', $order->shipping_office_id);
+        // The office's own address is stored as the order's shipping
+        // address — not the free-text address the payload also submitted
+        // (kept only for billing purposes) — since that's where the
+        // parcel is actually delivered.
+        $this->assertSame('Sofia', $order->shipping_city);
+        $this->assertSame('Econt Sofia Center, bul. Vitosha 100', $order->shipping_address_line);
     }
 
     #[Test]
@@ -139,6 +147,8 @@ class CheckoutShippingSelectionTest extends TestCase
                 'shipping_delivery_type' => 'locker',
                 'shipping_office_id' => 'locker-7',
                 'shipping_office_name' => 'BOX NOW Mall of Sofia',
+                'shipping_office_city' => 'Sofia',
+                'shipping_office_address' => 'Mall of Sofia, bul. Alexander Malinov 1',
             ]),
         );
 

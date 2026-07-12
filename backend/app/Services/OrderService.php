@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DataTransferObjects\Admin\OrderFilterData;
 use App\DataTransferObjects\Checkout\PlaceOrderData;
 use App\Enums\OrderStatus;
+use App\Enums\ShippingDeliveryType;
 use App\Events\Order\OrderPlaced;
 use App\Exceptions\Checkout\CartItemUnavailableException;
 use App\Exceptions\Checkout\EmptyCartException;
@@ -140,6 +141,17 @@ class OrderService
 
             $billingAddress = $data->billingSameAsShipping ? $data->address : $data->billingAddress;
 
+            // For office/locker pickup, the parcel's actual destination is
+            // the pickup point, not the free-text address the form still
+            // collects (that's kept for billing purposes) — store the
+            // office's own city/address as the shipping address so it
+            // reflects where the order will really be delivered.
+            $isOfficeDelivery = ShippingDeliveryType::from($data->shippingDeliveryType)->requiresOfficeSelection();
+            $shippingCity = $isOfficeDelivery && $data->shippingOfficeCity !== null ? $data->shippingOfficeCity : $data->address->city;
+            $shippingAddressLine = $isOfficeDelivery && $data->shippingOfficeAddress !== null
+                ? trim((string) $data->shippingOfficeName.', '.$data->shippingOfficeAddress, ', ')
+                : $data->address->addressLine;
+
             $order = Order::create([
                 'order_number' => $this->orderNumbers->generate(),
                 'user_id' => $user?->id,
@@ -154,9 +166,9 @@ class OrderService
                 'customer_vat_number' => $data->customer->vatNumber,
                 'delivery_notes' => $data->deliveryNotes,
                 'shipping_country' => $data->address->country,
-                'shipping_city' => $data->address->city,
+                'shipping_city' => $shippingCity,
                 'shipping_postal_code' => $data->address->postalCode,
-                'shipping_address_line' => $data->address->addressLine,
+                'shipping_address_line' => $shippingAddressLine,
                 'shipping_apartment' => $data->address->apartment,
                 'billing_same_as_shipping' => $data->billingSameAsShipping,
                 'billing_country' => $billingAddress->country,

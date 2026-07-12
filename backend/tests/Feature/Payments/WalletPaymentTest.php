@@ -8,7 +8,6 @@ use App\Models\LegalDocument;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -52,8 +51,11 @@ class WalletPaymentTest extends TestCase
     }
 
     #[Test]
-    public function checkout_exposes_only_cash_on_delivery_and_the_single_icard_modal_method(): void
+    public function checkout_exposes_only_the_single_icard_modal_method(): void
     {
+        // Cash on delivery is temporarily withheld from checkout (see
+        // PaymentService::availablePaymentMethods()) — re-adding it there
+        // is the only change needed to turn it back on everywhere.
         config([
             'services.apple_pay.enabled' => true,
             'services.icard.apple_pay_enabled' => true,
@@ -61,20 +63,14 @@ class WalletPaymentTest extends TestCase
             'services.icard.google_pay_enabled' => true,
         ]);
 
-        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk()->assertJsonCount(2, 'data');
-        $this->assertSame(['cash_on_delivery', 'card'], collect($response->json('data'))->pluck('value')->all());
+        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk()->assertJsonCount(1, 'data');
+        $this->assertSame(['card'], collect($response->json('data'))->pluck('value')->all());
     }
 
     #[Test]
-    public function cash_on_delivery_creates_no_icard_session_or_http_request(): void
+    public function cash_on_delivery_is_rejected_at_checkout_while_withheld(): void
     {
-        Http::fake();
-        $response = $this->placeOrder('cash_on_delivery')->assertCreated();
-
-        $response->assertJsonPath('payment.provider', 'cash_on_delivery');
-        $response->assertJsonPath('payment.status', 'pending');
-        $response->assertJsonPath('payment.modal_session', null);
-        Http::assertNothingSent();
+        $this->placeOrder('cash_on_delivery')->assertUnprocessable()->assertJsonValidationErrors('payment_method');
     }
 
     #[Test]

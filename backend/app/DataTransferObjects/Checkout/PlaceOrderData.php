@@ -17,6 +17,8 @@ final readonly class PlaceOrderData
         public string $shippingDeliveryType,
         public ?string $shippingOfficeId,
         public ?string $shippingOfficeName,
+        public ?string $shippingOfficeCity,
+        public ?string $shippingOfficeAddress,
         public array $legalDocumentIds,
     ) {}
 
@@ -37,6 +39,8 @@ final readonly class PlaceOrderData
             shippingDeliveryType: (string) $data['shipping_delivery_type'],
             shippingOfficeId: isset($data['shipping_office_id']) ? (string) $data['shipping_office_id'] : null,
             shippingOfficeName: isset($data['shipping_office_name']) ? (string) $data['shipping_office_name'] : null,
+            shippingOfficeCity: isset($data['shipping_office_city']) ? (string) $data['shipping_office_city'] : null,
+            shippingOfficeAddress: isset($data['shipping_office_address']) ? (string) $data['shipping_office_address'] : null,
             legalDocumentIds: array_map('intval', $data['legal_document_ids']),
         );
     }

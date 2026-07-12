@@ -283,6 +283,8 @@ export default function CheckoutPage() {
         shipping_delivery_type: selectedMethod.delivery_type,
         shipping_office_id: selectedOffice?.id,
         shipping_office_name: selectedOffice?.name,
+        shipping_office_city: selectedOffice?.city,
+        shipping_office_address: selectedOffice?.address,
         legal_document_ids: acceptedLegalDocumentIds,
         payment_method: selectedPaymentMethod,
         stored_payment_method_id: selectedPaymentMethod === 'card' ? storedPaymentMethodId ?? undefined : undefined,
@@ -425,7 +427,7 @@ export default function CheckoutPage() {
                     billingSameAsShipping={billingSameAsShipping}
                     billingAddress={billingAddress}
                     shippingMethod={selectedShippingMethod}
-                    officeName={selectedOffice?.name}
+                    office={selectedOffice}
                     legalDocuments={legalDocuments}
                     isLoadingLegalDocuments={isLoadingLegalDocuments}
                     legalDocumentsError={legalDocumentsError}

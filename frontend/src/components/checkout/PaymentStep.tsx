@@ -16,10 +16,10 @@ interface PaymentStepProps {
   onSelectStoredPaymentMethod: (id: number | null) => void;
 }
 
-const fallbackMethods: PaymentMethodOption[] = [
-  { value: 'cash_on_delivery', label: 'Наложен платеж' },
-  { value: 'card', label: 'Плащане с карта' },
-];
+// Cash on delivery is temporarily withheld — see
+// PaymentService::availablePaymentMethods() on the backend, the actual
+// source of truth this list only mirrors for the rare case its fetch fails.
+const fallbackMethods: PaymentMethodOption[] = [{ value: 'card', label: 'Плащане с карта' }];
 
 const cardTrustMarks = ['Visa', 'Mastercard', 'Amex', 'Borica', 'Apple Pay', 'Google Pay'];
 

@@ -66,6 +66,11 @@ class PlaceOrderRequest extends FormRequest
             'shipping_delivery_type' => ['required', 'string', Rule::in(array_column(ShippingDeliveryType::cases(), 'value'))],
             'shipping_office_id' => ['required_unless:shipping_delivery_type,address', 'nullable', 'string', 'max:100'],
             'shipping_office_name' => ['required_unless:shipping_delivery_type,address', 'nullable', 'string', 'max:255'],
+            // Used to store the pickup point's own address as the order's
+            // shipping address instead of the (still-collected, e.g. for
+            // billing) free-text address fields above — see OrderService.
+            'shipping_office_city' => ['required_unless:shipping_delivery_type,address', 'nullable', 'string', 'max:100'],
+            'shipping_office_address' => ['required_unless:shipping_delivery_type,address', 'nullable', 'string', 'max:255'],
 
             'legal_document_ids' => ['required', 'array', 'min:1'],
             'legal_document_ids.*' => ['integer', 'exists:legal_documents,id'],

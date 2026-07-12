@@ -26,10 +26,17 @@ class PaymentOperationsTest extends TestCase
 
         $this->actingAs($admin)->postJson("/api/v1/admin/payments/{$payment->id}/reverse")->assertOk();
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($payment) {
             parse_str($request->body(), $fields);
+
+            // OrderID must be a fresh value, distinct from the payment's own
+            // transaction_reference — iCard rejects a resubmission of an
+            // OrderID it already saw for the original purchase call with
+            // "9019 Duplicated transaction".
             return ($fields['IPGmethod'] ?? null) === 'IPGReversal'
-                && ($fields['IPG_Trnref'] ?? null) === '202601010000001';
+                && ($fields['IPG_Trnref'] ?? null) === '202601010000001'
+                && filled($fields['OrderID'] ?? null)
+                && ($fields['OrderID'] ?? null) !== $payment->transaction_reference;
         });
         $this->assertSame(PaymentStatus::Cancelled, $payment->fresh()->status);
         $this->assertSame(OrderStatus::Cancelled, $order->fresh()->status);
@@ -47,10 +54,13 @@ class PaymentOperationsTest extends TestCase
 
         $this->actingAs($admin)->postJson("/api/v1/admin/payments/{$payment->id}/refund", ['amount' => 20])->assertOk();
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($payment) {
             parse_str($request->body(), $fields);
+
             return ($fields['IPGmethod'] ?? null) === 'IPGRefund'
-                && ($fields['Amount'] ?? null) === '20.00';
+                && ($fields['Amount'] ?? null) === '20.00'
+                && filled($fields['OrderID'] ?? null)
+                && ($fields['OrderID'] ?? null) !== $payment->transaction_reference;
         });
         $this->assertSame(PaymentStatus::Refunded, $payment->fresh()->status);
         $this->assertSame(OrderStatus::Refunded, $order->fresh()->status);

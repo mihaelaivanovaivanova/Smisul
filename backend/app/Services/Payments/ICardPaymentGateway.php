@@ -177,7 +177,7 @@ class ICardPaymentGateway implements PaymentGatewayInterface
 
         return $this->callIcard([
             ...$this->baseFields('IPGReversal', $environment),
-            'OrderID' => $payment->transaction_reference,
+            'OrderID' => $this->operationOrderId($payment, 'REV'),
             'IPG_Trnref' => $payment->gateway_transaction_reference,
         ], $environment);
     }
@@ -192,12 +192,30 @@ class ICardPaymentGateway implements PaymentGatewayInterface
 
         return $this->callIcard([
             ...$this->baseFields('IPGRefund', $environment),
-            'OrderID' => $payment->transaction_reference,
+            'OrderID' => $this->operationOrderId($payment, 'RFD'),
             'IPG_Trnref' => $payment->gateway_transaction_reference,
             'Amount' => $amount,
             'Currency' => (string) $config['currency_numeric'],
             'Email' => (string) $payment->order->customer_email,
         ], $environment);
+    }
+
+    /**
+     * iCard rejects any resubmission of an already-seen (MID, OrderID) pair
+     * with "9019 Duplicated transaction" — including on follow-up calls
+     * like Reversal/Refund, not just Purchase. $payment->transaction_reference
+     * was already submitted once as the OrderID for the original
+     * IPGPaymentToken call, so reusing it here would always be rejected;
+     * each operation needs its own fresh OrderID. IPG_Trnref (iCard's own
+     * reference for the original transaction) is what actually tells iCard
+     * which transaction to act on.
+     */
+    private function operationOrderId(Payment $payment, string $suffix): string
+    {
+        $safe = preg_replace('/[^A-Za-z0-9-]/', '', (string) $payment->order->order_number) ?: 'SMS';
+        $unique = base_convert((string) time(), 10, 36).substr(bin2hex(random_bytes(3)), 0, 6);
+
+        return substr($safe.'-'.$suffix.'-'.$unique, 0, 50);
     }
 
     /**

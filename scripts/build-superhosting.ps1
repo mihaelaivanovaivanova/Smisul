@@ -17,13 +17,6 @@ if (-not $SkipFrontendInstall) {
 
 }
 
-if (-not $SkipComposerInstall) {
-    Push-Location (Join-Path $root "backend")
-    composer install --no-dev --optimize-autoloader --no-interaction
-    if ($LASTEXITCODE -ne 0) { Pop-Location; throw "composer install failed with exit code $LASTEXITCODE." }
-    Pop-Location
-}
-
 # A relative API URL keeps the archive independent from the final domain.
 $env:VITE_API_URL = "/api"
 Push-Location (Join-Path $root "frontend")
@@ -47,6 +40,16 @@ Get-ChildItem (Join-Path $root "backend") -Force | Where-Object { $excluded -not
 Get-ChildItem $backend -Recurse -Filter *.sqlite -File | ForEach-Object {
     Remove-Item -Force -LiteralPath $_.FullName
 }
+
+if (-not $SkipComposerInstall) {
+    # Strips dev-only packages (phpunit, pint, phpstan, ...) from the
+    # *packaged copy's* vendor/ only, via --working-dir — never runs
+    # against backend/ itself, so a deployment build never mutates the
+    # local dev/test environment (php artisan test, pint, phpstan).
+    composer install --no-dev --optimize-autoloader --no-interaction --working-dir=$backend
+    if ($LASTEXITCODE -ne 0) { throw "composer install failed with exit code $LASTEXITCODE." }
+}
+
 Copy-Item (Join-Path $root "deployment/backend.env.production.example") (Join-Path $backend ".env.example") -Force
 Copy-Item (Join-Path $root "deployment/install-config.php") (Join-Path $backend "install-config.example.php") -Force
 $icardImport = Join-Path $root "deployment/private/icard-import.php"

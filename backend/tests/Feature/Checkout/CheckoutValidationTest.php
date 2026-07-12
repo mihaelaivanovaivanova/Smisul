@@ -97,6 +97,21 @@ class CheckoutValidationTest extends TestCase
     }
 
     #[Test]
+    public function a_phone_number_that_isnt_a_bulgarian_mobile_number_is_rejected(): void
+    {
+        $variant = $this->purchasableVariant();
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        foreach (['+35921234567', '0888123456', '+3597123456', '+35988812345', '888123456'] as $invalidPhone) {
+            $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+                ->postJson('/api/v1/checkout/orders', $this->validPayload(['customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => $invalidPhone]]))
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['customer.phone']);
+        }
+    }
+
+    #[Test]
     public function an_invalid_shipping_carrier_is_rejected(): void
     {
         $variant = $this->purchasableVariant();

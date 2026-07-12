@@ -1,4 +1,5 @@
 import FormField from '../FormField';
+import PhoneField from '../PhoneField';
 import { checkout as checkoutCopy } from '../../content/copy';
 import type { CustomerInfo } from '../../types/checkout';
 
@@ -55,10 +56,9 @@ export default function CustomerInfoStep({
       </div>
 
       <div className="mb-3">
-        <FormField
+        <PhoneField
           id="checkout-phone"
           label={checkoutCopy.customer.phone}
-          type="tel"
           value={customer.phone}
           onChange={(value) => onCustomerChange('phone', value)}
           error={errors['customer.phone']}

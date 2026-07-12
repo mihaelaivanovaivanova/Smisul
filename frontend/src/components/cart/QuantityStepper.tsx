@@ -20,7 +20,13 @@ export default function QuantityStepper({ quantity, min = 1, max, disabled = fal
       >
         &minus;
       </button>
-      <span className="btn btn-outline-secondary btn-sm disabled" aria-live="polite">
+      {/* pe-none, not the `disabled` utility: `disabled` also dims this to
+          --bs-btn-disabled-opacity, which made it (and the "−" button
+          whenever quantity is at its min) look visually faded next to a
+          full-opacity "+" — this is a static display, not a real control,
+          so it should always render at the same solid border/text style
+          as an enabled button either side of it. */}
+      <span className="btn btn-outline-secondary btn-sm pe-none" aria-live="polite">
         {quantity}
       </span>
       <button

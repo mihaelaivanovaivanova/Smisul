@@ -10,7 +10,7 @@ export default function MiniCart() {
   const items = cart?.items ?? [];
 
   return (
-    <div className="dropdown">
+    <div className="dropdown minicart-wrapper">
       <button
         type="button"
         className="btn btn-outline-secondary btn-sm"
@@ -31,14 +31,23 @@ export default function MiniCart() {
         {!isLoading && items.length > 0 && (
           <>
             <ul className="list-unstyled mb-3" style={{ maxHeight: 280, overflowY: 'auto' }}>
-              {items.map((item) => (
-                <li key={item.id} className="d-flex justify-content-between gap-2 mb-2 small">
-                  <span className="text-truncate">
-                    {item.product_variant.product?.name ?? item.product_variant.name} &times; {item.quantity}
-                  </span>
-                  <span className="flex-shrink-0">{formatPrice(item.line_total)}</span>
-                </li>
-              ))}
+              {items.map((item) => {
+                const image = item.product_variant.product?.primary_image;
+
+                return (
+                  <li key={item.id} className="d-flex align-items-center justify-content-between gap-2 mb-2 small">
+                    <span className="d-flex align-items-center gap-2 text-truncate">
+                      <span className="ratio ratio-1x1 bg-white rounded-2 border flex-shrink-0" style={{ width: 32 }}>
+                        {image && <img src={image.url} alt="" className="object-fit-cover" />}
+                      </span>
+                      <span className="text-truncate">
+                        {item.product_variant.product?.name ?? item.product_variant.name} &times; {item.quantity}
+                      </span>
+                    </span>
+                    <span className="flex-shrink-0">{formatPrice(item.line_total)}</span>
+                  </li>
+                );
+              })}
             </ul>
             {cart && (
               <div className="d-flex justify-content-between fw-semibold small mb-3">

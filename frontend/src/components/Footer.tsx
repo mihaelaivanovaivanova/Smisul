@@ -49,7 +49,7 @@ export default function Footer() {
               <li>
                 <button
                   type="button"
-                  className="btn btn-link p-0 text-decoration-none text-muted"
+                  className="border-0 bg-transparent p-0 text-decoration-none text-muted"
                   onClick={() => setIsContactModalOpen(true)}
                 >
                   {footer.contact}
@@ -69,7 +69,11 @@ export default function Footer() {
                 </li>
               ))}
               <li>
-                <button type="button" className="btn btn-link p-0 text-decoration-none text-muted" onClick={openPreferencesModal}>
+                <button
+                  type="button"
+                  className="border-0 bg-transparent p-0 text-decoration-none text-muted"
+                  onClick={openPreferencesModal}
+                >
                   {footer.cookieSettings}
                 </button>
               </li>

@@ -81,7 +81,7 @@ export default function Navbar() {
                         </Link>
                       </li>
                     )}
-                    {!funnelModeEnabled && (
+                    {!funnelModeEnabled && !isAdmin && (
                       <li>
                         <Link className="dropdown-item" to="/profile/favorites">
                           {favoritesCopy.title}

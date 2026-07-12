@@ -24,13 +24,8 @@ export default function CartTotalsSummary({ totals }: CartTotalsSummaryProps) {
           </div>
         )}
 
-        <div className="d-flex justify-content-between small mb-2">
-          <span className="text-muted">{cartCopy.shipping}</span>
-          <span className="text-muted">{cartCopy.shippingCalculatedLater}</span>
-        </div>
-
         <div className="d-flex justify-content-between small mb-3">
-          <span className="text-muted">{cartCopy.tax}</span>
+          <span className="text-muted">{cartCopy.shipping}</span>
           <span className="text-muted">{cartCopy.shippingCalculatedLater}</span>
         </div>
 

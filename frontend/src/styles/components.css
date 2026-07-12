@@ -49,16 +49,38 @@
 }
 
 /*
- * The mini-cart dropdown was a fixed 320px wide — Bootstrap's Popper
- * positioning can shift it to try to stay in the viewport, but it can't
- * shrink it, so on any screen narrower than ~350px (plus the cart button
- * sitting near the right edge on mobile, since dropdown-menu-end anchors
- * its right edge to the button) the menu's left edge went off-screen.
- * min() caps the width to whatever actually fits, with 1rem of breathing
- * room on each side.
+ * The mini-cart dropdown was a fixed 320px wide, which doesn't fit on
+ * narrow screens on its own. min() caps it to whatever actually fits,
+ * with 1rem of breathing room on each side.
  */
 .minicart-dropdown {
   width: min(320px, calc(100vw - 2rem));
+}
+
+/*
+ * Bootstrap disables Popper's own positioning for dropdowns inside a
+ * .navbar (see dropdown.js's _inNavbar/applyStyles:false) and falls back
+ * to plain CSS: .dropdown-menu-end's `right:0` resolves against the
+ * nearest positioned ancestor, which by default is the immediate
+ * `.dropdown` wrapper — i.e. the cart button itself, not the navbar. On
+ * mobile the profile button/dropdown sits to the cart button's right, so
+ * that button never reaches the screen's right edge, and anchoring there
+ * still runs the menu off the left edge even at the width cap above.
+ * Reverting the wrapper to position:static below makes `right:0` resolve
+ * against the next positioned ancestor up instead — the full-width,
+ * position:sticky <nav> — so the menu is always flush with the screen's
+ * actual edges.
+ */
+@media (max-width: 575.98px) {
+  .minicart-wrapper {
+    position: static;
+  }
+
+  .minicart-dropdown {
+    /* !important: must outrank .dropdown-menu-end[data-bs-popper]'s
+       right:0, which has higher selector specificity than a single class. */
+    right: 1rem !important;
+  }
 }
 
 /* ---- Footer ---- */

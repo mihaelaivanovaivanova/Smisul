@@ -34,7 +34,7 @@ export default function ProfilePage() {
               {ordersCopy.title}
             </Link>
           )}
-          {!funnelModeEnabled && (
+          {!funnelModeEnabled && !isAdmin && (
             <Link to="/profile/favorites" className="btn btn-outline-primary">
               {favoritesCopy.title}
             </Link>

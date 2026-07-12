@@ -20,6 +20,7 @@ import OrderReviewStep from '../components/checkout/OrderReviewStep';
 import PaymentStep from '../components/checkout/PaymentStep';
 import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import IcardModal from '../components/checkout/IcardModal';
+import { isValidBgMobile } from '../utils/phone';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
 import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
 import type { Payment, PaymentMethodValue } from '../types/payment';
@@ -173,7 +174,11 @@ export default function CheckoutPage() {
     if (!customer.first_name.trim()) stepErrors['customer.first_name'] = checkoutCopy.errors.firstNameRequired;
     if (!customer.last_name.trim()) stepErrors['customer.last_name'] = checkoutCopy.errors.lastNameRequired;
     if (!EMAIL_PATTERN.test(customer.email)) stepErrors['customer.email'] = checkoutCopy.errors.emailRequired;
-    if (!customer.phone.trim()) stepErrors['customer.phone'] = checkoutCopy.errors.phoneRequired;
+    if (!customer.phone.trim()) {
+      stepErrors['customer.phone'] = checkoutCopy.errors.phoneRequired;
+    } else if (!isValidBgMobile(customer.phone)) {
+      stepErrors['customer.phone'] = checkoutCopy.errors.phoneInvalid;
+    }
 
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;

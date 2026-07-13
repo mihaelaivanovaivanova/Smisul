@@ -16,6 +16,40 @@ desktop.ini
 
 # Logs
 *.log
+
+# Staging deployment and server-only runtime state
+/.build/
+/Backend/config.php
+/Backend/config.staging.php
+/backend/config.php
+/backend/config.staging.php
+/backend/.env
+/backend/.env.*
+!/backend/.env.example
+/database/backups/
+/Backend/database/backups/
+/backend/database/backups/
+/Backend/storage/logs/
+/backend/storage/logs/
+/Backend/storage/framework/cache/
+/backend/storage/framework/cache/
+/Backend/storage/framework/sessions/
+/backend/storage/framework/sessions/
+/Backend/storage/framework/views/
+/backend/storage/framework/views/
+/Backend/storage/app/public/
+/backend/storage/app/public/
+/Backend/storage/app/private/
+/backend/storage/app/private/
+/Backend/storage/icard/
+/backend/storage/icard/
+/root/logs/
+/root/cache/
+/root/uploads/
+/root/assets/uploads/
+/node_modules/
+/Backend/vendor/
+/backend/vendor/
 # Generated SuperHosting deployment artifacts
 /release-superhosting/
 /smisul-superhosting.zip

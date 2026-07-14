@@ -74,8 +74,58 @@ STAGING_FTP_REMOTE_BACKEND="$(normalize_remote "$STAGING_FTP_REMOTE_BACKEND")"
 validate_remote "$STAGING_FTP_REMOTE_ROOT" STAGING_FTP_REMOTE_ROOT
 validate_remote "$STAGING_FTP_REMOTE_BACKEND" STAGING_FTP_REMOTE_BACKEND
 
+# Joins a remote directory and a bare filename with exactly one slash,
+# regardless of whether the directory already ends in one.
+remote_path() {
+  local dir="$1" name="$2"
+  case "$dir" in
+    */) printf '%s%s' "$dir" "$name" ;;
+    *) printf '%s/%s' "$dir" "$name" ;;
+  esac
+}
+
+# vendor/ dominates every deploy's file count but only actually changes
+# when composer.lock changes. A remote marker holding the sha256 of the
+# composer.lock we last deployed lets us skip re-scanning/re-uploading
+# vendor/ entirely when it's unchanged — this is the single biggest
+# recurring cost on a shared FTPS host with no way to run a remote diff.
+REMOTE_LOCK_MARKER="$(remote_path "$STAGING_FTP_REMOTE_BACKEND" .composer-lock-sha256)"
+LOCAL_LOCK_HASH="$(sha256sum .build/staging-backend/composer.lock | awk '{print $1}')"
+FETCHED_LOCK_MARKER=".build/.remote-composer-lock-sha256"
+rm -f "$FETCHED_LOCK_MARKER"
+
 echo 'Deployment started.'
 echo 'Connecting to staging.'
+
+# Best-effort: the marker won't exist on a first deploy, and any other
+# failure here just means we fall back to deploying vendor/ in full —
+# never fatal to the overall deployment.
+lftp -u "$STAGING_FTP_USERNAME","$STAGING_FTP_PASSWORD" -p "$STAGING_FTP_PORT" "$STAGING_FTP_SERVER" <<LFTP || true
+set ftp:ssl-force true
+set ftp:ssl-protect-data true
+set ssl:verify-certificate false
+set net:timeout 20
+get "$REMOTE_LOCK_MARKER" -o "$FETCHED_LOCK_MARKER"
+bye
+LFTP
+
+SKIP_VENDOR=no
+if [[ -f "$FETCHED_LOCK_MARKER" ]]; then
+  REMOTE_LOCK_HASH="$(tr -d '[:space:]' < "$FETCHED_LOCK_MARKER")"
+  [[ "$REMOTE_LOCK_HASH" == "$LOCAL_LOCK_HASH" ]] && SKIP_VENDOR=yes
+fi
+rm -f "$FETCHED_LOCK_MARKER"
+
+VENDOR_EXCLUDE=()
+if [[ "$SKIP_VENDOR" == yes ]]; then
+  echo 'composer.lock unchanged since last deploy — skipping vendor/.'
+  VENDOR_EXCLUDE=(--exclude-glob=vendor --exclude-glob=vendor/**)
+else
+  echo 'composer.lock changed (or no prior deploy found) — deploying vendor/ in full.'
+fi
+
+LOCAL_LOCK_HASH_FILE=".build/.composer-lock-sha256"
+printf '%s' "$LOCAL_LOCK_HASH" > "$LOCAL_LOCK_HASH_FILE"
 
 lftp -u "$STAGING_FTP_USERNAME","$STAGING_FTP_PASSWORD" -p "$STAGING_FTP_PORT" "$STAGING_FTP_SERVER" <<LFTP
 set cmd:fail-exit true
@@ -99,7 +149,9 @@ pwd
 echo Deploying staging root.
 mirror --reverse -v --parallel=1 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
 echo Deploying staging Backend.
-mirror --reverse -v --parallel=1 --no-perms --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
+mirror --reverse -v --parallel=1 --no-perms "${VENDOR_EXCLUDE[@]}" --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
+echo Updating composer.lock marker.
+put "$LOCAL_LOCK_HASH_FILE" -o "$REMOTE_LOCK_MARKER"
 bye
 LFTP
 

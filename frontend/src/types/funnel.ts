@@ -1,101 +1,82 @@
+import type { IconName } from '../components/icons/Icon';
+
+export interface FunnelTrustItem {
+  icon: IconName;
+  label: string;
+}
+
 export interface FunnelHeroContent {
-  badge: string;
   title: string;
   body: string;
-  highlight: string;
   cta_primary: string;
   cta_secondary: string;
-  bullets: string[];
+  trust_items: FunnelTrustItem[];
 }
 
-export interface FunnelDarkBandContent {
-  eyebrow: string;
+export interface FunnelIntroContent {
   title: string;
   paragraphs: string[];
-  highlight: string;
 }
 
-export interface FunnelProblemContent {
-  eyebrow: string;
-  title: string;
-  body: string;
-  emphasis: string;
-  bullets: string[];
-  cta: string;
-}
-
-export interface FunnelBenefitCard {
-  title: string;
-  text: string;
-  emphasis: string;
-}
-
-export interface FunnelBenefitsContent {
-  eyebrow: string;
-  title: string;
-  cards: FunnelBenefitCard[];
-}
-
-export interface FunnelIngredientCard {
+export interface FunnelWhyCard {
+  icon: IconName;
   title: string;
   text: string;
 }
 
-export interface FunnelIngredientsContent {
-  eyebrow: string;
+export interface FunnelWhyContent {
   title: string;
-  cards: FunnelIngredientCard[];
-  closing_line: string;
+  cards: FunnelWhyCard[];
 }
 
-export interface FunnelStep {
-  title: string;
-  text: string;
+export interface FunnelHistoryStat {
+  icon: IconName;
+  label: string;
 }
 
-export interface FunnelRitualContent {
-  eyebrow: string;
+export interface FunnelHistoryContent {
   title: string;
-  lines: string[];
+  paragraphs: string[];
+  stats: FunnelHistoryStat[];
+}
+
+export interface FunnelFeatureItem {
+  label: string;
+}
+
+export interface FunnelFeaturesContent {
+  title: string;
+  items: FunnelFeatureItem[];
+}
+
+export interface FunnelFromTreeStep {
+  label: string;
+}
+
+export interface FunnelFromTreeContent {
+  title: string;
+  paragraphs: string[];
+  steps: FunnelFromTreeStep[];
+}
+
+export interface FunnelAwarenessContent {
+  title: string;
+  paragraphs: string[];
+}
+
+export interface FunnelFinalCtaContent {
+  title: string;
+  paragraphs: string[];
   cta: string;
-  steps: FunnelStep[];
-}
-
-export interface FunnelHowToContent {
-  eyebrow: string;
-  title: string;
-  steps: FunnelStep[];
-  note: string;
-}
-
-export interface FunnelPackagesIntroContent {
-  eyebrow: string;
-  title: string;
-  intro: string;
-}
-
-export interface FunnelLabelsContent {
-  eyebrow: string;
-  title: string;
-  lines: string[];
-  body: string;
-  cta: string;
-}
-
-export interface FunnelQuote {
-  name: string;
-  quote: string;
-}
-
-export interface FunnelTestimonialsContent {
-  eyebrow: string;
-  title: string;
-  quotes: FunnelQuote[];
+  trust_items: FunnelTrustItem[];
 }
 
 export interface FunnelFaqItem {
   question: string;
   answer: string;
+  /** Optional download link shown under the answer — empty string means none. */
+  attachment_url: string;
+  attachment_label: string;
 }
 
 export interface FunnelFaqContent {
@@ -103,28 +84,16 @@ export interface FunnelFaqContent {
   items: FunnelFaqItem[];
 }
 
-export interface FunnelFinalCtaContent {
-  eyebrow: string;
-  title: string;
-  lines: string[];
-  body: string;
-  trust_line: string;
-  cta: string;
-}
-
 export interface FunnelContent {
   hero: FunnelHeroContent;
-  dark_band: FunnelDarkBandContent;
-  problem: FunnelProblemContent;
-  benefits: FunnelBenefitsContent;
-  ingredients: FunnelIngredientsContent;
-  ritual: FunnelRitualContent;
-  how_to: FunnelHowToContent;
-  packages_intro: FunnelPackagesIntroContent;
-  labels: FunnelLabelsContent;
-  testimonials: FunnelTestimonialsContent;
-  faq: FunnelFaqContent;
+  intro: FunnelIntroContent;
+  why: FunnelWhyContent;
+  history: FunnelHistoryContent;
+  features: FunnelFeaturesContent;
+  from_tree: FunnelFromTreeContent;
+  awareness: FunnelAwarenessContent;
   final_cta: FunnelFinalCtaContent;
+  faq: FunnelFaqContent;
 }
 
 export type FunnelSection = keyof FunnelContent;

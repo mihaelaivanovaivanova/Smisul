@@ -8,6 +8,9 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -126,13 +129,11 @@ class FunnelAdminTest extends TestCase
         $admin = User::factory()->administrator()->create();
 
         $response = $this->actingAs($admin)->putJson('/api/v1/admin/funnel/content/hero', [
-            'badge' => 'New badge',
             'title' => 'New title',
             'body' => 'New body',
-            'highlight' => 'New highlight',
             'cta_primary' => 'Buy now',
             'cta_secondary' => 'Learn more',
-            'bullets' => ['One', 'Two'],
+            'trust_items' => [['icon' => 'leaf', 'label' => 'One'], ['icon' => 'truck', 'label' => 'Two']],
         ]);
 
         $response->assertOk();
@@ -148,7 +149,7 @@ class FunnelAdminTest extends TestCase
     {
         $admin = User::factory()->administrator()->create();
 
-        $this->actingAs($admin)->putJson('/api/v1/admin/funnel/content/hero', ['badge' => 'Only badge'])
+        $this->actingAs($admin)->putJson('/api/v1/admin/funnel/content/hero', ['title' => 'Only title'])
             ->assertUnprocessable();
     }
 
@@ -176,6 +177,54 @@ class FunnelAdminTest extends TestCase
 
         $this->actingAs($admin)->putJson('/api/v1/admin/funnel/content/not-a-section', ['foo' => 'bar'])
             ->assertNotFound();
+    }
+
+    #[Test]
+    public function an_administrator_can_upload_a_faq_attachment_pdf(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrator()->create();
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/funnel/faq-attachment', [
+            'file' => UploadedFile::fake()->create('manual.pdf', 500, 'application/pdf'),
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['data' => ['url', 'filename']]);
+        $path = Str::after($response->json('data.url'), '/storage/');
+        Storage::disk('public')->assertExists($path);
+    }
+
+    #[Test]
+    public function a_non_pdf_faq_attachment_is_rejected(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrator()->create();
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/funnel/faq-attachment', [
+            'file' => UploadedFile::fake()->image('manual.jpg'),
+        ])->assertUnprocessable();
+    }
+
+    #[Test]
+    public function a_customer_cannot_upload_a_faq_attachment(): void
+    {
+        Storage::fake('public');
+        $customer = User::factory()->create();
+
+        $this->actingAs($customer)->postJson('/api/v1/admin/funnel/faq-attachment', [
+            'file' => UploadedFile::fake()->create('manual.pdf', 500, 'application/pdf'),
+        ])->assertForbidden();
+    }
+
+    #[Test]
+    public function a_guest_cannot_upload_a_faq_attachment(): void
+    {
+        Storage::fake('public');
+
+        $this->postJson('/api/v1/admin/funnel/faq-attachment', [
+            'file' => UploadedFile::fake()->create('manual.pdf', 500, 'application/pdf'),
+        ])->assertUnauthorized();
     }
 
     /**

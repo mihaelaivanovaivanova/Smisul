@@ -145,7 +145,7 @@ export default function Navbar() {
             <a href="#how" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.howTo}
             </a>
-            <a href="#packages" className="text-decoration-none text-muted fw-semibold">
+            <a href="#buy" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.products}
             </a>
             <a href="#faq" className="text-decoration-none text-muted fw-semibold">

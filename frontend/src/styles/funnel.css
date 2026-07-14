@@ -1,0 +1,553 @@
+/*
+ * Styles for the funnel landing page (FunnelLandingPage.tsx) only — every
+ * rule is scoped under .funnel-page so nothing here can bleed into the
+ * normal storefront (HomePage.tsx etc.), which has its own hero/card
+ * styles in components.css that these deliberately don't touch.
+ */
+
+.funnel-page {
+  overflow-x: hidden;
+}
+
+.funnel-page .funnel-eyebrow-accent {
+  color: var(--color-terracotta);
+}
+
+/* Bootstrap's .lead defaults to 1.25rem — a touch large across this
+   page's body copy (hero, intro, why cards, history, from_tree all use
+   .section-lead.lead together). Scoped to .funnel-page so the rest of
+   the storefront's own .lead usage (HomePage, AboutPage, etc.) is
+   unaffected. */
+.funnel-page .lead {
+  font-size: var(--fs-md);
+}
+
+/* Thin full-width rule at the top of every section (except the hero) —
+   marks the start of a new section even when two consecutive sections
+   share the same background color (e.g. hero-tone panels), where the
+   color alone wouldn't show a boundary. */
+.funnel-divided-section {
+  border-top: 1px solid var(--color-border);
+}
+
+.funnel-divided-section--dark {
+  border-top-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ---- Hero ---- */
+
+.funnel-hero {
+  background-color: var(--color-cream);
+  /* Sits right below the sticky navbar — no top breathing room, unlike a
+     normal mid-page .section. Bottom padding is also trimmed so the next
+     section follows closely, matching the reference's tight section
+     spacing, instead of stacking this section's bottom padding on top of
+     the next section's own top padding. */
+  padding-top: 0;
+  padding-bottom: var(--space-5);
+}
+
+/* Shared by the hero, "Не винаги новото", and "Защо милиони хора" sections
+   — same cream background throughout, and no top padding on any of them,
+   so each one's content starts right where the previous section's
+   (already-trimmed) bottom padding ends instead of stacking a second gap
+   on top of it. Together the three read as one continuous panel. */
+.funnel-hero-tone {
+  background-color: var(--color-cream);
+  padding-top: 0;
+  padding-bottom: var(--space-5);
+}
+
+.funnel-hero__title {
+  font-size: var(--fs-2xl);
+  line-height: 1.15;
+  white-space: pre-line;
+}
+
+@media (min-width: 768px) {
+  .funnel-hero__title {
+    font-size: var(--fs-3xl);
+  }
+}
+
+.funnel-trust-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 576px) {
+  .funnel-trust-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.funnel-trust-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-3);
+}
+
+.funnel-trust-item__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background-color: var(--color-sage-light, rgba(139, 150, 120, 0.18));
+  color: var(--color-forest);
+}
+
+/* The cropped icon PNGs already have their own circular background baked
+   in (see public/funnel/v2) — skip drawing a second one behind them. */
+.funnel-trust-item__icon--photo {
+  background-color: transparent;
+}
+
+.funnel-trust-item__icon--photo img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.funnel-trust-item__label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: pre-line;
+  line-height: 1.25;
+}
+
+/* ---- Generic section image ---- */
+
+.funnel-photo {
+  overflow: hidden;
+}
+
+.funnel-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.funnel-hero__image {
+  /* Fades into the section background only on the left edge — the right
+     edge stays a normal, unfaded photo edge, matching the reference.
+     Overrides .funnel-photo's card treatment (radius/shadow/hard clip).
+     Must come after .funnel-photo in the cascade to win on equal
+     specificity, since both classes are applied to the same element. */
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
+  mask-image: linear-gradient(to right, transparent, #000 22%);
+}
+
+/* ---- "Why" cards ---- */
+
+/* Bootstrap's gutter utilities cap at g-5 (3rem) — go a bit wider still. */
+@media (min-width: 768px) {
+  .funnel-why-row {
+    --bs-gutter-x: 4.5rem;
+  }
+}
+
+/* Card text length varies per column, so the photos would otherwise start
+   at different heights. Bootstrap's row already stretches each .col to
+   the tallest column's height — make the column a flex column and push
+   the photo to the bottom via margin-top:auto so all 3 photos share the
+   same bottom edge, aligned to whichever card has the most text. */
+.funnel-why-row > .col {
+  display: flex;
+  flex-direction: column;
+}
+
+.funnel-why-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.funnel-why-card h3 {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+
+/* Card copy length varies — clamp to the 3 lines the two shorter cards
+   already render at, so all 3 card texts share the same height instead
+   of the longer one pushing its photo further down than the others. */
+.funnel-why-card p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.funnel-why-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-forest);
+  color: var(--color-forest);
+}
+
+.funnel-why-card__icon svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* The cropped icon PNGs already have a transparent background (see
+   public/funnel/v2) — no extra treatment needed, just size to fill the
+   circle like the SVG icons do. */
+.funnel-why-card__icon--photo img {
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+}
+
+.funnel-why-card__photo {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: var(--radius-md);
+  margin-top: auto;
+}
+
+/* The text column is naturally taller than the image, so with
+   align-items-center (needed to keep the image vertically centered
+   instead of pinned to the row's top) the text ends up flush with the
+   row's top edge while the (shorter, centered) image starts lower down.
+   Push the text down by the same amount the image is inset by, so their
+   tops line up, without moving the image. */
+@media (min-width: 992px) {
+  .funnel-history__text {
+    padding-top: 2rem;
+  }
+}
+
+/* ---- History stats ---- */
+
+.funnel-stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .funnel-stat-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.funnel-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.funnel-stat-item__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: var(--color-sand);
+  color: var(--color-forest);
+}
+
+/* The cropped icon PNGs (see public/funnel/v2) have a transparent
+   background but no baked-in circle — keep the CSS-drawn sand circle
+   behind them, just size the icon art to fit inside it. */
+.funnel-stat-item__icon--photo img {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+}
+
+.funnel-stat-item__label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--color-muted);
+  max-width: 10rem;
+}
+
+/* ---- Features (icon-crop grid) ---- */
+
+.funnel-feature-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4) var(--space-3);
+}
+
+@media (min-width: 576px) {
+  .funnel-feature-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .funnel-feature-row {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+.funnel-features {
+  padding-block: var(--space-5);
+}
+
+.funnel-final-cta {
+  padding-block: 0;
+}
+
+.funnel-faq {
+  padding-block: var(--space-4);
+}
+
+/* Right-aligns the (now fixed-size, see .funnel-final-cta__image) photo
+   within its column instead of letting it sit flush at the column's
+   left edge, so the extra margin-right below can bleed it the rest of
+   the way to the section's edge without also growing the photo itself. */
+.funnel-final-cta__photo-col {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* A fixed width — independent of the column's own width — keeps this
+   photo's on-screen size stable while .funnel-final-cta__photo-col right
+   -aligns it and this negative margin-right bleeds it further out to
+   the section's right edge. Fades into the cream background only on the
+   left edge, where it meets the text — same one-sided technique as
+   .funnel-hero__image, mirrored. No fixed height: this photo has no
+   aspect-ratio set, so height naturally follows the fixed width to
+   preserve the source photo's full proportions uncropped. Overrides
+   .funnel-photo's card treatment (radius/shadow/hard clip) — must come
+   after .funnel-photo in the cascade to win on equal specificity, since
+   both classes are applied to the same element. */
+.funnel-final-cta__image {
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  width: 31rem;
+  margin-right: -9rem;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
+  mask-image: linear-gradient(to right, transparent, #000 22%);
+}
+
+/* Let the basket photo bleed to the section's own top and bottom edges
+   instead of sitting centered with cream space above/below it — the row
+   drops align-items-center (default stretch) so this column matches the
+   text column's full height, and removing this section's own bottom
+   padding (top is already 0 via .funnel-hero-tone) lets that stretched
+   image reach all the way down too. */
+.funnel-from-tree {
+  padding-bottom: 0;
+}
+
+.funnel-tick {
+  color: var(--color-forest);
+  font-weight: 700;
+}
+
+/* The photo column still stretches to the text column's full height
+   (see .funnel-from-tree above), but the photo itself is set to a bit
+   less than 100% of that — center it in the leftover space rather than
+   pinning it to the top. */
+.funnel-from-tree__photo-col {
+  display: flex;
+  align-items: center;
+}
+
+.funnel-feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+/* All 8 crops (see public/funnel/v2) have their tan fill stripped back
+   to a transparent glyph-only PNG — draw one uniform circle color here
+   instead of relying on each source image's own (slightly inconsistent)
+   baked-in badge shade. */
+.funnel-feature-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #e3e2d1;
+}
+
+/* object-fit:contain at a fixed scale (rather than cover at 100%) keeps
+   every glyph the same visual size regardless of how tightly each one
+   was cropped — a glyph that touches its own bounding box edges (e.g.
+   the plane) would otherwise render larger than one with more built-in
+   padding (e.g. the leaf). */
+.funnel-feature-item__icon img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
+
+.funnel-feature-item__label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* ---- From tree ---- */
+
+.funnel-step-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 576px) {
+  .funnel-step-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.funnel-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.funnel-step-item__icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.funnel-step-item__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.funnel-step-item__label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* ---- Dark awareness band ---- */
+
+.funnel-awareness {
+  background-color: var(--color-forest-dark);
+  color: #fff;
+  padding-block: 0;
+}
+
+.funnel-awareness h2 {
+  color: #fff;
+  white-space: pre-line;
+}
+
+.funnel-awareness p {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Fades into the dark band's own background on both the left and right
+   edges, so the photo blends in rather than having a hard-clipped
+   rectangular edge. The column now sits first (left) in the mirrored
+   layout, so the extra width bleeds toward the section's left edge
+   (negative margin-left) instead of the right — the right edge stays
+   anchored where the column naturally ends, next to the text. Overrides
+   .funnel-photo's card treatment (radius/shadow/hard clip) — must come
+   after .funnel-photo in the cascade to win on equal specificity, since
+   both classes are applied to the same element. */
+.funnel-awareness__image {
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  width: 178%;
+  margin-left: -78%;
+  height: 21rem;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+}
+
+/* ---- FAQ (horizontal toggle row) ---- */
+
+/* 3 columns, items stacked top-to-bottom within each column (reading
+   order: fills column 1 fully, then column 2, then column 3) instead of
+   wrapping left-to-right by button width. */
+.funnel-faq-row {
+  columns: 3;
+  column-gap: var(--space-3);
+}
+
+/* Cosmetic look (colors, border, radius, shadow, hover lift) comes from
+   the shared .btn/.btn-outline-secondary classes now applied alongside
+   this one — see hero's "НАУЧИ ПОВЕЧЕ" secondary CTA for the same
+   combo. Only layout concerns (full-width flex row, column-stacking)
+   stay here. */
+.funnel-faq-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  break-inside: avoid;
+  margin-bottom: var(--space-2);
+}
+
+.funnel-faq-toggle.is-active {
+  border-color: var(--color-forest);
+  background-color: rgba(36, 54, 44, 0.06);
+  color: var(--color-forest-dark);
+}
+
+.funnel-faq-answer {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+}
+
+.funnel-faq-answer__attachment {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-weight: 700;
+  color: var(--color-forest);
+  text-decoration: underline;
+}
+
+.funnel-faq-answer__attachment:hover {
+  color: var(--color-forest-dark);
+}
+
+/* ---- Sticky mobile buy bar ---- */
+
+.funnel-sticky-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-2);
+}

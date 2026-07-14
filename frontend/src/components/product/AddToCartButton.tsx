@@ -12,6 +12,10 @@ interface AddToCartButtonProps {
   inventory: Inventory | null | undefined;
   /** Icon-only button + smaller stepper, for tight spaces like listing cards. */
   compact?: boolean;
+  /** Larger button (btn-lg) — e.g. the funnel page's final CTA. */
+  large?: boolean;
+  /** Hides the quantity stepper — always adds 1. */
+  hideQuantity?: boolean;
   /** Overrides the button's text (non-compact only) — e.g. the funnel page's per-package "Вземи стартов пакет" copy. */
   label?: string;
   /** Fired after a successful add — e.g. the funnel landing page's conversion tracking. */
@@ -39,7 +43,15 @@ const BACKORDER_SOFT_MAX = 10;
  * changes, so quantity/pending/error/success state never leaks from one
  * variant's attempt onto another.
  */
-export default function AddToCartButton({ productVariantId, inventory, compact = false, label, onAdded }: AddToCartButtonProps) {
+export default function AddToCartButton({
+  productVariantId,
+  inventory,
+  compact = false,
+  large = false,
+  hideQuantity = false,
+  label,
+  onAdded,
+}: AddToCartButtonProps) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isPending, setIsPending] = useState(false);
@@ -74,10 +86,10 @@ export default function AddToCartButton({ productVariantId, inventory, compact =
   return (
     <div>
       <div className={`d-flex align-items-center ${compact ? 'gap-2 mb-1' : 'gap-3 mb-2'}`}>
-        <QuantityStepper quantity={quantity} max={maxQuantity} disabled={isPending} onChange={setQuantity} />
+        {!hideQuantity && <QuantityStepper quantity={quantity} max={maxQuantity} disabled={isPending} onChange={setQuantity} />}
         <button
           type="button"
-          className={`btn btn-primary ${compact ? 'btn-sm' : ''}`}
+          className={`btn btn-primary ${compact ? 'btn-sm' : ''} ${large ? 'btn-lg' : ''}`}
           onClick={() => void handleAdd()}
           disabled={isPending}
           aria-label={cartCopy.addToCart}

@@ -4,13 +4,13 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryControl
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
-use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\ICardConfigurationController as AdminICardConfigurationController;
+use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
-use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
 use App\Http\Controllers\Api\V1\Admin\PaymentOperationController as AdminPaymentOperationController;
+use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVariantController;
@@ -302,5 +302,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/funnel/content/{section}', [AdminFunnelController::class, 'updateContent'])
             ->where('section', implode('|', FunnelContentService::FUNNEL_SECTIONS))
             ->name('funnel.content.update');
+        Route::post('/funnel/faq-attachment', [AdminFunnelController::class, 'uploadFaqAttachment'])
+            ->name('funnel.faq-attachment.upload');
     });
 });

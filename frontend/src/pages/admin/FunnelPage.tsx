@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import {
   fetchAdminFunnel,
   toggleFunnel,
   updateFunnelContentSection,
   updateFunnelPackages,
+  uploadFunnelFaqAttachment,
 } from '../../api/admin/funnel';
 import { createProduct, fetchAdminProduct, fetchAdminProducts, updateProduct } from '../../api/admin/products';
 import type { ProductPayload } from '../../api/admin/products';
@@ -20,35 +21,30 @@ import type { Media, ProductStatus, ProductVariant } from '../../types/product';
 import type { AdminProduct } from '../../types/admin';
 import type {
   FunnelAdminPayload,
-  FunnelBenefitsContent,
-  FunnelDarkBandContent,
   FunnelFaqContent,
+  FunnelFaqItem,
+  FunnelFeaturesContent,
   FunnelFinalCtaContent,
+  FunnelFromTreeContent,
   FunnelHeroContent,
-  FunnelHowToContent,
-  FunnelIngredientsContent,
-  FunnelLabelsContent,
+  FunnelHistoryContent,
+  FunnelIntroContent,
+  FunnelAwarenessContent,
   FunnelPackage,
-  FunnelPackagesIntroContent,
-  FunnelProblemContent,
-  FunnelRitualContent,
   FunnelSection,
-  FunnelTestimonialsContent,
+  FunnelWhyContent,
 } from '../../types/funnel';
 
 const TABS: { key: FunnelSection; label: string }[] = [
   { key: 'hero', label: 'Hero' },
-  { key: 'dark_band', label: 'Dark band' },
-  { key: 'problem', label: 'Problem' },
-  { key: 'benefits', label: 'Benefits' },
-  { key: 'ingredients', label: 'Ingredients' },
-  { key: 'ritual', label: 'Ritual' },
-  { key: 'how_to', label: 'How to use' },
-  { key: 'packages_intro', label: 'Packages intro' },
-  { key: 'labels', label: 'Read the labels' },
-  { key: 'testimonials', label: 'Testimonials' },
-  { key: 'faq', label: 'FAQ' },
+  { key: 'intro', label: 'Intro' },
+  { key: 'why', label: 'Why Miswak' },
+  { key: 'history', label: 'History' },
+  { key: 'features', label: 'Features' },
+  { key: 'from_tree', label: 'From tree to you' },
+  { key: 'awareness', label: 'Awareness band' },
   { key: 'final_cta', label: 'Final CTA' },
+  { key: 'faq', label: 'FAQ' },
 ];
 
 type TabKey = FunnelSection | 'packages';
@@ -84,10 +80,12 @@ function RepeatableStringList({
   label,
   values,
   onChange,
+  minItems = 1,
 }: {
   label: string;
   values: string[];
   onChange: (values: string[]) => void;
+  minItems?: number;
 }) {
   return (
     <div className="mb-3">
@@ -103,7 +101,7 @@ function RepeatableStringList({
           <button
             type="button"
             className="btn btn-outline-danger"
-            disabled={values.length <= 1}
+            disabled={values.length <= minItems}
             onClick={() => onChange(values.filter((_, i) => i !== index))}
           >
             &times;
@@ -123,12 +121,14 @@ function RepeatableObjectList<T extends Record<string, string>>({
   onChange,
   fields,
   emptyItem,
+  minItems = 1,
 }: {
   label: string;
   items: T[];
   onChange: (items: T[]) => void;
   fields: { key: keyof T; placeholder: string }[];
   emptyItem: T;
+  minItems?: number;
 }) {
   return (
     <div className="mb-3">
@@ -152,7 +152,7 @@ function RepeatableObjectList<T extends Record<string, string>>({
             <button
               type="button"
               className="btn btn-outline-danger btn-sm"
-              disabled={items.length <= 1}
+              disabled={items.length <= minItems}
               onClick={() => onChange(items.filter((_, i) => i !== index))}
             >
               &times;
@@ -210,122 +210,88 @@ function SectionForm<T>({ section, initial, onSaved, children }: SectionFormProp
   );
 }
 
+const ICON_HINT = 'Icon name — see IconName in src/components/icons/Icon.tsx (e.g. leaf, recycle, truck)';
+
 function HeroForm({ initial, onSaved }: { initial: FunnelHeroContent; onSaved: () => void }) {
   return (
     <SectionForm section="hero" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Badge" value={value.badge} onChange={(v) => setValue({ ...value, badge: v })} />
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} multiline />
           <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
-          <TextField label="Highlight" value={value.highlight} onChange={(v) => setValue({ ...value, highlight: v })} />
           <TextField label="Primary button text" value={value.cta_primary} onChange={(v) => setValue({ ...value, cta_primary: v })} />
           <TextField label="Secondary button text" value={value.cta_secondary} onChange={(v) => setValue({ ...value, cta_secondary: v })} />
-          <RepeatableStringList label="Trust bullets" values={value.bullets} onChange={(bullets) => setValue({ ...value, bullets })} />
+          <div className="form-text mb-2">{ICON_HINT}</div>
+          <RepeatableObjectList
+            label="Trust items"
+            items={value.trust_items}
+            onChange={(trust_items) => setValue({ ...value, trust_items: trust_items as FunnelHeroContent['trust_items'] })}
+            fields={[
+              { key: 'icon', placeholder: 'Icon' },
+              { key: 'label', placeholder: 'Label' },
+            ]}
+            emptyItem={{ icon: 'leaf', label: '' }}
+          />
         </>
       )}
     </SectionForm>
   );
 }
 
-function DarkBandForm({ initial, onSaved }: { initial: FunnelDarkBandContent; onSaved: () => void }) {
+function IntroForm({ initial, onSaved }: { initial: FunnelIntroContent; onSaved: () => void }) {
   return (
-    <SectionForm section="dark_band" initial={initial} onSaved={onSaved}>
+    <SectionForm section="intro" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
           <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
-          <TextField label="Highlight" value={value.highlight} onChange={(v) => setValue({ ...value, highlight: v })} />
         </>
       )}
     </SectionForm>
   );
 }
 
-function ProblemForm({ initial, onSaved }: { initial: FunnelProblemContent; onSaved: () => void }) {
+function WhyForm({ initial, onSaved }: { initial: FunnelWhyContent; onSaved: () => void }) {
   return (
-    <SectionForm section="problem" initial={initial} onSaved={onSaved}>
+    <SectionForm section="why" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
-          <TextField label="Emphasis" value={value.emphasis} onChange={(v) => setValue({ ...value, emphasis: v })} />
-          <RepeatableStringList label="Bullets" values={value.bullets} onChange={(bullets) => setValue({ ...value, bullets })} />
-          <TextField label="Button text" value={value.cta} onChange={(v) => setValue({ ...value, cta: v })} />
-        </>
-      )}
-    </SectionForm>
-  );
-}
-
-function BenefitsForm({ initial, onSaved }: { initial: FunnelBenefitsContent; onSaved: () => void }) {
-  return (
-    <SectionForm section="benefits" initial={initial} onSaved={onSaved}>
-      {(value, setValue) => (
-        <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <div className="form-text mb-2">{ICON_HINT}</div>
           <RepeatableObjectList
             label="Cards"
             items={value.cards}
-            onChange={(cards) => setValue({ ...value, cards })}
+            onChange={(cards) => setValue({ ...value, cards: cards as FunnelWhyContent['cards'] })}
             fields={[
-              { key: 'title', placeholder: 'Title' },
-              { key: 'text', placeholder: 'Text' },
-              { key: 'emphasis', placeholder: 'Emphasis' },
-            ]}
-            emptyItem={{ title: '', text: '', emphasis: '' }}
-          />
-        </>
-      )}
-    </SectionForm>
-  );
-}
-
-function IngredientsForm({ initial, onSaved }: { initial: FunnelIngredientsContent; onSaved: () => void }) {
-  return (
-    <SectionForm section="ingredients" initial={initial} onSaved={onSaved}>
-      {(value, setValue) => (
-        <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableObjectList
-            label="Cards"
-            items={value.cards}
-            onChange={(cards) => setValue({ ...value, cards })}
-            fields={[
+              { key: 'icon', placeholder: 'Icon' },
               { key: 'title', placeholder: 'Title' },
               { key: 'text', placeholder: 'Text' },
             ]}
-            emptyItem={{ title: '', text: '' }}
+            emptyItem={{ icon: 'leaf', title: '', text: '' }}
           />
-          <TextField label="Closing line" value={value.closing_line} onChange={(v) => setValue({ ...value, closing_line: v })} multiline />
         </>
       )}
     </SectionForm>
   );
 }
 
-function RitualForm({ initial, onSaved }: { initial: FunnelRitualContent; onSaved: () => void }) {
+function HistoryForm({ initial, onSaved }: { initial: FunnelHistoryContent; onSaved: () => void }) {
   return (
-    <SectionForm section="ritual" initial={initial} onSaved={onSaved}>
+    <SectionForm section="history" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableStringList label="Lines" values={value.lines} onChange={(lines) => setValue({ ...value, lines })} />
-          <TextField label="Button text" value={value.cta} onChange={(v) => setValue({ ...value, cta: v })} />
+          <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
+          <div className="form-text mb-2">{ICON_HINT}</div>
           <RepeatableObjectList
-            label="Steps"
-            items={value.steps}
-            onChange={(steps) => setValue({ ...value, steps })}
+            label="Stats"
+            items={value.stats}
+            onChange={(stats) => setValue({ ...value, stats: stats as FunnelHistoryContent['stats'] })}
             fields={[
-              { key: 'title', placeholder: 'Title' },
-              { key: 'text', placeholder: 'Text' },
+              { key: 'icon', placeholder: 'Icon' },
+              { key: 'label', placeholder: 'Label' },
             ]}
-            emptyItem={{ title: '', text: '' }}
+            emptyItem={{ icon: 'leaf', label: '' }}
           />
         </>
       )}
@@ -333,99 +299,55 @@ function RitualForm({ initial, onSaved }: { initial: FunnelRitualContent; onSave
   );
 }
 
-function HowToForm({ initial, onSaved }: { initial: FunnelHowToContent; onSaved: () => void }) {
+function FeaturesForm({ initial, onSaved }: { initial: FunnelFeaturesContent; onSaved: () => void }) {
   return (
-    <SectionForm section="how_to" initial={initial} onSaved={onSaved}>
+    <SectionForm section="features" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <div className="form-text mb-2">Shown against 8 fixed icon images in order — see FunnelLandingPage.tsx's featureIcons list.</div>
           <RepeatableObjectList
-            label="Steps"
-            items={value.steps}
-            onChange={(steps) => setValue({ ...value, steps })}
-            fields={[
-              { key: 'title', placeholder: 'Title' },
-              { key: 'text', placeholder: 'Text' },
-            ]}
-            emptyItem={{ title: '', text: '' }}
-          />
-          <TextField label="Note" value={value.note} onChange={(v) => setValue({ ...value, note: v })} multiline />
-        </>
-      )}
-    </SectionForm>
-  );
-}
-
-function PackagesIntroForm({ initial, onSaved }: { initial: FunnelPackagesIntroContent; onSaved: () => void }) {
-  return (
-    <SectionForm section="packages_intro" initial={initial} onSaved={onSaved}>
-      {(value, setValue) => (
-        <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <TextField label="Intro" value={value.intro} onChange={(v) => setValue({ ...value, intro: v })} multiline />
-        </>
-      )}
-    </SectionForm>
-  );
-}
-
-function LabelsForm({ initial, onSaved }: { initial: FunnelLabelsContent; onSaved: () => void }) {
-  return (
-    <SectionForm section="labels" initial={initial} onSaved={onSaved}>
-      {(value, setValue) => (
-        <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableStringList label="Lines" values={value.lines} onChange={(lines) => setValue({ ...value, lines })} />
-          <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
-          <TextField label="Button text" value={value.cta} onChange={(v) => setValue({ ...value, cta: v })} />
-        </>
-      )}
-    </SectionForm>
-  );
-}
-
-function TestimonialsForm({ initial, onSaved }: { initial: FunnelTestimonialsContent; onSaved: () => void }) {
-  return (
-    <SectionForm section="testimonials" initial={initial} onSaved={onSaved}>
-      {(value, setValue) => (
-        <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableObjectList
-            label="Quotes"
-            items={value.quotes}
-            onChange={(quotes) => setValue({ ...value, quotes })}
-            fields={[
-              { key: 'name', placeholder: 'Name' },
-              { key: 'quote', placeholder: 'Quote' },
-            ]}
-            emptyItem={{ name: '', quote: '' }}
-          />
-        </>
-      )}
-    </SectionForm>
-  );
-}
-
-function FaqForm({ initial, onSaved }: { initial: FunnelFaqContent; onSaved: () => void }) {
-  return (
-    <SectionForm section="faq" initial={initial} onSaved={onSaved}>
-      {(value, setValue) => (
-        <>
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableObjectList
-            label="Questions"
+            label="Items"
             items={value.items}
             onChange={(items) => setValue({ ...value, items })}
-            fields={[
-              { key: 'question', placeholder: 'Question' },
-              { key: 'answer', placeholder: 'Answer' },
-            ]}
-            emptyItem={{ question: '', answer: '' }}
+            fields={[{ key: 'label', placeholder: 'Label' }]}
+            emptyItem={{ label: '' }}
           />
+        </>
+      )}
+    </SectionForm>
+  );
+}
+
+function FromTreeForm({ initial, onSaved }: { initial: FunnelFromTreeContent; onSaved: () => void }) {
+  return (
+    <SectionForm section="from_tree" initial={initial} onSaved={onSaved}>
+      {(value, setValue) => (
+        <>
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
+          <div className="form-text mb-2">Shown against 3 fixed icon images in order — see FunnelLandingPage.tsx's fromTreeIcons list.</div>
+          <RepeatableObjectList
+            label="Steps"
+            items={value.steps}
+            onChange={(steps) => setValue({ ...value, steps })}
+            fields={[{ key: 'label', placeholder: 'Label' }]}
+            emptyItem={{ label: '' }}
+            minItems={0}
+          />
+        </>
+      )}
+    </SectionForm>
+  );
+}
+
+function AwarenessForm({ initial, onSaved }: { initial: FunnelAwarenessContent; onSaved: () => void }) {
+  return (
+    <SectionForm section="awareness" initial={initial} onSaved={onSaved}>
+      {(value, setValue) => (
+        <>
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} multiline />
+          <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
         </>
       )}
     </SectionForm>
@@ -437,12 +359,139 @@ function FinalCtaForm({ initial, onSaved }: { initial: FunnelFinalCtaContent; on
     <SectionForm section="final_cta" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableStringList label="Lines" values={value.lines} onChange={(lines) => setValue({ ...value, lines })} />
-          <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
-          <TextField label="Trust line" value={value.trust_line} onChange={(v) => setValue({ ...value, trust_line: v })} />
+          <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
           <TextField label="Button text" value={value.cta} onChange={(v) => setValue({ ...value, cta: v })} />
+          <div className="form-text mb-2">{ICON_HINT}</div>
+          <RepeatableObjectList
+            label="Trust items"
+            items={value.trust_items}
+            onChange={(trust_items) => setValue({ ...value, trust_items: trust_items as FunnelFinalCtaContent['trust_items'] })}
+            fields={[
+              { key: 'icon', placeholder: 'Icon' },
+              { key: 'label', placeholder: 'Label' },
+            ]}
+            emptyItem={{ icon: 'leaf', label: '' }}
+          />
+        </>
+      )}
+    </SectionForm>
+  );
+}
+
+const EMPTY_FAQ_ITEM: FunnelFaqItem = { question: '', answer: '', attachment_url: '', attachment_label: '' };
+
+function FaqItemEditor({
+  item,
+  onChange,
+  onRemove,
+  canRemove,
+}: {
+  item: FunnelFaqItem;
+  onChange: (item: FunnelFaqItem) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const uploaded = await uploadFunnelFaqAttachment(file);
+      onChange({ ...item, attachment_url: uploaded.url, attachment_label: item.attachment_label || uploaded.filename });
+    } catch (err) {
+      setUploadError(getErrorMessage(err, 'Could not upload the PDF.'));
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  return (
+    <div className="border rounded p-3 mb-3">
+      <div className="d-flex justify-content-between align-items-start mb-2">
+        <strong className="text-muted small">Question</strong>
+        <button type="button" className="btn btn-outline-danger btn-sm" disabled={!canRemove} onClick={onRemove}>
+          &times; Remove
+        </button>
+      </div>
+      <input
+        className="form-control mb-2"
+        placeholder="Question"
+        value={item.question}
+        onChange={(event) => onChange({ ...item, question: event.target.value })}
+        required
+      />
+      <textarea
+        className="form-control mb-2"
+        rows={3}
+        placeholder="Answer"
+        value={item.answer}
+        onChange={(event) => onChange({ ...item, answer: event.target.value })}
+        required
+      />
+      <label className="form-label small text-muted mb-1">Attachment (optional — shown as a download link under the answer)</label>
+      <div className="d-flex gap-2 align-items-center mb-2">
+        <input
+          className="form-control"
+          placeholder="Attachment URL"
+          value={item.attachment_url}
+          onChange={(event) => onChange({ ...item, attachment_url: event.target.value })}
+        />
+        <label className="btn btn-outline-secondary btn-sm text-nowrap mb-0">
+          {isUploading && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+          {item.attachment_url ? 'Replace PDF' : 'Upload PDF'}
+          <input type="file" accept="application/pdf" className="d-none" onChange={(event) => void handleFileSelected(event)} disabled={isUploading} />
+        </label>
+        {item.attachment_url && (
+          <button type="button" className="btn btn-outline-secondary btn-sm text-nowrap" onClick={() => onChange({ ...item, attachment_url: '', attachment_label: '' })}>
+            Clear
+          </button>
+        )}
+      </div>
+      {uploadError && <div className="alert alert-danger py-1 px-2 small">{uploadError}</div>}
+      {item.attachment_url && (
+        <input
+          className="form-control"
+          placeholder="Attachment link text"
+          value={item.attachment_label}
+          onChange={(event) => onChange({ ...item, attachment_label: event.target.value })}
+        />
+      )}
+    </div>
+  );
+}
+
+function FaqForm({ initial, onSaved }: { initial: FunnelFaqContent; onSaved: () => void }) {
+  return (
+    <SectionForm section="faq" initial={initial} onSaved={onSaved}>
+      {(value, setValue) => (
+        <>
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <label className="form-label">Questions</label>
+          {value.items.map((item, index) => (
+            <FaqItemEditor
+              key={index}
+              item={item}
+              canRemove={value.items.length > 1}
+              onChange={(next) => setValue({ ...value, items: value.items.map((it, i) => (i === index ? next : it)) })}
+              onRemove={() => setValue({ ...value, items: value.items.filter((_, i) => i !== index) })}
+            />
+          ))}
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm mb-3"
+            onClick={() => setValue({ ...value, items: [...value.items, EMPTY_FAQ_ITEM] })}
+          >
+            Add
+          </button>
         </>
       )}
     </SectionForm>
@@ -489,7 +538,9 @@ function PackagesForm({ initial, onSaved }: { initial: FunnelAdminPayload; onSav
   // (frontend/src/pages/admin/ProductsPage.tsx) — same fields, same
   // "stay open in edit mode after creation" behavior, same VariantManager/
   // ProductMediaManager — so a funnel product never has to be managed from
-  // two different screens.
+  // two different screens. Note: the current funnel landing page layout
+  // doesn't render a package grid — this stays for the underlying
+  // product/variant wiring and for a future re-introduction of packages.
   const [showProductForm, setShowProductForm] = useState(false);
   const [productFormMode, setProductFormMode] = useState<'create' | 'edit'>('create');
   const [modalProductId, setModalProductId] = useState<number | null>(null);
@@ -829,9 +880,9 @@ export default function FunnelPage() {
     <div>
       <h1 className="h3 mb-1">Funnel mode</h1>
       <p className="text-muted mb-4">
-        When enabled, the homepage ("/") is replaced by a single-product landing page built around the packages you
-        pick below, the navbar's search bar and Favorites are hidden, and /search redirects back to "/". The rest of
-        the site (categories, other products, cart, checkout) keeps working normally.
+        When enabled, the homepage ("/") is replaced by a single-product landing page, the navbar's search bar and
+        Favorites are hidden, and /search redirects back to "/". The rest of the site (categories, other products,
+        cart, checkout) keeps working normally.
       </p>
 
       {isLoading && <LoadingState message="Loading funnel config..." />}
@@ -862,7 +913,7 @@ export default function FunnelPage() {
           )}
 
           {data.product_id === null && (
-            <div className="alert alert-warning">Pick a product and its 3 packages below before turning funnel mode on.</div>
+            <div className="alert alert-warning">Pick a product below before turning funnel mode on.</div>
           )}
 
           <ul className="nav nav-tabs mb-4">
@@ -890,37 +941,24 @@ export default function FunnelPage() {
 
           {activeTab === 'packages' && <PackagesForm key="packages" initial={data} onSaved={() => setReloadKey((key) => key + 1)} />}
           {activeTab === 'hero' && <HeroForm key="hero" initial={data.content.hero} onSaved={() => setReloadKey((key) => key + 1)} />}
-          {activeTab === 'dark_band' && (
-            <DarkBandForm key="dark_band" initial={data.content.dark_band} onSaved={() => setReloadKey((key) => key + 1)} />
+          {activeTab === 'intro' && <IntroForm key="intro" initial={data.content.intro} onSaved={() => setReloadKey((key) => key + 1)} />}
+          {activeTab === 'why' && <WhyForm key="why" initial={data.content.why} onSaved={() => setReloadKey((key) => key + 1)} />}
+          {activeTab === 'history' && (
+            <HistoryForm key="history" initial={data.content.history} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
-          {activeTab === 'problem' && (
-            <ProblemForm key="problem" initial={data.content.problem} onSaved={() => setReloadKey((key) => key + 1)} />
+          {activeTab === 'features' && (
+            <FeaturesForm key="features" initial={data.content.features} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
-          {activeTab === 'benefits' && (
-            <BenefitsForm key="benefits" initial={data.content.benefits} onSaved={() => setReloadKey((key) => key + 1)} />
+          {activeTab === 'from_tree' && (
+            <FromTreeForm key="from_tree" initial={data.content.from_tree} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
-          {activeTab === 'ingredients' && (
-            <IngredientsForm key="ingredients" initial={data.content.ingredients} onSaved={() => setReloadKey((key) => key + 1)} />
+          {activeTab === 'awareness' && (
+            <AwarenessForm key="awareness" initial={data.content.awareness} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
-          {activeTab === 'ritual' && (
-            <RitualForm key="ritual" initial={data.content.ritual} onSaved={() => setReloadKey((key) => key + 1)} />
-          )}
-          {activeTab === 'how_to' && (
-            <HowToForm key="how_to" initial={data.content.how_to} onSaved={() => setReloadKey((key) => key + 1)} />
-          )}
-          {activeTab === 'packages_intro' && (
-            <PackagesIntroForm key="packages_intro" initial={data.content.packages_intro} onSaved={() => setReloadKey((key) => key + 1)} />
-          )}
-          {activeTab === 'labels' && (
-            <LabelsForm key="labels" initial={data.content.labels} onSaved={() => setReloadKey((key) => key + 1)} />
-          )}
-          {activeTab === 'testimonials' && (
-            <TestimonialsForm key="testimonials" initial={data.content.testimonials} onSaved={() => setReloadKey((key) => key + 1)} />
-          )}
-          {activeTab === 'faq' && <FaqForm key="faq" initial={data.content.faq} onSaved={() => setReloadKey((key) => key + 1)} />}
           {activeTab === 'final_cta' && (
             <FinalCtaForm key="final_cta" initial={data.content.final_cta} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
+          {activeTab === 'faq' && <FaqForm key="faq" initial={data.content.faq} onSaved={() => setReloadKey((key) => key + 1)} />}
         </>
       )}
     </div>

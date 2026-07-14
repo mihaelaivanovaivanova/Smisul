@@ -17,17 +17,14 @@ class FunnelContentService
 {
     public const FUNNEL_SECTIONS = [
         'hero',
-        'dark_band',
-        'problem',
-        'benefits',
-        'ingredients',
-        'ritual',
-        'how_to',
-        'packages_intro',
-        'labels',
-        'testimonials',
-        'faq',
+        'intro',
+        'why',
+        'history',
+        'features',
+        'from_tree',
+        'awareness',
         'final_cta',
+        'faq',
     ];
 
     /**

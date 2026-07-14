@@ -26,8 +26,7 @@ class FunnelTest extends TestCase
         $response->assertJsonPath('data.product_slug', null);
         $response->assertJsonPath('data.packages', []);
         $response->assertJsonStructure(['data' => ['content' => [
-            'hero', 'dark_band', 'problem', 'benefits', 'ingredients', 'ritual',
-            'how_to', 'packages_intro', 'labels', 'testimonials', 'faq', 'final_cta',
+            'hero', 'intro', 'why', 'history', 'features', 'from_tree', 'awareness', 'final_cta', 'faq',
         ]]]);
     }
 
@@ -106,8 +105,8 @@ class FunnelTest extends TestCase
     public function funnel_content_reflects_admin_edited_sections(): void
     {
         ContentBlock::query()->create(['key' => 'funnel.hero', 'content' => [
-            'badge' => 'B', 'title' => 'T', 'body' => 'Body', 'highlight' => 'H',
-            'cta_primary' => 'P', 'cta_secondary' => 'S', 'bullets' => ['One'],
+            'title' => 'T', 'body' => 'Body',
+            'cta_primary' => 'P', 'cta_secondary' => 'S', 'trust_items' => [['icon' => 'leaf', 'label' => 'One']],
         ]]);
 
         $response = $this->getJson('/api/v1/funnel');

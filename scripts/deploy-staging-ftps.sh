@@ -96,14 +96,6 @@ set net:reconnect-interval-max 30
 set mirror:parallel-transfer-count 1
 echo Checking connection and login.
 pwd
-echo Checking remote root target.
-mkdir -p "$STAGING_FTP_REMOTE_ROOT"
-cd "$STAGING_FTP_REMOTE_ROOT"
-pwd
-echo Checking remote Backend target.
-mkdir -p "$STAGING_FTP_REMOTE_BACKEND"
-cd "$STAGING_FTP_REMOTE_BACKEND"
-pwd
 echo Deploying staging root.
 mirror --reverse --parallel=1 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
 echo Deploying staging Backend.

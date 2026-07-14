@@ -14,6 +14,39 @@ done
   exit 1
 }
 
+describe_value() {
+  # Non-sensitive, derived diagnostics only — never echoes the value
+  # itself, so it's safe even though GitHub's secret masking wouldn't
+  # otherwise stop a raw echo of a registered secret.
+  local raw="$1" name="$2"
+  local starts_with_slash ends_with_slash has_cr has_trailing_ws case_insensitive_match
+  local trimmed_lower
+  [[ "$raw" == /* ]] && starts_with_slash=yes || starts_with_slash=no
+  [[ "$raw" == */ ]] && ends_with_slash=yes || ends_with_slash=no
+  [[ "$raw" == *$'\r'* ]] && has_cr=yes || has_cr=no
+  [[ "$raw" =~ [[:space:]]$ ]] && has_trailing_ws=yes || has_trailing_ws=no
+  trimmed_lower="$(tr -d '[:space:]/' <<<"$raw" | tr '[:upper:]' '[:lower:]')"
+  case "$trimmed_lower" in
+    root) case_insensitive_match=root ;;
+    backend) case_insensitive_match=backend ;;
+    *testingwebpagesandboxandpayments*) case_insensitive_match=full-testing-path ;;
+    *) case_insensitive_match=none ;;
+  esac
+  echo "Diagnostic for $name: length=${#raw} starts_with_slash=$starts_with_slash ends_with_slash=$ends_with_slash has_carriage_return=$has_cr has_trailing_whitespace=$has_trailing_ws case_insensitive_match=$case_insensitive_match" >&2
+}
+
+# Strips a trailing CR (common when a secret was pasted from a
+# Windows-edited source) and any leading/trailing whitespace — never
+# touches case or internal characters, since e.g. Backend vs backend are
+# genuinely different directories on a case-sensitive filesystem.
+normalize_remote() {
+  local value="$1"
+  value="${value%$'\r'}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
 validate_remote() {
   local value="${1%/}"
   case "$value" in
@@ -25,7 +58,8 @@ validate_remote() {
     # so it's allowed explicitly here instead.
     /root|/Backend) ;;
     *)
-      echo 'Safety failure: a remote target is outside the required testing tree.' >&2
+      echo "Safety failure: a remote target is outside the required testing tree." >&2
+      describe_value "$1" "$2"
       exit 1
       ;;
   esac
@@ -34,8 +68,11 @@ validate_remote() {
     exit 1
   }
 }
-validate_remote "$STAGING_FTP_REMOTE_ROOT"
-validate_remote "$STAGING_FTP_REMOTE_BACKEND"
+
+STAGING_FTP_REMOTE_ROOT="$(normalize_remote "$STAGING_FTP_REMOTE_ROOT")"
+STAGING_FTP_REMOTE_BACKEND="$(normalize_remote "$STAGING_FTP_REMOTE_BACKEND")"
+validate_remote "$STAGING_FTP_REMOTE_ROOT" STAGING_FTP_REMOTE_ROOT
+validate_remote "$STAGING_FTP_REMOTE_BACKEND" STAGING_FTP_REMOTE_BACKEND
 
 echo 'Deployment started.'
 echo 'Connecting to staging.'

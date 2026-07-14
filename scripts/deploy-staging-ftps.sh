@@ -86,11 +86,21 @@ set net:timeout 20
 set net:max-retries 3
 set net:reconnect-interval-base 5
 set net:reconnect-interval-max 30
-set mirror:parallel-transfer-count 3
+set mirror:parallel-transfer-count 1
+echo Checking connection and login.
+pwd
+echo Checking remote root target.
+cd "$STAGING_FTP_REMOTE_ROOT"
+pwd
+cd -
+echo Checking remote Backend target.
+cd "$STAGING_FTP_REMOTE_BACKEND"
+pwd
+cd -
 echo Deploying staging root.
-mirror --reverse --parallel=3 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
+mirror --reverse --parallel=1 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
 echo Deploying staging Backend.
-mirror --reverse --parallel=3 --no-perms --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
+mirror --reverse --parallel=1 --no-perms --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
 bye
 LFTP
 

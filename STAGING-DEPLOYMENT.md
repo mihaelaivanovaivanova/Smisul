@@ -68,7 +68,16 @@ STAGING_FTP_REMOTE_ROOT=/smisul.bg/testing/webpage/sandboxandpayments/root/
 STAGING_FTP_REMOTE_BACKEND=/smisul.bg/testing/webpage/sandboxandpayments/Backend/
 ```
 
-If the account starts inside `smisul.bg`, use `/testing/webpage/sandboxandpayments/root/` and `/testing/webpage/sandboxandpayments/Backend/`. Do not guess. Connect with FileZilla using the same account, note the initial remote directory shown after login, navigate to the testing tree, and copy the paths displayed for the two sibling directories. The deployment script rejects paths outside `/testing/webpage/sandboxandpayments/`.
+If the account starts inside `smisul.bg`, use `/testing/webpage/sandboxandpayments/root/` and `/testing/webpage/sandboxandpayments/Backend/`.
+
+If the account is jailed directly inside `.../sandboxandpayments/` itself (this project's actual account), the visible remote root after login already **is** the testing tree, so the two sibling directories are simply:
+
+```text
+STAGING_FTP_REMOTE_ROOT=/root/
+STAGING_FTP_REMOTE_BACKEND=/Backend/
+```
+
+Do not guess. Connect with FileZilla using the same account, note the initial remote directory shown after login, navigate to the testing tree, and copy the paths displayed for the two sibling directories. The deployment script accepts either the full `/.../testing/webpage/sandboxandpayments/...` form or the bare jailed-account `/root/`/`/Backend/` form, and rejects everything else, including any path that could resolve to the production `smisul.bg/root/` or `smisul.bg/Backend/`.
 
 The workflow forces FTP over TLS, verifies the server certificate, uploads new/changed files, and never performs remote deletion. Remote-only files remain during normal deployments and rollbacks.
 

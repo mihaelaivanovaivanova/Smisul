@@ -16,10 +16,19 @@ done
 
 validate_remote() {
   local value="${1%/}"
-  [[ "$value" == */testing/webpage/sandboxandpayments/* ]] || {
-    echo 'Safety failure: a remote target is outside the required testing tree.' >&2
-    exit 1
-  }
+  case "$value" in
+    */testing/webpage/sandboxandpayments/*) ;;
+    # The staging FTP account can also be jailed directly inside
+    # .../sandboxandpayments/ itself (confirmed for this account), in
+    # which case the visible remote root is just /root/ or /Backend/ —
+    # that string can never contain the full testing-tree path above,
+    # so it's allowed explicitly here instead.
+    /root|/Backend) ;;
+    *)
+      echo 'Safety failure: a remote target is outside the required testing tree.' >&2
+      exit 1
+      ;;
+  esac
   [[ "$value" != '/smisul.bg/root' && "$value" != '/smisul.bg/Backend' && "$value" != '/smisul.bg/backend' ]] || {
     echo 'Safety failure: a production directory was supplied as a staging target.' >&2
     exit 1

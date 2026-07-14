@@ -99,11 +99,9 @@ pwd
 echo Checking remote root target.
 cd "$STAGING_FTP_REMOTE_ROOT"
 pwd
-cd -
 echo Checking remote Backend target.
 cd "$STAGING_FTP_REMOTE_BACKEND"
 pwd
-cd -
 echo Deploying staging root.
 mirror --reverse --parallel=1 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
 echo Deploying staging Backend.

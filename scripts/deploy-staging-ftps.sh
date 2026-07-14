@@ -97,9 +97,11 @@ set mirror:parallel-transfer-count 1
 echo Checking connection and login.
 pwd
 echo Checking remote root target.
+mkdir -p "$STAGING_FTP_REMOTE_ROOT"
 cd "$STAGING_FTP_REMOTE_ROOT"
 pwd
 echo Checking remote Backend target.
+mkdir -p "$STAGING_FTP_REMOTE_BACKEND"
 cd "$STAGING_FTP_REMOTE_BACKEND"
 pwd
 echo Deploying staging root.

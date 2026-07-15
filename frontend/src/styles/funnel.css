@@ -9,6 +9,16 @@
   overflow-x: hidden;
 }
 
+/* Uniform breathing room before and after every section. This replaces
+   the earlier flush-chained look (sections starting at padding-top: 0
+   right under the divider line) — each section now stands in its own
+   air, with the divider floating between two clear offsets. Wins over
+   the base .section padding and any single-class section rule on
+   specificity, so it is the one knob for the page's vertical rhythm. */
+.funnel-page .section {
+  padding-block: var(--space-7);
+}
+
 /* CTA color experiment: terracotta as the funnel's exclusive action color
    — the forest green used everywhere else (headings, icons, borders) no
    longer competes with the buy buttons. Scoped to the funnel page and its
@@ -62,24 +72,13 @@
 
 .funnel-hero {
   background-color: var(--color-cream);
-  /* Sits right below the sticky navbar — no top breathing room, unlike a
-     normal mid-page .section. Bottom padding is also trimmed so the next
-     section follows closely, matching the reference's tight section
-     spacing, instead of stacking this section's bottom padding on top of
-     the next section's own top padding. */
-  padding-top: 0;
-  padding-bottom: var(--space-5);
 }
 
-/* Shared by the hero, "Не винаги новото", and "Защо милиони хора" sections
-   — same cream background throughout, and no top padding on any of them,
-   so each one's content starts right where the previous section's
-   (already-trimmed) bottom padding ends instead of stacking a second gap
-   on top of it. Together the three read as one continuous panel. */
+/* Shared cream background for most content sections — with the uniform
+   section offsets (see .funnel-page .section above), the divider lines
+   mark the boundaries within the continuous panel. */
 .funnel-hero-tone {
   background-color: var(--color-cream);
-  padding-top: 0;
-  padding-bottom: var(--space-5);
 }
 
 /* The brand line ("Едно дърво...") demoted from H1 to kicker — terracotta
@@ -344,20 +343,6 @@
   }
 }
 
-.funnel-features {
-  padding-block: var(--space-5);
-}
-
-/* Top padding stays 0 (photo bleeds to the section's top edge) but the
-   offer stack + trust row now sit below the text/photo row, so the
-   section needs its bottom breathing room back. */
-.funnel-final-cta {
-  padding-block: 0 var(--space-5);
-}
-
-.funnel-faq {
-  padding-block: var(--space-4);
-}
 
 /* Right-aligns the (now fixed-size, see .funnel-final-cta__image) photo
    within its column instead of letting it sit flush at the column's
@@ -387,16 +372,6 @@
   margin-right: -6rem;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
   mask-image: linear-gradient(to right, transparent, #000 22%);
-}
-
-/* Let the basket photo bleed to the section's own top and bottom edges
-   instead of sitting centered with cream space above/below it — the row
-   drops align-items-center (default stretch) so this column matches the
-   text column's full height, and removing this section's own bottom
-   padding (top is already 0 via .funnel-hero-tone) lets that stretched
-   image reach all the way down too. */
-.funnel-from-tree {
-  padding-bottom: 0;
 }
 
 .funnel-tick {
@@ -497,7 +472,6 @@
 .funnel-awareness {
   background-color: var(--color-forest-dark);
   color: #fff;
-  padding-block: 0;
 }
 
 .funnel-awareness h2 {
@@ -555,10 +529,6 @@
 }
 
 /* ---- Comparison table (#compare) ---- */
-
-.funnel-comparison {
-  padding-block: var(--space-5);
-}
 
 .funnel-comparison__wrap {
   max-width: 56rem;
@@ -688,10 +658,6 @@
 
 /* ---- Usage video ---- */
 
-.funnel-video {
-  padding-block: var(--space-5);
-}
-
 .funnel-video__wrap {
   max-width: 44rem;
   margin-inline: auto;
@@ -719,10 +685,6 @@
 }
 
 /* ---- Testimonials (#reviews) ---- */
-
-.funnel-reviews {
-  padding-block: var(--space-5);
-}
 
 .funnel-review-card {
   display: flex;
@@ -1010,10 +972,6 @@
 }
 
 /* ---- Lead capture ---- */
-
-.funnel-lead {
-  padding-block: var(--space-6);
-}
 
 .funnel-lead__inner {
   max-width: 34rem;

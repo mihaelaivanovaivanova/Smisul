@@ -174,22 +174,8 @@
 
 /* ---- Generic section image ---- */
 
-/* Every section photo melts into the page instead of sitting as a hard
-   rectangle: a feathered mask fades all four edges into the background,
-   extending the one-sided fade language the hero/awareness/buy photos
-   already use (those override this mask with their own directional
-   ones later in the file). The two gradients intersect so every edge —
-   and especially the corners — dissolves softly. */
 .funnel-photo {
   overflow: hidden;
-  -webkit-mask-image:
-    linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent),
-    linear-gradient(to bottom, transparent, #000 32px, #000 calc(100% - 32px), transparent);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent),
-    linear-gradient(to bottom, transparent, #000 32px, #000 calc(100% - 32px), transparent);
-  mask-composite: intersect;
 }
 
 .funnel-photo img {

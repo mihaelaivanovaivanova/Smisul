@@ -26,6 +26,10 @@ class FunnelPackagesRequest extends FormRequest
             'packages.*.badge' => ['required', 'string', 'max:255'],
             'packages.*.detail' => ['required', 'string', 'max:255'],
             'packages.*.value_label' => ['required', 'string', 'max:255'],
+            // Optional second value line ("≈ 4-5 месеца ежедневна грижа") —
+            // nullable so package configs saved before the field existed
+            // stay valid.
+            'packages.*.duration_label' => ['nullable', 'string', 'max:255'],
             'packages.*.button_text' => ['required', 'string', 'max:255'],
         ];
     }

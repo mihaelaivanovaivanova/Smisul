@@ -19,6 +19,9 @@ class FunnelContentUpdateRequest extends FormRequest
     {
         return match ($this->route('section')) {
             'hero' => [
+                // Optional kicker line above the H1 — nullable so content
+                // saved before the field existed stays valid.
+                'eyebrow' => ['nullable', 'string', 'max:255'],
                 'title' => ['required', 'string', 'max:255'],
                 'body' => ['required', 'string', 'max:1000'],
                 'cta_primary' => ['required', 'string', 'max:100'],
@@ -51,6 +54,15 @@ class FunnelContentUpdateRequest extends FormRequest
                 'title' => ['required', 'string', 'max:255'],
                 'items' => ['required', 'array', 'min:1'],
                 'items.*.label' => ['required', 'string', 'max:100'],
+            ],
+            'comparison' => [
+                'title' => ['required', 'string', 'max:255'],
+                'miswak_label' => ['required', 'string', 'max:100'],
+                'brush_label' => ['required', 'string', 'max:100'],
+                // Each row is a positive statement — rendered as ✓ for the
+                // Miswak column and ✗ for the toothbrush column.
+                'rows' => ['required', 'array', 'min:1'],
+                'rows.*.label' => ['required', 'string', 'max:255'],
             ],
             'from_tree' => [
                 'title' => ['required', 'string', 'max:255'],

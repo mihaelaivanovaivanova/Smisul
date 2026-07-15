@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
  * variants (so the product page and cart/checkout stay fully wired even
  * though the funnel landing page itself no longer shows a package grid —
  * see FunnelLandingPage.tsx), its 3 package-card overrides (kept for
- * potential reuse, unused by the current layout), and the funnel page's 9
+ * potential reuse, unused by the current layout), and the funnel page's 10
  * editable copy sections. Funnel mode itself is seeded OFF; an admin turns
  * it on from /admin/funnel.
  *
@@ -140,12 +140,15 @@ class FunnelSeeder extends Seeder
         $config = FunnelConfig::current();
         $config->update([
             'product_id' => $product->id,
+            // duration_label math stays honest to the FAQ's own claim that
+            // one miswak lasts a few (3-4) weeks of daily use.
             'packages' => [
                 [
                     'variant_id' => $variantIds['MISWAK-3'],
                     'badge' => 'Стартов пакет',
                     'detail' => '3 броя',
                     'value_label' => 'За дом, работа и път',
+                    'duration_label' => '≈ 2-3 месеца ежедневна грижа',
                     'button_text' => 'Вземи стартов пакет',
                 ],
                 [
@@ -153,6 +156,7 @@ class FunnelSeeder extends Seeder
                     'badge' => 'Най-популярен',
                     'detail' => '5 броя',
                     'value_label' => 'Плащаш 4, получаваш 5',
+                    'duration_label' => '≈ 4-5 месеца ежедневна грижа',
                     'button_text' => 'Вземи семеен пакет',
                 ],
                 [
@@ -160,6 +164,7 @@ class FunnelSeeder extends Seeder
                     'badge' => 'Най-добра стойност',
                     'detail' => '10 броя',
                     'value_label' => 'Плащаш 8, получаваш 10',
+                    'duration_label' => '≈ 8-9 месеца ежедневна грижа',
                     'button_text' => 'Вземи супер семеен пакет',
                 ],
             ],
@@ -169,8 +174,12 @@ class FunnelSeeder extends Seeder
     private function seedContent(): void
     {
         $blocks = [
+            // The H1 carries the benefit + product promise (ad visitors
+            // decide in seconds); the brand poetry lives in the eyebrow
+            // line above it instead of being the headline itself.
             'funnel.hero' => [
-                'title' => "Едно дърво.\nХиляди години\nдоверие.",
+                'eyebrow' => 'Едно дърво. Хиляди години доверие.',
+                'title' => "Чисти зъби навсякъде.\nБез паста, без вода,\nбез пластмаса.",
                 'body' => 'Miswak е естествен клон от дървото Salvadora Persica, използван от поколения хора много преди появата на пластмасовата четка за зъби. Днес той отново намира своето място като практично и природосъобразно допълнение към ежедневната устна хигиена.',
                 'cta_primary' => 'ПОРЪЧАЙ СЕГА',
                 'cta_secondary' => 'НАУЧИ ПОВЕЧЕ',
@@ -233,6 +242,24 @@ class FunnelSeeder extends Seeder
                     ['label' => 'Без батерии, без консумативи'],
                     ['label' => 'Без отпадък'],
                     ['label' => 'Естествен избор за ежедневието'],
+                ],
+            ],
+            // "Us vs. them" checklist — each row is a positive statement
+            // that is true for Miswak (✓) and false for a plastic brush
+            // (✗). Every claim must stay defensible: no invented competitor
+            // prices, only structural differences.
+            'funnel.comparison' => [
+                'title' => 'Виж разликата',
+                'miswak_label' => 'Miswak',
+                'brush_label' => 'Пластмасова четка',
+                'rows' => [
+                    ['label' => 'Работи без паста и вода'],
+                    ['label' => 'Използва се по всяко време, навсякъде'],
+                    ['label' => 'Побира се в джоб, чанта или кола'],
+                    ['label' => 'Без микропластмаса — изцяло растителни влакна'],
+                    ['label' => 'Естествен флуорид от самото дърво, без синтетични добавки'],
+                    ['label' => '100% биоразградим — нулев отпадък'],
+                    ['label' => 'Без консумативи — отрязваш върха и продължаваш'],
                 ],
             ],
             'funnel.from_tree' => [

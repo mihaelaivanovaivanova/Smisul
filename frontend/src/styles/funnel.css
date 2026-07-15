@@ -70,6 +70,27 @@
   }
 }
 
+/* Hero social-proof line — stars + average + count, linking down to the
+   testimonials section. A plain link dressed as text: underline only the
+   count on hover so it reads as info first, navigation second. */
+.funnel-hero__rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  color: var(--color-charcoal);
+  text-decoration: none;
+}
+
+.funnel-hero__rating-count {
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
+}
+
+.funnel-hero__rating:hover .funnel-hero__rating-count {
+  text-decoration: underline;
+}
+
 .funnel-trust-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -176,16 +197,6 @@
 .funnel-why-card h3 {
   font-size: var(--fs-lg);
   font-weight: 800;
-}
-
-/* Card copy length varies — clamp to the 3 lines the two shorter cards
-   already render at, so all 3 card texts share the same height instead
-   of the longer one pushing its photo further down than the others. */
-.funnel-why-card p {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
 }
 
 .funnel-why-card__icon {
@@ -306,8 +317,11 @@
   padding-block: var(--space-5);
 }
 
+/* Top padding stays 0 (photo bleeds to the section's top edge) but the
+   offer stack + trust row now sit below the text/photo row, so the
+   section needs its bottom breathing room back. */
 .funnel-final-cta {
-  padding-block: 0;
+  padding-block: 0 var(--space-5);
 }
 
 .funnel-faq {
@@ -484,29 +498,259 @@
   mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
 }
 
-/* ---- FAQ (horizontal toggle row) ---- */
+/* ---- Assurance microcopy (payment/delivery facts near CTAs) ---- */
 
-/* 3 columns, items stacked top-to-bottom within each column (reading
-   order: fills column 1 fully, then column 2, then column 3) instead of
-   wrapping left-to-right by button width. */
-.funnel-faq-row {
-  columns: 3;
-  column-gap: var(--space-3);
+.funnel-assurance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.funnel-assurance__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Tucked right under the hero's CTA buttons (their row carries mb-4 —
+   pull back most of it so the facts read as the buttons' fine print). */
+.funnel-assurance--hero {
+  margin-top: calc(-1 * var(--space-3));
+  margin-bottom: var(--space-4);
+}
+
+/* ---- Testimonials (#reviews) ---- */
+
+.funnel-reviews {
+  padding-block: var(--space-5);
+}
+
+.funnel-review-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  margin: 0;
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.funnel-review-card__body {
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Pushed to the card's bottom edge so author lines align across the row
+   regardless of each quote's length. */
+.funnel-review-card__author {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  font-weight: 700;
+}
+
+.funnel-review-card__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-forest);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+/* ---- Package offer stack (#buy, see PackageOffers.tsx) ---- */
+
+.funnel-packages {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 992px) {
+  .funnel-packages {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: stretch;
+    /* Room for the featured card's upward offset below. */
+    margin-top: var(--space-6);
+  }
+}
+
+/* Hover lift follows the storefront's card idiom (see .card.shadow-sm:
+   hover in bootstrap-overrides.css), a touch deeper since these are the
+   page's main interactive moment. */
+.funnel-package-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.funnel-package-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-sage);
+}
+
+/* The middle card of a full 3-card stack — the anchor offer. Outlined and
+   lifted so the eye lands on it first (classic center-stage pricing). */
+.funnel-package-card--featured {
+  border: 2px solid var(--color-forest);
+  box-shadow: var(--shadow-lg);
+}
+
+.funnel-package-card--featured:hover {
+  border-color: var(--color-forest);
+}
+
+@media (min-width: 992px) {
+  .funnel-package-card--featured {
+    transform: translateY(calc(-1 * var(--space-4)));
+  }
+
+  /* Compose the hover lift with the standing offset — without this the
+     higher-specificity .funnel-package-card:hover transform would win
+     and the featured card would jump DOWN to -6px on hover. */
+  .funnel-package-card--featured:hover {
+    transform: translateY(calc(-1 * var(--space-4) - 6px));
+  }
+}
+
+.funnel-package-card__badge {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-forest);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-cream);
+  color: var(--color-forest);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.funnel-package-card--featured .funnel-package-card__badge {
+  background-color: var(--color-forest);
+  border-color: var(--color-forest);
+  color: #fff;
+}
+
+.funnel-package-card__detail {
+  font-weight: 700;
+}
+
+.funnel-package-card__value {
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
+}
+
+.funnel-package-card__price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* Serif like the page's editorial headlines (and the "7000 години"
+   numerals) — the price is part of the story, not a UI widget. */
+.funnel-package-card__price {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-forest-dark);
+}
+
+.funnel-package-card__compare {
+  color: var(--color-muted);
+  font-size: var(--fs-md);
+}
+
+.funnel-package-card__save {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-terracotta);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.funnel-package-card__per-unit {
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+}
+
+.funnel-package-card__stock {
+  color: var(--color-terracotta);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* Bottom-aligns the buy buttons across all 3 cards regardless of how much
+   text sits above them (same margin-top:auto trick as the why-card photos). */
+.funnel-package-card__cta {
+  margin-top: auto;
+  padding-top: var(--space-3);
+}
+
+/* The guarantee/trust row now closes the whole buy section rather than
+   sitting inside the text column — cap and center it under the cards. */
+.funnel-final-cta__trust {
+  max-width: 52rem;
+  margin-inline: auto;
+}
+
+/* ---- FAQ (two-column accordion) ---- */
+
+/* Two independent stacks: opening an answer only pushes down the
+   questions in its own column, and the answer sits right under the
+   question it belongs to. align-items:start keeps the shorter column
+   from stretching when the other one grows. */
+.funnel-faq-columns {
+  display: grid;
+  gap: 0 var(--space-3);
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .funnel-faq-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.funnel-faq-item {
+  margin-bottom: var(--space-2);
 }
 
 /* Cosmetic look (colors, border, radius, shadow, hover lift) comes from
    the shared .btn/.btn-outline-secondary classes now applied alongside
    this one — see hero's "НАУЧИ ПОВЕЧЕ" secondary CTA for the same
-   combo. Only layout concerns (full-width flex row, column-stacking)
-   stay here. */
+   combo. Only layout concerns (full-width flex row) stay here. */
 .funnel-faq-toggle {
   display: flex;
   width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  break-inside: avoid;
-  margin-bottom: var(--space-2);
 }
 
 .funnel-faq-toggle.is-active {
@@ -516,12 +760,25 @@
 }
 
 .funnel-faq-answer {
-  margin-top: var(--space-4);
-  padding: var(--space-4);
+  margin-top: var(--space-1);
+  padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-muted);
+  animation: funnel-faq-open 0.2s ease;
+}
+
+@keyframes funnel-faq-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .funnel-faq-answer__attachment {
@@ -539,6 +796,39 @@
   color: var(--color-forest-dark);
 }
 
+/* ---- Lead capture ---- */
+
+.funnel-lead {
+  padding-block: var(--space-6);
+}
+
+.funnel-lead__inner {
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+.funnel-lead__row {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.funnel-lead__row .form-control {
+  flex: 1;
+}
+
+.funnel-lead__consent {
+  margin-top: var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+}
+
+.funnel-lead__success {
+  margin-top: var(--space-4);
+  color: var(--color-forest);
+  font-weight: 700;
+}
+
 /* ---- Sticky mobile buy bar ---- */
 
 .funnel-sticky-bar {
@@ -550,4 +840,42 @@
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
   padding: var(--space-2);
+}
+
+/* ---- Sticky desktop buy bar ---- */
+
+/* Mounted/unmounted by an IntersectionObserver (see FunnelLandingPage) —
+   the slide-up plays on each mount; unmount is instant, which reads fine
+   for a bar leaving the viewport's edge. */
+.funnel-desktop-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) 0;
+  animation: funnel-bar-slide-up 0.25s ease;
+}
+
+@keyframes funnel-bar-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.funnel-desktop-bar__name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+}
+
+.funnel-desktop-bar__price {
+  color: var(--color-muted);
+  font-weight: 700;
 }

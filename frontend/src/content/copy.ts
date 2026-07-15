@@ -35,8 +35,9 @@ export const funnelNav = {
   home: nav.home,
   benefits: 'Ползи',
   howTo: 'Как се използва',
-  products: 'Продукти',
   faq: 'FAQ',
+  /** The header's always-visible buy CTA — takes the old "Продукти" anchor's #buy slot. */
+  orderCta: 'Поръчай сега',
 };
 
 export const footer = {
@@ -237,6 +238,46 @@ export const stock = {
 
 export const price = {
   unavailable: 'Няма посочена цена',
+};
+
+/** The funnel landing page's #buy offer stack (see PackageOffers.tsx). */
+export const funnelOffer = {
+  perUnit: (formattedPrice: string) => `${formattedPrice} / бр.`,
+  fromPrice: (formattedPrice: string) => `от ${formattedPrice}`,
+};
+
+/** The funnel landing page's social-proof blocks — hero rating line + testimonial cards. */
+export const funnelReviews = {
+  title: 'Какво казват клиентите ни',
+  average: (value: string) => `${value} / 5`,
+};
+
+/** The funnel landing page's email opt-in block (see LeadCaptureForm.tsx). */
+export const funnelLead = {
+  title: 'Не си готов/а да поръчаш днес?',
+  body: 'Остави своя имейл и ще ти пишем при промоции и специални предложения — нищо повече.',
+  placeholder: 'Твоят имейл',
+  emailAria: 'Имейл за известия',
+  submit: 'Извести ме',
+  success: 'Благодарим! Ще се чуем скоро.',
+  error: 'Нещо се обърка. Опитай отново след малко.',
+  consentPrefix: 'С изпращането се съгласяваш с ',
+  consentLinkLabel: 'Политиката за поверителност',
+  consentSuffix: '.',
+};
+
+/**
+ * Concrete delivery/returns facts shown as fine print under the funnel
+ * hero's CTA. Every claim must stay true to checkout: the delivery window
+ * matches the shipping methods' estimated_delivery. No free-shipping claim
+ * (there is no free-shipping threshold) and no payment-method claims here
+ * — those live in the DB-seeded #buy trust row (see FunnelSeeder), which
+ * must track PaymentService::availablePaymentMethods() (COD is currently
+ * withheld there, so the page must not advertise "наложен платеж").
+ */
+export const funnelAssurance = {
+  delivery: 'Доставка 1-2 работни дни',
+  returns: '30 дни право на връщане',
 };
 
 export const states = {

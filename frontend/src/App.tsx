@@ -41,6 +41,7 @@ import MediaLibraryPage from './pages/admin/MediaLibraryPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import LogsPage from './pages/admin/LogsPage';
 import FunnelPage from './pages/admin/FunnelPage';
+import LeadsPage from './pages/admin/LeadsPage';
 
 export default function App() {
   const { funnelModeEnabled } = useSettings();
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="funnel" element={<FunnelPage />} />
+          <Route path="leads" element={<LeadsPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />

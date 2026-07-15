@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryControl
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
+use App\Http\Controllers\Api\V1\Admin\FunnelLeadController as AdminFunnelLeadController;
 use App\Http\Controllers\Api\V1\Admin\ICardConfigurationController as AdminICardConfigurationController;
 use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\FunnelController;
+use App\Http\Controllers\Api\V1\FunnelLeadController;
 use App\Http\Controllers\Api\V1\LegalController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PasswordController;
@@ -147,6 +149,12 @@ Route::prefix('v1')->group(function () {
     // boot to decide whether to render the normal homepage or the funnel
     // landing page (see FunnelService).
     Route::get('/funnel', [FunnelController::class, 'show'])->name('funnel.show');
+
+    // Funnel lead capture (the landing page's email opt-in block) — no
+    // auth, throttled like the contact form.
+    Route::post('/funnel/leads', [FunnelLeadController::class, 'store'])
+        ->middleware('throttle:funnel-leads')
+        ->name('funnel.leads.store');
 
     // Legal pages: public, no auth — every current document (superset of
     // checkout's required-only subset, see CheckoutController::legalDocuments).
@@ -304,5 +312,12 @@ Route::prefix('v1')->group(function () {
             ->name('funnel.content.update');
         Route::post('/funnel/faq-attachment', [AdminFunnelController::class, 'uploadFaqAttachment'])
             ->name('funnel.faq-attachment.upload');
+
+        // Leads captured by the funnel landing page's email opt-in.
+        // /export is declared before /{lead} so it isn't swallowed by the
+        // model-binding wildcard.
+        Route::get('/funnel/leads', [AdminFunnelLeadController::class, 'index'])->name('funnel.leads.index');
+        Route::get('/funnel/leads/export', [AdminFunnelLeadController::class, 'export'])->name('funnel.leads.export');
+        Route::delete('/funnel/leads/{lead}', [AdminFunnelLeadController::class, 'destroy'])->name('funnel.leads.destroy');
     });
 });

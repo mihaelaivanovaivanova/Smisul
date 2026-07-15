@@ -30,5 +30,6 @@ class DatabaseSeeder extends Seeder
         $this->call(PromotionSeeder::class);
         $this->call(LegalDocumentSeeder::class);
         $this->call(FunnelSeeder::class);
+        $this->call(ReviewSeeder::class);
     }
 }

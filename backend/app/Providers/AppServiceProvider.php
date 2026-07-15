@@ -101,6 +101,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('contact', function ($request) {
             return Limit::perMinute(3)->by($request->ip());
         });
+
+        RateLimiter::for('funnel-leads', function ($request) {
+            return Limit::perMinute(3)->by($request->ip());
+        });
     }
 
     /**

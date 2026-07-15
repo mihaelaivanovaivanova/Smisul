@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { fetchProduct } from '../api/products';
+import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 import { trackFunnelAddToCart } from '../services/analytics';
-import { getVariantPrice } from '../services/productCatalog';
+import { formatPrice, getVariantPrice } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import AddToCartButton from '../components/product/AddToCartButton';
+import LeadCaptureForm from '../components/funnel/LeadCaptureForm';
+import PackageOffers from '../components/funnel/PackageOffers';
+import { resolvePackageOffers } from '../services/funnelOffers';
 import Icon from '../components/icons/Icon';
 import type { IconName } from '../components/icons/Icon';
 import Seo from '../components/Seo';
-import { seo, states } from '../content/copy';
+import StarRating from '../components/reviews/StarRating';
+import { funnelAssurance, funnelLead, funnelOffer, funnelReviews, reviews as reviewsCopy, seo, states } from '../content/copy';
 
 /**
  * Trust-item icons that have a real cropped photo/icon match (see
@@ -112,9 +117,10 @@ function StatIcon({ icon }: { icon: IconName }) {
  */
 
 export default function FunnelLandingPage() {
-  const { funnelProductSlug, funnelContent, isLoading: settingsLoading } = useSettings();
+  const { funnelProductSlug, funnelPackages, funnelContent, isLoading: settingsLoading } = useSettings();
   const location = useLocation();
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
+  const [showDesktopBar, setShowDesktopBar] = useState(false);
 
   const { data: product, isLoading, error } = useAsync(
     () => (funnelProductSlug ? fetchProduct(funnelProductSlug) : Promise.resolve(null)),
@@ -122,17 +128,77 @@ export default function FunnelLandingPage() {
     'Продуктът не можа да се зареди.',
   );
 
-  // Navbar's section-anchor nav (Начало/Ползи/Как се използва/Продукти/FAQ)
-  // links here as "/#benefits" etc. from other pages — the browser only
-  // auto-scrolls to a fragment on a real page load, not an SPA route
-  // change, so this replicates that behavior once the page has rendered.
+  // Social proof (hero rating line + testimonial cards) — deliberately not
+  // part of the page's loading/error gates: a failed or empty reviews fetch
+  // just hides those blocks rather than degrading the whole funnel.
+  const { data: socialProof } = useAsync(
+    () =>
+      funnelProductSlug
+        ? Promise.all([fetchReviewSummary(funnelProductSlug), fetchProductReviews(funnelProductSlug, 'helpful', 1)])
+        : Promise.resolve(null),
+    [funnelProductSlug],
+    reviewsCopy.loadError,
+  );
+  const reviewSummary = socialProof && socialProof[0].review_count > 0 ? socialProof[0] : null;
+  const topReviews = socialProof?.[1].data.slice(0, 3) ?? [];
+
+  // Navbar's section-anchor nav links here as "/#benefits" etc. — the
+  // browser only auto-scrolls to a fragment on a real page load, not an
+  // SPA route change, so this replicates that behavior once the page has
+  // rendered. "#how-to-use" is a pseudo-anchor with no element of its own:
+  // usage instructions live in the FAQ (together with the downloadable PDF
+  // manual), so it opens that exact question and scrolls to the FAQ.
   useEffect(() => {
     if (!location.hash || settingsLoading || isLoading) {
       return;
     }
 
+    if (location.hash === '#how-to-use') {
+      const items = funnelContent?.faq.items ?? [];
+      const usageIndex = items.findIndex((item) => /как се използва/i.test(item.question));
+      setActiveFaqIndex(usageIndex === -1 ? 0 : usageIndex);
+      document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
     document.querySelector(location.hash)?.scrollIntoView({ behavior: 'smooth' });
-  }, [location.hash, settingsLoading, isLoading]);
+  }, [location.hash, settingsLoading, isLoading, funnelContent]);
+
+  // Desktop sticky buy bar: visible only between the hero scrolling out of
+  // view (before that the hero's own CTA is on screen) and the #buy section
+  // scrolling into view (where the bar would just duplicate the offer stack
+  // right next to it).
+  useEffect(() => {
+    if (settingsLoading || isLoading) {
+      return;
+    }
+
+    const hero = document.querySelector('.funnel-hero');
+    const buy = document.getElementById('buy');
+
+    if (!hero || !buy) {
+      return;
+    }
+
+    let heroInView = true;
+    let buyInView = false;
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === hero) {
+          heroInView = entry.isIntersecting;
+        } else if (entry.target === buy) {
+          buyInView = entry.isIntersecting;
+        }
+      }
+      setShowDesktopBar(!heroInView && !buyInView);
+    });
+
+    observer.observe(hero);
+    observer.observe(buy);
+
+    return () => observer.disconnect();
+  }, [settingsLoading, isLoading]);
 
   if (settingsLoading || isLoading) {
     return <LoadingState message={states.loadingDefault} />;
@@ -143,8 +209,16 @@ export default function FunnelLandingPage() {
   }
 
   const { hero, intro, why, history, features, from_tree, awareness, final_cta, faq } = funnelContent;
+  // Two-column FAQ accordion — reading order fills the left column first.
+  const faqColumnSize = Math.ceil(faq.items.length / 2);
   const defaultVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
   const price = defaultVariant ? getVariantPrice(defaultVariant) : null;
+  const packageOffers = resolvePackageOffers(product, funnelPackages);
+  // The sticky bar's "от 8.99 €" teaser — the cheapest package, or the
+  // default variant's price when no packages are configured.
+  const fromPrice = packageOffers.length > 0
+    ? packageOffers.reduce((min, offer) => (offer.price.amount < min.amount ? offer.price : min), packageOffers[0].price)
+    : price;
 
   // object-position per image so the wider 2:1 crop (see funnel.css) keeps
   // each photo's actual subject in frame instead of a blind center-crop.
@@ -180,6 +254,18 @@ export default function FunnelLandingPage() {
             <div className="col-12 col-lg-5">
               <h1 className="funnel-hero__title mb-3">{hero.title}</h1>
               <p className="lead">{hero.body}</p>
+              {reviewSummary && (
+                <a href="#reviews" className="funnel-hero__rating">
+                  <StarRating
+                    rating={reviewSummary.average_rating}
+                    ariaLabel={funnelReviews.average(reviewSummary.average_rating.toFixed(1))}
+                  />
+                  <strong>{funnelReviews.average(reviewSummary.average_rating.toFixed(1))}</strong>
+                  <span className="funnel-hero__rating-count">
+                    · {reviewsCopy.reviewCount(reviewSummary.review_count)}
+                  </span>
+                </a>
+              )}
               <div className="d-flex flex-wrap align-items-center gap-2 mt-3 mb-4">
                 <a href="#buy" className="btn btn-primary btn-lg">
                   {hero.cta_primary}
@@ -188,6 +274,14 @@ export default function FunnelLandingPage() {
                   {hero.cta_secondary}
                 </a>
               </div>
+              <p className="funnel-assurance funnel-assurance--hero">
+                <span className="funnel-assurance__item">
+                  <Icon name="truck" /> {funnelAssurance.delivery}
+                </span>
+                <span className="funnel-assurance__item">
+                  <Icon name="undo" /> {funnelAssurance.returns}
+                </span>
+              </p>
               <div className="funnel-trust-row">
                 {hero.trust_items.map((item) => (
                   <div className="funnel-trust-item" key={item.label}>
@@ -305,6 +399,16 @@ export default function FunnelLandingPage() {
               </div>
             ))}
           </div>
+
+          {/* Mid-page CTA — the peak-interest moment right after the "what
+              makes it special" argument, with the entry price as the teaser
+              so the click is a conscious yes rather than a leap. */}
+          <div className="text-center mt-5">
+            <a href="#buy" className="btn btn-primary btn-lg">
+              {hero.cta_primary}
+              {fromPrice && ` — ${funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}`}
+            </a>
+          </div>
         </div>
       </section>
 
@@ -367,6 +471,34 @@ export default function FunnelLandingPage() {
         </div>
       </section>
 
+      {/* ---- Testimonials (top approved reviews, straight from the reviews API) ---- */}
+      {topReviews.length > 0 && (
+        <section className="section funnel-hero-tone funnel-divided-section funnel-reviews" id="reviews">
+          <div className="container">
+            <h2 className="section-title mb-4 text-center">{funnelReviews.title}</h2>
+            <div className="row row-cols-1 row-cols-lg-3 g-4">
+              {topReviews.map((review) => (
+                <div className="col" key={review.id}>
+                  <figure className="funnel-review-card">
+                    <StarRating rating={review.rating} />
+                    <h3 className="h6 mb-0">{review.title}</h3>
+                    <blockquote className="funnel-review-card__body mb-0">{review.body}</blockquote>
+                    <figcaption className="funnel-review-card__author">
+                      {review.author_name}
+                      {review.verified_purchase && (
+                        <span className="funnel-review-card__verified">
+                          <Icon name="check-badge" /> {reviewsCopy.verifiedPurchase}
+                        </span>
+                      )}
+                    </figcaption>
+                  </figure>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ---- Final CTA / buy ---- */}
       <section className="section funnel-hero-tone funnel-divided-section funnel-final-cta" id="buy">
         <div className="container">
@@ -378,29 +510,6 @@ export default function FunnelLandingPage() {
                   {paragraph}
                 </p>
               ))}
-
-              {defaultVariant && (
-                <div className="mb-3 d-flex justify-content-center">
-                  <AddToCartButton
-                    key={defaultVariant.id}
-                    productVariantId={defaultVariant.id}
-                    inventory={defaultVariant.inventory}
-                    label={final_cta.cta}
-                    large
-                    hideQuantity
-                    onAdded={() => price && trackFunnelAddToCart(price.amount, price.currency)}
-                  />
-                </div>
-              )}
-
-              <div className="funnel-trust-row mt-4">
-                {final_cta.trust_items.map((item) => (
-                  <div className="funnel-trust-item" key={item.label}>
-                    <TrustIcon icon={item.icon} />
-                    <span className="funnel-trust-item__label">{item.label}</span>
-                  </div>
-                ))}
-              </div>
             </div>
             <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
               <div className="funnel-photo funnel-final-cta__image">
@@ -408,46 +517,95 @@ export default function FunnelLandingPage() {
               </div>
             </div>
           </div>
+
+          {packageOffers.length > 0 ? (
+            <PackageOffers offers={packageOffers} />
+          ) : (
+            defaultVariant && (
+              <div className="mb-3 d-flex justify-content-center">
+                <AddToCartButton
+                  key={defaultVariant.id}
+                  productVariantId={defaultVariant.id}
+                  inventory={defaultVariant.inventory}
+                  label={final_cta.cta}
+                  large
+                  hideQuantity
+                  onAdded={() => price && trackFunnelAddToCart(price.amount, price.currency)}
+                />
+              </div>
+            )
+          )}
+
+          <div className="funnel-trust-row funnel-final-cta__trust mt-4">
+            {final_cta.trust_items.map((item) => (
+              <div className="funnel-trust-item" key={item.label}>
+                <TrustIcon icon={item.icon} />
+                <span className="funnel-trust-item__label">{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ---- FAQ ---- */}
+      {/* A true accordion: each answer expands directly under its own
+          question. Two independent columns on desktop (reading order fills
+          the left column first, like the old `columns: 3` layout did), so
+          opening an answer only pushes down the questions in its column. */}
       <section className="section funnel-hero-tone funnel-divided-section funnel-faq" id="faq">
         <div className="container">
           <h2 className="section-title mb-4 text-center">{faq.title}</h2>
-          <div className="funnel-faq-row">
-            {faq.items.map((item, index) => {
-              const isActive = activeFaqIndex === index;
+          <div className="funnel-faq-columns">
+            {[faq.items.slice(0, faqColumnSize), faq.items.slice(faqColumnSize)].map((column, columnIndex) => (
+              <div className="funnel-faq-column" key={column[0]?.question ?? columnIndex}>
+                {column.map((item, itemIndex) => {
+                  const index = columnIndex * faqColumnSize + itemIndex;
+                  const isActive = activeFaqIndex === index;
 
-              return (
-                <button
-                  key={item.question}
-                  type="button"
-                  className={`funnel-faq-toggle btn btn-outline-secondary ${isActive ? 'is-active' : ''}`}
-                  aria-expanded={isActive}
-                  onClick={() => setActiveFaqIndex(isActive ? null : index)}
-                >
-                  {item.question}
-                  <span aria-hidden="true">{isActive ? '−' : '+'}</span>
-                </button>
-              );
-            })}
+                  return (
+                    <div className="funnel-faq-item" key={item.question}>
+                      <button
+                        type="button"
+                        className={`funnel-faq-toggle btn btn-outline-secondary ${isActive ? 'is-active' : ''}`}
+                        aria-expanded={isActive}
+                        aria-controls={`funnel-faq-answer-${index}`}
+                        onClick={() => setActiveFaqIndex(isActive ? null : index)}
+                      >
+                        {item.question}
+                        <span aria-hidden="true">{isActive ? '−' : '+'}</span>
+                      </button>
+                      {isActive && (
+                        <div className="funnel-faq-answer" id={`funnel-faq-answer-${index}`}>
+                          {item.answer}
+                          {item.attachment_url && (
+                            <a
+                              href={item.attachment_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="funnel-faq-answer__attachment"
+                            >
+                              {item.attachment_label || 'Изтегли документ'}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-          {activeFaqIndex !== null && faq.items[activeFaqIndex] && (
-            <div className="funnel-faq-answer">
-              {faq.items[activeFaqIndex].answer}
-              {faq.items[activeFaqIndex].attachment_url && (
-                <a
-                  href={faq.items[activeFaqIndex].attachment_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="funnel-faq-answer__attachment"
-                >
-                  {faq.items[activeFaqIndex].attachment_label || 'Изтегли документ'}
-                </a>
-              )}
-            </div>
-          )}
+        </div>
+      </section>
+
+      {/* ---- Lead capture (visitors not buying today still become leads) ---- */}
+      <section className="section section-tint funnel-divided-section funnel-lead">
+        <div className="container">
+          <div className="funnel-lead__inner text-center">
+            <h2 className="section-title">{funnelLead.title}</h2>
+            <p className="section-lead lead">{funnelLead.body}</p>
+            <LeadCaptureForm />
+          </div>
         </div>
       </section>
 
@@ -457,6 +615,25 @@ export default function FunnelLandingPage() {
           {hero.cta_primary}
         </a>
       </div>
+
+      {/* ---- Sticky desktop buy bar (see the IntersectionObserver above) ---- */}
+      {showDesktopBar && (
+        <div className="funnel-desktop-bar d-none d-md-block">
+          <div className="container d-flex align-items-center justify-content-between gap-3">
+            <div className="d-flex align-items-baseline gap-3">
+              <strong className="funnel-desktop-bar__name">{product.name}</strong>
+              {fromPrice && (
+                <span className="funnel-desktop-bar__price">
+                  {funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}
+                </span>
+              )}
+            </div>
+            <a href="#buy" className="btn btn-primary">
+              {hero.cta_primary}
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

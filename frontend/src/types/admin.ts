@@ -117,6 +117,13 @@ export interface MediaFilters {
 
 export type LogType = 'orders' | 'payments' | 'shipments' | 'authentication' | 'admin_actions';
 
+/** An email captured by the funnel landing page's opt-in block. */
+export interface FunnelLead {
+  id: number;
+  email: string;
+  created_at: string;
+}
+
 export interface LogEntry {
   id: number;
   message: string;

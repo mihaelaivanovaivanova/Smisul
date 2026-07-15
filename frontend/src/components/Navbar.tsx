@@ -133,24 +133,32 @@ export default function Navbar() {
         )}
 
         {/* Section-anchor nav shown instead of search while funnel mode is
-            on — desktop only, same as the reference site's header. */}
+            on — desktop only. All targets are Links to "/#..." rather than
+            plain <a href="#..."> anchors so they also work from other pages
+            (cart, checkout) — the landing page's hash effect handles the
+            scroll after routing. "Как се използва" points at the FAQ's own
+            usage answer (which carries the downloadable PDF manual) via the
+            #how-to-use pseudo-anchor rather than at a section of its own —
+            see FunnelLandingPage's hash effect. The #buy slot is a real CTA
+            button: the header's one high-contrast action, always in view
+            since the navbar is sticky. */}
         {funnelModeEnabled && (
           <div className="d-none d-md-flex align-items-center gap-3 order-md-2 mx-md-4">
             <Link to="/" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.home}
             </Link>
-            <a href="#benefits" className="text-decoration-none text-muted fw-semibold">
+            <Link to="/#benefits" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.benefits}
-            </a>
-            <a href="#how" className="text-decoration-none text-muted fw-semibold">
+            </Link>
+            <Link to="/#how-to-use" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.howTo}
-            </a>
-            <a href="#buy" className="text-decoration-none text-muted fw-semibold">
-              {funnelNav.products}
-            </a>
-            <a href="#faq" className="text-decoration-none text-muted fw-semibold">
+            </Link>
+            <Link to="/#faq" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.faq}
-            </a>
+            </Link>
+            <Link className="btn btn-primary btn-sm" to="/#buy">
+              {funnelNav.orderCta}
+            </Link>
           </div>
         )}
       </div>

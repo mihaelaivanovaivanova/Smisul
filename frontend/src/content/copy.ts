@@ -49,6 +49,9 @@ export const footer = {
   about: 'За нас',
   contact: 'Контакти',
   cookieSettings: 'Настройки на бисквитките',
+  /** Legal merchant identity block — shown only once the admin fills the settings. */
+  merchantHeading: 'Данни за търговеца',
+  companyIdLabel: 'ЕИК',
 };
 
 export const contactForm = {

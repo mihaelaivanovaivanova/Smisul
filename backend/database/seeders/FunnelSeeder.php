@@ -108,7 +108,9 @@ class FunnelSeeder extends Seeder
         return [
             ['sku' => 'MISWAK-3', 'name' => '3 бр.', 'pack_size' => 3, 'is_default' => true, 'amount' => 8.99, 'compare_at_amount' => 10.47, 'stock' => 200],
             ['sku' => 'MISWAK-5', 'name' => '5 бр.', 'pack_size' => 5, 'amount' => 13.96, 'compare_at_amount' => 17.45, 'stock' => 200],
-            ['sku' => 'MISWAK-10', 'name' => '10 бр.', 'pack_size' => 10, 'amount' => 27.92, 'compare_at_amount' => 34.9, 'stock' => 200],
+            // "Pay 7, get 10" (7 × 3.49 base) — deeper per-unit discount
+            // than the 5-pack (2.44 vs 2.79 €/бр) so upsizing actually pays.
+            ['sku' => 'MISWAK-10', 'name' => '10 бр.', 'pack_size' => 10, 'amount' => 24.43, 'compare_at_amount' => 34.9, 'stock' => 200],
         ];
     }
 
@@ -163,7 +165,7 @@ class FunnelSeeder extends Seeder
                     'variant_id' => $variantIds['MISWAK-10'],
                     'badge' => 'Най-добра стойност',
                     'detail' => '10 броя',
-                    'value_label' => 'Плащаш 8, получаваш 10',
+                    'value_label' => 'Плащаш 7, получаваш 10',
                     'duration_label' => '≈ 8-9 месеца ежедневна грижа',
                     'button_text' => 'Вземи супер семеен пакет',
                 ],

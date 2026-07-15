@@ -20,6 +20,11 @@ class SettingsSeeder extends Seeder
             ['key' => 'general.store_email', 'group' => 'general', 'type' => 'string', 'label' => 'Store contact email', 'value' => null],
             ['key' => 'general.support_phone', 'group' => 'general', 'type' => 'string', 'label' => 'Support phone', 'value' => null],
             ['key' => 'general.contact_address', 'group' => 'general', 'type' => 'string', 'label' => 'Contact address', 'value' => null],
+            // Legal merchant identity shown in the storefront footer once
+            // filled in (see SettingService::publicSettings) — BG shops are
+            // expected to display фирма/ЕИК publicly.
+            ['key' => 'general.company_name', 'group' => 'general', 'type' => 'string', 'label' => 'Company legal name', 'value' => null],
+            ['key' => 'general.company_id', 'group' => 'general', 'type' => 'string', 'label' => 'Company ID (ЕИК)', 'value' => null],
 
             ['key' => 'email.from_name', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" name', 'value' => 'Smisul'],
             ['key' => 'email.from_address', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" address', 'value' => null],

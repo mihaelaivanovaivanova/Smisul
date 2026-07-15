@@ -40,6 +40,33 @@ class SettingService
     }
 
     /**
+     * The explicitly public subset of settings — merchant identity and
+     * contact details for the storefront footer. A whitelist rather than a
+     * flag on rows, so a future admin-added setting can never leak into
+     * the public payload by accident.
+     *
+     * @return array<string, string|null>
+     */
+    public function publicSettings(): array
+    {
+        $keys = [
+            'general.company_name' => 'company_name',
+            'general.company_id' => 'company_id',
+            'general.contact_address' => 'contact_address',
+            'general.support_phone' => 'support_phone',
+            'general.store_email' => 'store_email',
+        ];
+
+        $settings = Setting::query()->whereIn('key', array_keys($keys))->get()->keyBy('key');
+
+        return collect($keys)
+            ->mapWithKeys(fn (string $publicKey, string $key) => [
+                $publicKey => ($value = $settings->get($key)?->value) !== '' ? $value : null,
+            ])
+            ->all();
+    }
+
+    /**
      * @param  array<string, string|int|bool|null>  $values  Setting::key => new value
      */
     public function updateMany(array $values): void

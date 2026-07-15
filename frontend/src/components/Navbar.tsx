@@ -156,7 +156,7 @@ export default function Navbar() {
             <Link to="/#faq" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.faq}
             </Link>
-            <Link className="btn btn-primary btn-sm" to="/#buy">
+            <Link className="btn btn-primary btn-sm funnel-order-cta" to="/#buy">
               {funnelNav.orderCta}
             </Link>
           </div>

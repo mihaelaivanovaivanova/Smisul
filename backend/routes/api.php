@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\Payment\PaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\ShipmentController;
 use App\Http\Controllers\Api\V1\StoredPaymentMethodController;
 use App\Http\Resources\UserResource;
@@ -155,6 +156,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/funnel/leads', [FunnelLeadController::class, 'store'])
         ->middleware('throttle:funnel-leads')
         ->name('funnel.leads.store');
+
+    // Public merchant identity/contact details for the footer — a strict
+    // whitelist, never the full settings table.
+    Route::get('/settings/public', [SettingController::class, 'show'])->name('settings.public');
 
     // Legal pages: public, no auth — every current document (superset of
     // checkout's required-only subset, see CheckoutController::legalDocuments).

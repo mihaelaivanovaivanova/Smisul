@@ -15,7 +15,8 @@
    fixed bars; the rest of the storefront keeps forest CTAs. */
 .funnel-page .btn-primary,
 .funnel-sticky-bar .btn-primary,
-.funnel-desktop-bar .btn-primary {
+.funnel-desktop-bar .btn-primary,
+.funnel-order-cta.btn-primary {
   background-color: var(--color-terracotta);
   border-color: var(--color-terracotta);
 }
@@ -25,7 +26,9 @@
 .funnel-sticky-bar .btn-primary:hover,
 .funnel-sticky-bar .btn-primary:focus,
 .funnel-desktop-bar .btn-primary:hover,
-.funnel-desktop-bar .btn-primary:focus {
+.funnel-desktop-bar .btn-primary:focus,
+.funnel-order-cta.btn-primary:hover,
+.funnel-order-cta.btn-primary:focus {
   background-color: #8f4427;
   border-color: #8f4427;
 }

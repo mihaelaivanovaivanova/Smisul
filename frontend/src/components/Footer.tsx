@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import ContactModal from './ContactModal';
 import { fetchLegalDocuments } from '../api/legal';
+import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
 import { useCookieConsent } from '../hooks/useCookieConsent';
 import { useSettings } from '../hooks/useSettings';
@@ -11,9 +12,22 @@ import { footer, nav, siteName } from '../content/copy';
 export default function Footer() {
   const year = new Date().getFullYear();
   const { data: legalDocuments } = useAsync(fetchLegalDocuments, [], '');
+  const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
   const { openPreferencesModal } = useCookieConsent();
   const { funnelModeEnabled } = useSettings();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
+  // Legal merchant identity — the whole column appears only once the
+  // admin has filled at least one of the fields (Settings → General).
+  const hasMerchantInfo =
+    publicSettings &&
+    Boolean(
+      publicSettings.company_name ??
+        publicSettings.company_id ??
+        publicSettings.contact_address ??
+        publicSettings.support_phone ??
+        publicSettings.store_email,
+    );
 
   return (
     <footer className="footer-dark mt-auto py-5">
@@ -57,6 +71,35 @@ export default function Footer() {
               </li>
             </ul>
           </nav>
+
+          {hasMerchantInfo && publicSettings && (
+            <div>
+              <h2 className="h6">{footer.merchantHeading}</h2>
+              <ul className="list-unstyled d-flex flex-column gap-1 text-muted">
+                {publicSettings.company_name && <li>{publicSettings.company_name}</li>}
+                {publicSettings.company_id && (
+                  <li>
+                    {footer.companyIdLabel}: {publicSettings.company_id}
+                  </li>
+                )}
+                {publicSettings.contact_address && <li>{publicSettings.contact_address}</li>}
+                {publicSettings.support_phone && (
+                  <li>
+                    <a className="text-decoration-none text-muted" href={`tel:${publicSettings.support_phone.replace(/\s+/g, '')}`}>
+                      {publicSettings.support_phone}
+                    </a>
+                  </li>
+                )}
+                {publicSettings.store_email && (
+                  <li>
+                    <a className="text-decoration-none text-muted" href={`mailto:${publicSettings.store_email}`}>
+                      {publicSettings.store_email}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
 
           <nav aria-label={footer.legalHeading}>
             <h2 className="h6">{footer.legalHeading}</h2>

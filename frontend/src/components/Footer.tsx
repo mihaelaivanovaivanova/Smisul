@@ -126,8 +126,14 @@ export default function Footer() {
         <hr className="my-4" style={{ borderColor: 'rgba(255, 255, 255, 0.18)' }} />
         <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 text-center text-sm-start">
           <span className="text-muted small">{footer.tagline}</span>
-          <span className="text-muted small">
-            &copy; {year} {siteName}. Всички права запазени.
+          <span className="d-inline-flex align-items-center gap-3">
+            <span className="footer-payment-logos d-inline-flex align-items-center gap-2">
+              <img src="/payments/visa.svg" alt="Visa" height={14} loading="lazy" />
+              <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
+            </span>
+            <span className="text-muted small">
+              &copy; {year} {siteName}. Всички права запазени.
+            </span>
           </span>
         </div>
       </div>

@@ -109,6 +109,13 @@
   color: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* Card brand marks in the bottom bar — lightened to read on the dark
+   forest background, kept quiet like the rest of the fine print. */
+.footer-payment-logos img {
+  filter: grayscale(1) brightness(3);
+  opacity: 0.75;
+}
+
 .footer-dark a {
   color: rgba(255, 255, 255, 0.85);
 }

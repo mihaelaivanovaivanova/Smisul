@@ -286,6 +286,14 @@ export const funnelLead = {
 export const funnelAssurance = {
   delivery: 'Доставка 1-2 работни дни',
   returns: '30 дни право на връщане',
+  /** Shown only on weekdays before the admin-configured cutoff (see DispatchPromise.tsx). */
+  dispatch: (time: string, remaining: string) => `Поръчай до ${time} ч. — изпращаме още днес (остават ${remaining})`,
+  paymentLogosAria: 'Приемани начини на плащане',
+};
+
+/** The funnel landing page's usage-video section — media comes from the product's own video media. */
+export const funnelVideo = {
+  title: 'Виж колко е лесно',
 };
 
 export const states = {

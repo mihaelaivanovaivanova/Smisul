@@ -670,6 +670,54 @@
   color: var(--color-forest-dark);
 }
 
+/* ---- Same-day dispatch promise ---- */
+
+.funnel-dispatch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-terracotta);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* The buy-section instance sits alone above the offer stack — a size up. */
+.funnel-dispatch--buy {
+  font-size: var(--fs-sm);
+}
+
+/* ---- Usage video ---- */
+
+.funnel-video {
+  padding-block: var(--space-5);
+}
+
+.funnel-video__wrap {
+  max-width: 52rem;
+  margin-inline: auto;
+}
+
+.funnel-video__wrap video {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  background-color: #000;
+}
+
+/* ---- Payment brand marks ---- */
+
+.funnel-payment-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  /* Present but quiet — trust furniture, not content. */
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
 /* ---- Testimonials (#reviews) ---- */
 
 .funnel-reviews {

@@ -55,6 +55,7 @@ class SettingService
             'general.contact_address' => 'contact_address',
             'general.support_phone' => 'support_phone',
             'general.store_email' => 'store_email',
+            'general.same_day_dispatch_cutoff' => 'same_day_dispatch_cutoff',
         ];
 
         $settings = Setting::query()->whereIn('key', array_keys($keys))->get()->keyBy('key');

@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchProduct } from '../api/products';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
+import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 import { trackFunnelAddToCart, trackFunnelViewContent } from '../services/analytics';
-import { formatPrice, getVariantPrice } from '../services/productCatalog';
+import { formatPrice, getVariantPrice, getVideos } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import AddToCartButton from '../components/product/AddToCartButton';
+import DispatchPromise from '../components/funnel/DispatchPromise';
 import ExitIntentModal from '../components/funnel/ExitIntentModal';
 import LeadCaptureForm from '../components/funnel/LeadCaptureForm';
 import PackageOffers from '../components/funnel/PackageOffers';
@@ -17,7 +19,16 @@ import Icon from '../components/icons/Icon';
 import type { IconName } from '../components/icons/Icon';
 import Seo from '../components/Seo';
 import StarRating from '../components/reviews/StarRating';
-import { funnelAssurance, funnelLead, funnelOffer, funnelReviews, reviews as reviewsCopy, seo, states } from '../content/copy';
+import {
+  funnelAssurance,
+  funnelLead,
+  funnelOffer,
+  funnelReviews,
+  funnelVideo,
+  reviews as reviewsCopy,
+  seo,
+  states,
+} from '../content/copy';
 
 /**
  * Trust-item icons that have a real cropped photo/icon match (see
@@ -146,6 +157,11 @@ export default function FunnelLandingPage() {
   const reviewSummary = socialProof && socialProof[0].review_count > 0 ? socialProof[0] : null;
   const topReviews = socialProof?.[1].data.slice(0, 3) ?? [];
 
+  // Merchant settings (same-day dispatch cutoff) — non-gating like the
+  // social proof: a failed fetch just hides the dispatch promise line.
+  const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
+  const dispatchCutoff = publicSettings?.same_day_dispatch_cutoff ?? null;
+
   // Navbar's section-anchor nav links here as "/#benefits" etc. — the
   // browser only auto-scrolls to a fragment on a real page load, not an
   // SPA route change, so this replicates that behavior once the page has
@@ -238,6 +254,7 @@ export default function FunnelLandingPage() {
   const defaultVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
   const price = defaultVariant ? getVariantPrice(defaultVariant) : null;
   const packageOffers = resolvePackageOffers(product, funnelPackages);
+  const productVideos = getVideos(product);
   // The sticky bar's "от 8.99 €" teaser — the cheapest package, or the
   // default variant's price when no packages are configured.
   const fromPrice = packageOffers.length > 0
@@ -366,6 +383,7 @@ export default function FunnelLandingPage() {
                 <span className="funnel-assurance__item">
                   <Icon name="undo" /> {funnelAssurance.returns}
                 </span>
+                <DispatchPromise cutoff={dispatchCutoff} className="funnel-assurance__item" />
               </p>
               <div className="funnel-trust-row">
                 {hero.trust_items.map((item) => (
@@ -439,6 +457,21 @@ export default function FunnelLandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ---- Usage video ---- */}
+      {/* Renders the funnel product's own video media (admin-managed via
+          Products → media) — nothing renders until a video is uploaded. */}
+      {productVideos.length > 0 && (
+        <section className="section funnel-hero-tone funnel-divided-section funnel-video" id="video">
+          <div className="container">
+            <h2 className="section-title mb-4 text-center">{funnelVideo.title}</h2>
+            <div className="funnel-video__wrap">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption -- placeholder demo clip; real footage will carry captions */}
+              <video controls preload="metadata" src={productVideos[0].url} aria-label={productVideos[0].alt_text ?? undefined} />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ---- Features ---- */}
       {/* Deliberately ahead of the history/tradition sections: the concrete
@@ -667,6 +700,10 @@ export default function FunnelLandingPage() {
             </div>
           </div>
 
+          <div className="text-center">
+            <DispatchPromise cutoff={dispatchCutoff} className="funnel-dispatch--buy" />
+          </div>
+
           {packageOffers.length > 0 ? (
             <PackageOffers offers={packageOffers} />
           ) : (
@@ -699,6 +736,12 @@ export default function FunnelLandingPage() {
                 <span className="funnel-trust-item__label">{item.label}</span>
               </div>
             ))}
+          </div>
+
+          {/* Official card brand marks (via iCard) — small, grayscale-calm. */}
+          <div className="funnel-payment-logos" role="img" aria-label={funnelAssurance.paymentLogosAria}>
+            <img src="/payments/visa.svg" alt="Visa" height={18} loading="lazy" />
+            <img src="/payments/mastercard.svg" alt="Mastercard" height={30} loading="lazy" />
           </div>
         </div>
       </section>

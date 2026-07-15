@@ -7,6 +7,8 @@ export interface PublicSettings {
   contact_address: string | null;
   support_phone: string | null;
   store_email: string | null;
+  /** "HH:MM" — same-day dispatch cutoff for the funnel promise line; null/empty disables it. */
+  same_day_dispatch_cutoff: string | null;
 }
 
 /** Public, unauthenticated — fetched once by the footer. */

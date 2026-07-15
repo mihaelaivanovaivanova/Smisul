@@ -25,6 +25,11 @@ class SettingsSeeder extends Seeder
             // expected to display фирма/ЕИК publicly.
             ['key' => 'general.company_name', 'group' => 'general', 'type' => 'string', 'label' => 'Company legal name', 'value' => null],
             ['key' => 'general.company_id', 'group' => 'general', 'type' => 'string', 'label' => 'Company ID (ЕИК)', 'value' => null],
+            // Same-day dispatch promise on the funnel page ("Поръчай до
+            // 14:00 — изпращаме още днес"). HH:MM, weekdays only; empty
+            // string/null disables the line entirely. Only promise what
+            // operations can actually keep.
+            ['key' => 'general.same_day_dispatch_cutoff', 'group' => 'general', 'type' => 'string', 'label' => 'Same-day dispatch cutoff (HH:MM, empty = off)', 'value' => '14:00'],
 
             ['key' => 'email.from_name', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" name', 'value' => 'Smisul'],
             ['key' => 'email.from_address', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" address', 'value' => null],

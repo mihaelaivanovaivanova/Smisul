@@ -546,7 +546,12 @@
   overflow: visible;
   width: 178%;
   margin-left: -78%;
-  height: 21rem;
+  /* Spans the section's full height, bleeding over its vertical padding
+     (the column stretches to the row height — see the awareness row's
+     missing align-items-center in FunnelLandingPage) so the leaves run
+     edge to edge instead of being cropped top and bottom. */
+  height: calc(100% + 2 * var(--space-7));
+  margin-block: calc(-1 * var(--space-7));
   -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
 }

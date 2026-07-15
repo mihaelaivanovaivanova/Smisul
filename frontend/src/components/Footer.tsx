@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import ContactModal from './ContactModal';
+import Icon from './icons/Icon';
 import { fetchLegalDocuments } from '../api/legal';
 import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
@@ -29,20 +30,23 @@ export default function Footer() {
         publicSettings.store_email,
     );
 
+  // Social profiles — each icon renders only when its URL is configured
+  // (Settings → General).
+  const socials = [
+    { icon: 'instagram' as const, label: 'Instagram', url: publicSettings?.social_instagram },
+    { icon: 'facebook' as const, label: 'Facebook', url: publicSettings?.social_facebook },
+    { icon: 'tiktok' as const, label: 'TikTok', url: publicSettings?.social_tiktok },
+  ].filter((social) => Boolean(social.url));
+
   return (
-    <footer className="footer-dark mt-auto py-5">
+    <footer className="footer-dark mt-auto py-4">
       <div className="container">
         <div className="d-flex flex-column flex-md-row justify-content-between gap-4">
-          <div>
-            <Logo tagline light />
-            <p className="text-muted mt-2 mb-0" style={{ maxWidth: '24rem' }}>
-              {footer.description}
-            </p>
-          </div>
+          <Logo tagline light />
 
           <nav aria-label={footer.companyHeading}>
-            <h2 className="h6">{footer.companyHeading}</h2>
-            <ul className="list-unstyled d-flex flex-column gap-1">
+            <h2 className="h6 mb-2">{footer.companyHeading}</h2>
+            <ul className="list-unstyled d-flex flex-column gap-1 small mb-0">
               <li>
                 <Link className="text-decoration-none text-muted" to="/">
                   {nav.home}
@@ -74,8 +78,8 @@ export default function Footer() {
 
           {hasMerchantInfo && publicSettings && (
             <div>
-              <h2 className="h6">{footer.merchantHeading}</h2>
-              <ul className="list-unstyled d-flex flex-column gap-1 text-muted">
+              <h2 className="h6 mb-2">{footer.merchantHeading}</h2>
+              <ul className="list-unstyled d-flex flex-column gap-1 small mb-0 text-muted">
                 {publicSettings.company_name && <li>{publicSettings.company_name}</li>}
                 {publicSettings.company_id && (
                   <li>
@@ -102,8 +106,8 @@ export default function Footer() {
           )}
 
           <nav aria-label={footer.legalHeading}>
-            <h2 className="h6">{footer.legalHeading}</h2>
-            <ul className="list-unstyled d-flex flex-column gap-1">
+            <h2 className="h6 mb-2">{footer.legalHeading}</h2>
+            <ul className="list-unstyled d-flex flex-column gap-1 small mb-0">
               {legalDocuments?.map((document) => (
                 <li key={document.slug}>
                   <Link className="text-decoration-none text-muted" to={`/legal/${document.slug}`}>
@@ -123,16 +127,33 @@ export default function Footer() {
             </ul>
           </nav>
         </div>
-        <hr className="my-4" style={{ borderColor: 'rgba(255, 255, 255, 0.18)' }} />
-        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 text-center text-sm-start">
-          <span className="text-muted small">{footer.tagline}</span>
-          <span className="d-inline-flex align-items-center gap-3">
+
+        <hr className="my-3" style={{ borderColor: 'rgba(255, 255, 255, 0.18)' }} />
+
+        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+          <span className="text-muted small">
+            &copy; {year} {siteName}. Всички права запазени.
+          </span>
+          <span className="d-inline-flex align-items-center gap-4">
+            {socials.length > 0 && (
+              <span className="d-inline-flex align-items-center gap-2">
+                {socials.map((social) => (
+                  <a
+                    key={social.icon}
+                    className="footer-social"
+                    href={social.url as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                  >
+                    <Icon name={social.icon} />
+                  </a>
+                ))}
+              </span>
+            )}
             <span className="footer-payment-logos d-inline-flex align-items-center gap-2">
               <img src="/payments/visa.svg" alt="Visa" height={14} loading="lazy" />
               <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
-            </span>
-            <span className="text-muted small">
-              &copy; {year} {siteName}. Всички права запазени.
             </span>
           </span>
         </div>

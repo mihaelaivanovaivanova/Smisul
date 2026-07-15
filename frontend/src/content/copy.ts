@@ -41,8 +41,6 @@ export const funnelNav = {
 };
 
 export const footer = {
-  tagline: 'Smisul — естествени продукти с ясен смисъл.',
-  description: 'Създаваме с грижа за природата, за качеството и за теб.',
   columnsAria: 'Долна навигация',
   legalHeading: 'Правна информация',
   companyHeading: 'Компания',

@@ -18,7 +18,17 @@ class PublicSettingsTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(
-            ['company_name', 'company_id', 'contact_address', 'support_phone', 'store_email', 'same_day_dispatch_cutoff'],
+            [
+                'company_name',
+                'company_id',
+                'contact_address',
+                'support_phone',
+                'store_email',
+                'same_day_dispatch_cutoff',
+                'social_instagram',
+                'social_facebook',
+                'social_tiktok',
+            ],
             array_keys($response->json('data')),
         );
     }

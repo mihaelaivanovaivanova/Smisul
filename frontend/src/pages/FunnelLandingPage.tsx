@@ -173,7 +173,9 @@ export default function FunnelLandingPage() {
       return;
     }
 
-    if (location.hash === '#how-to-use') {
+    // "#video" falls back to the FAQ's usage answer when no video is
+    // uploaded (the section renders only with a video present).
+    if (location.hash === '#how-to-use' || (location.hash === '#video' && !document.getElementById('video'))) {
       const items = funnelContent?.faq.items ?? [];
       const usageIndex = items.findIndex((item) => /как се използва/i.test(item.question));
       setActiveFaqIndex(usageIndex === -1 ? 0 : usageIndex);
@@ -264,7 +266,8 @@ export default function FunnelLandingPage() {
   // Desktop sticky buy bar: visible only between the hero scrolling out of
   // view (before that the hero's own CTA is on screen) and the #buy section
   // scrolling into view (where the bar would just duplicate the offer stack
-  // right next to it).
+  // right next to it). Also hidden while the footer is on screen, so the
+  // fixed bar never covers the footer's own content at the very bottom.
   useEffect(() => {
     if (settingsLoading || isLoading) {
       return;
@@ -272,6 +275,7 @@ export default function FunnelLandingPage() {
 
     const hero = document.querySelector('.funnel-hero');
     const buy = document.getElementById('buy');
+    const footer = document.querySelector('footer');
 
     if (!hero || !buy) {
       return;
@@ -279,6 +283,7 @@ export default function FunnelLandingPage() {
 
     let heroInView = true;
     let buyInView = false;
+    let footerInView = false;
 
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -286,13 +291,18 @@ export default function FunnelLandingPage() {
           heroInView = entry.isIntersecting;
         } else if (entry.target === buy) {
           buyInView = entry.isIntersecting;
+        } else if (entry.target === footer) {
+          footerInView = entry.isIntersecting;
         }
       }
-      setShowDesktopBar(!heroInView && !buyInView);
+      setShowDesktopBar(!heroInView && !buyInView && !footerInView);
     });
 
     observer.observe(hero);
     observer.observe(buy);
+    if (footer) {
+      observer.observe(footer);
+    }
 
     return () => observer.disconnect();
   }, [settingsLoading, isLoading]);
@@ -690,13 +700,17 @@ export default function FunnelLandingPage() {
       {/* ---- Awareness (dark band) ---- */}
       <section className="funnel-awareness section funnel-divided-section funnel-divided-section--dark">
         <div className="container">
-          <div className="row g-5 align-items-center">
+          {/* No align-items-center: the photo column must stretch to the
+              row's full height so the leaves can bleed over the section's
+              own padding (see .funnel-awareness__image); the text column
+              centers itself instead. */}
+          <div className="row g-5">
             <div className="col-12 col-lg-4 d-none d-lg-block">
               <div className="funnel-photo funnel-awareness__image">
                 <img src="/funnel/v2/08-leaves-dark.webp" alt="" loading="lazy" decoding="async" />
               </div>
             </div>
-            <div className="col-12 col-lg-8">
+            <div className="col-12 col-lg-8 align-self-center">
               <h2 className="section-title">{awareness.title}</h2>
               {awareness.paragraphs.map((paragraph) => (
                 <p className="section-lead lead" key={paragraph}>

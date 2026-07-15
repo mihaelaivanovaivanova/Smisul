@@ -9,6 +9,9 @@ export interface PublicSettings {
   store_email: string | null;
   /** "HH:MM" — same-day dispatch cutoff for the funnel promise line; null/empty disables it. */
   same_day_dispatch_cutoff: string | null;
+  social_instagram: string | null;
+  social_facebook: string | null;
+  social_tiktok: string | null;
 }
 
 /** Public, unauthenticated — fetched once by the footer. */

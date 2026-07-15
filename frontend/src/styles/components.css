@@ -116,6 +116,32 @@
   opacity: 0.75;
 }
 
+/* Social profile buttons — quiet outlined circles that light up on hover. */
+.footer-social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.85);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.footer-social:hover,
+.footer-social:focus {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.footer-social svg {
+  width: 1em;
+  height: 1em;
+}
+
 .footer-dark a {
   color: rgba(255, 255, 255, 0.85);
 }

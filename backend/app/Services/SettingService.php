@@ -56,6 +56,9 @@ class SettingService
             'general.support_phone' => 'support_phone',
             'general.store_email' => 'store_email',
             'general.same_day_dispatch_cutoff' => 'same_day_dispatch_cutoff',
+            'general.social_instagram' => 'social_instagram',
+            'general.social_facebook' => 'social_facebook',
+            'general.social_tiktok' => 'social_tiktok',
         ];
 
         $settings = Setting::query()->whereIn('key', array_keys($keys))->get()->keyBy('key');

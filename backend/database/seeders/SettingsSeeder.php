@@ -30,6 +30,11 @@ class SettingsSeeder extends Seeder
             // string/null disables the line entirely. Only promise what
             // operations can actually keep.
             ['key' => 'general.same_day_dispatch_cutoff', 'group' => 'general', 'type' => 'string', 'label' => 'Same-day dispatch cutoff (HH:MM, empty = off)', 'value' => '14:00'],
+            // Social profiles for the footer — icons render only for the
+            // ones that are filled in.
+            ['key' => 'general.social_instagram', 'group' => 'general', 'type' => 'string', 'label' => 'Instagram URL', 'value' => null],
+            ['key' => 'general.social_facebook', 'group' => 'general', 'type' => 'string', 'label' => 'Facebook URL', 'value' => null],
+            ['key' => 'general.social_tiktok', 'group' => 'general', 'type' => 'string', 'label' => 'TikTok URL', 'value' => null],
 
             ['key' => 'email.from_name', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" name', 'value' => 'Smisul'],
             ['key' => 'email.from_address', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" address', 'value' => null],

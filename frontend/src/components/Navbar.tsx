@@ -144,13 +144,19 @@ export default function Navbar() {
             since the navbar is sticky. */}
         {funnelModeEnabled && (
           <div className="d-none d-md-flex align-items-center gap-3 order-md-2 mx-md-4">
-            <Link to="/" className="text-decoration-none text-muted fw-semibold">
+            {/* Already on "/" a same-path Link is a no-op, so scroll to the
+                top explicitly; from other pages it navigates as usual. */}
+            <Link
+              to="/"
+              className="text-decoration-none text-muted fw-semibold"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               {funnelNav.home}
             </Link>
             <Link to="/#benefits" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.benefits}
             </Link>
-            <Link to="/#how-to-use" className="text-decoration-none text-muted fw-semibold">
+            <Link to="/#video" className="text-decoration-none text-muted fw-semibold">
               {funnelNav.howTo}
             </Link>
             <Link to="/#faq" className="text-decoration-none text-muted fw-semibold">

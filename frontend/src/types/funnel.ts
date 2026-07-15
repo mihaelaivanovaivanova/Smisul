@@ -6,6 +6,8 @@ export interface FunnelTrustItem {
 }
 
 export interface FunnelHeroContent {
+  /** Optional kicker line above the H1 — absent on content saved before the field existed. */
+  eyebrow?: string | null;
   title: string;
   body: string;
   cta_primary: string;
@@ -49,6 +51,18 @@ export interface FunnelFeaturesContent {
   items: FunnelFeatureItem[];
 }
 
+/** A positive statement — true for Miswak (rendered ✓), false for a plastic brush (rendered ✗). */
+export interface FunnelComparisonRow {
+  label: string;
+}
+
+export interface FunnelComparisonContent {
+  title: string;
+  miswak_label: string;
+  brush_label: string;
+  rows: FunnelComparisonRow[];
+}
+
 export interface FunnelFromTreeStep {
   label: string;
 }
@@ -88,8 +102,9 @@ export interface FunnelContent {
   hero: FunnelHeroContent;
   intro: FunnelIntroContent;
   why: FunnelWhyContent;
-  history: FunnelHistoryContent;
   features: FunnelFeaturesContent;
+  comparison: FunnelComparisonContent;
+  history: FunnelHistoryContent;
   from_tree: FunnelFromTreeContent;
   awareness: FunnelAwarenessContent;
   final_cta: FunnelFinalCtaContent;
@@ -103,6 +118,8 @@ export interface FunnelPackage {
   badge: string;
   detail: string;
   value_label: string;
+  /** Optional second value line, e.g. "≈ 4-5 месеца ежедневна грижа" — absent on configs saved before the field existed. */
+  duration_label?: string | null;
   button_text: string;
 }
 

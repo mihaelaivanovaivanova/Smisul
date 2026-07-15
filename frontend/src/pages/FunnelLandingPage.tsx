@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchProduct } from '../api/products';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
-import { trackFunnelAddToCart } from '../services/analytics';
+import { trackFunnelAddToCart, trackFunnelViewContent } from '../services/analytics';
 import { formatPrice, getVariantPrice } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
@@ -35,9 +35,10 @@ function TrustIcon({ icon }: { icon: IconName }) {
   const image = TRUST_ICON_IMAGES[icon];
 
   if (image) {
+    // No loading="lazy": rendered in the hero's trust row, above the fold.
     return (
       <span className="funnel-trust-item__icon funnel-trust-item__icon--photo">
-        <img src={`/funnel/v2/${image}.png`} alt="" />
+        <img src={`/funnel/v2/${image}.webp`} alt="" />
       </span>
     );
   }
@@ -66,7 +67,7 @@ function WhyIcon({ icon }: { icon: IconName }) {
   if (image) {
     return (
       <span className="funnel-why-card__icon funnel-why-card__icon--photo">
-        <img src={`/funnel/v2/${image}.png`} alt="" />
+        <img src={`/funnel/v2/${image}.webp`} alt="" loading="lazy" decoding="async" />
       </span>
     );
   }
@@ -94,7 +95,7 @@ function StatIcon({ icon }: { icon: IconName }) {
   if (image) {
     return (
       <span className="funnel-stat-item__icon funnel-stat-item__icon--photo">
-        <img src={`/funnel/v2/${image}.png`} alt="" />
+        <img src={`/funnel/v2/${image}.webp`} alt="" loading="lazy" decoding="async" />
       </span>
     );
   }
@@ -109,16 +110,18 @@ function StatIcon({ icon }: { icon: IconName }) {
 /**
  * The single-product "funnel mode" landing page. Content/copy comes from
  * FunnelContentService (see backend database/seeders/FunnelSeeder.php);
- * the 9 sections below match that seeder's FUNNEL_SECTIONS list one to
- * one. Photography lives at /funnel/v2/*.png (cropped from a reference
- * composite — see git history for provenance; several are still
- * placeholder-quality and expected to be swapped for real photography
- * later, per an explicit choice made when building this page).
+ * the sections below match that seeder's FUNNEL_SECTIONS list one to
+ * one. Photography lives at /funnel/v2/*.webp (cropped from a reference
+ * composite and converted from the original PNGs — see git history for
+ * provenance; several are still placeholder-quality and expected to be
+ * swapped for real photography later, per an explicit choice made when
+ * building this page).
  */
 
 export default function FunnelLandingPage() {
   const { funnelProductSlug, funnelPackages, funnelContent, isLoading: settingsLoading } = useSettings();
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
   const [showDesktopBar, setShowDesktopBar] = useState(false);
 
@@ -164,6 +167,23 @@ export default function FunnelLandingPage() {
     document.querySelector(location.hash)?.scrollIntoView({ behavior: 'smooth' });
   }, [location.hash, settingsLoading, isLoading, funnelContent]);
 
+  // ViewContent: the funnel page rendered with its product — the top of
+  // the ad-campaign event chain (ViewContent → AddToCart → InitiateCheckout
+  // → Purchase). Keyed on the product id so it fires once per view, not on
+  // every re-render.
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    const trackedVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0];
+    const trackedPrice = trackedVariant ? getVariantPrice(trackedVariant) : undefined;
+
+    if (trackedPrice) {
+      trackFunnelViewContent(product.name, trackedPrice.amount, trackedPrice.currency);
+    }
+  }, [product]);
+
   // Desktop sticky buy bar: visible only between the hero scrolling out of
   // view (before that the hero's own CTA is on screen) and the #buy section
   // scrolling into view (where the bar would just duplicate the offer stack
@@ -208,7 +228,10 @@ export default function FunnelLandingPage() {
     return <ErrorState message={error ?? states.loadingDefault} />;
   }
 
-  const { hero, intro, why, history, features, from_tree, awareness, final_cta, faq } = funnelContent;
+  const { hero, intro, why, features, comparison, history, from_tree, awareness, final_cta, faq } = funnelContent;
+  // A DB that predates the comparison section serves `[]` for it (see
+  // FunnelContentService::all) — render only when real rows exist.
+  const comparisonRows = Array.isArray(comparison?.rows) ? comparison.rows : [];
   // Two-column FAQ accordion — reading order fills the left column first.
   const faqColumnSize = Math.ceil(faq.items.length / 2);
   const defaultVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
@@ -219,6 +242,61 @@ export default function FunnelLandingPage() {
   const fromPrice = packageOffers.length > 0
     ? packageOffers.reduce((min, offer) => (offer.price.amount < min.amount ? offer.price : min), packageOffers[0].price)
     : price;
+
+  // Product rich-result schema: price range across the packages, live
+  // aggregate rating, and the top testimonials — eligible for star-rating
+  // rich results in Google. FAQPage schema mirrors the on-page FAQ.
+  const allPrices = product.variants
+    .map((variant) => getVariantPrice(variant))
+    .filter((variantPrice): variantPrice is NonNullable<typeof variantPrice> => variantPrice !== undefined);
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.short_description ?? undefined,
+    image: [`${window.location.origin}/funnel/v2/og-image.jpg`],
+    inLanguage: 'bg',
+    ...(allPrices.length > 0 && {
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: allPrices[0].currency,
+        lowPrice: Math.min(...allPrices.map((p) => p.amount)).toFixed(2),
+        highPrice: Math.max(...allPrices.map((p) => p.amount)).toFixed(2),
+        offerCount: allPrices.length,
+        availability: product.variants.some((variant) => variant.inventory?.is_in_stock)
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+        url: `${window.location.origin}/`,
+      },
+    }),
+    ...(reviewSummary && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: reviewSummary.average_rating,
+        reviewCount: reviewSummary.review_count,
+      },
+      review: topReviews.map((review) => ({
+        '@type': 'Review',
+        name: review.title,
+        reviewBody: review.body,
+        datePublished: review.created_at.slice(0, 10),
+        reviewRating: { '@type': 'Rating', ratingValue: review.rating },
+        author: { '@type': 'Person', name: review.author_name },
+      })),
+    }),
+  };
+  const faqJsonLd =
+    faq.items.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: faq.items.map((item) => ({
+            '@type': 'Question',
+            name: item.question,
+            acceptedAnswer: { '@type': 'Answer', text: item.answer },
+          })),
+        }
+      : null;
 
   // object-position per image so the wider 2:1 crop (see funnel.css) keeps
   // each photo's actual subject in frame instead of a blind center-crop.
@@ -245,13 +323,19 @@ export default function FunnelLandingPage() {
 
   return (
     <div className="funnel-page pb-5 pb-md-0">
-      <Seo title={seo.funnelTitle} description={seo.funnelDescription} ogImage="/funnel/v2/01-hero-sticks.png" />
+      <Seo
+        title={seo.funnelTitle}
+        description={seo.funnelDescription}
+        ogImage="/funnel/v2/og-image.jpg"
+        jsonLd={faqJsonLd ? [productJsonLd, faqJsonLd] : productJsonLd}
+      />
 
       {/* ---- Hero ---- */}
       <section className="funnel-hero section">
         <div className="container">
           <div className="row align-items-start g-5">
             <div className="col-12 col-lg-5">
+              {hero.eyebrow && <p className="section-eyebrow funnel-hero__eyebrow">{hero.eyebrow}</p>}
               <h1 className="funnel-hero__title mb-3">{hero.title}</h1>
               <p className="lead">{hero.body}</p>
               {reviewSummary && (
@@ -293,7 +377,9 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-7">
               <div className="funnel-photo funnel-hero__image">
-                <img src="/funnel/v2/01-hero-sticks.png" alt={product.name} />
+                {/* The LCP element: eager + high priority, with intrinsic
+                    dimensions so the browser reserves the space (no CLS). */}
+                <img src="/funnel/v2/01-hero-sticks.webp" alt={product.name} width={1536} height={1024} fetchPriority="high" />
               </div>
             </div>
           </div>
@@ -306,7 +392,7 @@ export default function FunnelLandingPage() {
           <div className="row g-5 align-items-center">
             <div className="col-12 col-lg-6">
               <div className="funnel-photo" style={{ aspectRatio: '4 / 3' }}>
-                <img src="/funnel/v2/02-desert-tree.png" alt="Дървото Salvadora Persica в естествената си среда" />
+                <img src="/funnel/v2/02-desert-tree.webp" alt="Дървото Salvadora Persica в естествената си среда" loading="lazy" decoding="async" />
               </div>
             </div>
             <div className="col-12 col-lg-6">
@@ -340,8 +426,10 @@ export default function FunnelLandingPage() {
                 </div>
                 <div className="funnel-photo funnel-why-card__photo">
                   <img
-                    src={`/funnel/v2/${(whyImages[index] ?? whyImages[0]).file}.png`}
+                    src={`/funnel/v2/${(whyImages[index] ?? whyImages[0]).file}.webp`}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     style={{ objectPosition: (whyImages[index] ?? whyImages[0]).focus }}
                   />
                 </div>
@@ -351,13 +439,96 @@ export default function FunnelLandingPage() {
         </div>
       </section>
 
+      {/* ---- Features ---- */}
+      {/* Deliberately ahead of the history/tradition sections: the concrete
+          product argument (and the first mid-page CTA) reaches the visitor
+          before the longer educational read, not after it. */}
+      <section className="section section-tint funnel-divided-section funnel-features">
+        <div className="container">
+          <h2 className="section-title mb-5 text-center">
+            {features.title.replace('специален?', '')}
+            <span className="funnel-eyebrow-accent">специален?</span>
+          </h2>
+          <div className="funnel-feature-row">
+            {features.items.map((item, index) => (
+              <div className="funnel-feature-item" key={item.label}>
+                <span className="funnel-feature-item__icon">
+                  <img src={`/funnel/v2/${featureIcons[index] ?? featureIcons[0]}.webp`} alt="" loading="lazy" decoding="async" />
+                </span>
+                <span className="funnel-feature-item__label">{item.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Mid-page CTA — the peak-interest moment right after the "what
+              makes it special" argument, with the entry price as the teaser
+              so the click is a conscious yes rather than a leap. */}
+          <div className="text-center mt-5">
+            <a href="#buy" className="btn btn-primary btn-lg">
+              {hero.cta_primary}
+              {fromPrice && ` — ${funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}`}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ---- Comparison ("us vs. them" checklist) ---- */}
+      {comparisonRows.length > 0 && (
+        <section className="section funnel-hero-tone funnel-divided-section funnel-comparison" id="compare">
+          <div className="container">
+            <div className="funnel-comparison__wrap">
+              <table className="funnel-comparison__table">
+                <thead>
+                  <tr>
+                    {/* The section heading lives inside the table's own
+                        top-left cell, matching the reference layout. */}
+                    <th scope="col" className="funnel-comparison__title-cell">
+                      <h2 className="funnel-comparison__title">{comparison.title}</h2>
+                    </th>
+                    <th scope="col" className="funnel-comparison__miswak-col">
+                      <span className="funnel-comparison__col-head">
+                        <img src="/funnel/v2/compare-miswak.webp" alt="" width={635} height={320} loading="lazy" decoding="async" />
+                        <span>{comparison.miswak_label}</span>
+                      </span>
+                    </th>
+                    <th scope="col">
+                      <span className="funnel-comparison__col-head">
+                        <img src="/funnel/v2/compare-toothbrush.webp" alt="" width={1137} height={320} loading="lazy" decoding="async" />
+                        <span>{comparison.brush_label}</span>
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonRows.map((row) => (
+                    <tr key={row.label}>
+                      <th scope="row">{row.label}</th>
+                      <td className="funnel-comparison__miswak-col">
+                        <span className="funnel-comparison__mark funnel-comparison__mark--yes" role="img" aria-label="Да">
+                          <Icon name="check" />
+                        </span>
+                      </td>
+                      <td>
+                        <span className="funnel-comparison__mark funnel-comparison__mark--no" role="img" aria-label="Не">
+                          <Icon name="cross" />
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ---- History ---- */}
       <section className="section funnel-hero-tone funnel-divided-section">
         <div className="container">
           <div className="row g-5 align-items-center">
             <div className="col-12 col-lg-5">
               <div className="funnel-photo" style={{ aspectRatio: '4 / 3' }}>
-                <img src="/funnel/v2/06-ancient-ruins.png" alt="Историческа архитектура от район, свързан с традиционната употреба на Miswak" />
+                <img src="/funnel/v2/06-ancient-ruins.webp" alt="Историческа архитектура от район, свързан с традиционната употреба на Miswak" loading="lazy" decoding="async" />
               </div>
             </div>
             <div className="col-12 col-lg-7 funnel-history__text">
@@ -378,36 +549,6 @@ export default function FunnelLandingPage() {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Features ---- */}
-      <section className="section section-tint funnel-divided-section funnel-features">
-        <div className="container">
-          <h2 className="section-title mb-5 text-center">
-            {features.title.replace('специален?', '')}
-            <span className="funnel-eyebrow-accent">специален?</span>
-          </h2>
-          <div className="funnel-feature-row">
-            {features.items.map((item, index) => (
-              <div className="funnel-feature-item" key={item.label}>
-                <span className="funnel-feature-item__icon">
-                  <img src={`/funnel/v2/${featureIcons[index] ?? featureIcons[0]}.png`} alt="" />
-                </span>
-                <span className="funnel-feature-item__label">{item.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Mid-page CTA — the peak-interest moment right after the "what
-              makes it special" argument, with the entry price as the teaser
-              so the click is a conscious yes rather than a leap. */}
-          <div className="text-center mt-5">
-            <a href="#buy" className="btn btn-primary btn-lg">
-              {hero.cta_primary}
-              {fromPrice && ` — ${funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}`}
-            </a>
           </div>
         </div>
       </section>
@@ -434,7 +575,7 @@ export default function FunnelLandingPage() {
                 {from_tree.steps.map((step, index) => (
                   <div className="funnel-step-item" key={step.label}>
                     <span className="funnel-step-item__icon">
-                      <img src={`/funnel/v2/${fromTreeIcons[index] ?? fromTreeIcons[0]}.png`} alt="" />
+                      <img src={`/funnel/v2/${fromTreeIcons[index] ?? fromTreeIcons[0]}.webp`} alt="" loading="lazy" decoding="async" />
                     </span>
                     <span className="funnel-step-item__label">{step.label}</span>
                   </div>
@@ -443,7 +584,7 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-7 funnel-from-tree__photo-col">
               <div className="funnel-photo" style={{ height: '92%', width: '100%' }}>
-                <img src="/funnel/v2/07-basket.png" alt="Кошница с необработени клонки Miswak" />
+                <img src="/funnel/v2/07-basket.webp" alt="Кошница с необработени клонки Miswak" loading="lazy" decoding="async" />
               </div>
             </div>
           </div>
@@ -456,7 +597,7 @@ export default function FunnelLandingPage() {
           <div className="row g-5 align-items-center">
             <div className="col-12 col-lg-4 d-none d-lg-block">
               <div className="funnel-photo funnel-awareness__image">
-                <img src="/funnel/v2/08-leaves-dark.png" alt="" />
+                <img src="/funnel/v2/08-leaves-dark.webp" alt="" loading="lazy" decoding="async" />
               </div>
             </div>
             <div className="col-12 col-lg-8">
@@ -513,7 +654,7 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
               <div className="funnel-photo funnel-final-cta__image">
-                <img src="/funnel/v2/09-hand-single-stick.png" alt={product.name} />
+                <img src="/funnel/v2/09-hand-single-stick.webp" alt={product.name} width={1324} height={1188} loading="lazy" decoding="async" />
               </div>
             </div>
           </div>
@@ -530,7 +671,14 @@ export default function FunnelLandingPage() {
                   label={final_cta.cta}
                   large
                   hideQuantity
-                  onAdded={() => price && trackFunnelAddToCart(price.amount, price.currency)}
+                  // Same funnel-only momentum as PackageOffers: a "yes"
+                  // goes straight to the cart page and its checkout CTA.
+                  onAdded={() => {
+                    if (price) {
+                      trackFunnelAddToCart(price.amount, price.currency);
+                    }
+                    navigate('/cart');
+                  }}
                 />
               </div>
             )

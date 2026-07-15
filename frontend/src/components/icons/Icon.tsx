@@ -25,7 +25,9 @@ export type IconName =
   | 'check-badge'
   | 'lock'
   | 'undo'
-  | 'card';
+  | 'card'
+  | 'check'
+  | 'cross';
 
 interface IconProps {
   name: IconName;
@@ -64,6 +66,8 @@ const PATHS: Record<IconName, string> = {
   // Magstripe band + body; the inner subpath is wound counterclockwise so
   // the nonzero fill rule cuts it out as the "signature line" detail.
   card: 'M3 5h18a2 2 0 0 1 2 2v1H1V7a2 2 0 0 1 2-2Zm-2 5h22v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-7Zm4 4v2h6v-2H5Z',
+  check: 'M9.55 18.05 3.7 12.2l2.15-2.15 3.7 3.7 8.6-8.6 2.15 2.15Z',
+  cross: 'M6.05 4.15 12 10.1l5.95-5.95 1.9 1.9L13.9 12l5.95 5.95-1.9 1.9L12 13.9l-5.95 5.95-1.9-1.9L10.1 12 4.15 6.05Z',
 };
 
 export default function Icon({ name, className }: IconProps) {

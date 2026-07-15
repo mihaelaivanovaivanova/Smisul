@@ -21,6 +21,7 @@ import type { Media, ProductStatus, ProductVariant } from '../../types/product';
 import type { AdminProduct } from '../../types/admin';
 import type {
   FunnelAdminPayload,
+  FunnelComparisonContent,
   FunnelFaqContent,
   FunnelFaqItem,
   FunnelFeaturesContent,
@@ -39,8 +40,9 @@ const TABS: { key: FunnelSection; label: string }[] = [
   { key: 'hero', label: 'Hero' },
   { key: 'intro', label: 'Intro' },
   { key: 'why', label: 'Why Miswak' },
-  { key: 'history', label: 'History' },
   { key: 'features', label: 'Features' },
+  { key: 'comparison', label: 'Comparison' },
+  { key: 'history', label: 'History' },
   { key: 'from_tree', label: 'From tree to you' },
   { key: 'awareness', label: 'Awareness band' },
   { key: 'final_cta', label: 'Final CTA' },
@@ -54,11 +56,13 @@ function TextField({
   value,
   onChange,
   multiline = false,
+  required = true,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   multiline?: boolean;
+  required?: boolean;
 }) {
   const id = label.toLowerCase().replace(/\s+/g, '-');
 
@@ -68,9 +72,9 @@ function TextField({
         {label}
       </label>
       {multiline ? (
-        <textarea id={id} className="form-control" rows={3} value={value} onChange={(event) => onChange(event.target.value)} required />
+        <textarea id={id} className="form-control" rows={3} value={value} onChange={(event) => onChange(event.target.value)} required={required} />
       ) : (
-        <input id={id} className="form-control" value={value} onChange={(event) => onChange(event.target.value)} required />
+        <input id={id} className="form-control" value={value} onChange={(event) => onChange(event.target.value)} required={required} />
       )}
     </div>
   );
@@ -217,6 +221,12 @@ function HeroForm({ initial, onSaved }: { initial: FunnelHeroContent; onSaved: (
     <SectionForm section="hero" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
+          <TextField
+            label="Eyebrow (optional kicker above the title)"
+            value={value.eyebrow ?? ''}
+            onChange={(v) => setValue({ ...value, eyebrow: v })}
+            required={false}
+          />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} multiline />
           <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
           <TextField label="Primary button text" value={value.cta_primary} onChange={(v) => setValue({ ...value, cta_primary: v })} />
@@ -268,6 +278,38 @@ function WhyForm({ initial, onSaved }: { initial: FunnelWhyContent; onSaved: () 
               { key: 'text', placeholder: 'Text' },
             ]}
             emptyItem={{ icon: 'leaf', title: '', text: '' }}
+          />
+        </>
+      )}
+    </SectionForm>
+  );
+}
+
+function ComparisonForm({ initial, onSaved }: { initial: FunnelComparisonContent; onSaved: () => void }) {
+  return (
+    <SectionForm section="comparison" initial={initial} onSaved={onSaved}>
+      {(value, setValue) => (
+        <>
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <TextField
+            label="Miswak column label"
+            value={value.miswak_label}
+            onChange={(v) => setValue({ ...value, miswak_label: v })}
+          />
+          <TextField
+            label="Toothbrush column label"
+            value={value.brush_label}
+            onChange={(v) => setValue({ ...value, brush_label: v })}
+          />
+          <div className="form-text mb-2">
+            Each row is a positive statement — the page renders it with a ✓ for Miswak and a ✗ for the toothbrush.
+          </div>
+          <RepeatableObjectList
+            label="Rows"
+            items={value.rows}
+            onChange={(rows) => setValue({ ...value, rows: rows as FunnelComparisonContent['rows'] })}
+            fields={[{ key: 'label', placeholder: 'Statement (true for Miswak, false for the brush)' }]}
+            emptyItem={{ label: '' }}
           />
         </>
       )}
@@ -498,7 +540,14 @@ function FaqForm({ initial, onSaved }: { initial: FunnelFaqContent; onSaved: () 
   );
 }
 
-const EMPTY_PACKAGE: FunnelPackage = { variant_id: 0, badge: '', detail: '', value_label: '', button_text: '' };
+const EMPTY_PACKAGE: FunnelPackage = {
+  variant_id: 0,
+  badge: '',
+  detail: '',
+  value_label: '',
+  duration_label: '',
+  button_text: '',
+};
 
 const EMPTY_PRODUCT_FORM: ProductPayload = {
   name: '',
@@ -732,6 +781,15 @@ function PackagesForm({ initial, onSaved }: { initial: FunnelAdminPayload; onSav
                 required
               />
             </div>
+            <div className="col-6 col-md-3">
+              <label className="form-label">Duration label (optional)</label>
+              <input
+                className="form-control"
+                placeholder="≈ 4-5 месеца ежедневна грижа"
+                value={pkg.duration_label ?? ''}
+                onChange={(event) => updatePackage(index, { duration_label: event.target.value })}
+              />
+            </div>
           </div>
         </div>
       ))}
@@ -948,6 +1006,9 @@ export default function FunnelPage() {
           )}
           {activeTab === 'features' && (
             <FeaturesForm key="features" initial={data.content.features} onSaved={() => setReloadKey((key) => key + 1)} />
+          )}
+          {activeTab === 'comparison' && (
+            <ComparisonForm key="comparison" initial={data.content.comparison} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
           {activeTab === 'from_tree' && (
             <FromTreeForm key="from_tree" initial={data.content.from_tree} onSaved={() => setReloadKey((key) => key + 1)} />

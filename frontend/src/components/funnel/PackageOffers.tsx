@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import AddToCartButton from '../product/AddToCartButton';
 import { formatPrice } from '../../services/productCatalog';
 import { trackFunnelAddToCart } from '../../services/analytics';
@@ -12,6 +13,7 @@ import type { PackageOffer } from '../../services/funnelOffers';
  * all cards as equals.
  */
 export default function PackageOffers({ offers }: { offers: PackageOffer[] }) {
+  const navigate = useNavigate();
   const featuredIndex = offers.length === 3 ? 1 : -1;
 
   return (
@@ -44,6 +46,7 @@ export default function PackageOffers({ offers }: { offers: PackageOffer[] }) {
                 {funnelOffer.perUnit(formatPrice(price.amount / variant.pack_size, price.currency))}
               </span>
             )}
+            {pkg.duration_label && <span className="funnel-package-card__duration">{pkg.duration_label}</span>}
             {/* Honest urgency: rendered only when the inventory really is
                 low — no fake countdowns, the backend's is_low_stock flag
                 decides. */}
@@ -60,7 +63,14 @@ export default function PackageOffers({ offers }: { offers: PackageOffer[] }) {
                   inventory={variant.inventory}
                   label={pkg.button_text}
                   hideQuantity
-                  onAdded={() => trackFunnelAddToCart(price.amount, price.currency)}
+                  // Funnel-only: a "yes" goes straight to the cart page
+                  // (with its checkout CTA) instead of leaving the visitor
+                  // parked on the landing page — the storefront's product
+                  // pages keep the stay-on-page behavior.
+                  onAdded={() => {
+                    trackFunnelAddToCart(price.amount, price.currency);
+                    navigate('/cart');
+                  }}
                 />
               ) : (
                 <span className="text-muted">{stockCopy.outOfStock}</span>

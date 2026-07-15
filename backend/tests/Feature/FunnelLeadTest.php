@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Mail\FunnelLeadWelcomeMail;
 use App\Models\FunnelLead;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -14,12 +16,26 @@ class FunnelLeadTest extends TestCase
     #[Test]
     public function a_guest_can_leave_their_email(): void
     {
+        Mail::fake();
+
         $response = $this->postJson('/api/v1/funnel/leads', [
             'email' => 'ada@example.com',
         ]);
 
         $response->assertCreated();
         $this->assertDatabaseHas('funnel_leads', ['email' => 'ada@example.com']);
+    }
+
+    #[Test]
+    public function a_welcome_email_is_sent_on_first_capture_only(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/api/v1/funnel/leads', ['email' => 'ada@example.com'])->assertCreated();
+        Mail::assertSent(FunnelLeadWelcomeMail::class, fn (FunnelLeadWelcomeMail $mail) => $mail->hasTo('ada@example.com'));
+
+        $this->postJson('/api/v1/funnel/leads', ['email' => 'ada@example.com'])->assertCreated();
+        Mail::assertSentCount(1);
     }
 
     #[Test]

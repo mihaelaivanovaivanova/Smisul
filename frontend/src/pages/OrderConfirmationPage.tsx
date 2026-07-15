@@ -6,6 +6,7 @@ import { getErrorMessage } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import Seo from '../components/Seo';
+import { trackPurchase } from '../services/analytics';
 import { formatPrice } from '../services/productCatalog';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -68,6 +69,15 @@ export default function OrderConfirmationPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, token]);
+
+  // Purchase conversion — the bottom of the ad-campaign event chain.
+  // trackPurchase itself deduplicates per order (sessionStorage), so a
+  // page refresh doesn't double-report the revenue.
+  useEffect(() => {
+    if (order) {
+      trackPurchase(order.order_number, order.totals.grand_total, order.currency);
+    }
+  }, [order]);
 
   return (
     <div className="container py-4">

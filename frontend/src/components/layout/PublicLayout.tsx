@@ -3,6 +3,7 @@ import Navbar from '../Navbar';
 import Footer from '../Footer';
 import CookieBanner from '../CookieBanner';
 import CookiePreferencesModal from '../CookiePreferencesModal';
+import AnalyticsLoader from '../AnalyticsLoader';
 
 export default function PublicLayout() {
   return (
@@ -14,6 +15,7 @@ export default function PublicLayout() {
       <Footer />
       <CookieBanner />
       <CookiePreferencesModal />
+      <AnalyticsLoader />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
@@ -6,6 +6,7 @@ import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
 import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments } from '../api/checkout';
 import { initiatePayment, recordPaymentReturn } from '../api/payment';
+import { trackBeginCheckout } from '../services/analytics';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
@@ -47,6 +48,19 @@ export default function CheckoutPage() {
   const { user } = useAuth();
 
   const [step, setStep] = useState(0);
+
+  // InitiateCheckout: once per checkout visit, as soon as the cart total
+  // is known (cart is null while it loads, so the truthiness gate also
+  // defers the event until there's a real value to report). A ref rather
+  // than state so StrictMode's dev-only double effect invocation can't
+  // fire it twice — both setups would still see un-rendered state.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (!checkoutTracked.current && cart && cart.items.length > 0) {
+      checkoutTracked.current = true;
+      trackBeginCheckout(cart.totals.grand_total, cart.totals.currency);
+    }
+  }, [cart]);
   const [customer, setCustomer] = useState<CustomerInfo>({
     first_name: '',
     last_name: '',

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { submitFunnelLead } from '../../api/funnel';
 import { getErrorMessage } from '../../api/errors';
+import { trackLead } from '../../services/analytics';
 import { funnelLead } from '../../content/copy';
 
 /**
@@ -24,6 +25,7 @@ export default function LeadCaptureForm() {
 
     try {
       await submitFunnelLead(email.trim());
+      trackLead();
       setIsSubmitted(true);
     } catch (err) {
       setError(getErrorMessage(err, funnelLead.error));

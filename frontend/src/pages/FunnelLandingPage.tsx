@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchProduct } from '../api/products';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { useAsync } from '../hooks/useAsync';
@@ -9,6 +9,7 @@ import { formatPrice, getVariantPrice } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import AddToCartButton from '../components/product/AddToCartButton';
+import ExitIntentModal from '../components/funnel/ExitIntentModal';
 import LeadCaptureForm from '../components/funnel/LeadCaptureForm';
 import PackageOffers from '../components/funnel/PackageOffers';
 import { resolvePackageOffers } from '../services/funnelOffers';
@@ -636,6 +637,13 @@ export default function FunnelLandingPage() {
                 </div>
               ))}
             </div>
+            {reviewSummary && reviewSummary.review_count > topReviews.length && (
+              <div className="text-center mt-4">
+                <Link to={`/products/${product.slug}`} className="funnel-reviews__see-all">
+                  {funnelReviews.seeAll(reviewSummary.review_count)}
+                </Link>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -763,6 +771,9 @@ export default function FunnelLandingPage() {
           {hero.cta_primary}
         </a>
       </div>
+
+      {/* ---- Exit-intent lead capture (desktop only, once per session) ---- */}
+      <ExitIntentModal />
 
       {/* ---- Sticky desktop buy bar (see the IntersectionObserver above) ---- */}
       {showDesktopBar && (

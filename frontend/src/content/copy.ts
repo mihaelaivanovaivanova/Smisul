@@ -253,12 +253,17 @@ export const funnelOffer = {
 export const funnelReviews = {
   title: 'Какво казват клиентите ни',
   average: (value: string) => `${value} / 5`,
+  seeAll: (count: number) => `Виж всички отзиви (${count}) →`,
 };
 
-/** The funnel landing page's email opt-in block (see LeadCaptureForm.tsx). */
+/** The funnel landing page's email opt-in block (see LeadCaptureForm.tsx) and exit-intent modal. */
 export const funnelLead = {
   title: 'Не си готов/а да поръчаш днес?',
   body: 'Остави своя имейл и ще ти пишем при промоции и специални предложения — нищо повече.',
+  exitTitle: 'Преди да си тръгнеш…',
+  // Honest offer: the welcome email really does deliver the usage manual.
+  exitBody: 'Остави имейл и ще ти изпратим безплатното ръководство за Miswak — и ще ти пишем при промоция.',
+  exitCloseAria: 'Затвори',
   placeholder: 'Твоят имейл',
   emailAria: 'Имейл за известия',
   submit: 'Извести ме',

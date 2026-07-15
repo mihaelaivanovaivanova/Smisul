@@ -714,6 +714,16 @@
   font-weight: 600;
 }
 
+.funnel-reviews__see-all {
+  color: var(--color-forest);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.funnel-reviews__see-all:hover {
+  text-decoration: underline;
+}
+
 /* ---- Package offer stack (#buy, see PackageOffers.tsx) ---- */
 
 .funnel-packages {

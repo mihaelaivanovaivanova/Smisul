@@ -271,7 +271,7 @@
    tops line up, without moving the image. */
 @media (min-width: 992px) {
   .funnel-history__text {
-    padding-top: 2rem;
+    padding-top: 0.75rem;
   }
 }
 
@@ -383,8 +383,8 @@
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
-  width: 31rem;
-  margin-right: -9rem;
+  width: 24rem;
+  margin-right: -6rem;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
   mask-image: linear-gradient(to right, transparent, #000 22%);
 }
@@ -581,7 +581,7 @@
 
 .funnel-comparison__table th,
 .funnel-comparison__table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   text-align: left;
   vertical-align: middle;
 }
@@ -626,8 +626,8 @@
    differ a lot — stick ≈2:1, brush ≈3.5:1); object-fit letterboxes each
    inside it, so the two columns read as visually equal. */
 .funnel-comparison__col-head img {
-  width: min(230px, 100%);
-  height: 96px;
+  width: min(210px, 100%);
+  height: 78px;
   object-fit: contain;
   /* The photos sit on pure-white backgrounds; multiply melts that white
      into the (tinted) cell background instead of showing a hard box. */
@@ -693,7 +693,7 @@
 }
 
 .funnel-video__wrap {
-  max-width: 52rem;
+  max-width: 44rem;
   margin-inline: auto;
 }
 
@@ -785,7 +785,7 @@
     grid-template-columns: repeat(3, 1fr);
     align-items: stretch;
     /* Room for the featured card's upward offset below. */
-    margin-top: var(--space-6);
+    margin-top: var(--space-5);
   }
 }
 

@@ -410,7 +410,9 @@ export default function FunnelLandingPage() {
         <div className="container">
           <div className="row g-5 align-items-center">
             <div className="col-12 col-lg-6">
-              <div className="funnel-photo" style={{ aspectRatio: '4 / 3' }}>
+              {/* 16:10 rather than 4:3 — shallower sections keep the next
+                  one peeking into the viewport (scroll momentum). */}
+              <div className="funnel-photo" style={{ aspectRatio: '16 / 10' }}>
                 <img src="/funnel/v2/02-desert-tree.webp" alt="Дървото Salvadora Persica в естествената си среда" loading="lazy" decoding="async" />
               </div>
             </div>
@@ -561,7 +563,7 @@ export default function FunnelLandingPage() {
         <div className="container">
           <div className="row g-5 align-items-center">
             <div className="col-12 col-lg-5">
-              <div className="funnel-photo" style={{ aspectRatio: '4 / 3' }}>
+              <div className="funnel-photo" style={{ aspectRatio: '16 / 10' }}>
                 <img src="/funnel/v2/06-ancient-ruins.webp" alt="Историческа архитектура от район, свързан с традиционната употреба на Miswak" loading="lazy" decoding="async" />
               </div>
             </div>

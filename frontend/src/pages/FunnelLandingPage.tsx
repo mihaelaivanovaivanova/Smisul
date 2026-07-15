@@ -184,6 +184,66 @@ export default function FunnelLandingPage() {
     document.querySelector(location.hash)?.scrollIntoView({ behavior: 'smooth' });
   }, [location.hash, settingsLoading, isLoading, funnelContent]);
 
+  // Scroll-reveal: photos, cards, and icon items below the hero rise into
+  // view as the visitor reaches them, staggered within their section —
+  // every scroll gets rewarded with a little motion. The hero is exempt
+  // (nothing above the fold may start hidden), package cards too (they
+  // carry their own hover/featured transforms), and reduced-motion users
+  // see the page fully static.
+  useEffect(() => {
+    if (settingsLoading || isLoading || !product) {
+      return;
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    const targets = Array.from(
+      document.querySelectorAll(
+        [
+          '.funnel-page section:not(.funnel-hero) .funnel-photo',
+          '.funnel-why-card',
+          '.funnel-video__wrap',
+          '.funnel-comparison__wrap',
+          '.funnel-stat-item',
+          '.funnel-feature-item',
+          '.funnel-step-item',
+          '.funnel-review-card',
+        ].join(', '),
+      ),
+    );
+
+    // Stagger siblings within the same section: 0ms, 80ms, 160ms…
+    const sectionCounters = new Map<Element, number>();
+    for (const element of targets) {
+      const section = element.closest('section') ?? document.body;
+      const index = sectionCounters.get(section) ?? 0;
+      sectionCounters.set(section, index + 1);
+      (element as HTMLElement).style.setProperty('--reveal-delay', `${Math.min(index * 80, 400)}ms`);
+      element.classList.add('funnel-reveal');
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      // Slightly inset trigger line so elements reveal just after entering
+      // the viewport, not the instant a single pixel shows.
+      { rootMargin: '0px 0px -8% 0px' },
+    );
+
+    for (const element of targets) {
+      observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  }, [settingsLoading, isLoading, product]);
+
   // ViewContent: the funnel page rendered with its product — the top of
   // the ad-campaign event chain (ViewContent → AddToCart → InitiateCheckout
   // → Purchase). Keyed on the product id so it fires once per view, not on

@@ -176,6 +176,7 @@
 
 .funnel-photo {
   overflow: hidden;
+  border-radius: var(--radius-lg);
 }
 
 .funnel-photo img {
@@ -183,6 +184,53 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Slow cinematic zoom on hover — the photo responds to the visitor
+     instead of sitting inert. The eased curve keeps it calm, not jumpy. */
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.funnel-photo:hover img {
+  transform: scale(1.05);
+}
+
+/* The directional-fade photos (hero, awareness band, buy section) keep
+   their edge-bleed look: overflow is visible there, so a zoom would
+   spill outside the frame — they stay still. */
+.funnel-hero__image img,
+.funnel-awareness__image img,
+.funnel-final-cta__image img {
+  transition: none;
+}
+
+.funnel-hero__image:hover img,
+.funnel-awareness__image:hover img,
+.funnel-final-cta__image:hover img {
+  transform: none;
+}
+
+/* ---- Scroll reveal ---- */
+
+/* Elements tagged by FunnelLandingPage's IntersectionObserver rise into
+   view as the visitor reaches them — each scroll is rewarded with a bit
+   of motion, which is what actually keeps attention on a long page.
+   --reveal-delay staggers items within a section (set inline by the same
+   effect). Skipped entirely for reduced-motion users, and the observer
+   is never attached to the hero (nothing above the fold may start
+   hidden — LCP). */
+@media (prefers-reduced-motion: no-preference) {
+  .funnel-reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition:
+      opacity 0.65s ease,
+      transform 0.65s ease;
+    transition-delay: var(--reveal-delay, 0s);
+  }
+
+  .funnel-reveal.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .funnel-hero__image {

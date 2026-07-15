@@ -9,6 +9,27 @@
   overflow-x: hidden;
 }
 
+/* CTA color experiment: terracotta as the funnel's exclusive action color
+   — the forest green used everywhere else (headings, icons, borders) no
+   longer competes with the buy buttons. Scoped to the funnel page and its
+   fixed bars; the rest of the storefront keeps forest CTAs. */
+.funnel-page .btn-primary,
+.funnel-sticky-bar .btn-primary,
+.funnel-desktop-bar .btn-primary {
+  background-color: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+}
+
+.funnel-page .btn-primary:hover,
+.funnel-page .btn-primary:focus,
+.funnel-sticky-bar .btn-primary:hover,
+.funnel-sticky-bar .btn-primary:focus,
+.funnel-desktop-bar .btn-primary:hover,
+.funnel-desktop-bar .btn-primary:focus {
+  background-color: #8f4427;
+  border-color: #8f4427;
+}
+
 .funnel-page .funnel-eyebrow-accent {
   color: var(--color-terracotta);
 }

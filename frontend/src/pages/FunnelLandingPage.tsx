@@ -470,8 +470,17 @@ export default function FunnelLandingPage() {
             <div className="col-12 col-lg-7">
               <div className="funnel-photo funnel-hero__image">
                 {/* The LCP element: eager + high priority, with intrinsic
-                    dimensions so the browser reserves the space (no CLS). */}
-                <img src="/funnel/v2/01-hero-sticks.webp" alt={product.name} width={1536} height={1024} fetchPriority="high" />
+                    dimensions so the browser reserves the space (no CLS).
+                    Phones pick the 800w variant via srcset. */}
+                <img
+                  src="/funnel/v2/01-hero-sticks.webp"
+                  srcSet="/funnel/v2/01-hero-sticks-800.webp 800w, /funnel/v2/01-hero-sticks.webp 1536w"
+                  sizes="(min-width: 992px) 58vw, 100vw"
+                  alt={product.name}
+                  width={1536}
+                  height={1024}
+                  fetchPriority="high"
+                />
               </div>
             </div>
           </div>
@@ -486,7 +495,14 @@ export default function FunnelLandingPage() {
               {/* 16:10 rather than 4:3 — shallower sections keep the next
                   one peeking into the viewport (scroll momentum). */}
               <div className="funnel-photo" style={{ aspectRatio: '16 / 10' }}>
-                <img src="/funnel/v2/02-desert-tree.webp" alt="Дървото Salvadora Persica в естествената си среда" loading="lazy" decoding="async" />
+                <img
+                  src="/funnel/v2/02-desert-tree.webp"
+                  srcSet="/funnel/v2/02-desert-tree-800.webp 800w, /funnel/v2/02-desert-tree.webp 1536w"
+                  sizes="(min-width: 992px) 50vw, 100vw"
+                  alt="Дървото Salvadora Persica в естествената си среда"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
             <div className="col-12 col-lg-6">
@@ -521,6 +537,8 @@ export default function FunnelLandingPage() {
                 <div className="funnel-photo funnel-why-card__photo">
                   <img
                     src={`/funnel/v2/${(whyImages[index] ?? whyImages[0]).file}.webp`}
+                    srcSet={`/funnel/v2/${(whyImages[index] ?? whyImages[0]).file}-800.webp 800w, /funnel/v2/${(whyImages[index] ?? whyImages[0]).file}.webp 1536w`}
+                    sizes="(min-width: 768px) 33vw, 100vw"
                     alt=""
                     loading="lazy"
                     decoding="async"
@@ -641,7 +659,14 @@ export default function FunnelLandingPage() {
           <div className="row g-5 align-items-center">
             <div className="col-12 col-lg-5">
               <div className="funnel-photo" style={{ aspectRatio: '16 / 10' }}>
-                <img src="/funnel/v2/06-ancient-ruins.webp" alt="Историческа архитектура от район, свързан с традиционната употреба на Miswak" loading="lazy" decoding="async" />
+                <img
+                  src="/funnel/v2/06-ancient-ruins.webp"
+                  srcSet="/funnel/v2/06-ancient-ruins-800.webp 800w, /funnel/v2/06-ancient-ruins.webp 1402w"
+                  sizes="(min-width: 992px) 42vw, 100vw"
+                  alt="Историческа архитектура от район, свързан с традиционната употреба на Miswak"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
             <div className="col-12 col-lg-7 funnel-history__text">
@@ -697,7 +722,14 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-7 funnel-from-tree__photo-col">
               <div className="funnel-photo" style={{ height: '92%', width: '100%' }}>
-                <img src="/funnel/v2/07-basket.webp" alt="Кошница с необработени клонки Miswak" loading="lazy" decoding="async" />
+                <img
+                  src="/funnel/v2/07-basket.webp"
+                  srcSet="/funnel/v2/07-basket-800.webp 800w, /funnel/v2/07-basket.webp 1537w"
+                  sizes="(min-width: 992px) 58vw, 100vw"
+                  alt="Кошница с необработени клонки Miswak"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -714,7 +746,14 @@ export default function FunnelLandingPage() {
           <div className="row g-5">
             <div className="col-12 col-lg-4 d-none d-lg-block">
               <div className="funnel-photo funnel-awareness__image">
-                <img src="/funnel/v2/08-leaves-dark.webp" alt="" loading="lazy" decoding="async" />
+                <img
+                  src="/funnel/v2/08-leaves-dark.webp"
+                  srcSet="/funnel/v2/08-leaves-dark-800.webp 800w, /funnel/v2/08-leaves-dark.webp 1456w"
+                  sizes="(min-width: 992px) 60vw, 100vw"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
             <div className="col-12 col-lg-8 align-self-center">
@@ -778,7 +817,16 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
               <div className="funnel-photo funnel-final-cta__image">
-                <img src="/funnel/v2/09-hand-single-stick.webp" alt={product.name} width={1324} height={1188} loading="lazy" decoding="async" />
+                <img
+                  src="/funnel/v2/09-hand-single-stick.webp"
+                  srcSet="/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w"
+                  sizes="(min-width: 992px) 384px, 100vw"
+                  alt={product.name}
+                  width={1324}
+                  height={1188}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>

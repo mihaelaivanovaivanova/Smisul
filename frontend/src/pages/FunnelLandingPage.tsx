@@ -411,7 +411,9 @@ export default function FunnelLandingPage() {
   ];
 
   return (
-    <div className="funnel-page pb-5 pb-md-0">
+    // Bottom clearance for the fixed buy bars comes from
+    // body.has-funnel-buy-bar (see funnel.css), not page padding.
+    <div className="funnel-page">
       <Seo
         title={seo.funnelTitle}
         description={seo.funnelDescription}
@@ -583,14 +585,18 @@ export default function FunnelLandingPage() {
       {comparisonRows.length > 0 && (
         <section className="section funnel-hero-tone funnel-divided-section funnel-comparison" id="compare">
           <div className="container">
+            {/* On phones the heading sits above the table (the in-table
+                title cell below is display:none there) so the statement
+                column gets the full remaining width. */}
+            <h2 className="section-title mb-4 text-center d-md-none">{comparison.title}</h2>
             <div className="funnel-comparison__wrap">
               <table className="funnel-comparison__table">
                 <thead>
                   <tr>
                     {/* The section heading lives inside the table's own
-                        top-left cell, matching the reference layout. */}
+                        top-left cell on md+, matching the reference layout. */}
                     <th scope="col" className="funnel-comparison__title-cell">
-                      <h2 className="funnel-comparison__title">{comparison.title}</h2>
+                      <h2 className="funnel-comparison__title d-none d-md-block">{comparison.title}</h2>
                     </th>
                     <th scope="col" className="funnel-comparison__miswak-col">
                       <span className="funnel-comparison__col-head">

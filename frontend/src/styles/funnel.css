@@ -14,9 +14,43 @@
    right under the divider line) — each section now stands in its own
    air, with the divider floating between two clear offsets. Wins over
    the base .section padding and any single-class section rule on
-   specificity, so it is the one knob for the page's vertical rhythm. */
+   specificity, so it is the one knob for the page's vertical rhythm.
+   Phones get a tighter rhythm: 3rem offsets that feel airy on a large
+   screen read as dead scroll on a 390px one. */
 .funnel-page .section {
-  padding-block: var(--space-7);
+  padding-block: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .funnel-page .section {
+    padding-block: var(--space-7);
+  }
+}
+
+/* Anchor targets clear the sticky header: scrollIntoView (and native
+   fragment jumps) respect scroll-margin, so section titles land below
+   the frosted navbar instead of tucked behind it. */
+.funnel-page section[id] {
+  scroll-margin-top: 6.5rem;
+}
+
+@media (min-width: 768px) {
+  .funnel-page section[id] {
+    scroll-margin-top: 4.5rem;
+  }
+}
+
+/* Mobile type scale: the desktop serif display sizes (2.25-3rem) let a
+   single headline swallow half a phone screen — one size down keeps the
+   editorial voice while giving the content back its room. */
+@media (max-width: 767.98px) {
+  .funnel-page .section-title {
+    font-size: var(--fs-xl);
+  }
+
+  .funnel-page .lead {
+    font-size: var(--fs-base);
+  }
 }
 
 /* CTA color experiment: terracotta as the funnel's exclusive action color
@@ -89,7 +123,10 @@
 }
 
 .funnel-hero__title {
-  font-size: var(--fs-2xl);
+  /* Fluid on phones: tracks the viewport between 1.75rem and the full
+     2.25rem so the three-line promise never swallows the fold. Desktop
+     keeps its fixed 3rem via the media rule below. */
+  font-size: clamp(var(--fs-xl), 8.5vw, var(--fs-2xl));
   line-height: 1.15;
   white-space: pre-line;
 }
@@ -422,6 +459,26 @@
   mask-image: linear-gradient(to right, transparent, #000 22%);
 }
 
+/* Stacked layout: the desktop edge-bleed trick (fixed width + negative
+   margin + one-sided fade) reads as a misplaced crop on phones — there
+   the photo becomes a normal centered card like the other section
+   photos: rounded, cover-cropped to 4:3, no mask. */
+@media (max-width: 991.98px) {
+  .funnel-final-cta__photo-col {
+    justify-content: center;
+  }
+
+  .funnel-final-cta__image {
+    width: min(22rem, 100%);
+    margin-right: 0;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
 .funnel-tick {
   color: var(--color-forest);
   font-weight: 700;
@@ -693,6 +750,41 @@
   color: var(--color-forest-dark);
 }
 
+/* Phone layout: the title renders above the table (its in-table cell is
+   emptied via d-none), the two product columns collapse to compact
+   fixed-width mark columns, and the statement column takes the rest —
+   the whole argument fits 390px with no horizontal scroll. */
+@media (max-width: 767.98px) {
+  .funnel-comparison__title-cell {
+    width: auto;
+  }
+
+  .funnel-comparison__table thead th:nth-child(2),
+  .funnel-comparison__table thead th:nth-child(3) {
+    width: 74px;
+  }
+
+  .funnel-comparison__table th,
+  .funnel-comparison__table td {
+    padding: var(--space-2);
+  }
+
+  .funnel-comparison__table tbody th {
+    font-size: var(--fs-sm);
+  }
+
+  .funnel-comparison__col-head {
+    gap: var(--space-1);
+    padding: var(--space-1) 0;
+    font-size: var(--fs-xs);
+  }
+
+  .funnel-comparison__col-head img {
+    width: 100%;
+    height: 34px;
+  }
+}
+
 /* ---- Same-day dispatch promise ---- */
 
 .funnel-dispatch {
@@ -940,6 +1032,31 @@
   padding-top: var(--space-3);
 }
 
+/* Stacked (single-column) layout: the featured pack leads the stack —
+   on phones the first fully visible card collects most add-to-carts,
+   and that should be the anchor offer, not the small pack. */
+@media (max-width: 991.98px) {
+  .funnel-package-card--featured {
+    order: -1;
+  }
+}
+
+/* Phone polish: tighter card shell, full-width buy buttons (thumb-sized
+   targets, aligned right edge down the stack). */
+@media (max-width: 767.98px) {
+  .funnel-package-card {
+    padding: var(--space-4);
+  }
+
+  .funnel-package-card__cta {
+    width: 100%;
+  }
+
+  .funnel-package-card__cta .btn {
+    width: 100%;
+  }
+}
+
 /* The guarantee/trust row now closes the whole buy section rather than
    sitting inside the text column — cap and center it under the cards. */
 .funnel-final-cta__trust {
@@ -1055,15 +1172,31 @@
 
 /* ---- Sticky mobile buy bar ---- */
 
+/* Fixed 3.75rem height matches the reserved strip below, mirroring the
+   desktop bar's arrangement — at full scroll the bar sits over empty
+   space, never over footer content. */
 .funnel-sticky-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 1030;
+  display: flex;
+  align-items: center;
+  height: 3.75rem;
+  padding-inline: var(--space-2);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
-  padding: var(--space-2);
+}
+
+.funnel-sticky-bar .btn {
+  flex: 1;
+}
+
+@media (max-width: 767.98px) {
+  body.has-funnel-buy-bar {
+    padding-bottom: 3.75rem;
+  }
 }
 
 /* ---- Sticky desktop buy bar ---- */

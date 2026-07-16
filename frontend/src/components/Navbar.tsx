@@ -110,7 +110,13 @@ export default function Navbar() {
                   <Link className="btn btn-outline-primary btn-sm" to="/login">
                     {nav.login}
                   </Link>
-                  <Link className="btn btn-primary btn-sm" to="/register">
+                  {/* In funnel mode the big dark register block would be the
+                      strongest element in a phone-width header — a competing
+                      CTA. It stays reachable from /login and on md+. */}
+                  <Link
+                    className={`btn btn-primary btn-sm${funnelModeEnabled ? ' d-none d-md-inline-block' : ''}`}
+                    to="/register"
+                  >
                     {nav.register}
                   </Link>
                 </>

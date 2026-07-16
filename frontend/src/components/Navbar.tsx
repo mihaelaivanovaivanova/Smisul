@@ -111,10 +111,11 @@ export default function Navbar() {
                     {nav.login}
                   </Link>
                   {/* In funnel mode the big dark register block would be the
-                      strongest element in a phone-width header — a competing
-                      CTA. It stays reachable from /login and on md+. */}
+                      strongest element in a phone/tablet-width header — a
+                      competing CTA, and at 768px it also wraps the header
+                      to two rows. Reachable from /login; shown on lg+. */}
                   <Link
-                    className={`btn btn-primary btn-sm${funnelModeEnabled ? ' d-none d-md-inline-block' : ''}`}
+                    className={`btn btn-primary btn-sm${funnelModeEnabled ? ' d-none d-lg-inline-block' : ''}`}
                     to="/register"
                   >
                     {nav.register}
@@ -149,12 +150,14 @@ export default function Navbar() {
             button: the header's one high-contrast action, always in view
             since the navbar is sticky. */}
         {funnelModeEnabled && (
-          <div className="d-none d-md-flex align-items-center gap-3 order-md-2 mx-md-4">
+          <div className="d-none d-md-flex align-items-center gap-2 gap-lg-3 order-md-2 mx-md-3 mx-lg-4">
             {/* Already on "/" a same-path Link is a no-op, so scroll to the
-                top explicitly; from other pages it navigates as usual. */}
+                top explicitly; from other pages it navigates as usual.
+                Hidden on tablets (the logo covers "home") so the whole
+                header fits one row at 768px. */}
             <Link
               to="/"
-              className="text-decoration-none text-muted fw-semibold"
+              className="d-none d-lg-inline text-decoration-none text-muted fw-semibold"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
               {funnelNav.home}

@@ -955,12 +955,33 @@
   margin-top: var(--space-4);
 }
 
-@media (min-width: 992px) {
+@media (min-width: 768px) {
   .funnel-packages {
     grid-template-columns: repeat(3, 1fr);
     align-items: stretch;
     /* Room for the featured card's upward offset below. */
     margin-top: var(--space-5);
+  }
+}
+
+/* Tablet band: three columns already, but narrower ones — tighter card
+   shells, wrapping full-width buttons, one price size down. */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .funnel-package-card {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .funnel-package-card__cta {
+    width: 100%;
+  }
+
+  .funnel-package-card__cta .btn {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .funnel-package-card__price {
+    font-size: var(--fs-lg);
   }
 }
 
@@ -1001,7 +1022,7 @@
   border-color: var(--color-forest);
 }
 
-@media (min-width: 992px) {
+@media (min-width: 768px) {
   .funnel-package-card--featured {
     transform: translateY(calc(-1 * var(--space-4)));
   }
@@ -1102,8 +1123,9 @@
 
 /* Stacked (single-column) layout: the featured pack leads the stack —
    on phones the first fully visible card collects most add-to-carts,
-   and that should be the anchor offer, not the small pack. */
-@media (max-width: 991.98px) {
+   and that should be the anchor offer, not the small pack. Tablets and
+   up are 3-across again, where the center-stage arrangement rules. */
+@media (max-width: 767.98px) {
   .funnel-package-card--featured {
     order: -1;
   }
@@ -1144,7 +1166,7 @@
   align-items: start;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 768px) {
   .funnel-faq-columns {
     grid-template-columns: repeat(2, 1fr);
   }

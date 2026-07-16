@@ -773,7 +773,7 @@ export default function FunnelLandingPage() {
         <section className="section funnel-hero-tone funnel-divided-section funnel-reviews" id="reviews">
           <div className="container">
             <h2 className="section-title mb-4 text-center">{funnelReviews.title}</h2>
-            <div className="row row-cols-1 row-cols-lg-3 g-4">
+            <div className="row row-cols-1 row-cols-md-3 g-3 g-lg-4">
               {topReviews.map((review) => (
                 <div className="col" key={review.id}>
                   <figure className="funnel-review-card">

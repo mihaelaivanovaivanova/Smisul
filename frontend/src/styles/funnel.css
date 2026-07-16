@@ -209,6 +209,74 @@
   line-height: 1.25;
 }
 
+/* Phone density for the icon rows: the loose 2x2 stacks (Bootstrap's
+   default breakpointing) eat a lot of scroll for what are glanceable
+   badges — compact single strips / tight grids instead. */
+@media (max-width: 575.98px) {
+  /* Hero trust badges: one strip of four under the CTA. */
+  .funnel-hero .funnel-trust-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+  }
+
+  .funnel-hero .funnel-trust-item {
+    padding: 0;
+    gap: var(--space-1);
+  }
+
+  .funnel-hero .funnel-trust-item__icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .funnel-hero .funnel-trust-item__label {
+    font-size: 0.72rem;
+  }
+
+  /* Buy-section guarantees keep 2x2 (their labels are sentences) but
+     lose the padding air. */
+  .funnel-final-cta .funnel-trust-item {
+    padding: var(--space-1);
+  }
+
+  /* Features: 4x2 grid of smaller badges instead of a 2x4 tower.
+     (.funnel-page prefix: these base rules are declared later in the
+     file, so the mobile overrides need the higher specificity.) */
+  .funnel-page .funnel-feature-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3) var(--space-2);
+  }
+
+  .funnel-page .funnel-feature-item__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .funnel-page .funnel-feature-item__label {
+    font-size: 0.72rem;
+  }
+
+  /* Harvest steps: all three on one line. */
+  .funnel-page .funnel-step-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3) var(--space-2);
+  }
+
+  .funnel-page .funnel-step-item__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .funnel-page .funnel-step-item__label {
+    font-size: 0.72rem;
+  }
+
+  /* History stats: tighter 2x2. */
+  .funnel-page .funnel-stat-row {
+    gap: var(--space-3);
+  }
+}
+
 /* ---- Generic section image ---- */
 
 .funnel-photo {

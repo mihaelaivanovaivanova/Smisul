@@ -904,21 +904,36 @@ export default function FunnelLandingPage() {
                         {item.question}
                         <span aria-hidden="true">{isActive ? '−' : '+'}</span>
                       </button>
-                      {isActive && (
-                        <div className="funnel-faq-answer" id={`funnel-faq-answer-${index}`}>
-                          {item.answer}
-                          {item.attachment_url && (
-                            <a
-                              href={item.attachment_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="funnel-faq-answer__attachment"
-                            >
-                              {item.attachment_label || 'Изтегли документ'}
-                            </a>
-                          )}
+                      {/* Always mounted so the open/close can animate height
+                          (grid-rows 0fr -> 1fr); aria-hidden + delayed
+                          visibility keep closed answers out of the a11y
+                          tree and tab order. */}
+                      <div
+                        className={`funnel-faq-answer-wrap${isActive ? ' is-open' : ''}`}
+                        id={`funnel-faq-answer-${index}`}
+                        aria-hidden={!isActive}
+                      >
+                        <div className="funnel-faq-answer">
+                          {/* The padded box lives one level below the
+                              clipped grid item — padding/border on the
+                              item itself would floor the collapsed height
+                              above zero. */}
+                          <div className="funnel-faq-answer__inner">
+                            {item.answer}
+                            {item.attachment_url && (
+                              <a
+                                href={item.attachment_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="funnel-faq-answer__attachment"
+                                tabIndex={isActive ? 0 : -1}
+                              >
+                                {item.attachment_label || 'Изтегли документ'}
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}

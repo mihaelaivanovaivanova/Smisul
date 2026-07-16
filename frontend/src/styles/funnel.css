@@ -1194,26 +1194,54 @@
   color: var(--color-forest-dark);
 }
 
-.funnel-faq-answer {
+/* Animated accordion: the wrapper's grid row interpolates 0fr -> 1fr so
+   the answer's real height glides open/closed (no max-height guesswork);
+   opacity rides along, and visibility flips after the close finishes so
+   collapsed answers leave the a11y tree without cutting the animation. */
+.funnel-faq-answer-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.35s ease,
+    opacity 0.3s ease,
+    margin-top 0.35s ease,
+    visibility 0s linear 0.35s;
+}
+
+.funnel-faq-answer-wrap.is-open {
+  grid-template-rows: 1fr;
   margin-top: var(--space-1);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 0.35s ease,
+    opacity 0.3s ease 0.05s,
+    margin-top 0.35s ease,
+    visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-faq-answer-wrap {
+    transition: none;
+  }
+}
+
+/* The clipping grid item carries no padding/border of its own — those
+   would put a floor under the collapsed (0fr) height. */
+.funnel-faq-answer {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.funnel-faq-answer__inner {
   padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-muted);
-  animation: funnel-faq-open 0.2s ease;
-}
-
-@keyframes funnel-faq-open {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .funnel-faq-answer__attachment {

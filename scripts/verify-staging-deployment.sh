@@ -11,7 +11,7 @@ fi
 [[ ! -d backend/root && ! -d root/backend && ! -d root/Backend ]] || fail 'layout' 'Public and private application directories must not be nested.'
 
 tracked="$(git ls-files)"
-for path in backend/.env Backend/.env backend/config.php Backend/config.php backend/config.staging.php Backend/config.staging.php; do
+for path in backend/.env Backend/.env backend/config.php Backend/config.php backend/config.staging.php Backend/config.staging.php backend/install-config.staging.php Backend/install-config.staging.php deployment/staging/install-config.staging.php; do
   grep -Fqx "$path" <<<"$tracked" && fail 'server-config' "$path is tracked; the real server config must remain server-only."
 done
 while IFS= read -r path; do
@@ -93,7 +93,7 @@ while IFS= read -r path; do
   esac
 done <<<"$candidate_files"
 
-for path in backend/.env backend/config.php Backend/.env Backend/config.php; do
+for path in backend/.env backend/config.php Backend/.env Backend/config.php backend/install-config.staging.php Backend/install-config.staging.php deployment/staging/install-config.staging.php; do
   git check-ignore -q -- "$path" || fail 'ignore' "$path is not ignored."
 done
 
@@ -101,9 +101,9 @@ if [[ "${1:-}" == '--build' ]]; then
   [[ -d .build/staging-root && -d .build/staging-backend ]] || fail 'build' 'Isolated build directories are missing.'
   for path in \
     .build/staging-root/.well-known \
-    .build/staging-root/install.php \
     .build/staging-backend/.env \
     .build/staging-backend/config.php \
+    .build/staging-backend/install-config.staging.php \
     .build/staging-backend/storage/app/public \
     .build/staging-backend/storage/app/private \
     .build/staging-backend/storage/icard \
@@ -111,8 +111,14 @@ if [[ "${1:-}" == '--build' ]]; then
     .build/staging-backend/storage/framework/sessions; do
     [[ ! -e "$path" ]] || fail 'protected-build-path' "$path is present in the staging build."
   done
+  if [[ "${STAGING_INCLUDE_INSTALLER:-false}" == 'true' ]]; then
+    [[ -f .build/staging-root/install.php ]] || fail 'installer' 'The explicitly enabled staging installer is missing.'
+    cmp -s deployment/staging/install.php .build/staging-root/install.php || fail 'installer' 'The staging installer differs from the reviewed source.'
+  else
+    [[ ! -e .build/staging-root/install.php ]] || fail 'installer' 'install.php is present without explicit staging opt-in.'
+  fi
   [[ -f .build/staging-root/robots.txt ]] || fail 'robots' 'Staging robots.txt is missing.'
-  grep -Fq "dirname(__DIR__).'/Backend'" .build/staging-root/laravel.php || fail 'layout' 'Staging launcher does not point to sibling Backend.'
+  grep -Fq "dirname(__DIR__).'/backend'" .build/staging-root/laravel.php || fail 'layout' 'Staging launcher does not point to sibling backend.'
   [[ -f .build/staging-backend/vendor/autoload.php ]] || fail 'composer' 'Production Composer vendor files are missing from the staging build.'
 fi
 

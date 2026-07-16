@@ -23,6 +23,9 @@ desktop.ini
 /Backend/config.staging.php
 /backend/config.php
 /backend/config.staging.php
+/backend/install-config.staging.php
+/Backend/install-config.staging.php
+/deployment/staging/install-config.staging.php
 /backend/.env
 /backend/.env.*
 !/backend/.env.example

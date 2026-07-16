@@ -37,7 +37,7 @@ describe_value() {
 
 # Strips a trailing CR (common when a secret was pasted from a
 # Windows-edited source) and any leading/trailing whitespace — never
-# touches case or internal characters, since e.g. Backend vs backend are
+  # touches case or internal characters, since directory case is significant
 # genuinely different directories on a case-sensitive filesystem.
 normalize_remote() {
   local value="$1"
@@ -53,10 +53,10 @@ validate_remote() {
     */testing/webpage/sandboxandpayments/*) ;;
     # The staging FTP account can also be jailed directly inside
     # .../sandboxandpayments/ itself (confirmed for this account), in
-    # which case the visible remote root is just /root/ or /Backend/ —
+    # which case the visible remote root is just /root/ or /backend/ —
     # that string can never contain the full testing-tree path above,
     # so it's allowed explicitly here instead.
-    /root|/Backend) ;;
+    /root|/backend) ;;
     *)
       echo "Safety failure: a remote target is outside the required testing tree." >&2
       describe_value "$1" "$2"
@@ -148,8 +148,8 @@ echo Checking connection and login.
 pwd
 echo Deploying staging root.
 mirror --reverse -v --parallel=1 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
-echo Deploying staging Backend.
-mirror --reverse -v --parallel=1 --no-perms "${VENDOR_EXCLUDE[@]}" --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
+echo Deploying staging backend.
+mirror --reverse -v --parallel=1 --no-perms "${VENDOR_EXCLUDE[@]}" --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=install-config.php --exclude-glob=install-config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
 echo Updating composer.lock marker.
 put "$LOCAL_LOCK_HASH_FILE" -o "$REMOTE_LOCK_MARKER"
 bye

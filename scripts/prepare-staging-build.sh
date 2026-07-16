@@ -7,7 +7,10 @@ cd "$repo_root"
 rm -rf -- .build
 mkdir -p .build/staging-root .build/staging-backend
 
-if [[ -d root && -d Backend ]]; then
+if [[ -d root && -d backend ]]; then
+  cp -a root/. .build/staging-root/
+  cp -a backend/. .build/staging-backend/
+elif [[ -d root && -d Backend ]]; then
   cp -a root/. .build/staging-root/
   cp -a Backend/. .build/staging-backend/
 else
@@ -41,6 +44,7 @@ rm -rf -- \
   .build/staging-backend/config.staging.example.php \
   .build/staging-backend/install-config.php \
   .build/staging-backend/install-config.example.php \
+  .build/staging-backend/install-config.staging.php \
   .build/staging-backend/storage/app/public \
   .build/staging-backend/storage/app/private \
   .build/staging-backend/storage/icard \
@@ -54,14 +58,21 @@ find .build -type f \( \
   -o -name '*.sqlite' -o -name '*.log' \
 \) -delete
 
-# The source production launcher intentionally keeps its existing lowercase
-# path. The required testing private directory is uppercase Backend on Linux.
+# The confirmed testing private directory is lowercase backend on Linux.
 if [[ -f .build/staging-root/laravel.php ]]; then
-  sed -i "s#dirname(__DIR__)\.'/backend'#dirname(__DIR__)\.'/Backend'#" .build/staging-root/laravel.php
-  grep -Fq "dirname(__DIR__).'/Backend'" .build/staging-root/laravel.php || {
-    echo 'Safety failure: staging launcher does not point to sibling Backend.' >&2
+  sed -i "s#dirname(__DIR__)\.'/Backend'#dirname(__DIR__)\.'/backend'#" .build/staging-root/laravel.php
+  grep -Fq "dirname(__DIR__).'/backend'" .build/staging-root/laravel.php || {
+    echo 'Safety failure: staging launcher does not point to sibling backend.' >&2
     exit 1
   }
+fi
+
+# The staging installer is opt-in and one-time. Enable it with the GitHub
+# Environment variable STAGING_INCLUDE_INSTALLER=true, complete installation,
+# then remove/disable the variable so later deployments cannot re-upload it.
+if [[ "${STAGING_INCLUDE_INSTALLER:-false}" == 'true' ]]; then
+  cp deployment/staging/install.php .build/staging-root/install.php
+  echo 'One-time staging installer included.'
 fi
 
 cat > .build/staging-root/robots.txt <<'ROBOTS'

@@ -8,7 +8,7 @@ Production remains unchanged:
 
 ```text
 smisul.bg/
-├── Backend/
+├── backend/
 └── root/                 # production document root
 ```
 
@@ -19,7 +19,7 @@ smisul.bg/
 └── testing/
     └── webpage/
         └── sandboxandpayments/
-            ├── Backend/  # private Laravel application
+            ├── backend/  # private Laravel application
             └── root/     # testing document root
 ```
 
@@ -29,7 +29,7 @@ The public URL is `https://sandboxandpayments.smisul.bg`. In SuperHosting/cPanel
 smisul.bg/testing/webpage/sandboxandpayments/root/
 ```
 
-Do not change production DNS or the `smisul.bg/root/` document root. Never expose the testing `Backend/` directory.
+Do not change production DNS or the `smisul.bg/root/` document root. Never expose the testing `backend/` directory.
 
 Development continues on `Contributor/Vlado`. The exact branch `Deployment` is testing deployment only:
 
@@ -38,7 +38,7 @@ Contributor/Vlado → merge into Deployment → push Deployment
 → GitHub Actions → testing server
 ```
 
-The repository source is Laravel and currently uses `frontend/`, `backend/`, and `deployment/public_html/`. The workflow builds those sources into isolated `.build/staging-root/` and `.build/staging-backend/` directories. Those two build directories are uploaded as remote sibling `root/` and `Backend/`; source directories are never flattened, moved, or uploaded directly.
+The repository source is Laravel and currently uses `frontend/`, `backend/`, and `deployment/public_html/`. The workflow builds those sources into isolated `.build/staging-root/` and `.build/staging-backend/` directories. Those two build directories are uploaded as remote sibling `root/` and lowercase `backend/`; source directories are never flattened, moved, or uploaded directly.
 
 To publish a reviewed version:
 
@@ -65,19 +65,19 @@ Typical values when the FTP account starts above `smisul.bg` are:
 
 ```text
 STAGING_FTP_REMOTE_ROOT=/smisul.bg/testing/webpage/sandboxandpayments/root/
-STAGING_FTP_REMOTE_BACKEND=/smisul.bg/testing/webpage/sandboxandpayments/Backend/
+STAGING_FTP_REMOTE_BACKEND=/smisul.bg/testing/webpage/sandboxandpayments/backend/
 ```
 
-If the account starts inside `smisul.bg`, use `/testing/webpage/sandboxandpayments/root/` and `/testing/webpage/sandboxandpayments/Backend/`.
+If the account starts inside `smisul.bg`, use `/testing/webpage/sandboxandpayments/root/` and `/testing/webpage/sandboxandpayments/backend/`.
 
 If the account is jailed directly inside `.../sandboxandpayments/` itself (this project's actual account), the visible remote root after login already **is** the testing tree, so the two sibling directories are simply:
 
 ```text
 STAGING_FTP_REMOTE_ROOT=/root/
-STAGING_FTP_REMOTE_BACKEND=/Backend/
+STAGING_FTP_REMOTE_BACKEND=/backend/
 ```
 
-Do not guess. Connect with FileZilla using the same account, note the initial remote directory shown after login, navigate to the testing tree, and copy the paths displayed for the two sibling directories. The deployment script accepts either the full `/.../testing/webpage/sandboxandpayments/...` form or the bare jailed-account `/root/`/`/Backend/` form, and rejects everything else, including any path that could resolve to the production `smisul.bg/root/` or `smisul.bg/Backend/`.
+Do not guess. Connect with FileZilla using the same account, note the initial remote directory shown after login, navigate to the testing tree, and copy the paths displayed for the two sibling directories. The deployment script accepts either the full `/.../testing/webpage/sandboxandpayments/...` form or the bare jailed-account `/root/`/`/backend/` form, and rejects everything else, including any path that could resolve to the production `smisul.bg/root/` or `smisul.bg/backend/`.
 
 The workflow forces FTP over TLS, verifies the server certificate, uploads new/changed files, and never performs remote deletion. Remote-only files remain during normal deployments and rollbacks.
 
@@ -86,16 +86,16 @@ The workflow forces FTP over TLS, verifies the server certificate, uploads new/c
 Complete these manual steps before expecting the testing site to work:
 
 1. Create `sandboxandpayments.smisul.bg` and point only that subdomain to `smisul.bg/testing/webpage/sandboxandpayments/root/`. Add its DNS record if cPanel does not do so automatically. Prefer cPanel password protection in addition to the generated `robots.txt` and `X-Robots-Tag` header.
-2. Create the `root/` and `Backend/` sibling directories under `smisul.bg/testing/webpage/sandboxandpayments/` if the FTP account cannot create them.
+2. Create the `root/` and lowercase `backend/` sibling directories under `smisul.bg/testing/webpage/sandboxandpayments/` if the FTP account cannot create them.
 3. Select PHP 8.2 or a compatible newer release and enable `bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `mbstring`, `openssl`, `pdo_mysql`, `session`, `tokenizer`, and `xml`.
 4. Create a new testing MySQL database and a new testing database user in cPanel; grant that user only the testing database privileges. Do not copy or connect to the production database.
-5. After the first file upload, manually create `smisul.bg/testing/webpage/sandboxandpayments/Backend/.env`. This is the exact runtime configuration used by Laravel. Start from the safe tracked `backend/.env.example`; do not use `config.example.php` as a runtime file and do not copy production `.env`.
+5. After the first file upload, manually create `smisul.bg/testing/webpage/sandboxandpayments/backend/.env`. This is the exact runtime configuration used by Laravel. Start from the safe tracked `backend/.env.example`; do not use `config.example.php` as a runtime file and do not copy production `.env`.
 6. In testing `.env`, set a new `APP_KEY`, `APP_ENV=staging`, `APP_DEBUG=false`, `APP_URL=https://sandboxandpayments.smisul.bg`, the separate testing database credentials, a separate testing administrator, and non-production mail settings. Set `SESSION_COOKIE=SMISUL_TESTING_SESSION`, `SESSION_DOMAIN=` (empty, for a host-only cookie), `SESSION_SECURE_COOKIE=true`, and preferably `SESSION_SAME_SITE=lax`. This isolates carts and admin/auth sessions from production.
-7. Set writable permissions as required by SuperHosting for `Backend/storage/` and `Backend/bootstrap/cache/`. If public media is used, create `root/storage` as a server-side link to `Backend/storage/app/public`; do not place that server link in Git.
-8. Apply schema changes only after verifying that `.env` names the testing database. A qualified operator may run `php artisan migrate --force` manually from the testing `Backend/`. Never run a fresh migration, a database drop, production SQL import, seeders, or `install.php` as part of deployment.
+7. Set writable permissions as required by SuperHosting for `backend/storage/` and `backend/bootstrap/cache/`. If public media is used, create `root/storage` as a server-side link to `backend/storage/app/public`; do not place that server link in Git.
+8. Apply schema changes only after verifying that `.env` names the testing database. A qualified operator may run `php artisan migrate --force` manually from the testing `backend/`. Never run a fresh migration, a database drop, production SQL import, seeders, or `install.php` as part of deployment.
 9. Sign in with separate testing administrator credentials and configure only the iCard sandbox profile under **Settings → Payments**. Set testing callback/return URLs using `https://sandboxandpayments.smisul.bg`; never copy production iCard credentials, settings, keys, or certificates.
 
-The example PHP files `backend/config.example.php` and `backend/config.staging.example.php` are safe structural references requested for deployment review. The inspected Laravel bootstrap does not load them. The real local/server runtime config path is `backend/.env` in source casing and `Backend/.env` in the required remote testing layout.
+The example PHP files `backend/config.example.php` and `backend/config.staging.example.php` are safe structural references requested for deployment review. The inspected Laravel bootstrap does not load them. The real local and remote testing runtime config path is lowercase `backend/.env`.
 
 ## Persistent files discovered in source
 
@@ -104,23 +104,23 @@ iCard configuration behavior is unchanged:
 - `backend/app/Http/Controllers/Api/V1/Admin/ICardConfigurationController.php` handles admin submissions at `/api/v1/admin/payment-settings/icard/{environment}`.
 - `backend/app/Services/Payments/ICardConfigurationService.php` validates/normalizes the submitted PEM text.
 - Text settings and private/public PEM values are encrypted by Laravel model casts and stored in the `icard_configurations` database table. The admin flow does **not** write uploaded iCard files to disk.
-- Legacy environment fallback paths are `backend/storage/icard/private_key.pem` and `backend/storage/icard/public_key.pem`; the whole remote `Backend/storage/icard/` path is protected.
-- A legacy one-time runtime import may exist at `backend/storage/app/private/icard-import.php`; the whole remote `Backend/storage/app/private/` path is protected.
+- Legacy environment fallback paths are `backend/storage/icard/private_key.pem` and `backend/storage/icard/public_key.pem`; the whole remote `backend/storage/icard/` path is protected.
+- A legacy one-time runtime import may exist at `backend/storage/app/private/icard-import.php`; the whole remote `backend/storage/app/private/` path is protected.
 - Test-only fixtures `backend/tests/Fixtures/icard/test_private_key.pem` and `test_public_key.pem` are non-production test data and are excluded because all tests are excluded from the build.
 
 The exact server-persistent paths detected or required by the framework are:
 
-- `Backend/.env` — application, database, mail, session, and server configuration.
-- `Backend/storage/app/public/products/` — administrator-uploaded product images/video. `MediaService` derives `products/` from the `Product` model.
-- `Backend/storage/app/public/` — all current/future public media on the Laravel `public` disk.
-- `Backend/storage/app/private/` — private runtime/import data.
-- `Backend/storage/icard/` — legacy PEM fallback files.
-- `Backend/storage/logs/` — application logs.
-- `Backend/storage/framework/cache/` — generated cache.
-- `Backend/storage/framework/sessions/` — session files if the file session driver is selected.
-- `Backend/storage/framework/views/` — compiled views.
-- `Backend/database/backups/` — any manually created database backups.
-- `root/storage` — server-created public-media link; it points to persistent `Backend/storage/app/public/`.
+- `backend/.env` — application, database, mail, session, and server configuration.
+- `backend/storage/app/public/products/` — administrator-uploaded product images/video. `MediaService` derives `products/` from the `Product` model.
+- `backend/storage/app/public/` — all current/future public media on the Laravel `public` disk.
+- `backend/storage/app/private/` — private runtime/import data.
+- `backend/storage/icard/` — legacy PEM fallback files.
+- `backend/storage/logs/` — application logs.
+- `backend/storage/framework/cache/` — generated cache.
+- `backend/storage/framework/sessions/` — session files if the file session driver is selected.
+- `backend/storage/framework/views/` — compiled views.
+- `backend/database/backups/` — any manually created database backups.
+- `root/storage` — server-created public-media link; it points to persistent `backend/storage/app/public/`.
 
 Order invoice HTML is generated in the HTTP response by `OrderController` and is not written to disk. No other generated order-file directory was found. No content/user upload controller other than the shared media service was found. These protected paths are removed from the isolated build and excluded again by the FTPS command, so existing testing files are neither overwritten nor deleted.
 
@@ -141,3 +141,23 @@ The workflow performs PHP linting, installs locked Composer production dependenc
 Select a previously working commit, merge or cherry-pick it into `Deployment`, review it, and push `Deployment` again. The same upload/update-only process will restore tracked application files. Server-only `.env`, uploaded media, iCard runtime files, logs, sessions, and other remote-only files remain in place. Database rollback is a separate manual operation and must only ever target the testing database.
 
 Production deployment is intentionally not configured by this task.
+
+## One-time sandbox database installer
+
+The production-oriented installer in `deployment/public_html/` must not be used on the sandbox. A separate reviewed installer is available at `deployment/staging/install.php`. It is restricted to `sandboxandpayments.smisul.bg`, uses the sibling lowercase `backend/`, writes `APP_ENV=staging`, creates a host-only `SMISUL_TESTING_SESSION` cookie, forces iCard to sandbox/unconfigured state, and refuses to operate unless the selected database name contains `test`, `testing`, `sandbox`, or `staging` and the database is empty.
+
+This creates the same application **schema** as production by running the repository's migrations, followed by safe initial seeders. It does not copy production customers, orders, payments, personal data, administrator credentials, SMTP credentials, or iCard credentials. If realistic test records are required later, create anonymized testing fixtures separately.
+
+One-time installation procedure:
+
+1. In cPanel, create a new empty database whose name visibly identifies it as sandbox/testing, plus a dedicated database user. Never reuse the production database or user.
+2. Use `deployment/staging/install-config.example.php` as a reference, create the filled `install-config.staging.php` outside the repository (or directly in cPanel File Manager), and upload it manually outside the public root as `smisul.bg/testing/webpage/sandboxandpayments/backend/install-config.staging.php`. Never commit the filled file.
+3. In GitHub **Settings → Environments → staging → Environment variables**, set `STAGING_INCLUDE_INSTALLER=true`.
+4. Push `Deployment` once. The isolated build will include the reviewed staging installer as testing `root/install.php`. Normal deployments omit it.
+5. Open `https://sandboxandpayments.smisul.bg/install.php`, enter the unique installation token, and run it once. The installer validates the empty database, creates `backend/.env`, runs migrations and safe initial seeders, creates the testing administrator, creates runtime directories, and attempts the public storage link.
+6. On success, the installer removes both public `install.php` and private `backend/install-config.staging.php`. Verify both are gone in File Manager.
+7. Immediately delete or set `STAGING_INCLUDE_INSTALLER=false`. Otherwise a later push would upload the installer again.
+8. If installation fails, manually delete `root/install.php`, correct the reported issue, remove the partial testing `backend/.env`, and recreate/empty only the sandbox database before retrying. Because deployment is deliberately upload-only, disabling the variable cannot delete a failed installer already present remotely.
+9. Configure only iCard sandbox credentials in the testing admin panel. Never copy production iCard records or files.
+
+For later releases, keep the installer variable disabled and apply pending migrations manually only after confirming the shell is in the testing `backend/` and `.env` points to the sandbox database.

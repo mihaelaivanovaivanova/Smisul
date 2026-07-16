@@ -1238,6 +1238,20 @@
   font-weight: 700;
 }
 
+/* Thumb ergonomics: comfortable 48px input/button on the lead form
+   (also inherited by the exit-intent modal's instance) and a 44px
+   minimum on the FAQ toggles. */
+@media (max-width: 767.98px) {
+  .funnel-lead__row .form-control,
+  .funnel-lead__row .btn {
+    min-height: 3rem;
+  }
+
+  .funnel-page .funnel-faq-toggle {
+    min-height: 2.75rem;
+  }
+}
+
 /* ---- Sticky mobile buy bar ---- */
 
 /* Fixed 3.75rem height matches the reserved strip below, mirroring the

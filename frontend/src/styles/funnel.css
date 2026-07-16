@@ -1070,18 +1070,31 @@
 
 /* Mounted/unmounted by an IntersectionObserver (see FunnelLandingPage) —
    the slide-up plays on each mount; unmount is instant, which reads fine
-   for a bar leaving the viewport's edge. */
+   for a bar leaving the viewport's edge. The fixed 4rem height matches
+   body.has-funnel-buy-bar's reserved strip below, so at full scroll the
+   bar sits exactly over empty space, never over footer content. */
 .funnel-desktop-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 1030;
+  display: flex;
+  align-items: center;
+  height: 4rem;
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
-  padding: var(--space-3) 0;
   animation: funnel-bar-slide-up 0.25s ease;
+}
+
+/* Set while the funnel page is mounted: the document ends with a strip
+   exactly the bar's height, so the fixed bar covers padding, not the
+   footer. Desktop-only — mobile has its own bottom bar handling. */
+@media (min-width: 768px) {
+  body.has-funnel-buy-bar {
+    padding-bottom: 4rem;
+  }
 }
 
 @keyframes funnel-bar-slide-up {

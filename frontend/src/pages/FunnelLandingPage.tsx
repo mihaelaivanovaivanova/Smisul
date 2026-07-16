@@ -266,8 +266,9 @@ export default function FunnelLandingPage() {
   // Desktop sticky buy bar: visible only between the hero scrolling out of
   // view (before that the hero's own CTA is on screen) and the #buy section
   // scrolling into view (where the bar would just duplicate the offer stack
-  // right next to it). Also hidden while the footer is on screen, so the
-  // fixed bar never covers the footer's own content at the very bottom.
+  // right next to it). It stays up through the FAQ/footer — the body class
+  // below reserves a bar-height strip under the footer so the fixed bar
+  // never covers footer content at full scroll.
   useEffect(() => {
     if (settingsLoading || isLoading) {
       return;
@@ -275,7 +276,6 @@ export default function FunnelLandingPage() {
 
     const hero = document.querySelector('.funnel-hero');
     const buy = document.getElementById('buy');
-    const footer = document.querySelector('footer');
 
     if (!hero || !buy) {
       return;
@@ -283,7 +283,6 @@ export default function FunnelLandingPage() {
 
     let heroInView = true;
     let buyInView = false;
-    let footerInView = false;
 
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -291,21 +290,23 @@ export default function FunnelLandingPage() {
           heroInView = entry.isIntersecting;
         } else if (entry.target === buy) {
           buyInView = entry.isIntersecting;
-        } else if (entry.target === footer) {
-          footerInView = entry.isIntersecting;
         }
       }
-      setShowDesktopBar(!heroInView && !buyInView && !footerInView);
+      setShowDesktopBar(!heroInView && !buyInView);
     });
 
     observer.observe(hero);
     observer.observe(buy);
-    if (footer) {
-      observer.observe(footer);
-    }
 
     return () => observer.disconnect();
   }, [settingsLoading, isLoading]);
+
+  // Reserve the buy bar's height below the footer while the funnel page is
+  // mounted (md+ only, see body.has-funnel-buy-bar in funnel.css).
+  useEffect(() => {
+    document.body.classList.add('has-funnel-buy-bar');
+    return () => document.body.classList.remove('has-funnel-buy-bar');
+  }, []);
 
   if (settingsLoading || isLoading) {
     return <LoadingState message={states.loadingDefault} />;

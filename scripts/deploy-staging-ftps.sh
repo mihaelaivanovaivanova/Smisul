@@ -14,6 +14,25 @@ done
   exit 1
 }
 
+# Last line of defence: refuse to start FTPS if a non-production project path
+# somehow entered the package, even if an earlier workflow step was changed.
+for forbidden in \
+  .build/staging-backend/tests \
+  .build/staging-backend/storage \
+  .build/staging-backend/database/factories \
+  .build/staging-backend/phpunit.xml \
+  .build/staging-backend/phpstan.neon \
+  .build/staging-backend/README.md; do
+  [[ ! -e "$forbidden" ]] || {
+    echo "Safety failure: forbidden deployment path is present: $forbidden" >&2
+    exit 1
+  }
+done
+[[ -f .build/staging-manifest.txt && -f .build/staging-file-list.txt ]] || {
+  echo 'Safety failure: deployment manifest is missing.' >&2
+  exit 1
+}
+
 describe_value() {
   # Non-sensitive, derived diagnostics only — never echoes the value
   # itself, so it's safe even though GitHub's secret masking wouldn't
@@ -149,7 +168,7 @@ pwd
 echo Deploying staging root.
 mirror --reverse -v --parallel=1 --no-perms --exclude-glob=.well-known --exclude-glob=.well-known/** .build/staging-root/ "$STAGING_FTP_REMOTE_ROOT"
 echo Deploying staging backend.
-mirror --reverse -v --parallel=1 --no-perms "${VENDOR_EXCLUDE[@]}" --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=install-config.php --exclude-glob=install-config.staging.php --exclude-glob=storage/app/public/** --exclude-glob=storage/app/private/** --exclude-glob=storage/icard/** --exclude-glob=storage/logs/** --exclude-glob=storage/framework/cache/** --exclude-glob=storage/framework/sessions/** --exclude-glob=storage/framework/views/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
+mirror --reverse -v --parallel=1 --no-perms "${VENDOR_EXCLUDE[@]}" --exclude-glob=tests --exclude-glob=tests/** --exclude-glob=.env --exclude-glob=config.php --exclude-glob=config.staging.php --exclude-glob=install-config.php --exclude-glob=install-config.staging.php --exclude-glob=storage --exclude-glob=storage/** .build/staging-backend/ "$STAGING_FTP_REMOTE_BACKEND"
 echo Updating composer.lock marker.
 put "$LOCAL_LOCK_HASH_FILE" -o "$REMOTE_LOCK_MARKER"
 bye

@@ -4,54 +4,62 @@ set -Eeuo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
+[[ -d frontend/dist ]] || { echo 'Safety failure: frontend/dist is missing; build the frontend first.' >&2; exit 1; }
+[[ -d backend ]] || { echo 'Safety failure: backend source directory is missing.' >&2; exit 1; }
+
+# Build from an explicit production allowlist. Never copy the whole repository
+# and try to remove unsafe files afterwards: an omitted exclusion would then be
+# uploaded to hosting.
+backend_directories=(app bootstrap config database public resources routes vendor)
+backend_files=(artisan composer.json composer.lock)
+
+for path in "${backend_directories[@]}" "${backend_files[@]}"; do
+  [[ -e "backend/$path" ]] || {
+    echo "Safety failure: required production path is missing: backend/$path" >&2
+    exit 1
+  }
+done
+[[ -f backend/vendor/autoload.php ]] || {
+  echo 'Safety failure: backend/vendor/autoload.php is missing; run Composer production install first.' >&2
+  exit 1
+}
+
 rm -rf -- .build
 mkdir -p .build/staging-root .build/staging-backend
 
-if [[ -d root && -d backend ]]; then
-  cp -a root/. .build/staging-root/
-  cp -a backend/. .build/staging-backend/
-elif [[ -d root && -d Backend ]]; then
-  cp -a root/. .build/staging-root/
-  cp -a Backend/. .build/staging-backend/
-else
-  [[ -d frontend/dist ]] || { echo 'Safety failure: frontend/dist is missing; build the frontend first.' >&2; exit 1; }
-  [[ -d backend ]] || { echo 'Safety failure: backend source directory is missing.' >&2; exit 1; }
-  cp -a frontend/dist/. .build/staging-root/
-  cp -a backend/. .build/staging-backend/
-  cp deployment/public_html/.htaccess .build/staging-root/.htaccess
-  cp deployment/public_html/laravel.php .build/staging-root/laravel.php
-fi
+# Public hosting root: only the compiled frontend and the reviewed Laravel
+# launcher/routing files are deployable.
+cp -a frontend/dist/. .build/staging-root/
+cp deployment/public_html/.htaccess .build/staging-root/.htaccess
+cp deployment/public_html/laravel.php .build/staging-root/laravel.php
 
-remove_from_both() {
-  local target
-  for target in "$@"; do
-    rm -rf -- ".build/staging-root/$target" ".build/staging-backend/$target"
-  done
-}
+# Private Laravel directory: only runtime code and Composer production
+# dependencies. Project tests, documentation, development tooling and local
+# storage contents are intentionally impossible to enter this build.
+for path in "${backend_directories[@]}"; do
+  cp -a "backend/$path" ".build/staging-backend/$path"
+done
+for path in "${backend_files[@]}"; do
+  cp "backend/$path" ".build/staging-backend/$path"
+done
 
-remove_from_both .git .github scripts tests .env .env.backup .env.production .env.staging .env.testing \
-  .phpunit.result.cache phpunit.xml phpstan.neon README.md logs cache tmp database/backups
-
+# Local/generated web artifacts must never be promoted even if they happen to
+# exist inside a developer checkout.
 rm -rf -- \
   .build/staging-root/.well-known \
-  .build/staging-root/install.php \
   .build/staging-root/uploads \
   .build/staging-root/assets/uploads \
-  .build/staging-root/storage/logs \
-  .build/staging-backend/config.php \
-  .build/staging-backend/config.staging.php \
-  .build/staging-backend/config.example.php \
-  .build/staging-backend/config.staging.example.php \
-  .build/staging-backend/install-config.php \
-  .build/staging-backend/install-config.example.php \
-  .build/staging-backend/install-config.staging.php \
-  .build/staging-backend/storage/app/public \
-  .build/staging-backend/storage/app/private \
-  .build/staging-backend/storage/icard \
-  .build/staging-backend/storage/logs \
-  .build/staging-backend/storage/framework/cache \
-  .build/staging-backend/storage/framework/sessions \
-  .build/staging-backend/storage/framework/views
+  .build/staging-root/storage \
+  .build/staging-backend/database/factories \
+  .build/staging-backend/public/hot \
+  .build/staging-backend/public/storage
+
+# Development-only metadata outside Composer packages is not executable
+# application content. Composer's own package contents remain untouched.
+find .build/staging-root .build/staging-backend \
+  -path '.build/staging-backend/vendor' -prune -o \
+  -type f \( -name 'README.md' -o -name '.gitignore' -o -name '.gitkeep' \) \
+  -exec rm -f -- {} +
 
 find .build -type f \( \
   -name '.env' -o -name '.env.*' -o -name '*.zip' -o -name '*.sql' \
@@ -59,13 +67,11 @@ find .build -type f \( \
 \) -delete
 
 # The confirmed testing private directory is lowercase backend on Linux.
-if [[ -f .build/staging-root/laravel.php ]]; then
-  sed -i "s#dirname(__DIR__)\.'/Backend'#dirname(__DIR__)\.'/backend'#" .build/staging-root/laravel.php
-  grep -Fq "dirname(__DIR__).'/backend'" .build/staging-root/laravel.php || {
-    echo 'Safety failure: staging launcher does not point to sibling backend.' >&2
-    exit 1
-  }
-fi
+sed -i "s#dirname(__DIR__)\.'/Backend'#dirname(__DIR__)\.'/backend'#" .build/staging-root/laravel.php
+grep -Fq "dirname(__DIR__).'/backend'" .build/staging-root/laravel.php || {
+  echo 'Safety failure: staging launcher does not point to sibling backend.' >&2
+  exit 1
+}
 
 # The staging installer is opt-in and one-time. Enable it with the GitHub
 # Environment variable STAGING_INCLUDE_INSTALLER=true, complete installation,
@@ -88,4 +94,24 @@ cat >> .build/staging-root/.htaccess <<'HTACCESS'
 </IfModule>
 HTACCESS
 
-echo 'Staging build prepared.'
+root_files="$(find .build/staging-root -type f | wc -l | tr -d '[:space:]')"
+backend_files_total="$(find .build/staging-backend -type f | wc -l | tr -d '[:space:]')"
+vendor_files="$(find .build/staging-backend/vendor -type f | wc -l | tr -d '[:space:]')"
+application_files="$((backend_files_total - vendor_files))"
+total_files="$((root_files + backend_files_total))"
+
+cat > .build/staging-manifest.txt <<MANIFEST
+Staging deployment manifest
+public root files: $root_files
+Laravel application files (without vendor): $application_files
+Composer vendor files: $vendor_files
+Total files in upload build: $total_files
+MANIFEST
+
+{
+  find .build/staging-root -type f | sed 's#^\.build/staging-root/#root/#'
+  find .build/staging-backend -type f | sed 's#^\.build/staging-backend/#backend/#'
+} | LC_ALL=C sort > .build/staging-file-list.txt
+
+cat .build/staging-manifest.txt
+echo 'Staging build prepared from the production allowlist.'

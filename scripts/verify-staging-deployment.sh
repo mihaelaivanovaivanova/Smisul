@@ -101,16 +101,43 @@ if [[ "${1:-}" == '--build' ]]; then
   [[ -d .build/staging-root && -d .build/staging-backend ]] || fail 'build' 'Isolated build directories are missing.'
   for path in \
     .build/staging-root/.well-known \
+    .build/staging-root/uploads \
+    .build/staging-root/storage \
     .build/staging-backend/.env \
     .build/staging-backend/config.php \
+    .build/staging-backend/config.example.php \
+    .build/staging-backend/config.staging.example.php \
     .build/staging-backend/install-config.staging.php \
-    .build/staging-backend/storage/app/public \
-    .build/staging-backend/storage/app/private \
-    .build/staging-backend/storage/icard \
-    .build/staging-backend/storage/logs \
-    .build/staging-backend/storage/framework/sessions; do
+    .build/staging-backend/database/factories \
+    .build/staging-backend/storage \
+    .build/staging-backend/tests \
+    .build/staging-backend/phpunit.xml \
+    .build/staging-backend/phpstan.neon \
+    .build/staging-backend/README.md \
+    .build/staging-backend/.editorconfig \
+    .build/staging-backend/.gitattributes \
+    .build/staging-backend/.gitignore; do
     [[ ! -e "$path" ]] || fail 'protected-build-path' "$path is present in the staging build."
   done
+
+  # Reject every unexpected top-level Laravel path. This is an allowlist, so a
+  # new source directory cannot silently become deployable later.
+  while IFS= read -r path; do
+    [[ -z "$path" ]] && continue
+    name="${path##*/}"
+    case "$name" in
+      app|artisan|bootstrap|composer.json|composer.lock|config|database|public|resources|routes|vendor) ;;
+      *) fail 'backend-allowlist' "$path is not an allowed production build path." ;;
+    esac
+  done < <(find .build/staging-backend -mindepth 1 -maxdepth 1 -print 2>/dev/null || true)
+
+  if find .build -type f \( -name '.env' -o -name '.env.*' -o -name '*.zip' -o -name '*.sql' -o -name '*.sqlite' -o -name '*.log' \) -print -quit | grep -q .; then
+    fail 'forbidden-build-file' 'The staging build contains a secret, archive, database dump, or log file.'
+  fi
+  while IFS= read -r path; do
+    [[ "$path" == .build/staging-backend/vendor/* ]] || fail 'development-file' "$path is development-only metadata outside Composer vendor."
+  done < <(find .build/staging-root .build/staging-backend -type f \( -name 'README.md' -o -name '.gitignore' -o -name '.gitkeep' \) -print)
+
   if [[ "${STAGING_INCLUDE_INSTALLER:-false}" == 'true' ]]; then
     [[ -f .build/staging-root/install.php ]] || fail 'installer' 'The explicitly enabled staging installer is missing.'
     cmp -s deployment/staging/install.php .build/staging-root/install.php || fail 'installer' 'The staging installer differs from the reviewed source.'
@@ -120,6 +147,12 @@ if [[ "${1:-}" == '--build' ]]; then
   [[ -f .build/staging-root/robots.txt ]] || fail 'robots' 'Staging robots.txt is missing.'
   grep -Fq "dirname(__DIR__).'/backend'" .build/staging-root/laravel.php || fail 'layout' 'Staging launcher does not point to sibling backend.'
   [[ -f .build/staging-backend/vendor/autoload.php ]] || fail 'composer' 'Production Composer vendor files are missing from the staging build.'
+  [[ -f .build/staging-manifest.txt && -f .build/staging-file-list.txt ]] || fail 'manifest' 'The exact deployment manifest is missing.'
+  if [[ -f .build/staging-file-list.txt ]]; then
+    actual_files="$(find .build/staging-root .build/staging-backend -type f | wc -l | tr -d '[:space:]')"
+    listed_files="$(wc -l < .build/staging-file-list.txt | tr -d '[:space:]')"
+    [[ "$actual_files" == "$listed_files" ]] || fail 'manifest' "Manifest lists $listed_files files but build contains $actual_files."
+  fi
 fi
 
 if (( failures > 0 )); then

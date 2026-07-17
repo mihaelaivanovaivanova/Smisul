@@ -180,6 +180,12 @@ if (file_put_contents($backend.'/.env', implode(PHP_EOL, $env).PHP_EOL, LOCK_EX)
 
 $messages = ['Created an isolated staging environment file.'];
 try {
+    // These empty runtime directories are not part of the deployment package.
+    // They must exist before Laravel boots on a freshly emptied hosting account.
+    foreach ([$backend.'/storage/app/public', $backend.'/storage/app/private', $backend.'/storage/logs', $backend.'/storage/framework/cache/data', $backend.'/storage/framework/sessions', $backend.'/storage/framework/views'] as $directory) {
+        if (! is_dir($directory) && ! mkdir($directory, 0775, true) && ! is_dir($directory)) throw new RuntimeException('Could not create a required runtime directory.');
+    }
+
     require $autoload;
     /** @var IlluminateFoundationApplication $laravel */
     $laravel = require $backend.'/bootstrap/app.php';
@@ -202,9 +208,6 @@ try {
         if ($code !== 0) throw new RuntimeException($kernel->output());
     }
 
-    foreach ([$backend.'/storage/app/public', $backend.'/storage/app/private', $backend.'/storage/logs', $backend.'/storage/framework/cache/data', $backend.'/storage/framework/sessions', $backend.'/storage/framework/views'] as $directory) {
-        if (! is_dir($directory) && ! mkdir($directory, 0775, true) && ! is_dir($directory)) throw new RuntimeException('Could not create a required runtime directory.');
-    }
     $link = __DIR__.'/storage';
     $target = $backend.'/storage/app/public';
     if (! file_exists($link) && ! @symlink($target, $link)) $messages[] = 'Create root/storage as a cPanel symlink to backend/storage/app/public.';

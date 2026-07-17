@@ -82,6 +82,9 @@ jobs:
           STAGING_INCLUDE_INSTALLER: ${{ vars.STAGING_INCLUDE_INSTALLER }}
         run: scripts/verify-staging-deployment.sh --build
 
+      - name: Show exact deployment file count
+        run: cat .build/staging-manifest.txt
+
       - name: Install lftp
         run: |
           sudo apt-get update

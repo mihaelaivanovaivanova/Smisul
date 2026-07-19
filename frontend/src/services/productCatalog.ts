@@ -4,9 +4,26 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
   EUR: '€',
 };
 
-/** Formats a raw amount as a display string, e.g. formatPrice(19.99, 'EUR') -> "19.99 €" */
+/**
+ * Dual EUR/BGN price labelling per Закона за въвеждане на еврото — the
+ * obligation runs 8 Aug 2025 – 8 Aug 2026 (fixed rate 1 EUR = 1.95583
+ * лв.). Flip to false once the dual-labelling period ends.
+ */
+export const DUAL_PRICE_BGN = true;
+const BGN_PER_EUR = 1.95583;
+
+/**
+ * Formats a raw amount as a display string, e.g. formatPrice(19.99, 'EUR')
+ * -> "19.99 € (39.10 лв.)" while dual labelling is on, "19.99 €" after.
+ */
 export function formatPrice(amount: number, currency: Currency = 'EUR'): string {
-  return `${amount.toFixed(2)} ${CURRENCY_SYMBOLS[currency]}`;
+  const primary = `${amount.toFixed(2)} ${CURRENCY_SYMBOLS[currency]}`;
+
+  if (!DUAL_PRICE_BGN || currency !== 'EUR') {
+    return primary;
+  }
+
+  return `${primary} (${(amount * BGN_PER_EUR).toFixed(2)} лв.)`;
 }
 
 /** The variant to preselect: the one flagged default, or the first available as a fallback. */

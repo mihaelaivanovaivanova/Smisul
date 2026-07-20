@@ -1,0 +1,5 @@
+/.cpanel.yml text eol=lf
+/deployment/deploy-cpanel.sh text eol=lf
+/deployment/artifacts/frontend/** binary
+/scripts/prepare-cpanel-deploy.cmd text eol=crlf
+/scripts/prepare-cpanel-deploy.ps1 text eol=crlf

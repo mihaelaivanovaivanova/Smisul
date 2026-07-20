@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\LegalDocumentType;
+use App\Events\Legal\LegalDocumentUpdated;
 use App\Exceptions\Checkout\LegalDocumentsNotAcceptedException;
 use App\Models\LegalDocument;
 use Illuminate\Database\Eloquent\Collection;
@@ -95,7 +96,7 @@ class LegalDocumentService
      */
     public function publish(LegalDocumentType $type, string $version, string $title, ?string $content): LegalDocument
     {
-        return LegalDocument::query()->getConnection()->transaction(function () use ($type, $version, $title, $content) {
+        $document = LegalDocument::query()->getConnection()->transaction(function () use ($type, $version, $title, $content) {
             LegalDocument::query()->where('type', $type)->update(['is_current' => false]);
 
             return LegalDocument::query()->create([
@@ -107,5 +108,16 @@ class LegalDocumentService
                 'published_at' => now(),
             ]);
         });
+
+        // Only Terms/Privacy carry a per-account "you must be on the
+        // current version" obligation (see LegalDocumentType::requiredForAccount
+        // and ConsentService::outstandingForAccount) — publishing a new
+        // Shipping Policy, for instance, doesn't make any customer's
+        // account stale, so no notification goes out for those types.
+        if (in_array($type, LegalDocumentType::requiredForAccount(), strict: true)) {
+            LegalDocumentUpdated::dispatch($document);
+        }
+
+        return $document;
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\ConsentType;
 use App\Models\Consent;
 use App\Models\LegalDocument;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 /**
  * Records and reads the append-only consent audit log (see the consents
@@ -14,6 +15,8 @@ use App\Models\User;
  */
 class ConsentService
 {
+    public function __construct(private readonly LegalDocumentService $legalDocuments) {}
+
     public function record(
         ConsentType $type,
         bool $accepted,
@@ -42,6 +45,7 @@ class ConsentService
      * once with identical ip/user-agent/subject.
      *
      * @param  array<string, bool>  $decisions  ConsentType::value => accepted
+     * @param  array<string, ?LegalDocument>  $legalDocuments  ConsentType::value => the LegalDocument version being agreed to, for types tied to one (Terms/Privacy) — omitted/null for the rest
      * @return list<Consent>
      */
     public function recordMany(
@@ -50,6 +54,7 @@ class ConsentService
         ?string $guestIdentifier,
         ?string $ipAddress,
         ?string $userAgent,
+        array $legalDocuments = [],
     ): array {
         $recorded = [];
 
@@ -59,7 +64,7 @@ class ConsentService
                 $accepted,
                 $user,
                 $guestIdentifier,
-                null,
+                $legalDocuments[$typeValue] ?? null,
                 $ipAddress,
                 $userAgent,
             );
@@ -93,6 +98,40 @@ class ConsentService
             ->unique(fn (Consent $consent) => $consent->type->value)
             ->keyBy(fn (Consent $consent) => $consent->type->value)
             ->all();
+    }
+
+    /**
+     * The current LegalDocument versions (of LegalDocumentType::requiredForAccount)
+     * that $user hasn't actually agreed to — either they never recorded a
+     * consent for that type at all (pre-dates this tracking), or their
+     * latest recorded consent points at an older LegalDocument version
+     * because a new one was published since. The storefront uses this to
+     * decide whether to show a "please review our updated Terms" banner
+     * and demand fresh acceptance; see LegalDocumentService::publish and
+     * the LegalDocumentUpdated event it fires for the notification side.
+     *
+     * @return Collection<int, LegalDocument>
+     */
+    public function outstandingForAccount(User $user): Collection
+    {
+        $current = $this->currentFor($user, null);
+
+        return collect(ConsentType::cases())
+            ->filter(fn (ConsentType $type) => $type->legalDocumentType() !== null)
+            ->map(function (ConsentType $type) use ($current) {
+                $document = $this->legalDocuments->currentByType($type->legalDocumentType());
+
+                if ($document === null) {
+                    return null;
+                }
+
+                $consent = $current[$type->value] ?? null;
+                $isOutstanding = $consent === null || ! $consent->accepted || $consent->legal_document_id !== $document->id;
+
+                return $isOutstanding ? $document : null;
+            })
+            ->filter()
+            ->values();
     }
 
     /**

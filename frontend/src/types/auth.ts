@@ -1,3 +1,5 @@
+import type { LegalDocument } from './legal';
+
 export type Role = 'customer' | 'administrator';
 
 export interface User {
@@ -13,4 +15,6 @@ export interface User {
   marketing_consent: boolean;
   gdpr_consent_at: string | null;
   created_at: string;
+  /** Terms/Privacy versions this account hasn't accepted yet — empty once agreed to. */
+  outstanding_legal_documents: LegalDocument[];
 }

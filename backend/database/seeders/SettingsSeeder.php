@@ -18,7 +18,7 @@ class SettingsSeeder extends Seeder
         $defaults = [
             ['key' => 'general.store_name', 'group' => 'general', 'type' => 'string', 'label' => 'Store name', 'value' => 'Smisul'],
             ['key' => 'general.store_email', 'group' => 'general', 'type' => 'string', 'label' => 'Store contact email', 'value' => 'contact@smisul.bg'],
-            ['key' => 'general.support_phone', 'group' => 'general', 'type' => 'string', 'label' => 'Support phone', 'value' => null],
+            ['key' => 'general.support_phone', 'group' => 'general', 'type' => 'string', 'label' => 'Support phone', 'value' => '+359 876 291 040'],
             ['key' => 'general.contact_address', 'group' => 'general', 'type' => 'string', 'label' => 'Contact address', 'value' => 'гр. Варна 9000, ул. „Баба Тонка“ № 7, ет. 2, ап. 4'],
             // Legal merchant identity shown in the storefront footer once
             // filled in (see SettingService::publicSettings) — BG shops are

@@ -4,11 +4,13 @@ namespace App\Providers;
 
 use App\Events\Favorite\ProductBackInStock;
 use App\Events\Favorite\ProductPriceDropped;
+use App\Events\Legal\LegalDocumentUpdated;
 use App\Events\Order\OrderPlaced;
 use App\Events\Order\OrderStatusChanged;
 use App\Events\Review\ReviewApproved;
 use App\Events\Review\ReviewRejected;
 use App\Events\Review\ReviewReplied;
+use App\Listeners\NotifyAccountHoldersOfLegalDocumentUpdate;
 use App\Listeners\NotifyFavoritesOfBackInStock;
 use App\Listeners\NotifyFavoritesOfPriceDrop;
 use App\Listeners\SendOrderPlacedNotifications;
@@ -61,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ReviewApproved::class, SendReviewApprovedNotification::class);
         Event::listen(ReviewRejected::class, SendReviewRejectedNotification::class);
         Event::listen(ReviewReplied::class, SendReviewReplyNotification::class);
+        Event::listen(LegalDocumentUpdated::class, NotifyAccountHoldersOfLegalDocumentUpdate::class);
     }
 
     /**

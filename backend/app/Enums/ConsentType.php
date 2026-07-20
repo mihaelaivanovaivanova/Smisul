@@ -43,4 +43,21 @@ enum ConsentType: string
     {
         return [self::CookieNecessary, self::CookieAnalytics, self::CookieMarketing, self::CookiePreferences];
     }
+
+    /**
+     * The LegalDocumentType a consent type's Consent::legal_document_id
+     * rows point at, so callers can look up "which document version does
+     * this consent type's latest row need to match" without duplicating
+     * the Terms/Privacy mapping — null for consent types that aren't tied
+     * to a versioned legal document (Marketing, Newsletter, the four
+     * cookie categories).
+     */
+    public function legalDocumentType(): ?LegalDocumentType
+    {
+        return match ($this) {
+            self::Terms => LegalDocumentType::TermsOfService,
+            self::Privacy => LegalDocumentType::PrivacyPolicy,
+            default => null,
+        };
+    }
 }

@@ -73,4 +73,16 @@ enum LegalDocumentType: string
     {
         return [self::TermsOfService, self::PrivacyPolicy, self::RightOfWithdrawal, self::CookiePolicy];
     }
+
+    /**
+     * The documents a registered account holder must have accepted in
+     * their current version — the ongoing account relationship runs on
+     * these two; withdrawal/cookie terms are order- and browse-scoped.
+     *
+     * @return list<self>
+     */
+    public static function requiredForAccount(): array
+    {
+        return [self::TermsOfService, self::PrivacyPolicy];
+    }
 }

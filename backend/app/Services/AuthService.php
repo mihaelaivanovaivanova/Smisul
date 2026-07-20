@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ConsentType;
+use App\Enums\LegalDocumentType;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -11,7 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
-    public function __construct(private readonly ConsentService $consents) {}
+    public function __construct(
+        private readonly ConsentService $consents,
+        private readonly LegalDocumentService $legalDocuments,
+    ) {}
 
     /**
      * Register a new customer account.
@@ -44,12 +48,18 @@ class AuthService
         // "gdpr_consent" on the request is a single required checkbox that
         // covers accepting the Terms and Privacy policies at sign-up time;
         // newsletter/marketing are their own independently-optional boxes.
+        // Linking legal_document_id to the version current right now is
+        // what lets ConsentService::outstandingForAccount later detect a
+        // Terms/Privacy update this user never agreed to.
         $this->consents->recordMany([
             ConsentType::Terms->value => true,
             ConsentType::Privacy->value => true,
             ConsentType::Marketing->value => (bool) ($data['marketing_consent'] ?? false),
             ConsentType::Newsletter->value => (bool) ($data['newsletter_subscription'] ?? false),
-        ], $user, null, $ipAddress, $userAgent);
+        ], $user, null, $ipAddress, $userAgent, [
+            ConsentType::Terms->value => $this->legalDocuments->currentByType(LegalDocumentType::TermsOfService),
+            ConsentType::Privacy->value => $this->legalDocuments->currentByType(LegalDocumentType::PrivacyPolicy),
+        ]);
 
         event(new Registered($user));
 

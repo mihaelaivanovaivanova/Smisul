@@ -171,6 +171,13 @@ Route::prefix('v1')->group(function () {
     Route::prefix('consent')->group(function () {
         Route::get('/cookies', [ConsentController::class, 'showCookiePreferences'])->name('consent.cookies.show');
         Route::post('/cookies', [ConsentController::class, 'storeCookiePreferences'])->name('consent.cookies.store');
+
+        // Re-accepting Terms/Privacy after a published update — account
+        // holders only (see UserResource::outstanding_legal_documents,
+        // which is what tells the frontend to show the prompt this posts to).
+        Route::post('/legal-documents/accept', [ConsentController::class, 'acceptOutstandingAccountDocuments'])
+            ->middleware('auth:sanctum')
+            ->name('consent.legal-documents.accept');
     });
 
     // Public contact form (frontend footer modal) — no auth, throttled.

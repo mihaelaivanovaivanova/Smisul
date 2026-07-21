@@ -55,7 +55,8 @@
          withdrawal right and links to the full pre-contract information. --}}
     <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0 12px;">
     <p style="color: #666; font-size: 12px;">
-        Продавач: „ФИЛЧЕВ УЕБ“ ЕООД, ЕИК 208699419, България, гр. Варна 9000, р-н „Одесос“,
+        Продавач: Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД, ЕИК 208699419, управител Владимир Стоянов Филчев,<br>
+        България, гр. Варна 9000, р-н „Одесос“,
         ул. „Баба Тонка“ № 7, ет. 2, ап. 4 · contact@smisul.bg
     </p>
     <p style="color: #666; font-size: 12px;">

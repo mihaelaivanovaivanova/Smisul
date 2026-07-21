@@ -51,6 +51,8 @@ class SettingService
     {
         $keys = [
             'general.company_name' => 'company_name',
+            'general.company_name_en' => 'company_name_en',
+            'general.company_manager' => 'company_manager',
             'general.company_id' => 'company_id',
             'general.contact_address' => 'contact_address',
             'general.support_phone' => 'support_phone',

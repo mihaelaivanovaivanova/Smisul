@@ -21,7 +21,7 @@ interface PaymentStepProps {
 // source of truth this list only mirrors for the rare case its fetch fails.
 const fallbackMethods: PaymentMethodOption[] = [{ value: 'card', label: 'Плащане с карта' }];
 
-const cardTrustMarks = ['Visa', 'Mastercard', 'Amex', 'Borica', 'Apple Pay', 'Google Pay'];
+const cardTrustMarks = ['Visa', 'Mastercard', 'Amex', 'Borica'];
 
 export default function PaymentStep({
   cart,
@@ -97,6 +97,9 @@ export default function PaymentStep({
                         </span>
                         <span className="payment-trust-marks" aria-label="Поддържани начини на плащане">
                           {cardTrustMarks.map((mark) => <span className="payment-trust-mark" key={mark}>{mark}</span>)}
+                        </span>
+                        <span className="payment-wallets-coming-soon d-block">
+                          {checkoutCopy.paymentStep.walletsComingSoon}
                         </span>
                       </>
                     )}

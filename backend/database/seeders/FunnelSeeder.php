@@ -401,7 +401,7 @@ class FunnelSeeder extends Seeder
                 // the only method PaymentService offers (COD is withheld).
                 'trust_items' => [
                     ['icon' => 'truck', 'label' => 'Доставка 1-2 работни дни'],
-                    ['icon' => 'card', 'label' => 'Сигурно плащане с карта'],
+                    ['icon' => 'card', 'label' => 'Само сигурно плащане с карта'],
                     ['icon' => 'check-badge', 'label' => '100% гаранция за качество'],
                     ['icon' => 'undo', 'label' => '30 дни право на връщане'],
                 ],

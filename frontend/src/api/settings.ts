@@ -3,6 +3,8 @@ import { apiClient } from './client';
 /** The whitelisted merchant-identity subset served publicly for the footer. */
 export interface PublicSettings {
   company_name: string | null;
+  company_name_en: string | null;
+  company_manager: string | null;
   company_id: string | null;
   contact_address: string | null;
   support_phone: string | null;

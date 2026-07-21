@@ -34,6 +34,8 @@ export default function Footer() {
     publicSettings &&
     Boolean(
       publicSettings.company_name ??
+        publicSettings.company_name_en ??
+        publicSettings.company_manager ??
         publicSettings.company_id ??
         publicSettings.contact_address ??
         publicSettings.support_phone ??
@@ -108,7 +110,17 @@ export default function Footer() {
         {/* Merchant identity — one muted line, only when configured. */}
         {hasMerchantInfo && publicSettings && (
           <p className="d-flex flex-wrap justify-content-center justify-content-md-start column-gap-4 row-gap-1 small text-muted mb-0">
-            {publicSettings.company_name && <span>{publicSettings.company_name}</span>}
+            {(publicSettings.company_name_en || publicSettings.company_name) && (
+              <span>
+                {footer.companyLabel}:{' '}
+                {[publicSettings.company_name_en, publicSettings.company_name].filter(Boolean).join(' / ')}
+              </span>
+            )}
+            {publicSettings.company_manager && (
+              <span>
+                {footer.managerLabel}: {publicSettings.company_manager}
+              </span>
+            )}
             {publicSettings.company_id && (
               <span>
                 {footer.companyIdLabel}: {publicSettings.company_id}
@@ -133,9 +145,14 @@ export default function Footer() {
           <span className="text-muted small">
             &copy; {year} {siteName}. Всички права запазени.
           </span>
-          <span className="footer-payment-logos d-inline-flex align-items-center gap-2">
-            <img src="/payments/visa.svg" alt="Visa" height={14} loading="lazy" />
-            <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
+          <span className="footer-payment-info text-center text-sm-end">
+            <span className="footer-payment-logos d-inline-flex align-items-center gap-2" aria-label="Приемани карти">
+              <img src="/payments/visa.svg" alt="Visa" height={14} loading="lazy" />
+              <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
+              <img src="/payments/amex.svg" alt="American Express" height={22} loading="lazy" />
+            </span>
+            <span className="footer-payment-copy d-block">{footer.cardOnlyPayment}</span>
+            <span className="footer-payment-coming-soon d-block">{footer.walletsComingSoon}</span>
           </span>
         </div>
       </div>

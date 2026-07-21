@@ -24,6 +24,8 @@ class SettingsSeeder extends Seeder
             // filled in (see SettingService::publicSettings) — BG shops are
             // expected to display фирма/ЕИК publicly.
             ['key' => 'general.company_name', 'group' => 'general', 'type' => 'string', 'label' => 'Company legal name', 'value' => '„ФИЛЧЕВ УЕБ“ ЕООД'],
+            ['key' => 'general.company_name_en', 'group' => 'general', 'type' => 'string', 'label' => 'Company legal name (English)', 'value' => 'Filchev Web LTD'],
+            ['key' => 'general.company_manager', 'group' => 'general', 'type' => 'string', 'label' => 'Company manager', 'value' => 'Владимир Стоянов Филчев'],
             ['key' => 'general.company_id', 'group' => 'general', 'type' => 'string', 'label' => 'Company ID (ЕИК)', 'value' => '208699419'],
             // Same-day dispatch promise on the funnel page ("Поръчай до
             // 14:00 — изпращаме още днес"). HH:MM, weekdays only; empty

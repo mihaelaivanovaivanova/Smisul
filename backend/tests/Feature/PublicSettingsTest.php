@@ -20,6 +20,8 @@ class PublicSettingsTest extends TestCase
         $this->assertSame(
             [
                 'company_name',
+                'company_name_en',
+                'company_manager',
                 'company_id',
                 'contact_address',
                 'support_phone',
@@ -36,13 +38,8 @@ class PublicSettingsTest extends TestCase
     #[Test]
     public function filled_settings_are_returned_and_unfilled_ones_are_null(): void
     {
-        Setting::query()->create([
-            'key' => 'general.company_name',
-            'group' => 'general',
-            'type' => 'string',
-            'label' => 'Company legal name',
-            'value' => 'Смисъл ЕООД',
-        ]);
+        Setting::query()->where('key', 'general.company_name')->update(['value' => 'Смисъл ЕООД']);
+        Setting::query()->where('key', 'general.company_id')->update(['value' => null]);
 
         $response = $this->getJson('/api/v1/settings/public');
 

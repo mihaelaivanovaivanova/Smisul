@@ -49,7 +49,11 @@ export const footer = {
   cookieSettings: 'Настройки на бисквитките',
   /** Legal merchant identity block — shown only once the admin fills the settings. */
   merchantHeading: 'Данни за търговеца',
+  companyLabel: 'Фирма',
+  managerLabel: 'Управител',
   companyIdLabel: 'ЕИК',
+  cardOnlyPayment: 'Само плащане с карта — сигурно, бързо и изцяло дигитално.',
+  walletsComingSoon: 'Apple Pay и Google Pay — очаквайте скоро.',
 };
 
 export const contactForm = {
@@ -297,6 +301,9 @@ export const funnelAssurance = {
   /** Shown only on weekdays before the admin-configured cutoff (see DispatchPromise.tsx). */
   dispatch: (time: string, remaining: string) => `Поръчай до ${time} ч. — изпращаме още днес (остават ${remaining})`,
   paymentLogosAria: 'Приемани начини на плащане',
+  cardOnlyPayment:
+    'Приемаме плащания само с карта — сигурно, бързо и без наложен платеж. Така процесът остава максимално дигитален и изчистен, в духа на нашата BIO • ECO • friendly философия.',
+  walletsComingSoon: 'Apple Pay и Google Pay — очаквайте скоро.',
 };
 
 /** The funnel landing page's usage-video section — media comes from the product's own video media. */
@@ -447,7 +454,8 @@ export const checkout = {
   paymentStep: {
     title: 'Плащане',
     description:
-      'Плащанията се обработват сигурно от iCard, направо на тази страница — ние никога не съхраняваме данните ти за плащане.',
+      'Приемаме плащания само с карта. Така процесът остава бърз, сигурен и максимално дигитален — в духа на нашата BIO • ECO • friendly философия. Плащането се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
+    walletsComingSoon: 'Apple Pay и Google Pay — очаквайте скоро.',
     methodLabel: 'Начин на плащане',
     methodsLoading: 'Зареждане на начините на плащане…',
     methodsLoadError: 'Неуспешно зареждане на начините на плащане — ще продължим с плащане с карта.',

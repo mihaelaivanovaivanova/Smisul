@@ -911,6 +911,20 @@
   opacity: 0.6;
 }
 
+.funnel-payment-note,
+.funnel-payment-coming-soon {
+  max-width: 44rem;
+  margin: var(--space-2) auto 0;
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.funnel-payment-coming-soon {
+  margin-top: var(--space-1);
+  font-size: var(--fs-xs);
+}
+
 /* ---- Testimonials (#reviews) ---- */
 
 .funnel-review-card {

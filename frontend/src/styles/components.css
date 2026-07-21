@@ -116,6 +116,26 @@
   opacity: 0.75;
 }
 
+.footer-payment-logos img[src$="/amex.svg"] {
+  filter: none;
+  opacity: 0.9;
+}
+
+.footer-payment-info {
+  max-width: 29rem;
+}
+
+.footer-payment-copy,
+.footer-payment-coming-soon {
+  margin-top: var(--space-1);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--fs-xs);
+}
+
+.footer-payment-coming-soon {
+  color: rgba(255, 255, 255, 0.52);
+}
+
 /* Social profile buttons — quiet outlined circles that light up on hover. */
 .footer-social {
   display: inline-flex;
@@ -526,6 +546,12 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 1px 3px rgba(28, 48, 37, 0.06);
+}
+
+.payment-wallets-coming-soon {
+  margin-top: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
 }
 
 /* ---- Admin panel ---- */

@@ -18,6 +18,14 @@
         Дата: {{ $order->created_at->format('d.m.Y') }}
     </p>
 
+    <h2>Продавач</h2>
+    <p>
+        Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД<br>
+        Управител: Владимир Стоянов Филчев<br>
+        ЕИК: 208699419<br>
+        contact@smisul.bg
+    </p>
+
     <h2>Клиент</h2>
     <p>
         {{ $order->customerFullName() }}<br>

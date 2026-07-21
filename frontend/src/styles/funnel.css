@@ -664,7 +664,9 @@
   white-space: pre-line;
 }
 
-.funnel-awareness p {
+.funnel-page .funnel-awareness p,
+.funnel-page .funnel-awareness .lead,
+.funnel-page .funnel-awareness .section-lead {
   color: rgba(255, 255, 255, 0.82);
 }
 

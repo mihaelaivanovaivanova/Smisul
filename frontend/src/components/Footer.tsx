@@ -150,9 +150,11 @@ export default function Footer() {
               <img src="/payments/visa.svg" alt="Visa" height={14} loading="lazy" />
               <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
               <img src="/payments/amex.svg" alt="American Express" height={22} loading="lazy" />
+              <img src="/payments/apple-pay.svg" alt="Apple Pay" height={22} loading="lazy" />
+              <img src="/payments/google-pay.svg" alt="Google Pay" height={22} loading="lazy" />
             </span>
             <span className="footer-payment-copy d-block">{footer.cardOnlyPayment}</span>
-            <span className="footer-payment-coming-soon d-block">{footer.walletsComingSoon}</span>
+            <span className="footer-payment-wallets d-block">{footer.walletsAccepted}</span>
           </span>
         </div>
       </div>

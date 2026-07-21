@@ -98,8 +98,9 @@ export default function PaymentStep({
                         <span className="payment-trust-marks" aria-label="Поддържани начини на плащане">
                           {cardTrustMarks.map((mark) => <span className="payment-trust-mark" key={mark}>{mark}</span>)}
                         </span>
-                        <span className="payment-wallets-coming-soon d-block">
-                          {checkoutCopy.paymentStep.walletsComingSoon}
+                        <span className="payment-wallet-marks" aria-label={checkoutCopy.paymentStep.walletsAccepted}>
+                          <img src="/payments/apple-pay.svg" alt="Apple Pay" height={30} loading="lazy" />
+                          <img src="/payments/google-pay.svg" alt="Google Pay" height={30} loading="lazy" />
                         </span>
                       </>
                     )}

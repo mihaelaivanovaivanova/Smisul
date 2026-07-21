@@ -53,7 +53,7 @@ export const footer = {
   managerLabel: 'Управител',
   companyIdLabel: 'ЕИК',
   cardOnlyPayment: 'Само плащане с карта — сигурно, бързо и изцяло дигитално.',
-  walletsComingSoon: 'Apple Pay и Google Pay — очаквайте скоро.',
+  walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
 };
 
 export const contactForm = {
@@ -303,7 +303,7 @@ export const funnelAssurance = {
   paymentLogosAria: 'Приемани начини на плащане',
   cardOnlyPayment:
     'Приемаме плащания само с карта — сигурно, бързо и без наложен платеж. Така процесът остава максимално дигитален и изчистен, в духа на нашата BIO • ECO • friendly философия.',
-  walletsComingSoon: 'Apple Pay и Google Pay — очаквайте скоро.',
+  walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
 };
 
 /** The funnel landing page's usage-video section — media comes from the product's own video media. */
@@ -455,7 +455,7 @@ export const checkout = {
     title: 'Плащане',
     description:
       'Приемаме плащания само с карта. Така процесът остава бърз, сигурен и максимално дигитален — в духа на нашата BIO • ECO • friendly философия. Плащането се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
-    walletsComingSoon: 'Apple Pay и Google Pay — очаквайте скоро.',
+    walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
     methodLabel: 'Начин на плащане',
     methodsLoading: 'Зареждане на начините на плащане…',
     methodsLoadError: 'Неуспешно зареждане на начините на плащане — ще продължим с плащане с карта.',

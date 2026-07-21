@@ -906,13 +906,10 @@
   justify-content: center;
   gap: var(--space-4);
   margin-top: var(--space-4);
-  /* Present but quiet — trust furniture, not content. */
-  filter: grayscale(1);
-  opacity: 0.6;
 }
 
 .funnel-payment-note,
-.funnel-payment-coming-soon {
+.funnel-payment-wallets {
   max-width: 44rem;
   margin: var(--space-2) auto 0;
   color: var(--color-muted);
@@ -920,7 +917,7 @@
   text-align: center;
 }
 
-.funnel-payment-coming-soon {
+.funnel-payment-wallets {
   margin-top: var(--space-1);
   font-size: var(--fs-xs);
 }

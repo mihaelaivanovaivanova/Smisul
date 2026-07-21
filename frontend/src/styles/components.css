@@ -116,9 +116,11 @@
   opacity: 0.75;
 }
 
-.footer-payment-logos img[src$="/amex.svg"] {
+.footer-payment-logos img[src$="/amex.svg"],
+.footer-payment-logos img[src$="/apple-pay.svg"],
+.footer-payment-logos img[src$="/google-pay.svg"] {
   filter: none;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 .footer-payment-info {
@@ -126,13 +128,13 @@
 }
 
 .footer-payment-copy,
-.footer-payment-coming-soon {
+.footer-payment-wallets {
   margin-top: var(--space-1);
   color: rgba(255, 255, 255, 0.7);
   font-size: var(--fs-xs);
 }
 
-.footer-payment-coming-soon {
+.footer-payment-wallets {
   color: rgba(255, 255, 255, 0.52);
 }
 
@@ -548,10 +550,17 @@
   box-shadow: 0 1px 3px rgba(28, 48, 37, 0.06);
 }
 
-.payment-wallets-coming-soon {
+.payment-wallet-marks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-top: var(--space-2);
-  color: var(--color-muted);
-  font-size: var(--fs-xs);
+}
+
+.payment-wallet-marks img {
+  display: block;
+  width: auto;
 }
 
 /* ---- Admin panel ---- */

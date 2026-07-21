@@ -394,8 +394,8 @@ export default function FunnelLandingPage() {
       id={id}
     >
       <div className="container">
-        <div className="row g-5 align-items-center">
-          <div className="col-12 col-lg-7">
+        <div className={`row g-5 align-items-center ${placement === 'early' ? 'justify-content-center' : ''}`}>
+          <div className={placement === 'early' ? 'col-12 col-xl-9 text-center' : 'col-12 col-lg-7'}>
             {placement === 'early' && <p className="section-eyebrow">{funnelCheckout.eyebrow}</p>}
             <h2 className="section-title">{placement === 'early' ? funnelCheckout.title : final_cta.title}</h2>
             {(placement === 'early' ? funnelCheckout.paragraphs : final_cta.paragraphs).map((paragraph, index) => (
@@ -404,20 +404,22 @@ export default function FunnelLandingPage() {
               </p>
             ))}
           </div>
-          <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
-            <div className={`funnel-photo funnel-final-cta__image ${placement === 'early' ? 'funnel-checkout__image--early' : ''}`}>
-              <img
-                src={placement === 'early' ? '/funnel/v2/checkout-lifestyle.webp' : '/funnel/v2/09-hand-single-stick.webp'}
-                srcSet={placement === 'early' ? undefined : '/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w'}
-                sizes="(min-width: 992px) 384px, 100vw"
-                alt={placement === 'early' ? 'Miswak в естествена ежедневна среда' : product.name}
-                width={placement === 'early' ? 900 : 1324}
-                height={placement === 'early' ? 1200 : 1188}
-                loading="lazy"
-                decoding="async"
-              />
+          {placement === 'final' && (
+            <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
+              <div className="funnel-photo funnel-final-cta__image">
+                <img
+                  src="/funnel/v2/09-hand-single-stick.webp"
+                  srcSet="/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w"
+                  sizes="(min-width: 992px) 384px, 100vw"
+                  alt={product.name}
+                  width={1324}
+                  height={1188}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="text-center">
@@ -465,8 +467,12 @@ export default function FunnelLandingPage() {
           <img src="/payments/apple-pay.svg" alt="Apple Pay" height={30} loading="lazy" />
           <img src="/payments/google-pay.svg" alt="Google Pay" height={30} loading="lazy" />
         </div>
-        <p className="funnel-payment-note">{funnelAssurance.cardOnlyPayment}</p>
-        <p className="funnel-payment-wallets">{funnelAssurance.walletsAccepted}</p>
+        {placement === 'final' && (
+          <>
+            <p className="funnel-payment-note">{funnelAssurance.cardOnlyPayment}</p>
+            <p className="funnel-payment-wallets">{funnelAssurance.walletsAccepted}</p>
+          </>
+        )}
       </div>
     </section>
   );

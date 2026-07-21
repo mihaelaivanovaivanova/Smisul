@@ -21,6 +21,7 @@ import Seo from '../components/Seo';
 import StarRating from '../components/reviews/StarRating';
 import {
   funnelAssurance,
+  funnelCheckout,
   funnelLead,
   funnelOffer,
   funnelReviews,
@@ -395,22 +396,23 @@ export default function FunnelLandingPage() {
       <div className="container">
         <div className="row g-5 align-items-center">
           <div className="col-12 col-lg-7">
-            <h2 className="section-title">{final_cta.title}</h2>
-            {final_cta.paragraphs.map((paragraph, index) => (
+            {placement === 'early' && <p className="section-eyebrow">{funnelCheckout.eyebrow}</p>}
+            <h2 className="section-title">{placement === 'early' ? funnelCheckout.title : final_cta.title}</h2>
+            {(placement === 'early' ? funnelCheckout.paragraphs : final_cta.paragraphs).map((paragraph, index) => (
               <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
                 {paragraph}
               </p>
             ))}
           </div>
           <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
-            <div className="funnel-photo funnel-final-cta__image">
+            <div className={`funnel-photo funnel-final-cta__image ${placement === 'early' ? 'funnel-checkout__image--early' : ''}`}>
               <img
-                src="/funnel/v2/09-hand-single-stick.webp"
-                srcSet="/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w"
+                src={placement === 'early' ? '/funnel/v2/checkout-lifestyle.webp' : '/funnel/v2/09-hand-single-stick.webp'}
+                srcSet={placement === 'early' ? undefined : '/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w'}
                 sizes="(min-width: 992px) 384px, 100vw"
-                alt={product.name}
-                width={1324}
-                height={1188}
+                alt={placement === 'early' ? 'Miswak в естествена ежедневна среда' : product.name}
+                width={placement === 'early' ? 900 : 1324}
+                height={placement === 'early' ? 1200 : 1188}
                 loading="lazy"
                 decoding="async"
               />
@@ -423,7 +425,7 @@ export default function FunnelLandingPage() {
         </div>
 
         {packageOffers.length > 0 ? (
-          <PackageOffers offers={packageOffers} />
+          <PackageOffers offers={packageOffers} showImages={placement === 'early'} />
         ) : (
           defaultVariant && (
             <div className="mb-3 d-flex justify-content-center">
@@ -444,6 +446,8 @@ export default function FunnelLandingPage() {
             </div>
           )
         )}
+
+        {placement === 'early' && <p className="funnel-checkout__sales-note">{funnelCheckout.salesNote}</p>}
 
         <div className="funnel-trust-row funnel-final-cta__trust mt-4">
           {final_cta.trust_items.map((item) => (

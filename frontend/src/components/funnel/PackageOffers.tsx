@@ -12,7 +12,13 @@ import type { PackageOffer } from '../../services/funnelOffers';
  * card is the featured (visually anchored) offer; any other count renders
  * all cards as equals.
  */
-export default function PackageOffers({ offers }: { offers: PackageOffer[] }) {
+const packageImages: Record<number, string> = {
+  3: '/funnel/v2/packages/pack-3.webp',
+  5: '/funnel/v2/packages/pack-5.webp',
+  10: '/funnel/v2/packages/pack-10.webp',
+};
+
+export default function PackageOffers({ offers, showImages = false }: { offers: PackageOffer[]; showImages?: boolean }) {
   const navigate = useNavigate();
   const featuredIndex = offers.length === 3 ? 1 : -1;
 
@@ -29,6 +35,18 @@ export default function PackageOffers({ offers }: { offers: PackageOffer[] }) {
             className={`funnel-package-card${index === featuredIndex ? ' funnel-package-card--featured' : ''}`}
             key={pkg.variant_id}
           >
+            {showImages && packageImages[variant.pack_size] && (
+              <div className="funnel-package-card__image">
+                <img
+                  src={packageImages[variant.pack_size]}
+                  alt={`Пакет от ${variant.pack_size} броя Miswak`}
+                  width={600}
+                  height={800}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            )}
             <span className="funnel-package-card__badge">{pkg.badge}</span>
             <h3 className="funnel-package-card__detail h5 mb-0">{pkg.detail}</h3>
             <p className="funnel-package-card__value mb-0">{pkg.value_label}</p>

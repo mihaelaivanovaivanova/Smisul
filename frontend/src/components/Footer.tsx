@@ -35,10 +35,7 @@ export default function Footer() {
     Boolean(
       publicSettings.company_name ??
         publicSettings.company_name_en ??
-        publicSettings.company_manager ??
         publicSettings.company_id ??
-        publicSettings.contact_address ??
-        publicSettings.support_phone ??
         publicSettings.store_email,
     );
 
@@ -116,21 +113,10 @@ export default function Footer() {
                 {[publicSettings.company_name_en, publicSettings.company_name].filter(Boolean).join(' / ')}
               </span>
             )}
-            {publicSettings.company_manager && (
-              <span>
-                {footer.managerLabel}: {publicSettings.company_manager}
-              </span>
-            )}
             {publicSettings.company_id && (
               <span>
                 {footer.companyIdLabel}: {publicSettings.company_id}
               </span>
-            )}
-            {publicSettings.contact_address && <span>{publicSettings.contact_address}</span>}
-            {publicSettings.support_phone && (
-              <a className="text-decoration-none text-muted" href={`tel:${publicSettings.support_phone.replace(/\s+/g, '')}`}>
-                {publicSettings.support_phone}
-              </a>
             )}
             {publicSettings.store_email && (
               <a className="text-decoration-none text-muted" href={`mailto:${publicSettings.store_email}`}>

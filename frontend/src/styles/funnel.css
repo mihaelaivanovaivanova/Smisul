@@ -1437,9 +1437,8 @@
 
 /* Mobile is intentionally more concise: each narrative section keeps its
    first core paragraph, while the full editorial copy remains available on
-   tablet/desktop. The checkout image and duplicate closing checkout are
-   removed because the same actions already appear directly below the hero
-   and in the sticky buy bar. */
+   tablet/desktop. Checkout photos stay hidden, but the closing checkout
+   remains available near the end of the funnel. */
 @media (max-width: 767.98px) {
   .funnel-page .lead,
   .funnel-page .section-lead {
@@ -1452,7 +1451,6 @@
   }
 
   .funnel-mobile-optional,
-  .funnel-checkout--final,
   .funnel-final-cta__photo-col {
     display: none;
   }

@@ -8,7 +8,10 @@ use App\Models\ContentBlock;
 use App\Models\FunnelConfig;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Review;
+use Database\Seeders\FunnelSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -113,6 +116,24 @@ class FunnelTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.content.hero.title', 'T');
+    }
+
+    #[Test]
+    public function the_funnel_seeder_adds_three_visible_reviews_without_duplicates(): void
+    {
+        Storage::fake('public');
+
+        $this->seed(FunnelSeeder::class);
+        $this->seed(FunnelSeeder::class);
+
+        $product = Product::query()->where('slug', 'miswak')->firstOrFail();
+
+        $this->assertSame(3, Review::query()->where('product_id', $product->id)->approved()->count());
+        $this->getJson('/api/v1/products/miswak/reviews')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('data.0.verified_purchase', false)
+            ->assertJsonPath('data.0.author_name', 'Демо к.');
     }
 
     private function purchasableVariant(bool $publish = true, int $stock = 10): ProductVariant

@@ -86,8 +86,16 @@
    .section-lead.lead together). Scoped to .funnel-page so the rest of
    the storefront's own .lead usage (HomePage, AboutPage, etc.) is
    unaffected. */
-.funnel-page .lead {
+.funnel-page .lead,
+.funnel-page .section-lead {
   font-size: var(--fs-md);
+  line-height: 1.7;
+  color: #484137;
+}
+
+.funnel-page .section-title {
+  line-height: 1.18;
+  text-wrap: balance;
 }
 
 /* Thin full-width rule at the top of every section (except the hero) —
@@ -496,6 +504,10 @@
   }
 }
 
+.funnel-checkout--early {
+  background-color: var(--color-surface);
+  padding-block: var(--space-6);
+}
 
 /* Right-aligns the (now fixed-size, see .funnel-final-cta__image) photo
    within its column instead of letting it sit flush at the column's
@@ -1380,4 +1392,59 @@
 .funnel-desktop-bar__price {
   color: var(--color-muted);
   font-weight: 700;
+}
+
+/* Mobile is intentionally more concise: each narrative section keeps its
+   first core paragraph, while the full editorial copy remains available on
+   tablet/desktop. The checkout image and duplicate closing checkout are
+   removed because the same actions already appear directly below the hero
+   and in the sticky buy bar. */
+@media (max-width: 767.98px) {
+  .funnel-page .lead,
+  .funnel-page .section-lead {
+    font-size: var(--fs-base);
+    line-height: 1.55;
+  }
+
+  .funnel-page .section-title {
+    font-size: 1.75rem;
+  }
+
+  .funnel-mobile-optional,
+  .funnel-checkout--final,
+  .funnel-final-cta__photo-col {
+    display: none;
+  }
+
+  .funnel-mobile-clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .funnel-hero,
+  .funnel-hero-tone {
+    padding-bottom: var(--space-4);
+  }
+
+  .funnel-checkout--early {
+    padding-block: var(--space-5);
+  }
+
+  .funnel-faq-row {
+    columns: 1;
+  }
+
+  .funnel-reviews__panel {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .funnel-final-cta__image {
+    width: 100%;
+    margin-right: 0;
+  }
 }

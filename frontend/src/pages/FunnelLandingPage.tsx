@@ -387,6 +387,81 @@ export default function FunnelLandingPage() {
         }
       : null;
 
+  const renderCheckoutSection = (placement: 'early' | 'final', id?: string) => (
+    <section
+      className={`section funnel-hero-tone funnel-divided-section funnel-final-cta funnel-checkout funnel-checkout--${placement}`}
+      id={id}
+    >
+      <div className="container">
+        <div className="row g-5 align-items-center">
+          <div className="col-12 col-lg-7">
+            <h2 className="section-title">{final_cta.title}</h2>
+            {final_cta.paragraphs.map((paragraph, index) => (
+              <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
+                {paragraph}
+              </p>
+            ))}
+          </div>
+          <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
+            <div className="funnel-photo funnel-final-cta__image">
+              <img
+                src="/funnel/v2/09-hand-single-stick.webp"
+                srcSet="/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w"
+                sizes="(min-width: 992px) 384px, 100vw"
+                alt={product.name}
+                width={1324}
+                height={1188}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <DispatchPromise cutoff={dispatchCutoff} className="funnel-dispatch--buy" />
+        </div>
+
+        {packageOffers.length > 0 ? (
+          <PackageOffers offers={packageOffers} />
+        ) : (
+          defaultVariant && (
+            <div className="mb-3 d-flex justify-content-center">
+              <AddToCartButton
+                key={`${placement}-${defaultVariant.id}`}
+                productVariantId={defaultVariant.id}
+                inventory={defaultVariant.inventory}
+                label={final_cta.cta}
+                large
+                hideQuantity
+                onAdded={() => {
+                  if (price) {
+                    trackFunnelAddToCart(price.amount, price.currency);
+                  }
+                  navigate('/cart');
+                }}
+              />
+            </div>
+          )
+        )}
+
+        <div className="funnel-trust-row funnel-final-cta__trust mt-4">
+          {final_cta.trust_items.map((item) => (
+            <div className="funnel-trust-item" key={item.label}>
+              <TrustIcon icon={item.icon} />
+              <span className="funnel-trust-item__label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="funnel-payment-logos" role="img" aria-label={funnelAssurance.paymentLogosAria}>
+          <img src="/payments/visa.svg" alt="Visa" height={18} loading="lazy" />
+          <img src="/payments/mastercard.svg" alt="Mastercard" height={30} loading="lazy" />
+        </div>
+      </div>
+    </section>
+  );
+
   // object-position per image so the wider 2:1 crop (see funnel.css) keeps
   // each photo's actual subject in frame instead of a blind center-crop.
   const whyImages = [
@@ -428,7 +503,7 @@ export default function FunnelLandingPage() {
             <div className="col-12 col-lg-5">
               {hero.eyebrow && <p className="section-eyebrow funnel-hero__eyebrow">{hero.eyebrow}</p>}
               <h1 className="funnel-hero__title mb-3">{hero.title}</h1>
-              <p className="lead">{hero.body}</p>
+              <p className="lead funnel-mobile-clamp">{hero.body}</p>
               {reviewSummary && (
                 <a href="#reviews" className="funnel-hero__rating">
                   <StarRating
@@ -487,6 +562,9 @@ export default function FunnelLandingPage() {
         </div>
       </section>
 
+      {/* ---- Early checkout: visible immediately after the first block ---- */}
+      {renderCheckoutSection('early', 'buy')}
+
       {/* ---- Intro: "Не винаги новото е по-доброто" ---- */}
       <section className="section funnel-hero-tone funnel-divided-section" id="benefits">
         <div className="container">
@@ -507,8 +585,8 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-6">
               <h2 className="section-title">{intro.title}</h2>
-              {intro.paragraphs.map((paragraph) => (
-                <p className="section-lead lead" key={paragraph}>
+              {intro.paragraphs.map((paragraph, index) => (
+                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
                   {paragraph}
                 </p>
               ))}
@@ -673,8 +751,8 @@ export default function FunnelLandingPage() {
               <h2 className="section-title">
                 Повече от <span className="funnel-eyebrow-accent">7000 години</span> история
               </h2>
-              {history.paragraphs.map((paragraph) => (
-                <p className="section-lead lead" key={paragraph}>
+              {history.paragraphs.map((paragraph, index) => (
+                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
                   {paragraph}
                 </p>
               ))}
@@ -697,8 +775,8 @@ export default function FunnelLandingPage() {
           <div className="row g-5">
             <div className="col-12 col-lg-5">
               <h2 className="section-title">{from_tree.title}</h2>
-              {from_tree.paragraphs.map((paragraph) => (
-                <p className="section-lead lead" key={paragraph}>
+              {from_tree.paragraphs.map((paragraph, index) => (
+                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
                   {paragraph.startsWith('✓ ') ? (
                     <>
                       <span className="funnel-tick">✓</span>
@@ -758,8 +836,8 @@ export default function FunnelLandingPage() {
             </div>
             <div className="col-12 col-lg-8 align-self-center">
               <h2 className="section-title">{awareness.title}</h2>
-              {awareness.paragraphs.map((paragraph) => (
-                <p className="section-lead lead" key={paragraph}>
+              {awareness.paragraphs.map((paragraph, index) => (
+                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
                   {paragraph}
                 </p>
               ))}
@@ -803,79 +881,8 @@ export default function FunnelLandingPage() {
         </section>
       )}
 
-      {/* ---- Final CTA / buy ---- */}
-      <section className="section funnel-hero-tone funnel-divided-section funnel-final-cta" id="buy">
-        <div className="container">
-          <div className="row g-5 align-items-center">
-            <div className="col-12 col-lg-7">
-              <h2 className="section-title">{final_cta.title}</h2>
-              {final_cta.paragraphs.map((paragraph) => (
-                <p className="section-lead lead" key={paragraph}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-            <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
-              <div className="funnel-photo funnel-final-cta__image">
-                <img
-                  src="/funnel/v2/09-hand-single-stick.webp"
-                  srcSet="/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w"
-                  sizes="(min-width: 992px) 384px, 100vw"
-                  alt={product.name}
-                  width={1324}
-                  height={1188}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <DispatchPromise cutoff={dispatchCutoff} className="funnel-dispatch--buy" />
-          </div>
-
-          {packageOffers.length > 0 ? (
-            <PackageOffers offers={packageOffers} />
-          ) : (
-            defaultVariant && (
-              <div className="mb-3 d-flex justify-content-center">
-                <AddToCartButton
-                  key={defaultVariant.id}
-                  productVariantId={defaultVariant.id}
-                  inventory={defaultVariant.inventory}
-                  label={final_cta.cta}
-                  large
-                  hideQuantity
-                  // Same funnel-only momentum as PackageOffers: a "yes"
-                  // goes straight to the cart page and its checkout CTA.
-                  onAdded={() => {
-                    if (price) {
-                      trackFunnelAddToCart(price.amount, price.currency);
-                    }
-                    navigate('/cart');
-                  }}
-                />
-              </div>
-            )
-          )}
-
-          <div className="funnel-trust-row funnel-final-cta__trust mt-4">
-            {final_cta.trust_items.map((item) => (
-              <div className="funnel-trust-item" key={item.label}>
-                <TrustIcon icon={item.icon} />
-                <span className="funnel-trust-item__label">{item.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Official card brand marks (via iCard) — small, grayscale-calm. */}
-          <div className="funnel-payment-logos" role="img" aria-label={funnelAssurance.paymentLogosAria}>
-            <img src="/payments/visa.svg" alt="Visa" height={18} loading="lazy" />
-            <img src="/payments/mastercard.svg" alt="Mastercard" height={30} loading="lazy" />
-          </div>
-        </div>
-      </section>
+      {/* ---- Final checkout reminder ---- */}
+      {renderCheckoutSection('final')}
 
       {/* ---- FAQ ---- */}
       {/* A true accordion: each answer expands directly under its own

@@ -509,6 +509,10 @@
   padding-block: var(--space-6);
 }
 
+.funnel-checkout--early .section-lead {
+  margin-inline: auto;
+}
+
 .funnel-checkout__sales-note {
   max-width: 48rem;
   margin: var(--space-5) auto 0;
@@ -1448,6 +1452,12 @@
 
   .funnel-page .section-title {
     font-size: 1.75rem;
+  }
+
+  .funnel-checkout--final .section-title,
+  .funnel-checkout--final .section-lead {
+    margin-inline: auto;
+    text-align: center;
   }
 
   .funnel-mobile-optional,

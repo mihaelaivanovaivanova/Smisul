@@ -116,7 +116,7 @@
   opacity: 0.75;
 }
 
-.footer-payment-logos img[src$="/amex.svg"],
+.footer-payment-logos img[src$="/amex.png"],
 .footer-payment-logos img[src$="/apple-pay.svg"],
 .footer-payment-logos img[src$="/google-pay.svg"] {
   filter: none;

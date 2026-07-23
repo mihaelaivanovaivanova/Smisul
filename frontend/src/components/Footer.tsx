@@ -133,7 +133,7 @@ export default function Footer() {
           </span>
           <span className="footer-payment-info text-center text-sm-end">
             <span className="footer-payment-logos d-inline-flex align-items-center gap-2" aria-label="Приемани карти">
-              <img src="/payments/visa.svg" alt="Visa" height={14} loading="lazy" />
+              <img src="/payments/visa-2021.svg" alt="Visa" height={14} loading="lazy" />
               <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
               <img src="/payments/amex.png" alt="American Express" height={22} loading="lazy" />
               <img src="/payments/apple-pay.svg" alt="Apple Pay" height={22} loading="lazy" />

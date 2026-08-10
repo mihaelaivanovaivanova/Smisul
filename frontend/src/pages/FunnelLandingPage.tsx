@@ -455,9 +455,9 @@ export default function FunnelLandingPage() {
         </div>
 
         <div className="funnel-payment-logos" role="img" aria-label={funnelAssurance.paymentLogosAria}>
-          <img src="/payments/visa.svg" alt="Visa" height={18} loading="lazy" />
+          <img src="/payments/visa-2021.svg" alt="Visa" height={18} loading="lazy" />
           <img src="/payments/mastercard.svg" alt="Mastercard" height={30} loading="lazy" />
-          <img src="/payments/amex.svg" alt="American Express" height={30} loading="lazy" />
+          <img src="/payments/amex.png" alt="American Express" height={30} loading="lazy" />
           <img src="/payments/apple-pay.svg" alt="Apple Pay" height={30} loading="lazy" />
           <img src="/payments/google-pay.svg" alt="Google Pay" height={30} loading="lazy" />
         </div>

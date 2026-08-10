@@ -513,10 +513,6 @@
   padding-block: var(--space-6);
 }
 
-/* The lead paragraph's own max-width (see .section-lead) keeps its box
-   narrower than the centered column around it, so without auto margins
-   the box itself sits flush left while only the text inside re-centers —
-   reads as off-center. */
 .funnel-checkout--early .section-lead {
   margin-inline: auto;
 }
@@ -1496,6 +1492,12 @@
 
   .funnel-page .section-title {
     font-size: 1.75rem;
+  }
+
+  .funnel-checkout--final .section-title,
+  .funnel-checkout--final .section-lead {
+    margin-inline: auto;
+    text-align: center;
   }
 
   .funnel-mobile-optional,

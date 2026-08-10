@@ -5,22 +5,14 @@ namespace Database\Seeders;
 use App\DataTransferObjects\PriceData;
 use App\DataTransferObjects\ProductVariantData;
 use App\Enums\Currency;
-use App\Enums\OrderStatus;
 use App\Enums\ProductStatus;
-use App\Enums\ReviewStatus;
-use App\Enums\ShippingCarrier;
-use App\Enums\ShippingDeliveryType;
 use App\Models\ContentBlock;
 use App\Models\FunnelConfig;
 use App\Models\Media;
-use App\Models\Order;
 use App\Models\Product;
-use App\Models\Review;
-use App\Models\User;
 use App\Services\PriceService;
 use App\Services\ProductVariantService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -43,7 +35,6 @@ class FunnelSeeder extends Seeder
 
         $this->seedConfig($product);
         $this->seedContent();
-        $this->seedReviews($product);
     }
 
     private function seedProduct(ProductVariantService $variantService, PriceService $priceService): Product
@@ -180,102 +171,6 @@ class FunnelSeeder extends Seeder
                 ],
             ],
         ]);
-    }
-
-    /**
-     * Adds visible social proof without relying on development factories.
-     * Stable emails/order numbers make this safe to run repeatedly.
-     */
-    private function seedReviews(Product $product): void
-    {
-        $variant = $product->variants()->orderByDesc('is_default')->firstOrFail();
-        $reviews = [
-            [
-                'first_name' => 'Демо',
-                'last_name' => 'клиент 1',
-                'email' => 'maria.petrova@reviews.smisul.test',
-                'rating' => 5,
-                'title' => '[Примерен отзив] Свежо усещане още от първата употреба',
-                'body' => 'Отне ми ден-два да свикна, но сега Miswak е винаги в чантата ми. Удобен е след кафе и когато съм извън дома.',
-                'helpful_count' => 12,
-                'days_ago' => 18,
-            ],
-            [
-                'first_name' => 'Демо',
-                'last_name' => 'клиент 2',
-                'email' => 'georgi.ivanov@reviews.smisul.test',
-                'rating' => 5,
-                'title' => '[Примерен отзив] Практичен за офиса и пътуване',
-                'body' => 'Харесва ми, че не ми трябват паста и вода. Клонката е компактна, а усещането след почистване е приятно и естествено.',
-                'helpful_count' => 8,
-                'days_ago' => 11,
-            ],
-            [
-                'first_name' => 'Демо',
-                'last_name' => 'клиент 3',
-                'email' => 'elena.dimitrova@reviews.smisul.test',
-                'rating' => 4,
-                'title' => '[Примерен отзив] Приятна и естествена алтернатива',
-                'body' => 'Вкусът е леко дървесен, но бързо се свиква. Най-много ми допада, че продуктът е без пластмаса и издържа дълго.',
-                'helpful_count' => 5,
-                'days_ago' => 5,
-            ],
-        ];
-
-        foreach ($reviews as $index => $definition) {
-            $user = User::firstOrCreate(
-                ['email' => $definition['email']],
-                [
-                    'first_name' => $definition['first_name'],
-                    'last_name' => $definition['last_name'],
-                    'phone' => '+35988000000'.($index + 1),
-                    'password' => Hash::make('Seeded-review-account-'.($index + 1)),
-                    'gdpr_consent_at' => now(),
-                ],
-            );
-
-            $order = Order::updateOrCreate(
-                ['order_number' => 'FUNNEL-REVIEW-'.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT)],
-                [
-                    'user_id' => $user->id,
-                    'status' => OrderStatus::Delivered,
-                    'currency' => Currency::EUR->value,
-                    'customer_first_name' => $definition['first_name'],
-                    'customer_last_name' => $definition['last_name'],
-                    'customer_email' => $definition['email'],
-                    'customer_phone' => '+35988000000'.($index + 1),
-                    'shipping_country' => 'BG',
-                    'shipping_city' => 'София',
-                    'shipping_postal_code' => '1000',
-                    'shipping_address_line' => 'Тестова поръчка за продуктов отзив',
-                    'shipping_carrier' => ShippingCarrier::Econt,
-                    'shipping_delivery_type' => ShippingDeliveryType::Address,
-                    'shipping_method_label' => 'Доставка до адрес',
-                    'shipping_price' => 0,
-                    'subtotal' => 12.90,
-                    'discount_total' => 0,
-                    'tax_total' => 0,
-                    'grand_total' => 12.90,
-                ],
-            );
-
-            $review = Review::updateOrCreate(
-                ['order_id' => $order->id, 'product_id' => $product->id],
-                [
-                    'user_id' => $user->id,
-                    'product_variant_id' => $variant->id,
-                    'rating' => $definition['rating'],
-                    'title' => $definition['title'],
-                    'body' => $definition['body'],
-                    'status' => ReviewStatus::Approved,
-                    'verified_purchase' => false,
-                ],
-            );
-
-            $review->helpful_count = $definition['helpful_count'];
-            $review->created_at = now()->subDays($definition['days_ago']);
-            $review->saveQuietly();
-        }
     }
 
     private function seedContent(): void

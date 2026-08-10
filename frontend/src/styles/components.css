@@ -563,6 +563,59 @@
   width: auto;
 }
 
+/* ---- Cookie consent banner ---- */
+/* Compact corner card rather than a full-width bar. Mobile keeps it inset
+   from all four edges — a true corner anchor would just read as full-width
+   on a narrow screen anyway — while desktop hugs the bottom-left corner at
+   a fixed max-width. */
+.cookie-banner {
+  position: fixed;
+  z-index: 1050;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-4);
+}
+
+.cookie-banner__message {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--color-muted);
+}
+
+.cookie-banner__message a {
+  color: var(--color-terracotta);
+  font-weight: 600;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cookie-banner__secondary-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.cookie-banner__secondary-actions .btn {
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .cookie-banner {
+    left: var(--space-4);
+    right: auto;
+    bottom: var(--space-4);
+    max-width: 23rem;
+  }
+}
+
 /* ---- Admin panel ---- */
 /* Plain Bootstrap by design (see Sprint 9) — only structural layout rules live here. */
 

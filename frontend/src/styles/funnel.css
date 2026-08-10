@@ -504,9 +504,21 @@
   }
 }
 
+/* Matches .funnel-hero-tone's cream so this section reads as a
+   continuation of the hero above it, not a new (whiter) panel — this
+   selector's higher source-order specificity was overriding that shared
+   background back to --color-surface. */
 .funnel-checkout--early {
-  background-color: var(--color-surface);
+  background-color: var(--color-cream);
   padding-block: var(--space-6);
+}
+
+/* The lead paragraph's own max-width (see .section-lead) keeps its box
+   narrower than the centered column around it, so without auto margins
+   the box itself sits flush left while only the text inside re-centers —
+   reads as off-center. */
+.funnel-checkout--early .section-lead {
+  margin-inline: auto;
 }
 
 .funnel-checkout__sales-note {
@@ -1368,10 +1380,26 @@
   z-index: 1030;
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   height: 3.75rem;
   padding-inline: var(--space-2);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.funnel-sticky-bar__image {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.funnel-sticky-bar__rating {
+  flex-shrink: 0;
+  font-size: 0.75rem;
 }
 
 .funnel-sticky-bar .btn {
@@ -1425,6 +1453,15 @@
   }
 }
 
+.funnel-desktop-bar__image {
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
 .funnel-desktop-bar__name {
   font-family: var(--font-heading);
   font-size: var(--fs-lg);
@@ -1433,6 +1470,17 @@
 .funnel-desktop-bar__price {
   color: var(--color-muted);
   font-weight: 700;
+}
+
+.funnel-desktop-bar__rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.funnel-desktop-bar__rating-count {
+  color: var(--color-muted);
 }
 
 /* Mobile is intentionally more concise: each narrative section keeps its

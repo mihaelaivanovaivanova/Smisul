@@ -6,7 +6,7 @@ import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 import { trackFunnelAddToCart, trackFunnelViewContent } from '../services/analytics';
-import { formatPrice, getVariantPrice, getVideos } from '../services/productCatalog';
+import { formatPrice, getPrimaryImage, getVariantPrice, getVideos } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import AddToCartButton from '../components/product/AddToCartButton';
@@ -264,40 +264,30 @@ export default function FunnelLandingPage() {
     }
   }, [product]);
 
-  // Desktop sticky buy bar: visible only between the hero scrolling out of
-  // view (before that the hero's own CTA is on screen) and the #buy section
-  // scrolling into view (where the bar would just duplicate the offer stack
-  // right next to it). It stays up through the FAQ/footer — the body class
-  // below reserves a bar-height strip under the footer so the fixed bar
-  // never covers footer content at full scroll.
+  // Desktop sticky buy bar: a one-way reveal, not a toggle — once the hero
+  // scrolls out of view (before that its own CTA is already on screen) the
+  // bar appears and stays up for the rest of the page, including over the
+  // buy/testimonials/FAQ sections and through the footer. It used to also
+  // hide again whenever the #buy section scrolled into view, which read as
+  // the bar randomly disappearing while scrolling. The body class below
+  // reserves a bar-height strip under the footer so the fixed bar never
+  // covers footer content at full scroll.
   useEffect(() => {
     if (settingsLoading || isLoading) {
       return;
     }
 
     const hero = document.querySelector('.funnel-hero');
-    const buy = document.getElementById('buy');
 
-    if (!hero || !buy) {
+    if (!hero) {
       return;
     }
 
-    let heroInView = true;
-    let buyInView = false;
-
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target === hero) {
-          heroInView = entry.isIntersecting;
-        } else if (entry.target === buy) {
-          buyInView = entry.isIntersecting;
-        }
-      }
-      setShowDesktopBar(!heroInView && !buyInView);
+    const observer = new IntersectionObserver(([entry]) => {
+      setShowDesktopBar(!entry.isIntersecting);
     });
 
     observer.observe(hero);
-    observer.observe(buy);
 
     return () => observer.disconnect();
   }, [settingsLoading, isLoading]);
@@ -332,6 +322,10 @@ export default function FunnelLandingPage() {
   const fromPrice = packageOffers.length > 0
     ? packageOffers.reduce((min, offer) => (offer.price.amount < min.amount ? offer.price : min), packageOffers[0].price)
     : price;
+  // Both sticky bars' product thumbnail — same social-proof-adjacent
+  // treatment as juun.bg's sticky add-to-cart bar (thumbnail + rating next
+  // to the CTA), adapted to our own color/spacing tokens.
+  const barImage = getPrimaryImage(product);
 
   // Product rich-result schema: price range across the packages, live
   // aggregate rating, and the top testimonials — eligible for star-rating
@@ -978,7 +972,18 @@ export default function FunnelLandingPage() {
 
       {/* ---- Sticky mobile buy bar ---- */}
       <div className="funnel-sticky-bar d-md-none">
-        <a href="#buy" className="btn btn-primary w-100">
+        {barImage && (
+          <img src={barImage.url} alt="" loading="lazy" className="funnel-sticky-bar__image" />
+        )}
+        {reviewSummary && (
+          <span className="funnel-sticky-bar__rating">
+            <StarRating
+              rating={reviewSummary.average_rating}
+              ariaLabel={funnelReviews.average(reviewSummary.average_rating.toFixed(1))}
+            />
+          </span>
+        )}
+        <a href="#buy" className="btn btn-primary">
           {hero.cta_primary}
         </a>
       </div>
@@ -990,13 +995,31 @@ export default function FunnelLandingPage() {
       {showDesktopBar && (
         <div className="funnel-desktop-bar d-none d-md-block">
           <div className="container d-flex align-items-center justify-content-between gap-3">
-            <div className="d-flex align-items-baseline gap-3">
-              <strong className="funnel-desktop-bar__name">{product.name}</strong>
-              {fromPrice && (
-                <span className="funnel-desktop-bar__price">
-                  {funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}
-                </span>
+            <div className="d-flex align-items-center gap-3">
+              {barImage && (
+                <img src={barImage.url} alt="" loading="lazy" className="funnel-desktop-bar__image" />
               )}
+              <div>
+                <div className="d-flex align-items-baseline gap-3">
+                  <strong className="funnel-desktop-bar__name">{product.name}</strong>
+                  {fromPrice && (
+                    <span className="funnel-desktop-bar__price">
+                      {funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}
+                    </span>
+                  )}
+                </div>
+                {reviewSummary && (
+                  <div className="funnel-desktop-bar__rating">
+                    <StarRating
+                      rating={reviewSummary.average_rating}
+                      ariaLabel={funnelReviews.average(reviewSummary.average_rating.toFixed(1))}
+                    />
+                    <span className="funnel-desktop-bar__rating-count">
+                      {reviewsCopy.reviewCount(reviewSummary.review_count)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <a href="#buy" className="btn btn-primary">
               {hero.cta_primary}

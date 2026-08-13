@@ -6,11 +6,12 @@ import { funnelOffer, stock as stockCopy } from '../../content/copy';
 import type { PackageOffer } from '../../services/funnelOffers';
 
 /**
- * The #buy section's offer stack — one card per configured funnel package,
- * with live price, compare-at anchor, savings badge, and per-piece price
- * from the variant itself. With the classic full 3-card stack the middle
- * card is the featured (visually anchored) offer; any other count renders
- * all cards as equals.
+ * The #pricing section's offer stack — one card per configured funnel
+ * package, with live price, a real savings badge, and per-piece price
+ * from the variant itself. The 5-pack (pack_size 5) is the featured/
+ * visually-dominant card regardless of how many packages are configured
+ * or what order they're in — not "whichever one is in the middle",
+ * which broke the moment a 4th package (the 1-pack) was added.
  */
 const packageImages: Record<number, string> = {
   3: '/funnel/v2/packages/pack-3.webp',
@@ -20,14 +21,23 @@ const packageImages: Record<number, string> = {
 
 export default function PackageOffers({ offers, showImages = false }: { offers: PackageOffer[]; showImages?: boolean }) {
   const navigate = useNavigate();
-  const featuredIndex = offers.length === 3 ? 1 : -1;
+  const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
+  // The single-stick price is itself a live, real price from this same
+  // offers list (not hardcoded) — every bundle's savings badge is
+  // computed against it, matching ai/context/14_Offer_and_Pricing.md's
+  // own "Saving vs. single price" methodology. No fabricated compare-at
+  // anchors: a previous version used Price.compare_at_amount for this,
+  // but those values had no documented basis anywhere in the project —
+  // removed at the data level (see FunnelSeeder.php), not just hidden
+  // here.
+  const singleStickPrice = offers.find(({ variant }) => variant.pack_size === 1)?.price.amount;
 
   return (
     <div className="funnel-packages">
       {offers.map(({ pkg, variant, price }, index) => {
         const savingsPercent =
-          price.is_on_sale && price.compare_at_amount !== null && price.compare_at_amount > 0
-            ? Math.round((1 - price.amount / price.compare_at_amount) * 100)
+          singleStickPrice && variant.pack_size > 1
+            ? Math.round((1 - price.amount / variant.pack_size / singleStickPrice) * 100)
             : null;
 
         return (
@@ -52,11 +62,8 @@ export default function PackageOffers({ offers, showImages = false }: { offers: 
             <p className="funnel-package-card__value mb-0">{pkg.value_label}</p>
             <div className="funnel-package-card__price-row">
               <span className="funnel-package-card__price">{formatPrice(price.amount, price.currency)}</span>
-              {savingsPercent !== null && price.compare_at_amount !== null && (
-                <>
-                  <s className="funnel-package-card__compare">{formatPrice(price.compare_at_amount, price.currency)}</s>
-                  <span className="funnel-package-card__save">-{savingsPercent}%</span>
-                </>
+              {savingsPercent !== null && savingsPercent > 0 && (
+                <span className="funnel-package-card__save">-{savingsPercent}%</span>
               )}
             </div>
             {variant.pack_size > 1 && (
@@ -64,7 +71,6 @@ export default function PackageOffers({ offers, showImages = false }: { offers: 
                 {funnelOffer.perUnit(formatPrice(price.amount / variant.pack_size, price.currency))}
               </span>
             )}
-            {pkg.duration_label && <span className="funnel-package-card__duration">{pkg.duration_label}</span>}
             {/* Honest urgency: rendered only when the inventory really is
                 low — no fake countdowns, the backend's is_low_stock flag
                 decides. */}

@@ -69,10 +69,10 @@ class FunnelAdminTest extends TestCase
     }
 
     #[Test]
-    public function an_administrator_can_set_the_product_and_three_packages(): void
+    public function an_administrator_can_set_the_product_and_four_packages(): void
     {
         $admin = User::factory()->administrator()->create();
-        [$product, $variants] = $this->productWithVariants(3);
+        [$product, $variants] = $this->productWithVariants(4);
 
         $response = $this->actingAs($admin)->putJson('/api/v1/admin/funnel/packages', [
             'product_id' => $product->id,
@@ -80,19 +80,20 @@ class FunnelAdminTest extends TestCase
                 ['variant_id' => $variants[0]->id, 'badge' => 'B1', 'detail' => 'D1', 'value_label' => 'V1', 'button_text' => 'Buy 1'],
                 ['variant_id' => $variants[1]->id, 'badge' => 'B2', 'detail' => 'D2', 'value_label' => 'V2', 'button_text' => 'Buy 2'],
                 ['variant_id' => $variants[2]->id, 'badge' => 'B3', 'detail' => 'D3', 'value_label' => 'V3', 'button_text' => 'Buy 3'],
+                ['variant_id' => $variants[3]->id, 'badge' => 'B4', 'detail' => 'D4', 'value_label' => 'V4', 'button_text' => 'Buy 4'],
             ],
         ]);
 
         $response->assertOk();
-        $response->assertJsonCount(3, 'data.packages');
+        $response->assertJsonCount(4, 'data.packages');
 
         $public = $this->getJson('/api/v1/funnel');
         $public->assertJsonPath('data.product_slug', $product->slug);
-        $public->assertJsonCount(3, 'data.packages');
+        $public->assertJsonCount(4, 'data.packages');
     }
 
     #[Test]
-    public function packages_must_be_exactly_three(): void
+    public function packages_must_be_exactly_four(): void
     {
         $admin = User::factory()->administrator()->create();
         [$product, $variants] = $this->productWithVariants(2);
@@ -110,7 +111,7 @@ class FunnelAdminTest extends TestCase
     public function a_package_variant_not_belonging_to_the_chosen_product_is_rejected(): void
     {
         $admin = User::factory()->administrator()->create();
-        [$product, $variants] = $this->productWithVariants(3);
+        [$product, $variants] = $this->productWithVariants(4);
         [, $otherVariants] = $this->productWithVariants(1);
 
         $this->actingAs($admin)->putJson('/api/v1/admin/funnel/packages', [
@@ -119,6 +120,7 @@ class FunnelAdminTest extends TestCase
                 ['variant_id' => $otherVariants[0]->id, 'badge' => 'B1', 'detail' => 'D1', 'value_label' => 'V1', 'button_text' => 'Buy 1'],
                 ['variant_id' => $variants[1]->id, 'badge' => 'B2', 'detail' => 'D2', 'value_label' => 'V2', 'button_text' => 'Buy 2'],
                 ['variant_id' => $variants[2]->id, 'badge' => 'B3', 'detail' => 'D3', 'value_label' => 'V3', 'button_text' => 'Buy 3'],
+                ['variant_id' => $variants[3]->id, 'badge' => 'B4', 'detail' => 'D4', 'value_label' => 'V4', 'button_text' => 'Buy 4'],
             ],
         ])->assertUnprocessable();
     }

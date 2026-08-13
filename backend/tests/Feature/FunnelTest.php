@@ -29,7 +29,7 @@ class FunnelTest extends TestCase
         $response->assertJsonPath('data.product_slug', null);
         $response->assertJsonPath('data.packages', []);
         $response->assertJsonStructure(['data' => ['content' => [
-            'hero', 'intro', 'why', 'history', 'features', 'from_tree', 'awareness', 'final_cta', 'faq',
+            'hero', 'intro', 'why', 'history', 'natural_eco', 'features', 'science', 'awareness', 'positioning', 'final_cta', 'faq',
         ]]]);
     }
 

@@ -28,13 +28,18 @@ use RuntimeException;
  *    hosted JS (modalJsUrl?token=...) — that script renders a payment
  *    overlay directly on the checkout page (see PaymentSessionData and
  *    components/checkout/IcardModal.tsx).
- *  - Apple Pay / Google Pay: not offered as separate checkout options
- *    (see PaymentMethod's docblock) — createSession() throws for them.
- *    A prior separate wallet-SDK integration (ICardIpgGAPay button flow,
- *    its own WalletPaymentController/tokenProviderSession/
- *    tokenizedCardPurchase endpoints) existed at one point but was removed;
- *    if wallets are reintroduced, they may instead be offered inside the
- *    card modal itself rather than as standalone buttons.
+ *  - Apple Pay / Google Pay: real, supported payment options today, but
+ *    not separate checkout flows in this codebase (see PaymentMethod's
+ *    docblock) — iCard's own hosted modal (the same one Card uses)
+ *    surfaces them as in-modal wallet buttons when the customer's
+ *    browser/device supports them. A prior separate wallet-SDK
+ *    integration (ICardIpgGAPay button flow, its own
+ *    WalletPaymentController/tokenProviderSession/tokenizedCardPurchase
+ *    endpoints) existed at one point and was removed once the modal
+ *    started covering that case; createSession() throwing for
+ *    PaymentMethod::ApplePay/GooglePay is fine because those enum cases
+ *    are never dispatched — availablePaymentMethods() never returns them
+ *    (see PaymentService).
  *
  * Every request, response headers aside, is signed/verified with an RSA
  * key pair exchanged out-of-band with iCard, not a shared secret. Protocol

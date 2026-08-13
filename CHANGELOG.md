@@ -3,6 +3,91 @@
 All notable changes to this project are documented in this file, grouped by
 development sprint. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Funnel Homepage Section Architecture & Content (2026-08-11)
+
+Rebuilt the Miswak funnel landing page (`FunnelLandingPage.tsx`) as
+independently maintainable per-section components, then filled in real
+copy/design for the first several sections of the 20-section homepage
+spec (`ai/context/06_Website_Specification.md`).
+
+### Added
+
+- **Section architecture**: one component per homepage section under
+  `frontend/src/components/funnel/sections/` (Hero, UseCases,
+  WhatIsMiswak, CoreBenefits, HowToUse, Science, SkepticismHonesty,
+  PositioningStatement (stub), Comparison, ActualProduct,
+  FunnelTestimonials, NaturalEco (stub), History, BrandStatement, Pricing,
+  DeliveryPaymentReturns, Faq, Newsletter), plus shared `FunnelIcons.tsx`,
+  `StickyMobileBuyBar.tsx`, `StickyDesktopBuyBar.tsx`.
+  `FunnelLandingPage.tsx` is now a thin composition layer over these.
+- **Header**: simplified to logo + a discreet account/login icon + cart
+  at every breakpoint — removed the section-anchor nav and header order
+  CTA so nothing competes with the Hero's one primary CTA. Account/login/
+  orders links added to the footer to keep them reachable.
+- **Hero**: new copy (eyebrow/H1/subheadline/CTA), a live-computed
+  "packages from X €" + delivery-promise fine-print line (never
+  hardcoded), and a 4-item emoji benefit bar. Global
+  `scroll-behavior: smooth` (reduced-motion aware) added so in-page CTA
+  jumps actually animate.
+- **Use Cases** (new section): 4 occasion cards ("after coffee", "after
+  lunch", "on the move", "traveling") ahead of the product explainer.
+- **What Is Miswak**: rewritten as a plain product explainer (previously
+  carried the tradition/history angle, now solely in History); visual is
+  a 3-step photo sequence (whole stick → prepared tip → fibers close-up)
+  using real product photography for the first two steps, with a clearly
+  labeled placeholder for the third (no matching photo exists yet).
+- **Core Benefits**: reduced to exactly 3 cards (always at hand /
+  naturally simple / no paste) plus a closing statement — added a
+  `closing` field to the section's content schema (frontend type +
+  backend admin-validation) so it stays admin-editable.
+- **How To Use** (new section): 5-step process (peel → soak → chew →
+  clean → refresh the tip), an optional product demo video with
+  click-to-play/poster-image/lazy-mount handling (no autoplay, zero video
+  bytes requested until an explicit click, cropped a few pixels off each
+  edge to hide an AI-generation watermark baked into the source clip),
+  and a CTA that downloads the FAQ's existing usage PDF directly (falls
+  back to scrolling to that FAQ answer if no PDF is configured).
+- Seeded a real product demo video (`miswak-how-to-use.mp4`, ~46MB) via
+  the same admin-manageable Product media system already used for the
+  product photos.
+
+### Changed
+
+- Renamed several section anchor ids for accuracy now that content
+  moved: `#benefits`→`#what-is-miswak`, `#why`→`#core-benefits`,
+  `#video`→`#how-to-use`, `#compare`→`#comparison`, `#buy`→`#pricing`.
+  Verified no CSS selects by these ids, so the renames are visually
+  inert.
+- Consolidated the old duplicated "early" + "final" checkout blocks into
+  a single Pricing section, per the new section order.
+
+### Removed
+
+- Old Core Benefits card 2 ("Miswak doesn't replace your regular
+  toothbrush") and card 3 (yearly-discarded-toothbrushes eco stat) —
+  replaced, not relocated. The complement-not-replacement message still
+  lives in the FAQ's "Замества ли четката и пастата?" answer but is no
+  longer always-visible; the eco stat has no duplicate elsewhere and is
+  gone.
+- Dead CSS/copy this work orphaned: `.funnel-hero__rating*`,
+  `.funnel-mobile-clamp`, `.funnel-assurance__item`, the `funnelNav`
+  copy export.
+
+### Known follow-ups
+
+- The seeded demo video is ~46MB and uncompressed — no ffmpeg was
+  available in this environment to shrink it before committing.
+- What Is Miswak's third visual step ("fibers close-up") has no real
+  product photo yet.
+- Root `README.md`'s "Project status"/"Development seed data" sections
+  describe the project as of Sprint 2 (no cart/checkout/reviews/admin,
+  "no binary media committed") — both are long out of date relative to
+  the current codebase and predate this work; left alone here since
+  fixing them accurately needs the history of every sprint since, not
+  just this one.
+- Two pre-existing test failures are unrelated to this work
+  (`SettingsAdminTest`, `FunnelTest`'s review-seeding assertion).
+
 ## Sprint 2 — Product Domain Foundation (2026-07-03)
 
 Architecture-focused sprint: the complete backend data model and layered

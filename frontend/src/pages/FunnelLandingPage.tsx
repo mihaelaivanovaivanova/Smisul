@@ -1,134 +1,82 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchProduct } from '../api/products';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 import { trackFunnelAddToCart, trackFunnelViewContent } from '../services/analytics';
-import { formatPrice, getPrimaryImage, getVariantPrice, getVideos } from '../services/productCatalog';
+import { formatPrice, getGalleryImages, getPrimaryImage, getVariantPrice, getVideos } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
-import AddToCartButton from '../components/product/AddToCartButton';
-import DispatchPromise from '../components/funnel/DispatchPromise';
 import ExitIntentModal from '../components/funnel/ExitIntentModal';
-import LeadCaptureForm from '../components/funnel/LeadCaptureForm';
-import PackageOffers from '../components/funnel/PackageOffers';
+import StickyMobileBuyBar from '../components/funnel/StickyMobileBuyBar';
+import StickyDesktopBuyBar from '../components/funnel/StickyDesktopBuyBar';
 import { resolvePackageOffers } from '../services/funnelOffers';
-import Icon from '../components/icons/Icon';
-import type { IconName } from '../components/icons/Icon';
 import Seo from '../components/Seo';
-import StarRating from '../components/reviews/StarRating';
-import {
-  funnelAssurance,
-  funnelCheckout,
-  funnelLead,
-  funnelOffer,
-  funnelReviews,
-  funnelVideo,
-  reviews as reviewsCopy,
-  seo,
-  states,
-} from '../content/copy';
+import HeroSection from '../components/funnel/sections/HeroSection';
+import UseCasesSection from '../components/funnel/sections/UseCasesSection';
+import WhatIsMiswakSection from '../components/funnel/sections/WhatIsMiswakSection';
+import CoreBenefitsSection from '../components/funnel/sections/CoreBenefitsSection';
+import HowToUseSection from '../components/funnel/sections/HowToUseSection';
+import ScienceSection from '../components/funnel/sections/ScienceSection';
+import SkepticismHonestySection from '../components/funnel/sections/SkepticismHonestySection';
+import PositioningStatementSection from '../components/funnel/sections/PositioningStatementSection';
+import ComparisonSection from '../components/funnel/sections/ComparisonSection';
+import ActualProductSection from '../components/funnel/sections/ActualProductSection';
+import FunnelTestimonialsSection from '../components/funnel/sections/FunnelTestimonialsSection';
+import NaturalEcoSection from '../components/funnel/sections/NaturalEcoSection';
+import HistorySection from '../components/funnel/sections/HistorySection';
+import BrandStatementSection from '../components/funnel/sections/BrandStatementSection';
+import PricingSection from '../components/funnel/sections/PricingSection';
+import DeliveryPaymentReturnsSection from '../components/funnel/sections/DeliveryPaymentReturnsSection';
+import FaqSection from '../components/funnel/sections/FaqSection';
+import NewsletterSection from '../components/funnel/sections/NewsletterSection';
+import { funnelAssurance, funnelOffer, reviews as reviewsCopy, seo, states } from '../content/copy';
 
 /**
- * Trust-item icons that have a real cropped photo/icon match (see
- * public/funnel/v2) render that instead of the hand-drawn Icon.tsx SVG —
- * closer to the reference layout. Icon names with no match (e.g. the
- * final CTA's truck/lock/check-badge/undo) fall back to Icon.tsx.
- */
-const TRUST_ICON_IMAGES: Partial<Record<IconName, string>> = {
-  leaf: 'icon-natural-100-circle',
-  recycle: 'icon-biodegradable-circle',
-  'no-plastic': 'icon-no-plastic-circle',
-  envelope: 'icon-easy-carry-circle',
-};
-
-function TrustIcon({ icon }: { icon: IconName }) {
-  const image = TRUST_ICON_IMAGES[icon];
-
-  if (image) {
-    // No loading="lazy": rendered in the hero's trust row, above the fold.
-    return (
-      <span className="funnel-trust-item__icon funnel-trust-item__icon--photo">
-        <img src={`/funnel/v2/${image}.webp`} alt="" />
-      </span>
-    );
-  }
-
-  return (
-    <span className="funnel-trust-item__icon">
-      <Icon name={icon} />
-    </span>
-  );
-}
-
-/**
- * Same idea as TRUST_ICON_IMAGES, for the "why" section's cards — real
- * cropped, background-removed icon art instead of the hand-drawn Icon.tsx
- * SVG for the 3 icons that have a photo match.
- */
-const WHY_ICON_IMAGES: Partial<Record<IconName, string>> = {
-  clock: 'icon-why-clock',
-  tooth: 'icon-why-tooth',
-  globe: 'icon-why-globe',
-};
-
-function WhyIcon({ icon }: { icon: IconName }) {
-  const image = WHY_ICON_IMAGES[icon];
-
-  if (image) {
-    return (
-      <span className="funnel-why-card__icon funnel-why-card__icon--photo">
-        <img src={`/funnel/v2/${image}.webp`} alt="" loading="lazy" decoding="async" />
-      </span>
-    );
-  }
-
-  return (
-    <span className="funnel-why-card__icon">
-      <Icon name={icon} />
-    </span>
-  );
-}
-
-/**
- * Same idea again, for the history section's 4 stat icons.
- */
-const STAT_ICON_IMAGES: Partial<Record<IconName, string>> = {
-  hourglass: 'icon-stat-hourglass',
-  leaf: 'icon-stat-leaf',
-  users: 'icon-stat-users',
-  'check-badge': 'icon-stat-research',
-};
-
-function StatIcon({ icon }: { icon: IconName }) {
-  const image = STAT_ICON_IMAGES[icon];
-
-  if (image) {
-    return (
-      <span className="funnel-stat-item__icon funnel-stat-item__icon--photo">
-        <img src={`/funnel/v2/${image}.webp`} alt="" loading="lazy" decoding="async" />
-      </span>
-    );
-  }
-
-  return (
-    <span className="funnel-stat-item__icon">
-      <Icon name={icon} />
-    </span>
-  );
-}
-
-/**
- * The single-product "funnel mode" landing page. Content/copy comes from
- * FunnelContentService (see backend database/seeders/FunnelSeeder.php);
- * the sections below match that seeder's FUNNEL_SECTIONS list one to
- * one. Photography lives at /funnel/v2/*.webp (cropped from a reference
- * composite and converted from the original PNGs — see git history for
- * provenance; several are still placeholder-quality and expected to be
- * swapped for real photography later, per an explicit choice made when
- * building this page).
+ * The single-product "funnel mode" landing page — section architecture
+ * per the 20-slot homepage spec (ai/context/06_Website_Specification.md):
+ *
+ *  1  Header                    -> Navbar.tsx (rendered by PublicLayout, not here)
+ *  2  Hero                      -> HeroSection
+ *  3  Use Cases                 -> UseCasesSection (funnelUseCases, fixed copy)
+ *  4  What Is Miswak             -> WhatIsMiswakSection (funnel.intro)
+ *  5  Core Benefits             -> CoreBenefitsSection (funnel.why)
+ *  6  How To Use                -> HowToUseSection (funnelHowToUse, fixed copy + optional product video)
+ *  7  Science                   -> ScienceSection (funnel.science)
+ *  8  Skepticism / Honesty      -> SkepticismHonestySection (funnel.awareness)
+ *  9  Positioning Statement     -> PositioningStatementSection (funnel.positioning)
+ *  10 Comparison                -> ComparisonSection (funnel.comparison)
+ *  11 Actual Product            -> ActualProductSection (funnel.features)
+ *  12 Reviews                   -> FunnelTestimonialsSection (reviews API)
+ *  13 Natural / Eco             -> NaturalEcoSection (funnel.natural_eco)
+ *  14 Brand Statement           -> BrandStatementSection (funnel.final_cta title/paragraphs)
+ *  15 Pricing                   -> PricingSection (funnel.checkout copy + package offers)
+ *  16 Delivery/Payment/Returns  -> DeliveryPaymentReturnsSection (funnel.final_cta.trust_items + payment copy)
+ *  17 History                   -> HistorySection (funnel.history)
+ *  18 FAQ                       -> FaqSection (funnel.faq)
+ *  19 Newsletter                -> NewsletterSection (lead capture)
+ *  20 Footer                    -> Footer.tsx (rendered by PublicLayout, not here)
+ *
+ * History moved from its original spec position (right after Natural/
+ * Eco) to just before FAQ, and was shortened to roughly one mobile
+ * screen — supplementary context rather than a primary argument, so it
+ * no longer needs to compete for space early in the page. Every other
+ * section has since had its real copy filled in too (see each section
+ * component's own doc comment for what changed and why) — this map no
+ * longer reflects a single structural-only pass, just the current
+ * render order. Sticky buy bars and the exit-intent modal are
+ * persistent chrome, not one of the 20 scroll-order sections, so they
+ * render after the ordered list.
+ *
+ * Content/copy comes from FunnelContentService (see backend
+ * database/seeders/FunnelSeeder.php). Photography lives at
+ * /funnel/v2/*.webp (cropped from a reference composite and converted
+ * from the original PNGs — see git history for provenance; several are
+ * still placeholder-quality and expected to be swapped for real
+ * photography later, per an explicit choice made when building this
+ * page).
  */
 
 export default function FunnelLandingPage() {
@@ -137,6 +85,7 @@ export default function FunnelLandingPage() {
   const navigate = useNavigate();
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
   const [showDesktopBar, setShowDesktopBar] = useState(false);
+  const [showMobileBar, setShowMobileBar] = useState(false);
 
   const { data: product, isLoading, error } = useAsync(
     () => (funnelProductSlug ? fetchProduct(funnelProductSlug) : Promise.resolve(null)),
@@ -163,20 +112,20 @@ export default function FunnelLandingPage() {
   const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
   const dispatchCutoff = publicSettings?.same_day_dispatch_cutoff ?? null;
 
-  // Navbar's section-anchor nav links here as "/#benefits" etc. — the
+  // Navbar's section-anchor nav links here as "/#core-benefits" etc. — the
   // browser only auto-scrolls to a fragment on a real page load, not an
   // SPA route change, so this replicates that behavior once the page has
-  // rendered. "#how-to-use" is a pseudo-anchor with no element of its own:
-  // usage instructions live in the FAQ (together with the downloadable PDF
-  // manual), so it opens that exact question and scrolls to the FAQ.
+  // rendered. "#usage-guide" is a pseudo-anchor with no element of its
+  // own — HowToUseSection's "Виж пълните инструкции" CTA uses it to jump
+  // straight to the FAQ's existing, more detailed usage answer (which
+  // carries the downloadable PDF manual) rather than duplicating that
+  // content in a new instructions page/modal.
   useEffect(() => {
     if (!location.hash || settingsLoading || isLoading) {
       return;
     }
 
-    // "#video" falls back to the FAQ's usage answer when no video is
-    // uploaded (the section renders only with a video present).
-    if (location.hash === '#how-to-use' || (location.hash === '#video' && !document.getElementById('video'))) {
+    if (location.hash === '#usage-guide') {
       const items = funnelContent?.faq.items ?? [];
       const usageIndex = items.findIndex((item) => /как се използва/i.test(item.question));
       setActiveFaqIndex(usageIndex === -1 ? 0 : usageIndex);
@@ -192,7 +141,8 @@ export default function FunnelLandingPage() {
   // every scroll gets rewarded with a little motion. The hero is exempt
   // (nothing above the fold may start hidden), package cards too (they
   // carry their own hover/featured transforms), and reduced-motion users
-  // see the page fully static.
+  // see the page fully static. Selectors are class-based, so this is
+  // unaffected by which section component renders each element.
   useEffect(() => {
     if (settingsLoading || isLoading || !product) {
       return;
@@ -205,10 +155,10 @@ export default function FunnelLandingPage() {
       document.querySelectorAll(
         [
           '.funnel-page section:not(.funnel-hero) .funnel-photo',
+          '.funnel-usecase-card',
           '.funnel-why-card',
           '.funnel-video__wrap',
           '.funnel-comparison__wrap',
-          '.funnel-stat-item',
           '.funnel-feature-item',
           '.funnel-step-item',
           '.funnel-review-card',
@@ -267,11 +217,11 @@ export default function FunnelLandingPage() {
   // Desktop sticky buy bar: a one-way reveal, not a toggle — once the hero
   // scrolls out of view (before that its own CTA is already on screen) the
   // bar appears and stays up for the rest of the page, including over the
-  // buy/testimonials/FAQ sections and through the footer. It used to also
-  // hide again whenever the #buy section scrolled into view, which read as
-  // the bar randomly disappearing while scrolling. The body class below
-  // reserves a bar-height strip under the footer so the fixed bar never
-  // covers footer content at full scroll.
+  // pricing/testimonials/FAQ sections and through the footer. It used to
+  // also hide again whenever the pricing section scrolled into view, which
+  // read as the bar randomly disappearing while scrolling. The body class
+  // below reserves a bar-height strip under the footer so the fixed bar
+  // never covers footer content at full scroll.
   useEffect(() => {
     if (settingsLoading || isLoading) {
       return;
@@ -292,6 +242,59 @@ export default function FunnelLandingPage() {
     return () => observer.disconnect();
   }, [settingsLoading, isLoading]);
 
+  // Mobile sticky CTA: a three-zone toggle, unlike the desktop bar's
+  // one-way reveal. Hidden over the hero (its own primary CTA is already
+  // on screen), visible through the informational sections, hidden again
+  // once the pricing cards themselves are in view (they carry their own
+  // CTAs), visible again for the short delivery/history stretch right
+  // after pricing, then hidden for good from FAQ onward so it never sits
+  // over the FAQ's accordion controls, the newsletter form, or footer
+  // links/the cookie banner below that. faqReached is directional (based
+  // on the FAQ section's boundingClientRect.top, not just isIntersecting)
+  // so scrolling back up above FAQ un-hides the bar again.
+  useEffect(() => {
+    if (settingsLoading || isLoading) {
+      return;
+    }
+
+    const hero = document.querySelector('.funnel-hero');
+    const pricing = document.getElementById('pricing');
+    const faq = document.getElementById('faq');
+
+    if (!hero || !pricing || !faq) {
+      return;
+    }
+
+    let heroVisible = true;
+    let pricingVisible = false;
+    let faqReached = false;
+
+    const update = () => setShowMobileBar(!heroVisible && !pricingVisible && !faqReached);
+
+    const heroObserver = new IntersectionObserver(([entry]) => {
+      heroVisible = entry.isIntersecting;
+      update();
+    });
+    const pricingObserver = new IntersectionObserver(([entry]) => {
+      pricingVisible = entry.isIntersecting;
+      update();
+    });
+    const faqObserver = new IntersectionObserver(([entry]) => {
+      faqReached = entry.boundingClientRect.top <= 0;
+      update();
+    });
+
+    heroObserver.observe(hero);
+    pricingObserver.observe(pricing);
+    faqObserver.observe(faq);
+
+    return () => {
+      heroObserver.disconnect();
+      pricingObserver.disconnect();
+      faqObserver.disconnect();
+    };
+  }, [settingsLoading, isLoading]);
+
   // Reserve the buy bar's height below the footer while the funnel page is
   // mounted (md+ only, see body.has-funnel-buy-bar in funnel.css).
   useEffect(() => {
@@ -307,25 +310,43 @@ export default function FunnelLandingPage() {
     return <ErrorState message={error ?? states.loadingDefault} />;
   }
 
-  const { hero, intro, why, features, comparison, history, from_tree, awareness, final_cta, faq } = funnelContent;
-  // A DB that predates the comparison section serves `[]` for it (see
-  // FunnelContentService::all) — render only when real rows exist.
-  const comparisonRows = Array.isArray(comparison?.rows) ? comparison.rows : [];
-  // Two-column FAQ accordion — reading order fills the left column first.
-  const faqColumnSize = Math.ceil(faq.items.length / 2);
+  const { hero, intro, why, features, comparison, history, natural_eco, science, awareness, positioning, final_cta, faq } =
+    funnelContent;
   const defaultVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
   const price = defaultVariant ? getVariantPrice(defaultVariant) : null;
   const packageOffers = resolvePackageOffers(product, funnelPackages);
   const productVideos = getVideos(product);
-  // The sticky bar's "от 8.99 €" teaser — the cheapest package, or the
-  // default variant's price when no packages are configured.
+  // HowToUseSection's CTA — links straight to the FAQ's usage answer's own
+  // PDF attachment rather than scrolling to it, so it stays correct
+  // whenever an admin edits that FAQ item's attachment via the CMS.
+  const usageGuidePdfUrl = faq.items.find((item) => /как се използва/i.test(item.question))?.attachment_url || undefined;
+  // The sticky bar's "от X €" teaser and the mid-page CTA's price nudge —
+  // the cheapest package, or the default variant's price when no packages
+  // are configured. Always the live computed minimum, never hardcoded.
   const fromPrice = packageOffers.length > 0
     ? packageOffers.reduce((min, offer) => (offer.price.amount < min.amount ? offer.price : min), packageOffers[0].price)
     : price;
+  const fromPriceLabel = fromPrice ? funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency)) : null;
   // Both sticky bars' product thumbnail — same social-proof-adjacent
   // treatment as juun.bg's sticky add-to-cart bar (thumbnail + rating next
   // to the CTA), adapted to our own color/spacing tokens.
   const barImage = getPrimaryImage(product);
+  // WhatIsMiswakSection's 3-step visual — real product photography, sorted
+  // primary-first. Seeded order is [whole stick in hand, prepared-tip
+  // close-up, bundle] (see FunnelSeeder.php), so index 0/1 are exactly the
+  // two steps that have a real photo today.
+  const galleryImages = getGalleryImages(product);
+
+  function handleFallbackAddToCart() {
+    if (price) {
+      trackFunnelAddToCart(price.amount, price.currency);
+    }
+    navigate('/cart');
+  }
+
+  function handleFaqToggle(index: number) {
+    setActiveFaqIndex(activeFaqIndex === index ? null : index);
+  }
 
   // Product rich-result schema: price range across the packages, live
   // aggregate rating, and the top testimonials — eligible for star-rating
@@ -382,118 +403,6 @@ export default function FunnelLandingPage() {
         }
       : null;
 
-  const renderCheckoutSection = (placement: 'early' | 'final', id?: string) => (
-    <section
-      className={`section funnel-hero-tone funnel-divided-section funnel-final-cta funnel-checkout funnel-checkout--${placement}`}
-      id={id}
-    >
-      <div className="container">
-        <div className={`row g-5 align-items-center ${placement === 'early' ? 'justify-content-center' : ''}`}>
-          <div className={placement === 'early' ? 'col-12 col-xl-9 text-center' : 'col-12 col-lg-7'}>
-            {placement === 'early' && <p className="section-eyebrow">{funnelCheckout.eyebrow}</p>}
-            <h2 className="section-title">{placement === 'early' ? funnelCheckout.title : final_cta.title}</h2>
-            {(placement === 'early' ? funnelCheckout.paragraphs : final_cta.paragraphs).map((paragraph, index) => (
-              <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
-                {paragraph}
-              </p>
-            ))}
-          </div>
-          {placement === 'final' && (
-            <div className="col-12 col-lg-5 funnel-final-cta__photo-col">
-              <div className="funnel-photo funnel-final-cta__image">
-                <img
-                  src="/funnel/v2/09-hand-single-stick.webp"
-                  srcSet="/funnel/v2/09-hand-single-stick-800.webp 800w, /funnel/v2/09-hand-single-stick.webp 1324w"
-                  sizes="(min-width: 992px) 384px, 100vw"
-                  alt={product.name}
-                  width={1324}
-                  height={1188}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="text-center">
-          <DispatchPromise cutoff={dispatchCutoff} className="funnel-dispatch--buy" />
-        </div>
-
-        {packageOffers.length > 0 ? (
-          <PackageOffers offers={packageOffers} showImages={placement === 'early'} />
-        ) : (
-          defaultVariant && (
-            <div className="mb-3 d-flex justify-content-center">
-              <AddToCartButton
-                key={`${placement}-${defaultVariant.id}`}
-                productVariantId={defaultVariant.id}
-                inventory={defaultVariant.inventory}
-                label={final_cta.cta}
-                large
-                hideQuantity
-                onAdded={() => {
-                  if (price) {
-                    trackFunnelAddToCart(price.amount, price.currency);
-                  }
-                  navigate('/cart');
-                }}
-              />
-            </div>
-          )
-        )}
-
-        {placement === 'early' && <p className="funnel-checkout__sales-note">{funnelCheckout.salesNote}</p>}
-
-        <div className="funnel-trust-row funnel-final-cta__trust mt-4">
-          {final_cta.trust_items.map((item) => (
-            <div className="funnel-trust-item" key={item.label}>
-              <TrustIcon icon={item.icon} />
-              <span className="funnel-trust-item__label">{item.label}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="funnel-payment-logos" role="img" aria-label={funnelAssurance.paymentLogosAria}>
-          <img src="/payments/visa-2021.svg" alt="Visa" height={18} loading="lazy" />
-          <img src="/payments/mastercard.svg" alt="Mastercard" height={30} loading="lazy" />
-          <img src="/payments/amex.png" alt="American Express" height={30} loading="lazy" />
-          <img src="/payments/apple-pay.svg" alt="Apple Pay" height={30} loading="lazy" />
-          <img src="/payments/google-pay.svg" alt="Google Pay" height={30} loading="lazy" />
-        </div>
-        {placement === 'final' && (
-          <>
-            <p className="funnel-payment-note">{funnelAssurance.cardOnlyPayment}</p>
-            <p className="funnel-payment-wallets">{funnelAssurance.walletsAccepted}</p>
-          </>
-        )}
-      </div>
-    </section>
-  );
-
-  // object-position per image so the wider 2:1 crop (see funnel.css) keeps
-  // each photo's actual subject in frame instead of a blind center-crop.
-  const whyImages = [
-    { file: '03-bag-pocket', focus: '50% 55%' }, // miswak stick + bag zipper detail
-    { file: '04-mouth-bite', focus: '50% 40%' }, // mouth/teeth, avoid cropping into the chin
-    { file: '05-seedling', focus: '50% 25%' }, // sprout tip near the top of the frame
-  ];
-  const featureIcons = [
-    'icon-feature-natural-100',
-    'icon-feature-biodegradable',
-    'icon-feature-no-plastic',
-    'icon-feature-easy-carry',
-    'icon-feature-travel',
-    'icon-feature-no-batteries',
-    'icon-feature-no-waste',
-    'icon-feature-natural-daily',
-  ];
-  const fromTreeIcons = [
-    'icon-sustainable-harvest-circle',
-    'icon-hand-selected-circle',
-    'icon-gentle-processing-circle',
-  ];
-
   return (
     // Bottom clearance for the fixed buy bars comes from
     // body.has-funnel-buy-bar (see funnel.css), not page padding.
@@ -505,528 +414,69 @@ export default function FunnelLandingPage() {
         jsonLd={faqJsonLd ? [productJsonLd, faqJsonLd] : productJsonLd}
       />
 
-      {/* ---- Hero ---- */}
-      <section className="funnel-hero section">
-        <div className="container">
-          <div className="row align-items-start g-5">
-            <div className="col-12 col-lg-5">
-              {hero.eyebrow && <p className="section-eyebrow funnel-hero__eyebrow">{hero.eyebrow}</p>}
-              <h1 className="funnel-hero__title mb-3">{hero.title}</h1>
-              <p className="lead funnel-mobile-clamp">{hero.body}</p>
-              {reviewSummary && (
-                <a href="#reviews" className="funnel-hero__rating">
-                  <StarRating
-                    rating={reviewSummary.average_rating}
-                    ariaLabel={funnelReviews.average(reviewSummary.average_rating.toFixed(1))}
-                  />
-                  <strong>{funnelReviews.average(reviewSummary.average_rating.toFixed(1))}</strong>
-                  <span className="funnel-hero__rating-count">
-                    · {reviewsCopy.reviewCount(reviewSummary.review_count)}
-                  </span>
-                </a>
-              )}
-              <div className="d-flex flex-wrap align-items-center gap-2 mt-3 mb-4">
-                <a href="#buy" className="btn btn-primary btn-lg">
-                  {hero.cta_primary}
-                </a>
-                <a href="#why" className="btn btn-outline-secondary">
-                  {hero.cta_secondary}
-                </a>
-              </div>
-              <p className="funnel-assurance funnel-assurance--hero">
-                <span className="funnel-assurance__item">
-                  <Icon name="truck" /> {funnelAssurance.delivery}
-                </span>
-                <span className="funnel-assurance__item">
-                  <Icon name="undo" /> {funnelAssurance.returns}
-                </span>
-                <DispatchPromise cutoff={dispatchCutoff} className="funnel-assurance__item" />
-              </p>
-              <div className="funnel-trust-row">
-                {hero.trust_items.map((item) => (
-                  <div className="funnel-trust-item" key={item.label}>
-                    <TrustIcon icon={item.icon} />
-                    <span className="funnel-trust-item__label">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="col-12 col-lg-7">
-              <div className="funnel-photo funnel-hero__image">
-                {/* The LCP element: eager + high priority, with intrinsic
-                    dimensions so the browser reserves the space (no CLS).
-                    Phones pick the 800w variant via srcset. */}
-                <img
-                  src="/funnel/v2/01-hero-sticks.webp"
-                  srcSet="/funnel/v2/01-hero-sticks-800.webp 800w, /funnel/v2/01-hero-sticks.webp 1536w"
-                  sizes="(min-width: 992px) 58vw, 100vw"
-                  alt={product.name}
-                  width={1536}
-                  height={1024}
-                  fetchPriority="high"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 1 Header -> Navbar.tsx, rendered by PublicLayout */}
+      {/* 2 Hero — carries the page's only H1 */}
+      <HeroSection
+        content={hero}
+        productName={product.name}
+        fromPrice={fromPrice}
+        deliveryPromise={funnelAssurance.delivery}
+      />
+      {/* 3 Use Cases */}
+      <UseCasesSection />
+      {/* 4 What Is Miswak */}
+      <WhatIsMiswakSection content={intro} wholeImage={galleryImages[0]} preparedTipImage={galleryImages[1]} />
+      {/* 5 Core Benefits */}
+      <CoreBenefitsSection content={why} />
+      {/* 6 How To Use */}
+      <HowToUseSection videos={productVideos} posterImage={barImage} pdfUrl={usageGuidePdfUrl} />
+      {/* 7 Science */}
+      <ScienceSection content={science} />
+      {/* 8 Skepticism / Honesty */}
+      <SkepticismHonestySection content={awareness} />
+      {/* 9 Positioning Statement */}
+      <PositioningStatementSection content={positioning} />
+      {/* 10 Comparison */}
+      <ComparisonSection content={comparison} />
+      {/* 11 Actual Product / What You Receive */}
+      <ActualProductSection content={features} ctaPrimaryLabel={hero.cta_primary} fromPriceLabel={fromPriceLabel} />
+      {/* 12 Reviews */}
+      <FunnelTestimonialsSection topReviews={topReviews} reviewSummary={reviewSummary} productSlug={product.slug} />
+      {/* 13 Natural / Eco */}
+      <NaturalEcoSection content={natural_eco} />
+      {/* 14 Brand Statement */}
+      <BrandStatementSection content={final_cta} productName={product.name} />
+      {/* 15 Pricing */}
+      <PricingSection
+        packageOffers={packageOffers}
+        defaultVariant={defaultVariant}
+        fallbackCtaLabel={final_cta.cta}
+        dispatchCutoff={dispatchCutoff}
+        onAdded={handleFallbackAddToCart}
+      />
+      {/* 16 Delivery / Payment / Returns */}
+      <DeliveryPaymentReturnsSection trustItems={final_cta.trust_items} />
+      {/* 17 History — moved here from right after Natural/Eco, shortened
+          to roughly one mobile screen: supplementary context, not a
+          primary argument, so it no longer needs early placement. */}
+      <HistorySection content={history} />
+      {/* 18 FAQ */}
+      <FaqSection content={faq} activeFaqIndex={activeFaqIndex} onToggle={handleFaqToggle} />
+      {/* 19 Newsletter */}
+      <NewsletterSection />
+      {/* 20 Footer -> Footer.tsx, rendered by PublicLayout */}
 
-      {/* ---- Early checkout: visible immediately after the first block ---- */}
-      {renderCheckoutSection('early', 'buy')}
-
-      {/* ---- Intro: "Не винаги новото е по-доброто" ---- */}
-      <section className="section funnel-hero-tone funnel-divided-section" id="benefits">
-        <div className="container">
-          <div className="row g-5 align-items-center">
-            <div className="col-12 col-lg-6">
-              {/* 16:10 rather than 4:3 — shallower sections keep the next
-                  one peeking into the viewport (scroll momentum). */}
-              <div className="funnel-photo" style={{ aspectRatio: '16 / 10' }}>
-                <img
-                  src="/funnel/v2/02-desert-tree.webp"
-                  srcSet="/funnel/v2/02-desert-tree-800.webp 800w, /funnel/v2/02-desert-tree.webp 1536w"
-                  sizes="(min-width: 992px) 50vw, 100vw"
-                  alt="Дървото Salvadora Persica в естествената си среда"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-            <div className="col-12 col-lg-6">
-              <h2 className="section-title">{intro.title}</h2>
-              {intro.paragraphs.map((paragraph, index) => (
-                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Why Miswak ---- */}
-      <section className="section funnel-hero-tone funnel-divided-section" id="why">
-        <div className="container">
-          <h2 className="section-title mb-4 text-center">
-            {why.title.replace('Miswak?', '')}
-            <span className="funnel-eyebrow-accent">Miswak?</span>
-          </h2>
-          <div className="row row-cols-1 row-cols-md-3 g-5 funnel-why-row">
-            {why.cards.map((card, index) => (
-              <div className="col" key={card.title}>
-                <div className="funnel-why-card">
-                  <WhyIcon icon={card.icon} />
-                  <div>
-                    <h3 className="h6 mb-2">{card.title}</h3>
-                    <p className="section-lead lead mb-0">{card.text}</p>
-                  </div>
-                </div>
-                <div className="funnel-photo funnel-why-card__photo">
-                  <img
-                    src={`/funnel/v2/${(whyImages[index] ?? whyImages[0]).file}.webp`}
-                    srcSet={`/funnel/v2/${(whyImages[index] ?? whyImages[0]).file}-800.webp 800w, /funnel/v2/${(whyImages[index] ?? whyImages[0]).file}.webp 1536w`}
-                    sizes="(min-width: 768px) 33vw, 100vw"
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    style={{ objectPosition: (whyImages[index] ?? whyImages[0]).focus }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Usage video ---- */}
-      {/* Renders the funnel product's own video media (admin-managed via
-          Products → media) — nothing renders until a video is uploaded. */}
-      {productVideos.length > 0 && (
-        <section className="section funnel-hero-tone funnel-divided-section funnel-video" id="video">
-          <div className="container">
-            <h2 className="section-title mb-4 text-center">{funnelVideo.title}</h2>
-            <div className="funnel-video__wrap">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption -- placeholder demo clip; real footage will carry captions */}
-              <video controls preload="metadata" src={productVideos[0].url} aria-label={productVideos[0].alt_text ?? undefined} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ---- Features ---- */}
-      {/* Deliberately ahead of the history/tradition sections: the concrete
-          product argument (and the first mid-page CTA) reaches the visitor
-          before the longer educational read, not after it. */}
-      <section className="section section-tint funnel-divided-section funnel-features">
-        <div className="container">
-          <h2 className="section-title mb-5 text-center">
-            {features.title.replace('специален?', '')}
-            <span className="funnel-eyebrow-accent">специален?</span>
-          </h2>
-          <div className="funnel-feature-row">
-            {features.items.map((item, index) => (
-              <div className="funnel-feature-item" key={item.label}>
-                <span className="funnel-feature-item__icon">
-                  <img src={`/funnel/v2/${featureIcons[index] ?? featureIcons[0]}.webp`} alt="" loading="lazy" decoding="async" />
-                </span>
-                <span className="funnel-feature-item__label">{item.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Mid-page CTA — the peak-interest moment right after the "what
-              makes it special" argument, with the entry price as the teaser
-              so the click is a conscious yes rather than a leap. */}
-          <div className="text-center mt-5">
-            <a href="#buy" className="btn btn-primary btn-lg">
-              {hero.cta_primary}
-              {fromPrice && ` — ${funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}`}
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Comparison ("us vs. them" checklist) ---- */}
-      {comparisonRows.length > 0 && (
-        <section className="section funnel-hero-tone funnel-divided-section funnel-comparison" id="compare">
-          <div className="container">
-            {/* On phones the heading sits above the table (the in-table
-                title cell below is display:none there) so the statement
-                column gets the full remaining width. */}
-            <h2 className="section-title mb-4 text-center d-md-none">{comparison.title}</h2>
-            <div className="funnel-comparison__wrap">
-              <table className="funnel-comparison__table">
-                <thead>
-                  <tr>
-                    {/* The section heading lives inside the table's own
-                        top-left cell on md+, matching the reference layout. */}
-                    <th scope="col" className="funnel-comparison__title-cell">
-                      <h2 className="funnel-comparison__title d-none d-md-block">{comparison.title}</h2>
-                    </th>
-                    <th scope="col" className="funnel-comparison__miswak-col">
-                      <span className="funnel-comparison__col-head">
-                        <img src="/funnel/v2/compare-miswak.webp" alt="" width={635} height={320} loading="lazy" decoding="async" />
-                        <span>{comparison.miswak_label}</span>
-                      </span>
-                    </th>
-                    <th scope="col">
-                      <span className="funnel-comparison__col-head">
-                        <img src="/funnel/v2/compare-toothbrush.webp" alt="" width={1137} height={320} loading="lazy" decoding="async" />
-                        <span>{comparison.brush_label}</span>
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row) => (
-                    <tr key={row.label}>
-                      <th scope="row">{row.label}</th>
-                      <td className="funnel-comparison__miswak-col">
-                        <span className="funnel-comparison__mark funnel-comparison__mark--yes" role="img" aria-label="Да">
-                          <Icon name="check" />
-                        </span>
-                      </td>
-                      <td>
-                        <span className="funnel-comparison__mark funnel-comparison__mark--no" role="img" aria-label="Не">
-                          <Icon name="cross" />
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ---- History ---- */}
-      <section className="section funnel-hero-tone funnel-divided-section">
-        <div className="container">
-          <div className="row g-5 align-items-center">
-            <div className="col-12 col-lg-5">
-              <div className="funnel-photo" style={{ aspectRatio: '16 / 10' }}>
-                <img
-                  src="/funnel/v2/06-ancient-ruins.webp"
-                  srcSet="/funnel/v2/06-ancient-ruins-800.webp 800w, /funnel/v2/06-ancient-ruins.webp 1402w"
-                  sizes="(min-width: 992px) 42vw, 100vw"
-                  alt="Историческа архитектура от район, свързан с традиционната употреба на Miswak"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-            <div className="col-12 col-lg-7 funnel-history__text">
-              <h2 className="section-title">
-                Повече от <span className="funnel-eyebrow-accent">7000 години</span> история
-              </h2>
-              {history.paragraphs.map((paragraph, index) => (
-                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
-                  {paragraph}
-                </p>
-              ))}
-              <div className="funnel-stat-row mt-4">
-                {history.stats.map((stat) => (
-                  <div className="funnel-stat-item" key={stat.label}>
-                    <StatIcon icon={stat.icon} />
-                    <span className="funnel-stat-item__label">{stat.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- From tree to you ---- */}
-      <section className="section funnel-hero-tone funnel-divided-section funnel-from-tree" id="how">
-        <div className="container">
-          <div className="row g-5">
-            <div className="col-12 col-lg-5">
-              <h2 className="section-title">{from_tree.title}</h2>
-              {from_tree.paragraphs.map((paragraph, index) => (
-                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
-                  {paragraph.startsWith('✓ ') ? (
-                    <>
-                      <span className="funnel-tick">✓</span>
-                      {paragraph.slice(1)}
-                    </>
-                  ) : (
-                    paragraph
-                  )}
-                </p>
-              ))}
-              <div className="funnel-step-row mt-4">
-                {from_tree.steps.map((step, index) => (
-                  <div className="funnel-step-item" key={step.label}>
-                    <span className="funnel-step-item__icon">
-                      <img src={`/funnel/v2/${fromTreeIcons[index] ?? fromTreeIcons[0]}.webp`} alt="" loading="lazy" decoding="async" />
-                    </span>
-                    <span className="funnel-step-item__label">{step.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="col-12 col-lg-7 funnel-from-tree__photo-col">
-              <div className="funnel-photo" style={{ height: '92%', width: '100%' }}>
-                <img
-                  src="/funnel/v2/07-basket.webp"
-                  srcSet="/funnel/v2/07-basket-800.webp 800w, /funnel/v2/07-basket.webp 1537w"
-                  sizes="(min-width: 992px) 58vw, 100vw"
-                  alt="Кошница с необработени клонки Miswak"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Awareness (dark band) ---- */}
-      <section className="funnel-awareness section funnel-divided-section funnel-divided-section--dark">
-        <div className="container">
-          {/* No align-items-center: the photo column must stretch to the
-              row's full height so the leaves can bleed over the section's
-              own padding (see .funnel-awareness__image); the text column
-              centers itself instead. */}
-          <div className="row g-5">
-            <div className="col-12 col-lg-4 d-none d-lg-block">
-              <div className="funnel-photo funnel-awareness__image">
-                <img
-                  src="/funnel/v2/08-leaves-dark.webp"
-                  srcSet="/funnel/v2/08-leaves-dark-800.webp 800w, /funnel/v2/08-leaves-dark.webp 1456w"
-                  sizes="(min-width: 992px) 60vw, 100vw"
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-            <div className="col-12 col-lg-8 align-self-center">
-              <h2 className="section-title">{awareness.title}</h2>
-              {awareness.paragraphs.map((paragraph, index) => (
-                <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Testimonials (top approved reviews, straight from the reviews API) ---- */}
-      {topReviews.length > 0 && (
-        <section className="section funnel-hero-tone funnel-divided-section funnel-reviews" id="reviews">
-          <div className="container">
-            <h2 className="section-title mb-4 text-center">{funnelReviews.title}</h2>
-            <div className="row row-cols-1 row-cols-md-3 g-3 g-lg-4">
-              {topReviews.map((review) => (
-                <div className="col" key={review.id}>
-                  <figure className="funnel-review-card">
-                    <StarRating rating={review.rating} />
-                    <h3 className="h6 mb-0">{review.title}</h3>
-                    <blockquote className="funnel-review-card__body mb-0">{review.body}</blockquote>
-                    <figcaption className="funnel-review-card__author">
-                      {review.author_name}
-                      {review.verified_purchase && (
-                        <span className="funnel-review-card__verified">
-                          <Icon name="check-badge" /> {reviewsCopy.verifiedPurchase}
-                        </span>
-                      )}
-                    </figcaption>
-                  </figure>
-                </div>
-              ))}
-            </div>
-            {reviewSummary && reviewSummary.review_count > topReviews.length && (
-              <div className="text-center mt-4">
-                <Link to={`/products/${product.slug}`} className="funnel-reviews__see-all">
-                  {funnelReviews.seeAll(reviewSummary.review_count)}
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ---- Final checkout reminder ---- */}
-      {renderCheckoutSection('final')}
-
-      {/* ---- FAQ ---- */}
-      {/* A true accordion: each answer expands directly under its own
-          question. Two independent columns on desktop (reading order fills
-          the left column first, like the old `columns: 3` layout did), so
-          opening an answer only pushes down the questions in its column. */}
-      <section className="section funnel-hero-tone funnel-divided-section funnel-faq" id="faq">
-        <div className="container">
-          <h2 className="section-title mb-4 text-center">{faq.title}</h2>
-          <div className="funnel-faq-columns">
-            {[faq.items.slice(0, faqColumnSize), faq.items.slice(faqColumnSize)].map((column, columnIndex) => (
-              <div className="funnel-faq-column" key={column[0]?.question ?? columnIndex}>
-                {column.map((item, itemIndex) => {
-                  const index = columnIndex * faqColumnSize + itemIndex;
-                  const isActive = activeFaqIndex === index;
-
-                  return (
-                    <div className="funnel-faq-item" key={item.question}>
-                      <button
-                        type="button"
-                        className={`funnel-faq-toggle btn btn-outline-secondary ${isActive ? 'is-active' : ''}`}
-                        aria-expanded={isActive}
-                        aria-controls={`funnel-faq-answer-${index}`}
-                        onClick={() => setActiveFaqIndex(isActive ? null : index)}
-                      >
-                        {item.question}
-                        <span aria-hidden="true">{isActive ? '−' : '+'}</span>
-                      </button>
-                      {/* Always mounted so the open/close can animate height
-                          (grid-rows 0fr -> 1fr); aria-hidden + delayed
-                          visibility keep closed answers out of the a11y
-                          tree and tab order. */}
-                      <div
-                        className={`funnel-faq-answer-wrap${isActive ? ' is-open' : ''}`}
-                        id={`funnel-faq-answer-${index}`}
-                        aria-hidden={!isActive}
-                      >
-                        <div className="funnel-faq-answer">
-                          {/* The padded box lives one level below the
-                              clipped grid item — padding/border on the
-                              item itself would floor the collapsed height
-                              above zero. */}
-                          <div className="funnel-faq-answer__inner">
-                            {item.answer}
-                            {item.attachment_url && (
-                              <a
-                                href={item.attachment_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="funnel-faq-answer__attachment"
-                                tabIndex={isActive ? 0 : -1}
-                              >
-                                {item.attachment_label || 'Изтегли документ'}
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Lead capture (visitors not buying today still become leads) ---- */}
-      <section className="section section-tint funnel-divided-section funnel-lead">
-        <div className="container">
-          <div className="funnel-lead__inner text-center">
-            <h2 className="section-title">{funnelLead.title}</h2>
-            <p className="section-lead lead">{funnelLead.body}</p>
-            <LeadCaptureForm />
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Sticky mobile buy bar ---- */}
-      <div className="funnel-sticky-bar d-md-none">
-        {barImage && (
-          <img src={barImage.url} alt="" loading="lazy" className="funnel-sticky-bar__image" />
-        )}
-        {reviewSummary && (
-          <span className="funnel-sticky-bar__rating">
-            <StarRating
-              rating={reviewSummary.average_rating}
-              ariaLabel={funnelReviews.average(reviewSummary.average_rating.toFixed(1))}
-            />
-          </span>
-        )}
-        <a href="#buy" className="btn btn-primary">
-          {hero.cta_primary}
-        </a>
-      </div>
-
-      {/* ---- Exit-intent lead capture (desktop only, once per session) ---- */}
+      {/* Persistent chrome — not part of the 20-section scroll order */}
+      <StickyMobileBuyBar visible={showMobileBar} fromPriceLabel={fromPriceLabel} />
       <ExitIntentModal />
-
-      {/* ---- Sticky desktop buy bar (see the IntersectionObserver above) ---- */}
-      {showDesktopBar && (
-        <div className="funnel-desktop-bar d-none d-md-block">
-          <div className="container d-flex align-items-center justify-content-between gap-3">
-            <div className="d-flex align-items-center gap-3">
-              {barImage && (
-                <img src={barImage.url} alt="" loading="lazy" className="funnel-desktop-bar__image" />
-              )}
-              <div>
-                <div className="d-flex align-items-baseline gap-3">
-                  <strong className="funnel-desktop-bar__name">{product.name}</strong>
-                  {fromPrice && (
-                    <span className="funnel-desktop-bar__price">
-                      {funnelOffer.fromPrice(formatPrice(fromPrice.amount, fromPrice.currency))}
-                    </span>
-                  )}
-                </div>
-                {reviewSummary && (
-                  <div className="funnel-desktop-bar__rating">
-                    <StarRating
-                      rating={reviewSummary.average_rating}
-                      ariaLabel={funnelReviews.average(reviewSummary.average_rating.toFixed(1))}
-                    />
-                    <span className="funnel-desktop-bar__rating-count">
-                      {reviewsCopy.reviewCount(reviewSummary.review_count)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <a href="#buy" className="btn btn-primary">
-              {hero.cta_primary}
-            </a>
-          </div>
-        </div>
-      )}
+      <StickyDesktopBuyBar
+        visible={showDesktopBar}
+        barImage={barImage}
+        productName={product.name}
+        fromPriceLabel={fromPriceLabel}
+        reviewSummary={reviewSummary}
+        ctaLabel={hero.cta_primary}
+      />
     </div>
   );
 }

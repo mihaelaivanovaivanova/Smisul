@@ -5,8 +5,16 @@ import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import Logo from './Logo';
 import MiniCart from './cart/MiniCart';
-import { favorites as favoritesCopy, funnelNav, nav, orders as ordersCopy, reviews as reviewsCopy } from '../content/copy';
+import Icon from './icons/Icon';
+import { favorites as favoritesCopy, nav, orders as ordersCopy, reviews as reviewsCopy } from '../content/copy';
 
+/**
+ * Header content is deliberately minimal — logo, a discreet account/login
+ * affordance, and the cart. No section-anchor nav, no order CTA, no
+ * register button: the funnel Hero carries the page's one primary CTA, so
+ * the header must not compete with it (see HeroSection.tsx). Register
+ * stays reachable from the login page's own "no account yet" link.
+ */
 export default function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { funnelModeEnabled } = useSettings();
@@ -48,13 +56,18 @@ export default function Navbar() {
             <>
               {isAuthenticated ? (
                 <div className="dropdown">
+                  {/* No "dropdown-toggle" class — that only adds Bootstrap's
+                      caret glyph, which would undercut the icon-only,
+                      discreet look; data-bs-toggle alone still drives the
+                      dropdown behavior. */}
                   <button
                     type="button"
-                    className="btn btn-outline-secondary btn-sm dropdown-toggle"
+                    className="navbar-account-toggle"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
+                    aria-label={nav.profile}
                   >
-                    {nav.profile}
+                    <Icon name="user" />
                   </button>
                   <ul className="dropdown-menu dropdown-menu-end">
                     <li>
@@ -106,21 +119,9 @@ export default function Navbar() {
                   </ul>
                 </div>
               ) : (
-                <>
-                  <Link className="btn btn-outline-primary btn-sm" to="/login">
-                    {nav.login}
-                  </Link>
-                  {/* In funnel mode the big dark register block would be the
-                      strongest element in a phone/tablet-width header — a
-                      competing CTA, and at 768px it also wraps the header
-                      to two rows. Reachable from /login; shown on lg+. */}
-                  <Link
-                    className={`btn btn-primary btn-sm${funnelModeEnabled ? ' d-none d-lg-inline-block' : ''}`}
-                    to="/register"
-                  >
-                    {nav.register}
-                  </Link>
-                </>
+                <Link className="navbar-account-toggle" to="/login" aria-label={nav.login}>
+                  <Icon name="user" />
+                </Link>
               )}
             </>
           )}
@@ -137,44 +138,6 @@ export default function Navbar() {
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </form>
-        )}
-
-        {/* Section-anchor nav shown instead of search while funnel mode is
-            on — desktop only. All targets are Links to "/#..." rather than
-            plain <a href="#..."> anchors so they also work from other pages
-            (cart, checkout) — the landing page's hash effect handles the
-            scroll after routing. "Как се използва" points at the FAQ's own
-            usage answer (which carries the downloadable PDF manual) via the
-            #how-to-use pseudo-anchor rather than at a section of its own —
-            see FunnelLandingPage's hash effect. The #buy slot is a real CTA
-            button: the header's one high-contrast action, always in view
-            since the navbar is sticky. */}
-        {funnelModeEnabled && (
-          <div className="d-none d-md-flex align-items-center gap-2 gap-lg-3 order-md-2 mx-md-3 mx-lg-4">
-            {/* Already on "/" a same-path Link is a no-op, so scroll to the
-                top explicitly; from other pages it navigates as usual.
-                Hidden on tablets (the logo covers "home") so the whole
-                header fits one row at 768px. */}
-            <Link
-              to="/"
-              className="d-none d-lg-inline text-decoration-none text-muted fw-semibold"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              {funnelNav.home}
-            </Link>
-            <Link to="/#benefits" className="text-decoration-none text-muted fw-semibold">
-              {funnelNav.benefits}
-            </Link>
-            <Link to="/#video" className="text-decoration-none text-muted fw-semibold">
-              {funnelNav.howTo}
-            </Link>
-            <Link to="/#faq" className="text-decoration-none text-muted fw-semibold">
-              {funnelNav.faq}
-            </Link>
-            <Link className="btn btn-primary btn-sm funnel-order-cta" to="/#buy">
-              {funnelNav.orderCta}
-            </Link>
-          </div>
         )}
       </div>
     </nav>

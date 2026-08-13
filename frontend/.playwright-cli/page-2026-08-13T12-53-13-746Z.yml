@@ -1,0 +1,50 @@
+- generic [ref=e3]:
+  - navigation "Основна навигация" [ref=e4]:
+    - generic [ref=e5]:
+      - link "Начало" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img "Smisul" [ref=e7]
+      - button "Количка, 0 артикула" [ref=e10] [cursor=pointer]
+      - search [ref=e14]:
+        - searchbox "Търсене на продукти" [ref=e15]
+  - main [ref=e16]:
+    - generic [ref=e17]:
+      - status [ref=e18]:
+        - generic [ref=e19]: Зареждане…
+      - paragraph [ref=e20]: Зареждане…
+  - contentinfo [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - img "Smisul" [ref=e24]
+        - navigation "Компания" [ref=e25]:
+          - link "Начало" [ref=e26] [cursor=pointer]:
+            - /url: /
+          - link "Продукти" [ref=e27] [cursor=pointer]:
+            - /url: /search
+          - link "За нас" [ref=e28] [cursor=pointer]:
+            - /url: /about
+          - button "Контакти" [ref=e29] [cursor=pointer]
+      - separator [ref=e30]
+      - navigation "Правна информация" [ref=e31]:
+        - button "Настройки на бисквитките" [ref=e32] [cursor=pointer]
+      - generic [ref=e33]:
+        - generic [ref=e34]: © 2026 Smisul. Всички права запазени.
+        - generic [ref=e35]:
+          - generic "Приемани карти" [ref=e36]:
+            - img "Visa" [ref=e37]
+            - img "Mastercard" [ref=e38]
+            - img "American Express" [ref=e39]
+            - img "Apple Pay" [ref=e40]
+            - img "Google Pay" [ref=e41]
+          - generic [ref=e42]: Само плащане с карта — сигурно, бързо и изцяло дигитално.
+          - generic [ref=e43]: Приемаме също Apple Pay и Google Pay.
+  - dialog "Настройки на бисквитките" [ref=e44]:
+    - paragraph [ref=e45]:
+      - text: Използваме бисквитки, за да подобрим работата на сайта, да анализираме трафика и да ти предложим по-подходящо съдържание. Можеш да приемеш всички бисквитки или да персонализираш избора си.
+      - link "Политика за бисквитки" [ref=e46] [cursor=pointer]:
+        - /url: /legal/cookie-policy
+    - generic [ref=e47]:
+      - button "Приеми всички" [ref=e48] [cursor=pointer]
+      - generic [ref=e49]:
+        - button "Само необходими" [ref=e50] [cursor=pointer]
+        - button "Персонализирай" [ref=e51] [cursor=pointer]

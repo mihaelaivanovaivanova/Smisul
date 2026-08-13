@@ -41,40 +41,63 @@ class FunnelContentUpdateRequest extends FormRequest
                 'cards.*.icon' => ['required', 'string', 'max:50'],
                 'cards.*.title' => ['required', 'string', 'max:255'],
                 'cards.*.text' => ['required', 'string', 'max:500'],
+                'closing' => ['required', 'string', 'max:500'],
             ],
             'history' => [
                 'title' => ['required', 'string', 'max:255'],
+                'subtitle' => ['required', 'string', 'max:255'],
+                'body' => ['required', 'string', 'max:500'],
+            ],
+            'natural_eco' => [
+                'eyebrow' => ['required', 'string', 'max:100'],
+                'title' => ['required', 'string', 'max:255'],
                 'paragraphs' => ['required', 'array', 'min:1'],
                 'paragraphs.*' => ['required', 'string', 'max:1000'],
-                'stats' => ['required', 'array', 'min:1'],
-                'stats.*.icon' => ['required', 'string', 'max:50'],
-                'stats.*.label' => ['required', 'string', 'max:255'],
+                'brand_statement' => ['required', 'string', 'max:500'],
             ],
             'features' => [
                 'title' => ['required', 'string', 'max:255'],
                 'items' => ['required', 'array', 'min:1'],
+                'items.*.icon' => ['required', 'string', 'max:100'],
                 'items.*.label' => ['required', 'string', 'max:100'],
             ],
             'comparison' => [
                 'title' => ['required', 'string', 'max:255'],
                 'miswak_label' => ['required', 'string', 'max:100'],
                 'brush_label' => ['required', 'string', 'max:100'],
-                // Each row is a positive statement — rendered as ✓ for the
-                // Miswak column and ✗ for the toothbrush column.
+                // Each column's value is free text, not a fixed yes/no —
+                // "✓" / "✕" / "△" render as marks, anything else renders
+                // as plain text (e.g. "Допълва", "обикновено ✕").
                 'rows' => ['required', 'array', 'min:1'],
                 'rows.*.label' => ['required', 'string', 'max:255'],
+                'rows.*.miswak_value' => ['required', 'string', 'max:50'],
+                'rows.*.brush_value' => ['required', 'string', 'max:50'],
+                'closing' => ['required', 'string', 'max:255'],
             ],
-            'from_tree' => [
+            'science' => [
+                'eyebrow' => ['required', 'string', 'max:100'],
                 'title' => ['required', 'string', 'max:255'],
-                'paragraphs' => ['required', 'array', 'min:1'],
-                'paragraphs.*' => ['required', 'string', 'max:1000'],
-                'steps' => ['present', 'array'],
-                'steps.*.label' => ['required', 'string', 'max:100'],
+                'intro' => ['required', 'string', 'max:1000'],
+                'cards' => ['required', 'array', 'min:1'],
+                'cards.*.title' => ['required', 'string', 'max:255'],
+                'cards.*.body' => ['required', 'string', 'max:1000'],
+                // Cited-claim links — nullable/empty string means "no link
+                // for this card", not a broken/missing URL.
+                'cards.*.source_url' => ['nullable', 'string', 'max:2048', 'url'],
+                'cards.*.source_label' => ['nullable', 'string', 'max:100'],
+                'callout.stat' => ['required', 'string', 'max:255'],
+                'callout.body' => ['required', 'string', 'max:1000'],
+                'safety.title' => ['required', 'string', 'max:255'],
+                'safety.body' => ['required', 'string', 'max:500'],
             ],
             'awareness' => [
                 'title' => ['required', 'string', 'max:255'],
-                'paragraphs' => ['required', 'array', 'min:1'],
-                'paragraphs.*' => ['required', 'string', 'max:1000'],
+                'subtitle' => ['required', 'string', 'max:255'],
+                'body' => ['required', 'string', 'max:1000'],
+            ],
+            'positioning' => [
+                'title' => ['required', 'string', 'max:255'],
+                'body' => ['required', 'string', 'max:500'],
             ],
             'final_cta' => [
                 'title' => ['required', 'string', 'max:255'],

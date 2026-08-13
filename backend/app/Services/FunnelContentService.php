@@ -22,8 +22,10 @@ class FunnelContentService
         'features',
         'comparison',
         'history',
-        'from_tree',
+        'natural_eco',
+        'science',
         'awareness',
+        'positioning',
         'final_cta',
         'faq',
     ];

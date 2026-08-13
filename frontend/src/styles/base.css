@@ -1,5 +1,13 @@
 /* Base typography, resets, and accessibility defaults. */
 
+/* Smooth in-page anchor jumps (e.g. the funnel hero CTA -> #pricing) —
+   respects reduced-motion instead of forcing animation on everyone. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   margin: 0;
   min-height: 100svh;

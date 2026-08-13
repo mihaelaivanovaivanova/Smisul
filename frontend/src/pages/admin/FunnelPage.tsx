@@ -26,12 +26,14 @@ import type {
   FunnelFaqItem,
   FunnelFeaturesContent,
   FunnelFinalCtaContent,
-  FunnelFromTreeContent,
   FunnelHeroContent,
   FunnelHistoryContent,
   FunnelIntroContent,
+  FunnelNaturalEcoContent,
   FunnelAwarenessContent,
   FunnelPackage,
+  FunnelPositioningContent,
+  FunnelScienceContent,
   FunnelSection,
   FunnelWhyContent,
 } from '../../types/funnel';
@@ -43,8 +45,10 @@ const TABS: { key: FunnelSection; label: string }[] = [
   { key: 'features', label: 'Features' },
   { key: 'comparison', label: 'Comparison' },
   { key: 'history', label: 'History' },
-  { key: 'from_tree', label: 'From tree to you' },
-  { key: 'awareness', label: 'Awareness band' },
+  { key: 'natural_eco', label: 'Natural / Eco' },
+  { key: 'science', label: 'Science' },
+  { key: 'awareness', label: 'Skepticism / Honesty' },
+  { key: 'positioning', label: 'Positioning statement' },
   { key: 'final_cta', label: 'Final CTA' },
   { key: 'faq', label: 'FAQ' },
 ];
@@ -302,15 +306,21 @@ function ComparisonForm({ initial, onSaved }: { initial: FunnelComparisonContent
             onChange={(v) => setValue({ ...value, brush_label: v })}
           />
           <div className="form-text mb-2">
-            Each row is a positive statement — the page renders it with a ✓ for Miswak and a ✗ for the toothbrush.
+            Each row has its own value per column — "✓", "✕", or "△" render as marks; anything else (e.g. "Допълва",
+            "обикновено ✕") renders as plain text.
           </div>
           <RepeatableObjectList
             label="Rows"
             items={value.rows}
             onChange={(rows) => setValue({ ...value, rows: rows as FunnelComparisonContent['rows'] })}
-            fields={[{ key: 'label', placeholder: 'Statement (true for Miswak, false for the brush)' }]}
-            emptyItem={{ label: '' }}
+            fields={[
+              { key: 'label', placeholder: 'Row label' },
+              { key: 'miswak_value', placeholder: 'Miswak value (✓ / ✕ / △ / text)' },
+              { key: 'brush_value', placeholder: 'Brush value (✓ / ✕ / △ / text)' },
+            ]}
+            emptyItem={{ label: '', miswak_value: '✓', brush_value: '✕' }}
           />
+          <TextField label="Closing line" value={value.closing} onChange={(v) => setValue({ ...value, closing: v })} />
         </>
       )}
     </SectionForm>
@@ -323,18 +333,9 @@ function HistoryForm({ initial, onSaved }: { initial: FunnelHistoryContent; onSa
       {(value, setValue) => (
         <>
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
-          <div className="form-text mb-2">{ICON_HINT}</div>
-          <RepeatableObjectList
-            label="Stats"
-            items={value.stats}
-            onChange={(stats) => setValue({ ...value, stats: stats as FunnelHistoryContent['stats'] })}
-            fields={[
-              { key: 'icon', placeholder: 'Icon' },
-              { key: 'label', placeholder: 'Label' },
-            ]}
-            emptyItem={{ icon: 'leaf', label: '' }}
-          />
+          <TextField label="Subtitle" value={value.subtitle} onChange={(v) => setValue({ ...value, subtitle: v })} />
+          <div className="form-text mb-2">Keep this short — the whole section is meant to fit roughly one mobile screen.</div>
+          <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
         </>
       )}
     </SectionForm>
@@ -347,13 +348,19 @@ function FeaturesForm({ initial, onSaved }: { initial: FunnelFeaturesContent; on
       {(value, setValue) => (
         <>
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
-          <div className="form-text mb-2">Shown against 8 fixed icon images in order — see FunnelLandingPage.tsx's featureIcons list.</div>
+          <div className="form-text mb-2">
+            Icon is an image filename under /funnel/v2/ (no extension), e.g. "icon-feature-natural-100" — not an
+            IconName SVG icon. Avoid unsupported absolute claims (e.g. "zero waste", unqualified "biodegradable").
+          </div>
           <RepeatableObjectList
             label="Items"
             items={value.items}
             onChange={(items) => setValue({ ...value, items })}
-            fields={[{ key: 'label', placeholder: 'Label' }]}
-            emptyItem={{ label: '' }}
+            fields={[
+              { key: 'icon', placeholder: 'Icon filename' },
+              { key: 'label', placeholder: 'Label' },
+            ]}
+            emptyItem={{ icon: '', label: '' }}
           />
         </>
       )}
@@ -361,21 +368,76 @@ function FeaturesForm({ initial, onSaved }: { initial: FunnelFeaturesContent; on
   );
 }
 
-function FromTreeForm({ initial, onSaved }: { initial: FunnelFromTreeContent; onSaved: () => void }) {
+function NaturalEcoForm({ initial, onSaved }: { initial: FunnelNaturalEcoContent; onSaved: () => void }) {
   return (
-    <SectionForm section="from_tree" initial={initial} onSaved={onSaved}>
+    <SectionForm section="natural_eco" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
+          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
           <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
-          <div className="form-text mb-2">Shown against 3 fixed icon images in order — see FunnelLandingPage.tsx's fromTreeIcons list.</div>
+          <div className="form-text mb-2">
+            Avoid unsupported absolute claims (zero waste, unqualified "100% biodegradable" if packaging isn't
+            verified, universal microplastic-free claims, or any environmental claim without evidence).
+          </div>
+          <TextField
+            label="Brand statement"
+            value={value.brand_statement}
+            onChange={(v) => setValue({ ...value, brand_statement: v })}
+            multiline
+          />
+        </>
+      )}
+    </SectionForm>
+  );
+}
+
+function ScienceForm({ initial, onSaved }: { initial: FunnelScienceContent; onSaved: () => void }) {
+  return (
+    <SectionForm section="science" initial={initial} onSaved={onSaved}>
+      {(value, setValue) => (
+        <>
+          <TextField label="Eyebrow" value={value.eyebrow} onChange={(v) => setValue({ ...value, eyebrow: v })} />
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <TextField label="Intro" value={value.intro} onChange={(v) => setValue({ ...value, intro: v })} multiline />
+          <div className="form-text mb-2">
+            Cards: title carries its own leading emoji (not a separate icon field). Source URL/label are optional —
+            leave both blank for a card with no external reference. Every scientific claim must stay defensible; do
+            not rewrite/strengthen wording without re-checking the source.
+          </div>
           <RepeatableObjectList
-            label="Steps"
-            items={value.steps}
-            onChange={(steps) => setValue({ ...value, steps })}
-            fields={[{ key: 'label', placeholder: 'Label' }]}
-            emptyItem={{ label: '' }}
-            minItems={0}
+            label="Cards"
+            items={value.cards}
+            onChange={(cards) => setValue({ ...value, cards: cards as FunnelScienceContent['cards'] })}
+            fields={[
+              { key: 'title', placeholder: 'Title (with emoji)' },
+              { key: 'body', placeholder: 'Body' },
+              { key: 'source_url', placeholder: 'Source URL (optional)' },
+              { key: 'source_label', placeholder: 'Source link label (optional)' },
+            ]}
+            emptyItem={{ title: '', body: '', source_url: '', source_label: '' }}
+          />
+          <TextField
+            label="Callout — stat line"
+            value={value.callout.stat}
+            onChange={(v) => setValue({ ...value, callout: { ...value.callout, stat: v } })}
+          />
+          <TextField
+            label="Callout — supporting copy"
+            value={value.callout.body}
+            onChange={(v) => setValue({ ...value, callout: { ...value.callout, body: v } })}
+            multiline
+          />
+          <TextField
+            label="Safety — title"
+            value={value.safety.title}
+            onChange={(v) => setValue({ ...value, safety: { ...value.safety, title: v } })}
+          />
+          <TextField
+            label="Safety — body"
+            value={value.safety.body}
+            onChange={(v) => setValue({ ...value, safety: { ...value.safety, body: v } })}
+            multiline
           />
         </>
       )}
@@ -388,8 +450,22 @@ function AwarenessForm({ initial, onSaved }: { initial: FunnelAwarenessContent; 
     <SectionForm section="awareness" initial={initial} onSaved={onSaved}>
       {(value, setValue) => (
         <>
-          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} multiline />
-          <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <TextField label="Subtitle" value={value.subtitle} onChange={(v) => setValue({ ...value, subtitle: v })} />
+          <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
+        </>
+      )}
+    </SectionForm>
+  );
+}
+
+function PositioningForm({ initial, onSaved }: { initial: FunnelPositioningContent; onSaved: () => void }) {
+  return (
+    <SectionForm section="positioning" initial={initial} onSaved={onSaved}>
+      {(value, setValue) => (
+        <>
+          <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
+          <TextField label="Body" value={value.body} onChange={(v) => setValue({ ...value, body: v })} multiline />
         </>
       )}
     </SectionForm>
@@ -545,7 +621,6 @@ const EMPTY_PACKAGE: FunnelPackage = {
   badge: '',
   detail: '',
   value_label: '',
-  duration_label: '',
   button_text: '',
 };
 
@@ -562,7 +637,7 @@ const EMPTY_PRODUCT_FORM: ProductPayload = {
 function PackagesForm({ initial, onSaved }: { initial: FunnelAdminPayload; onSaved: () => void }) {
   const [productId, setProductId] = useState<number | null>(initial.product_id);
   const [packages, setPackages] = useState<FunnelPackage[]>(
-    initial.packages.length === 3 ? initial.packages : [EMPTY_PACKAGE, EMPTY_PACKAGE, EMPTY_PACKAGE],
+    initial.packages.length === 4 ? initial.packages : [EMPTY_PACKAGE, EMPTY_PACKAGE, EMPTY_PACKAGE, EMPTY_PACKAGE],
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -587,9 +662,7 @@ function PackagesForm({ initial, onSaved }: { initial: FunnelAdminPayload; onSav
   // (frontend/src/pages/admin/ProductsPage.tsx) — same fields, same
   // "stay open in edit mode after creation" behavior, same VariantManager/
   // ProductMediaManager — so a funnel product never has to be managed from
-  // two different screens. Note: the current funnel landing page layout
-  // doesn't render a package grid — this stays for the underlying
-  // product/variant wiring and for a future re-introduction of packages.
+  // two different screens.
   const [showProductForm, setShowProductForm] = useState(false);
   const [productFormMode, setProductFormMode] = useState<'create' | 'edit'>('create');
   const [modalProductId, setModalProductId] = useState<number | null>(null);
@@ -779,15 +852,6 @@ function PackagesForm({ initial, onSaved }: { initial: FunnelAdminPayload; onSav
                 value={pkg.button_text}
                 onChange={(event) => updatePackage(index, { button_text: event.target.value })}
                 required
-              />
-            </div>
-            <div className="col-6 col-md-3">
-              <label className="form-label">Duration label (optional)</label>
-              <input
-                className="form-control"
-                placeholder="≈ 4-5 месеца ежедневна грижа"
-                value={pkg.duration_label ?? ''}
-                onChange={(event) => updatePackage(index, { duration_label: event.target.value })}
               />
             </div>
           </div>
@@ -1004,17 +1068,23 @@ export default function FunnelPage() {
           {activeTab === 'history' && (
             <HistoryForm key="history" initial={data.content.history} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
+          {activeTab === 'natural_eco' && (
+            <NaturalEcoForm key="natural_eco" initial={data.content.natural_eco} onSaved={() => setReloadKey((key) => key + 1)} />
+          )}
           {activeTab === 'features' && (
             <FeaturesForm key="features" initial={data.content.features} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
           {activeTab === 'comparison' && (
             <ComparisonForm key="comparison" initial={data.content.comparison} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
-          {activeTab === 'from_tree' && (
-            <FromTreeForm key="from_tree" initial={data.content.from_tree} onSaved={() => setReloadKey((key) => key + 1)} />
+          {activeTab === 'science' && (
+            <ScienceForm key="science" initial={data.content.science} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
           {activeTab === 'awareness' && (
             <AwarenessForm key="awareness" initial={data.content.awareness} onSaved={() => setReloadKey((key) => key + 1)} />
+          )}
+          {activeTab === 'positioning' && (
+            <PositioningForm key="positioning" initial={data.content.positioning} onSaved={() => setReloadKey((key) => key + 1)} />
           )}
           {activeTab === 'final_cta' && (
             <FinalCtaForm key="final_cta" initial={data.content.final_cta} onSaved={() => setReloadKey((key) => key + 1)} />

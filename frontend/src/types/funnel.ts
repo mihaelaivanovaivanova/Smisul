@@ -29,20 +29,19 @@ export interface FunnelWhyCard {
 export interface FunnelWhyContent {
   title: string;
   cards: FunnelWhyCard[];
-}
-
-export interface FunnelHistoryStat {
-  icon: IconName;
-  label: string;
+  /** Short statement shown after the benefit cards. */
+  closing: string;
 }
 
 export interface FunnelHistoryContent {
   title: string;
-  paragraphs: string[];
-  stats: FunnelHistoryStat[];
+  subtitle: string;
+  body: string;
 }
 
 export interface FunnelFeatureItem {
+  /** Image filename slug under /funnel/v2/ (e.g. "icon-feature-natural-100") — not an IconName SVG icon. */
+  icon: string;
   label: string;
 }
 
@@ -51,9 +50,15 @@ export interface FunnelFeaturesContent {
   items: FunnelFeatureItem[];
 }
 
-/** A positive statement — true for Miswak (rendered ✓), false for a plastic brush (rendered ✗). */
+/**
+ * Each column's value per row — not a fixed yes/no pair. Expected values
+ * are "✓" / "✕" / "△" (rendered as marks with a matching aria-label) or
+ * free text (e.g. "Допълва", "обикновено ✕"), rendered as-is.
+ */
 export interface FunnelComparisonRow {
   label: string;
+  miswak_value: string;
+  brush_value: string;
 }
 
 export interface FunnelComparisonContent {
@@ -61,21 +66,55 @@ export interface FunnelComparisonContent {
   miswak_label: string;
   brush_label: string;
   rows: FunnelComparisonRow[];
+  /** Short statement shown after the table/cards. */
+  closing: string;
 }
 
-export interface FunnelFromTreeStep {
-  label: string;
+/** A single cited claim card — title carries its own leading emoji (same convention as funnelUseCases/funnelHeroBenefits), not a separate icon field. */
+export interface FunnelScienceCard {
+  title: string;
+  body: string;
+  /** External reference (e.g. a PubMed page) — empty string means the card has no link. */
+  source_url: string;
+  source_label: string;
 }
 
-export interface FunnelFromTreeContent {
+export interface FunnelScienceCallout {
+  stat: string;
+  body: string;
+}
+
+export interface FunnelScienceSafety {
+  title: string;
+  body: string;
+}
+
+export interface FunnelScienceContent {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  cards: FunnelScienceCard[];
+  callout: FunnelScienceCallout;
+  safety: FunnelScienceSafety;
+}
+
+export interface FunnelNaturalEcoContent {
+  eyebrow: string;
   title: string;
   paragraphs: string[];
-  steps: FunnelFromTreeStep[];
+  /** Short, bolder closing statement — brand philosophy, not a fact claim. */
+  brand_statement: string;
 }
 
 export interface FunnelAwarenessContent {
   title: string;
-  paragraphs: string[];
+  subtitle: string;
+  body: string;
+}
+
+export interface FunnelPositioningContent {
+  title: string;
+  body: string;
 }
 
 export interface FunnelFinalCtaContent {
@@ -105,8 +144,10 @@ export interface FunnelContent {
   features: FunnelFeaturesContent;
   comparison: FunnelComparisonContent;
   history: FunnelHistoryContent;
-  from_tree: FunnelFromTreeContent;
+  natural_eco: FunnelNaturalEcoContent;
+  science: FunnelScienceContent;
   awareness: FunnelAwarenessContent;
+  positioning: FunnelPositioningContent;
   final_cta: FunnelFinalCtaContent;
   faq: FunnelFaqContent;
 }
@@ -118,8 +159,6 @@ export interface FunnelPackage {
   badge: string;
   detail: string;
   value_label: string;
-  /** Optional second value line, e.g. "≈ 4-5 месеца ежедневна грижа" — absent on configs saved before the field existed. */
-  duration_label?: string | null;
   button_text: string;
 }
 

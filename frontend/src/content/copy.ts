@@ -11,6 +11,9 @@
 
 export const siteName = 'Smisul';
 
+/** The permanent brand promise (ai/context/00_Project_Vision.md) — a fixed slogan, not admin-editable marketing content. Used in BrandStatementSection.tsx. */
+export const brandTagline = 'По-малко излишно. Повече смисъл.';
+
 export const nav = {
   home: 'Начало',
   browseProducts: 'Продукти',
@@ -23,21 +26,6 @@ export const nav = {
   settings: 'Настройки',
   greeting: (firstName: string) => `Здравей, ${firstName}`,
   mainNavAria: 'Основна навигация',
-};
-
-/**
- * The section-anchor nav shown in the header instead of the search bar
- * while funnel mode is on — same labels/targets as the reference site's
- * SiteHeader (D:\Projects\miswak-website), pointing at the funnel
- * landing page's own section ids (see FunnelLandingPage.tsx).
- */
-export const funnelNav = {
-  home: nav.home,
-  benefits: 'Ползи',
-  howTo: 'Как се използва',
-  faq: 'FAQ',
-  /** The header's always-visible buy CTA — takes the old "Продукти" anchor's #buy slot. */
-  orderCta: 'Поръчай сега',
 };
 
 export const footer = {
@@ -255,10 +243,47 @@ export const price = {
   unavailable: 'Няма посочена цена',
 };
 
-/** The funnel landing page's #buy offer stack (see PackageOffers.tsx). */
+/** The funnel landing page's #pricing offer stack (see PackageOffers.tsx). */
 export const funnelOffer = {
   perUnit: (formattedPrice: string) => `${formattedPrice} / бр.`,
   fromPrice: (formattedPrice: string) => `от ${formattedPrice}`,
+  /** Hero's under-CTA fine print — the live cheapest package price, never hardcoded. */
+  packagesFrom: (formattedPrice: string) => `Пакети от ${formattedPrice}`,
+  /** Mobile sticky CTA's fixed label — paired with the live fromPrice() price at render. */
+  mobileCtaLabel: 'ИЗБЕРИ ПАКЕТ',
+};
+
+/**
+ * The funnel hero's benefit bar — four short, fixed badges under the
+ * CTA. Emoji rather than the Icon.tsx SVG set: no image/SVG request,
+ * zero layout-shift risk, and reads clearly at the small size this row
+ * renders at. Not admin-editable via the CMS (unlike the bigger hero
+ * fields) — this is fixed UI microcopy in the same vein as
+ * funnelAssurance below, not marketing "section" content.
+ */
+export const funnelHeroBenefits = [
+  { emoji: '🌿', label: 'Растителен продукт' },
+  { emoji: '💧', label: 'Без паста' },
+  { emoji: '♻️', label: 'Без пластмасова дръжка' },
+  { emoji: '👜', label: 'Навсякъде с теб' },
+];
+
+/**
+ * The Use Cases section (#use-cases), immediately below the hero — same
+ * "fixed UI microcopy, not CMS content" treatment as funnelHeroBenefits
+ * above, for the same reason (small, fixed card set, not a big editable
+ * marketing section).
+ */
+export const funnelUseCases = {
+  title: 'Познато ли ти е?',
+  cards: [
+    { title: '☕ След кафе', body: 'Кафето приключи. Вкусът остана. А четката ти е вкъщи.' },
+    { title: '🍴 След обяд', body: 'След малко имаш среща, а няма къде удобно да си измиеш зъбите.' },
+    { title: '🚗 В движение', body: 'От работа тръгваш директно към вечеря, среща или събитие.' },
+    { title: '✈️ На път', body: 'Летище, хотел, къмпинг, фестивал или просто дълъг ден навън.' },
+  ],
+  closing: 'Точно за тези моменти съществува Miswak.',
+  cta: 'ВИЖ КАК РАБОТИ ↓',
 };
 
 /** The funnel landing page's social-proof blocks — hero rating line + testimonial cards. */
@@ -268,17 +293,23 @@ export const funnelReviews = {
   seeAll: (count: number) => `Виж всички отзиви (${count}) →`,
 };
 
-/** The funnel landing page's email opt-in block (see LeadCaptureForm.tsx) and exit-intent modal. */
+/**
+ * The funnel landing page's email opt-in block (see LeadCaptureForm.tsx)
+ * and exit-intent modal. Both promise the usage-manual PDF on signup —
+ * a real promise, not aspirational copy: FunnelLeadController sends
+ * FunnelLeadWelcomeMail (backend/resources/views/emails/funnel-lead-welcome.blade.php)
+ * on first capture, linking to the same /funnel/docs/miswak-usage-manual.pdf
+ * used elsewhere on this page (HowToUseSection, the FAQ's usage answer).
+ */
 export const funnelLead = {
-  title: 'Не си готов/а да поръчаш днес?',
-  body: 'Остави своя имейл и ще ти пишем при промоции и специални предложения — нищо повече.',
+  title: 'Нов си в света на Miswak?',
+  body: 'Получи краткия ни наръчник „Как да използваш Miswak правилно" + полезни материали, новини и специални предложения от с|мисъл.',
   exitTitle: 'Преди да си тръгнеш…',
-  // Honest offer: the welcome email really does deliver the usage manual.
   exitBody: 'Остави имейл и ще ти изпратим безплатното ръководство за Miswak — и ще ти пишем при промоция.',
   exitCloseAria: 'Затвори',
   placeholder: 'Твоят имейл',
   emailAria: 'Имейл за известия',
-  submit: 'Извести ме',
+  submit: 'ИЗПРАТИ МИ НАРЪЧНИКА',
   success: 'Благодарим! Ще се чуем скоро.',
   error: 'Нещо се обърка. Опитай отново след малко.',
   consentPrefix: 'С изпращането се съгласяваш с ',
@@ -291,7 +322,7 @@ export const funnelLead = {
  * hero's CTA. Every claim must stay true to checkout: the delivery window
  * matches the shipping methods' estimated_delivery. No free-shipping claim
  * (there is no free-shipping threshold) and no payment-method claims here
- * — those live in the DB-seeded #buy trust row (see FunnelSeeder), which
+ * — those live in the DB-seeded #delivery-payment-returns trust row (see FunnelSeeder), which
  * must track PaymentService::availablePaymentMethods() (COD is currently
  * withheld there, so the page must not advertise "наложен платеж").
  */
@@ -301,22 +332,50 @@ export const funnelAssurance = {
   /** Shown only on weekdays before the admin-configured cutoff (see DispatchPromise.tsx). */
   dispatch: (time: string, remaining: string) => `Поръчай до ${time} ч. — изпращаме още днес (остават ${remaining})`,
   paymentLogosAria: 'Приемани начини на плащане',
-  cardOnlyPayment:
-    'Приемаме плащания само с карта — сигурно, бързо и без наложен платеж. Така процесът остава максимално дигитален и изчистен, в духа на нашата BIO • ECO • friendly философия.',
-  walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
+  /**
+   * #delivery-payment-returns's own payment sub-section (heading + one
+   * line of copy) — replaces the old single fine-print paragraph, which
+   * also used to justify card-only checkout via the BIO/ECO philosophy;
+   * dropped, since the real reason is simply that iCard is the only
+   * integrated gateway today (see PaymentService::availablePaymentMethods()).
+   */
+  paymentHeading: 'Сигурно онлайн плащане',
+  paymentCopy: 'Плащанията се обработват чрез защитена платежна система.',
 };
 
-/** The funnel landing page's usage-video section — media comes from the product's own video media. */
+/** Caption shown above the optional demo video inside HowToUseSection — media comes from the product's own video media. */
 export const funnelVideo = {
   title: 'Виж колко е лесно',
 };
 
-export const funnelCheckout = {
-  eyebrow: 'Избери своя пакет',
-  title: 'Малка промяна. Свежо усещане всеки ден.',
-  paragraphs: [
-    'Избери пакет от 3, 5 или 10 броя и направи естествената грижа лесна част от всеки ден.',
+/**
+ * The How To Use section (#how-to-use) — fixed UI microcopy, same
+ * treatment as funnelUseCases (new section, no prior CMS backing to
+ * extend). The CTA scrolls to the FAQ's existing detailed usage answer
+ * (which carries the downloadable PDF manual) via the #usage-guide
+ * pseudo-anchor — see FunnelLandingPage.tsx's hash-scroll effect —
+ * rather than a new instructions page/modal.
+ */
+export const funnelHowToUse = {
+  title: 'Обели. Размекни. Почисти.',
+  subtitle: 'По-лесно е, отколкото изглежда.',
+  steps: [
+    { title: 'ОБЕЛИ', body: 'Обели приблизително 1 см от кората.' },
+    { title: 'РАЗМЕКНИ', body: 'Потопете обеленият край във вода за 5-10 минути до омекване.' },
+    // Renamed from the old "РАЗМЕКНИ" (now taken by the new soak step
+    // above) to "СДЪВЧИ" — derived from this step's own body text, same
+    // as every other step's title matches its own body's verb.
+    { title: 'СДЪВЧИ', body: 'Сдъвчи внимателно края, докато влакната се разделят и заприличат на малка четка.' },
+    { title: 'ПОЧИСТИ', body: 'Почиствай зъбите нежно с влакната, без силен натиск.' },
+    { title: 'ОСВЕЖИ КРАЯ', body: 'Когато влакната се износят, отрежи използваната част и подготви нов край.' },
   ],
+  cta: 'ВИЖ ПЪЛНИТЕ ИНСТРУКЦИИ →',
+  playVideoAria: 'Пусни видео с демонстрация',
+};
+
+export const funnelCheckout = {
+  title: 'Избери своя пакет',
+  subtitle: 'Започни с количество, което има смисъл за теб.',
   salesNote: 'Избери своя пакет сега и превърни една малка естествена промяна в навик, който остава.',
 };
 

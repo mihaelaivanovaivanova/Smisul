@@ -49,6 +49,46 @@
 }
 
 /*
+ * Discreet account/login affordance — icon-only at every breakpoint so it
+ * never competes with the logo or cart for attention. 2.25rem (36px) on
+ * desktop reads as a quiet secondary control; 2.75rem (44px) on phones
+ * meets the comfortable touch-target size despite the smaller visual
+ * footprint, matching .footer-social's same two-tier sizing below.
+ */
+.navbar-account-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--color-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.navbar-account-toggle:hover,
+.navbar-account-toggle:focus-visible {
+  background-color: var(--color-sand);
+  color: var(--color-forest);
+}
+
+.navbar-account-toggle svg {
+  width: 1.15em;
+  height: 1.15em;
+}
+
+@media (max-width: 767.98px) {
+  .navbar-account-toggle {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+/*
  * The mini-cart dropdown was a fixed 320px wide, which doesn't fit on
  * narrow screens on its own. min() caps it to whatever actually fits,
  * with 1rem of breathing room on each side.

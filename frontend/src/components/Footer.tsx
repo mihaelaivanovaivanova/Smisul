@@ -6,9 +6,10 @@ import Icon from './icons/Icon';
 import { fetchLegalDocuments } from '../api/legal';
 import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
+import { useAuth } from '../hooks/useAuth';
 import { useCookieConsent } from '../hooks/useCookieConsent';
 import { useSettings } from '../hooks/useSettings';
-import { footer, nav, siteName } from '../content/copy';
+import { footer, nav, orders as ordersCopy, siteName } from '../content/copy';
 
 /**
  * Deliberately flat and horizontal: one brand/nav/socials row, one
@@ -22,6 +23,7 @@ export default function Footer() {
   const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
   const { openPreferencesModal } = useCookieConsent();
   const { funnelModeEnabled } = useSettings();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const socials = [
@@ -58,6 +60,25 @@ export default function Footer() {
             <Link className="text-decoration-none text-muted small" to="/about">
               {footer.about}
             </Link>
+            {/* The header keeps only a discreet account icon (see
+                Navbar.tsx) — account/login/orders stay fully reachable
+                here as plain text links. */}
+            {!authLoading && (
+              isAuthenticated ? (
+                <>
+                  <Link className="text-decoration-none text-muted small" to="/profile">
+                    {nav.profile}
+                  </Link>
+                  <Link className="text-decoration-none text-muted small" to="/profile/orders">
+                    {ordersCopy.title}
+                  </Link>
+                </>
+              ) : (
+                <Link className="text-decoration-none text-muted small" to="/login">
+                  {nav.login}
+                </Link>
+              )
+            )}
             <button
               type="button"
               className="border-0 bg-transparent p-0 text-decoration-none text-muted small"

@@ -58,7 +58,6 @@
    longer competes with the buy buttons. Scoped to the funnel page and its
    fixed bars; the rest of the storefront keeps forest CTAs. */
 .funnel-page .btn-primary,
-.funnel-sticky-bar .btn-primary,
 .funnel-desktop-bar .btn-primary,
 .funnel-order-cta.btn-primary {
   background-color: var(--color-terracotta);
@@ -67,8 +66,6 @@
 
 .funnel-page .btn-primary:hover,
 .funnel-page .btn-primary:focus,
-.funnel-sticky-bar .btn-primary:hover,
-.funnel-sticky-bar .btn-primary:focus,
 .funnel-desktop-bar .btn-primary:hover,
 .funnel-desktop-bar .btn-primary:focus,
 .funnel-order-cta.btn-primary:hover,
@@ -145,25 +142,27 @@
   }
 }
 
-/* Hero social-proof line — stars + average + count, linking down to the
-   testimonials section. A plain link dressed as text: underline only the
-   count on hover so it reads as info first, navigation second. */
-.funnel-hero__rating {
+/* Hero benefit bar — four short emoji+label facts under the fine print.
+   Deliberately lighter than .funnel-trust-row's circular-icon badges
+   (used further down for the delivery/payment/returns guarantees): this
+   one reads as a quick scan line, not a trust-badge block, keeping the
+   fold short. */
+.funnel-hero__benefits {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-forest-dark);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.funnel-hero__benefits li {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-  color: var(--color-charcoal);
-  text-decoration: none;
-}
-
-.funnel-hero__rating-count {
-  color: var(--color-muted);
-  font-size: var(--fs-sm);
-}
-
-.funnel-hero__rating:hover .funnel-hero__rating-count {
-  text-decoration: underline;
+  gap: 0.35em;
 }
 
 .funnel-trust-row {
@@ -278,11 +277,6 @@
   .funnel-page .funnel-step-item__label {
     font-size: 0.72rem;
   }
-
-  /* History stats: tighter 2x2. */
-  .funnel-page .funnel-stat-row {
-    gap: var(--space-3);
-  }
 }
 
 /* ---- Generic section image ---- */
@@ -359,6 +353,219 @@
   mask-image: linear-gradient(to right, transparent, #000 22%);
 }
 
+/* ---- Use-case cards (#use-cases) ---- */
+
+/* A plain surface card — same background/border/radius/shadow combo as
+   .funnel-comparison__table, reused here rather than inventing a new
+   card treatment. */
+.funnel-usecase-card {
+  height: 100%;
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- What Is Miswak — 3-step photo sequence ---- */
+
+.funnel-whatis-sequence {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.funnel-whatis-sequence__item {
+  flex: 1 1 0;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  background-color: var(--color-sand);
+}
+
+.funnel-whatis-sequence__arrow {
+  flex: 0 0 auto;
+  color: var(--color-terracotta);
+  font-size: var(--fs-lg);
+}
+
+/* Stacked on phones — a sideways arrow reads oddly between full-width
+   tiles, so it rotates to point down instead of being hidden outright. */
+@media (max-width: 575.98px) {
+  .funnel-whatis-sequence {
+    flex-direction: column;
+  }
+
+  .funnel-whatis-sequence__item {
+    width: 100%;
+    max-width: 14rem;
+  }
+
+  .funnel-whatis-sequence__arrow {
+    transform: rotate(90deg);
+  }
+}
+
+/* ---- How-to-use step cards (#how-to-use) ---- */
+
+/* Extends .funnel-usecase-card's plain surface treatment with a numbered
+   marker instead of an emoji title — same card shell, reused rather than
+   duplicated. */
+.funnel-step-card__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--color-forest);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+/* Click-to-load video poster — see HowToUseSection.tsx's doc comment for
+   why: no <video> is mounted, so no video bytes load, until this button
+   is pressed. */
+.funnel-video__poster-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  background-color: var(--color-charcoal);
+}
+
+.funnel-video__poster-button img {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.85;
+}
+
+.funnel-video__play-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.25);
+  transition: background-color 0.15s ease;
+}
+
+.funnel-video__poster-button:hover .funnel-video__play-icon,
+.funnel-video__poster-button:focus-visible .funnel-video__play-icon {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Natural / Eco (#natural-eco) ---- */
+
+.funnel-natural-eco__statement {
+  max-width: 40rem;
+  margin: var(--space-5) auto 0;
+  color: var(--color-forest-dark);
+  font-family: var(--font-heading);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ---- History (#history) — short, text-only, no photo/stats ---- */
+
+.funnel-history__inner {
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.funnel-history__subtitle {
+  margin-bottom: var(--space-3);
+  color: var(--color-terracotta);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+/* ---- Brand statement tagline (#brand-statement) ---- */
+
+.funnel-brand-statement__tagline {
+  margin-top: var(--space-3);
+  color: var(--color-terracotta);
+  font-family: var(--font-heading);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Positioning statement (#positioning-statement) ---- */
+
+.funnel-positioning-statement {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.funnel-positioning-statement__title {
+  margin-bottom: var(--space-2);
+  color: var(--color-forest-dark);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* ---- Science (#science) ---- */
+
+.funnel-science-intro {
+  max-width: 40rem;
+  margin: 0 auto var(--space-4);
+}
+
+.funnel-science-card__source {
+  display: inline-block;
+  margin-top: var(--space-3);
+  color: var(--color-forest);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.funnel-science-card__source:hover {
+  text-decoration: underline;
+}
+
+/* Deliberately plain typography, no badge/seal graphics — see
+   ScienceSection.tsx's doc comment on why. */
+.funnel-science-callout {
+  max-width: 42rem;
+  margin: var(--space-5) auto 0;
+  padding: var(--space-5);
+  background-color: var(--color-sand);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.funnel-science-callout__stat {
+  margin-bottom: var(--space-2);
+  color: var(--color-forest-dark);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.funnel-science-safety {
+  max-width: 42rem;
+  margin: var(--space-4) auto 0;
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--color-terracotta);
+}
+
 /* ---- "Why" cards ---- */
 
 /* Bootstrap's gutter utilities cap at g-5 (3rem) — go a bit wider still. */
@@ -421,67 +628,6 @@
   aspect-ratio: 2 / 1;
   border-radius: var(--radius-md);
   margin-top: auto;
-}
-
-/* The text column is naturally taller than the image, so with
-   align-items-center (needed to keep the image vertically centered
-   instead of pinned to the row's top) the text ends up flush with the
-   row's top edge while the (shorter, centered) image starts lower down.
-   Push the text down by the same amount the image is inset by, so their
-   tops line up, without moving the image. */
-@media (min-width: 992px) {
-  .funnel-history__text {
-    padding-top: 0.75rem;
-  }
-}
-
-/* ---- History stats ---- */
-
-.funnel-stat-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
-}
-
-@media (min-width: 768px) {
-  .funnel-stat-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.funnel-stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  text-align: center;
-}
-
-.funnel-stat-item__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  background-color: var(--color-sand);
-  color: var(--color-forest);
-}
-
-/* The cropped icon PNGs (see public/funnel/v2) have a transparent
-   background but no baked-in circle — keep the CSS-drawn sand circle
-   behind them, just size the icon art to fit inside it. */
-.funnel-stat-item__icon--photo img {
-  width: 60%;
-  height: 60%;
-  object-fit: contain;
-}
-
-.funnel-stat-item__label {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  color: var(--color-muted);
-  max-width: 10rem;
 }
 
 /* ---- Features (icon-crop grid) ---- */
@@ -683,6 +829,17 @@
   white-space: pre-line;
 }
 
+/* Strong but not oversized: heading-family + bold at --fs-lg sits
+   between the H2 title and the regular body copy, so the "sounded
+   strange to us too" line reads as a real second beat, not filler. */
+.funnel-awareness__subtitle {
+  margin-bottom: var(--space-3);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
 .funnel-page .funnel-awareness p,
 .funnel-page .funnel-awareness .lead,
 .funnel-page .funnel-awareness .section-lead {
@@ -726,16 +883,11 @@
   font-weight: 600;
 }
 
-.funnel-assurance__item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* Tucked right under the hero's CTA buttons (their row carries mb-4 —
-   pull back most of it so the facts read as the buttons' fine print). */
+/* Tucked right under the hero's CTA button (its wrapper carries mb-2 —
+   pull back most of it so the fact line reads as the button's fine
+   print, not a new paragraph). */
 .funnel-assurance--hero {
-  margin-top: calc(-1 * var(--space-3));
+  margin-top: 0;
   margin-bottom: var(--space-4);
 }
 
@@ -844,6 +996,20 @@
   color: var(--color-danger-bg);
 }
 
+.funnel-comparison__mark--partial {
+  color: var(--color-terracotta);
+  font-weight: 700;
+}
+
+/* Free-text values ("Допълва", "обикновено ✕") — smaller than the glyph
+   marks since they're a whole word/phrase, not a single character. */
+.funnel-comparison__mark--text {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--color-forest-dark);
+  white-space: normal;
+}
+
 /* The Miswak column is the argument — tinted so the eye reads it as "the
    good column" at a glance. */
 .funnel-comparison__table .funnel-comparison__miswak-col {
@@ -851,39 +1017,48 @@
   color: var(--color-forest-dark);
 }
 
-/* Phone layout: the title renders above the table (its in-table cell is
-   emptied via d-none), the two product columns collapse to compact
-   fixed-width mark columns, and the statement column takes the rest —
-   the whole argument fits 390px with no horizontal scroll. */
-@media (max-width: 767.98px) {
-  .funnel-comparison__title-cell {
-    width: auto;
-  }
+/* ---- Comparison — mobile stacked cards (below md, see ComparisonSection.tsx) ---- */
 
-  .funnel-comparison__table thead th:nth-child(2),
-  .funnel-comparison__table thead th:nth-child(3) {
-    width: 74px;
-  }
+.funnel-comparison__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 28rem;
+  margin-inline: auto;
+}
 
-  .funnel-comparison__table th,
-  .funnel-comparison__table td {
-    padding: var(--space-2);
-  }
+.funnel-comparison__card {
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
 
-  .funnel-comparison__table tbody th {
-    font-size: var(--fs-sm);
-  }
+.funnel-comparison__card-label {
+  margin-bottom: var(--space-2);
+  font-weight: 700;
+}
 
-  .funnel-comparison__col-head {
-    gap: var(--space-1);
-    padding: var(--space-1) 0;
-    font-size: var(--fs-xs);
-  }
+.funnel-comparison__card-values {
+  display: flex;
+  gap: var(--space-4);
+}
 
-  .funnel-comparison__col-head img {
-    width: 100%;
-    height: 34px;
-  }
+.funnel-comparison__card-value {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.funnel-comparison__card-value-name {
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 /* ---- Same-day dispatch promise ---- */
@@ -905,7 +1080,7 @@
 /* ---- Usage video ---- */
 
 .funnel-video__wrap {
-  max-width: 44rem;
+  max-width: 22rem;
   margin-inline: auto;
 }
 
@@ -915,9 +1090,30 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   background-color: #000;
+  /* The source clip carries an AI-generation watermark right at the very
+     top edge of the frame — a few pixels is enough to clear it, so trim
+     only that, not the whole top of the shot. "round" keeps the corner
+     radius above intact through the clipped edge. */
+  clip-path: inset(22px 10px 10px 10px round var(--radius-lg));
 }
 
-/* ---- Payment brand marks ---- */
+/* ---- Payment section ---- */
+
+.funnel-payment-block {
+  max-width: 32rem;
+  margin: var(--space-5) auto 0;
+  text-align: center;
+}
+
+.funnel-payment-block__title {
+  margin-bottom: var(--space-2);
+}
+
+.funnel-payment-block__copy {
+  margin-bottom: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
+}
 
 .funnel-payment-logos {
   display: flex;
@@ -925,20 +1121,6 @@
   justify-content: center;
   gap: var(--space-4);
   margin-top: var(--space-4);
-}
-
-.funnel-payment-note,
-.funnel-payment-wallets {
-  max-width: 44rem;
-  margin: var(--space-2) auto 0;
-  color: var(--color-muted);
-  font-size: var(--fs-sm);
-  text-align: center;
-}
-
-.funnel-payment-wallets {
-  margin-top: var(--space-1);
-  font-size: var(--fs-xs);
 }
 
 /* ---- Testimonials (#reviews) ---- */
@@ -991,7 +1173,7 @@
   text-decoration: underline;
 }
 
-/* ---- Package offer stack (#buy, see PackageOffers.tsx) ---- */
+/* ---- Package offer stack (#pricing, see PackageOffers.tsx) ---- */
 
 .funnel-packages {
   display: grid;
@@ -999,17 +1181,25 @@
   margin-top: var(--space-4);
 }
 
+/* 4 packages: 2x2 on tablets (narrower to comfortably fit 3 across),
+   4-in-a-row once there's enough width for that not to feel cramped. */
 @media (min-width: 768px) {
   .funnel-packages {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     align-items: stretch;
     /* Room for the featured card's upward offset below. */
     margin-top: var(--space-5);
   }
 }
 
-/* Tablet band: three columns already, but narrower ones — tighter card
-   shells, wrapping full-width buttons, one price size down. */
+@media (min-width: 992px) {
+  .funnel-packages {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Tablet band: two columns already, but narrower than desktop — tighter
+   card shells, wrapping full-width buttons, one price size down. */
 @media (min-width: 768px) and (max-width: 991.98px) {
   .funnel-package-card {
     padding: var(--space-4) var(--space-3);
@@ -1142,11 +1332,6 @@
   color: var(--color-forest-dark);
 }
 
-.funnel-package-card__compare {
-  color: var(--color-muted);
-  font-size: var(--fs-md);
-}
-
 .funnel-package-card__save {
   padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
@@ -1159,14 +1344,6 @@
 .funnel-package-card__per-unit {
   color: var(--color-muted);
   font-size: var(--fs-xs);
-}
-
-/* The "what does this actually buy me" line — time, not units. Forest
-   rather than muted: it's a selling argument, not fine print. */
-.funnel-package-card__duration {
-  color: var(--color-forest);
-  font-size: var(--fs-sm);
-  font-weight: 600;
 }
 
 .funnel-package-card__stock {
@@ -1365,41 +1542,55 @@
 
 /* ---- Sticky mobile buy bar ---- */
 
-/* Fixed 3.75rem height matches the reserved strip below, mirroring the
-   desktop bar's arrangement — at full scroll the bar sits over empty
-   space, never over footer content. */
+/* 3.75rem (60px) height, within the ~56-60px target — matches the
+   reserved strip below (body.has-funnel-buy-bar), which stays constant
+   for the whole page regardless of this bar's own visible/hidden state
+   (see FunnelLandingPage's three-zone IntersectionObserver), so toggling
+   it never shifts layout. Mounted/unmounted rather than hidden via CSS
+   (see StickyMobileBuyBar) — position: fixed means that doesn't affect
+   document flow either. */
 .funnel-sticky-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 1030;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   height: 3.75rem;
-  padding-inline: var(--space-2);
-  background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
+  animation: funnel-bar-slide-up 0.25s ease;
 }
 
-.funnel-sticky-bar__image {
-  flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+@media (prefers-reduced-motion: reduce) {
+  .funnel-sticky-bar {
+    animation: none;
+  }
 }
 
-.funnel-sticky-bar__rating {
-  flex-shrink: 0;
-  font-size: 0.75rem;
+.funnel-sticky-bar__cta {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background-color: var(--color-terracotta);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
 }
 
-.funnel-sticky-bar .btn {
-  flex: 1;
+.funnel-sticky-bar__cta:hover,
+.funnel-sticky-bar__cta:focus-visible {
+  background-color: #8f4427;
+  color: #fff;
+}
+
+.funnel-sticky-bar__arrow {
+  opacity: 0.85;
+}
+
+.funnel-sticky-bar__price {
+  font-weight: 800;
 }
 
 @media (max-width: 767.98px) {
@@ -1503,13 +1694,6 @@
   .funnel-mobile-optional,
   .funnel-final-cta__photo-col {
     display: none;
-  }
-
-  .funnel-mobile-clamp {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
   }
 
   .funnel-hero,

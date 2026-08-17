@@ -150,7 +150,12 @@
 }
 
 /* Card brand marks in the bottom bar — lightened to read on the dark
-   forest background, kept quiet like the rest of the fine print. */
+   forest background, kept quiet like the rest of the fine print. Exempted
+   below: logos this treatment breaks rather than quiets. Mastercard's
+   two overlapping circles (red #EB001B, orange #F79E1B) both wash out to
+   the same near-white under grayscale+brightness(3), which erases the
+   overlap structure that makes the mark recognizable — kept at its
+   natural colors instead, same as the other exemptions already here. */
 .footer-payment-logos img {
   filter: grayscale(1) brightness(3);
   opacity: 0.75;
@@ -158,7 +163,8 @@
 
 .footer-payment-logos img[src$="/amex.png"],
 .footer-payment-logos img[src$="/apple-pay.svg"],
-.footer-payment-logos img[src$="/google-pay.svg"] {
+.footer-payment-logos img[src$="/google-pay.svg"],
+.footer-payment-logos img[src$="/mastercard.svg"] {
   filter: none;
   opacity: 1;
 }

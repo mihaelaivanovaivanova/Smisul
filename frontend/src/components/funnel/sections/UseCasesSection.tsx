@@ -1,4 +1,5 @@
 import { funnelUseCases } from '../../../content/copy';
+import Icon from '../../icons/Icon';
 
 /**
  * Section 3/20 — Use Cases, immediately below the Hero. Four short
@@ -23,7 +24,10 @@ export default function UseCasesSection() {
         <div className="row row-cols-1 row-cols-sm-2 g-3 g-md-4">
           {funnelUseCases.cards.map((card) => (
             <div className="col" key={card.title}>
-              <div className="funnel-usecase-card">
+              <div className="funnel-usecase-card funnel-usecase-card--hover">
+                <span className="funnel-usecase-card__icon" aria-hidden="true">
+                  <Icon name={card.icon} />
+                </span>
                 <h3 className="h6 mb-2">{card.title}</h3>
                 <p className="section-lead lead mb-0">{card.body}</p>
               </div>
@@ -31,7 +35,9 @@ export default function UseCasesSection() {
           ))}
         </div>
 
-        <p className="section-lead lead text-center fw-semibold mt-4 mb-3">{funnelUseCases.closing}</p>
+        <p className="funnel-usecases__closing section-lead lead text-center fw-semibold mt-4 mb-3">
+          {funnelUseCases.closing}
+        </p>
 
         <div className="text-center">
           <a href="#how-to-use" className="btn btn-outline-secondary">

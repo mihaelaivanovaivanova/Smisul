@@ -66,7 +66,7 @@ export default function PricingSection({
                 productVariantId={defaultVariant.id}
                 inventory={defaultVariant.inventory}
                 label={fallbackCtaLabel}
-                large
+                size="lg"
                 hideQuantity
                 onAdded={onAdded}
               />

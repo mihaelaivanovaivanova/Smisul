@@ -13,7 +13,7 @@ use Illuminate\Database\Seeder;
  * of Product::activePromotions(): a currently-valid promotion scoped
  * directly to a product, one scoped to a category (so every product in
  * that category inherits it), and one that has already expired (still
- * `is_active`, but outside its date window) — proving expired promotions
+ * `is_active`, but outside its date window) - proving expired promotions
  * are correctly filtered out even when attached.
  *
  * Bio Herbal Blend deliberately gets both an expired direct promotion and
@@ -48,7 +48,7 @@ class PromotionSeeder extends Seeder
             $springPromo = Promotion::updateOrCreate(
                 ['name' => 'Пролетна промоция'],
                 [
-                    'description' => 'Промоция от началото на пролетта — вече изтекла.',
+                    'description' => 'Промоция от началото на пролетта - вече изтекла.',
                     'type' => PromotionType::Percentage,
                     'value' => 10,
                     'starts_at' => now()->subMonths(2),

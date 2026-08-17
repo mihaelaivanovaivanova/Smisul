@@ -259,6 +259,21 @@ function IntroForm({ initial, onSaved }: { initial: FunnelIntroContent; onSaved:
         <>
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
           <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
+          <TextField
+            label="Benefits list heading"
+            value={value.benefits_title}
+            onChange={(v) => setValue({ ...value, benefits_title: v })}
+          />
+          <RepeatableObjectList
+            label="Benefits"
+            items={value.benefits}
+            onChange={(benefits) => setValue({ ...value, benefits: benefits as FunnelIntroContent['benefits'] })}
+            fields={[
+              { key: 'label', placeholder: 'Label' },
+              { key: 'description', placeholder: 'Description' },
+            ]}
+            emptyItem={{ label: '', description: '' }}
+          />
         </>
       )}
     </SectionForm>

@@ -62,6 +62,7 @@ export default function OrderDetailPage() {
         <h1 className="h3 mb-0">
           Order {order.order_number} <StatusBadge status={order.status} />
         </h1>
+        <span className="text-muted">Placed {new Date(order.placed_at).toLocaleString('bg-BG')}</span>
       </div>
 
       <div className="row g-4">

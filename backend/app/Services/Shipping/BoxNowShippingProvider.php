@@ -35,6 +35,8 @@ use Throwable;
  */
 class BoxNowShippingProvider implements ShippingProviderInterface
 {
+    public function __construct(private readonly ShippingProviderSettingsService $settings) {}
+
     public function carrier(): ShippingCarrier
     {
         return ShippingCarrier::BoxNow;
@@ -187,23 +189,31 @@ class BoxNowShippingProvider implements ShippingProviderInterface
 
     private function client(): PendingRequest
     {
-        return Http::baseUrl((string) config('services.shipping.box_now.base_url'))
-            ->withToken($this->accessToken())
+        $credentials = $this->settings->credentialsFor('box_now');
+
+        return Http::baseUrl((string) ($credentials['base_url'] ?? ''))
+            ->withToken($this->accessToken($credentials))
             ->acceptJson()
             ->timeout(5);
     }
 
-    private function accessToken(): string
+    /** @param array<string, mixed> $credentials */
+    private function accessToken(array $credentials): string
     {
-        return Cache::remember('shipping.box_now.access_token', now()->addMinutes(50), function () {
+        // Keyed by client_id so a credential change (via the admin settings
+        // panel) starts fetching a fresh token immediately instead of
+        // reusing one cached under the old credentials for up to 50 min.
+        $cacheKey = 'shipping.box_now.access_token.'.md5((string) ($credentials['client_id'] ?? ''));
+
+        return Cache::remember($cacheKey, now()->addMinutes(50), function () use ($credentials) {
             try {
-                $response = Http::baseUrl((string) config('services.shipping.box_now.base_url'))
+                $response = Http::baseUrl((string) ($credentials['base_url'] ?? ''))
                     ->asForm()
                     ->timeout(5)
                     ->post('oauth/token', [
                         'grant_type' => 'client_credentials',
-                        'client_id' => (string) config('services.shipping.box_now.client_id'),
-                        'client_secret' => (string) config('services.shipping.box_now.client_secret'),
+                        'client_id' => (string) ($credentials['client_id'] ?? ''),
+                        'client_secret' => (string) ($credentials['client_secret'] ?? ''),
                     ]);
 
                 return (string) $response->json('access_token', '');

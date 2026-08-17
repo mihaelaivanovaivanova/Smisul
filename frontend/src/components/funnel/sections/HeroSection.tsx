@@ -1,32 +1,32 @@
 import { formatPrice } from '../../../services/productCatalog';
-import { funnelHeroBenefits, funnelOffer } from '../../../content/copy';
+import { funnelAssurance, funnelOffer } from '../../../content/copy';
+import Icon from '../../icons/Icon';
+import { TrustIcon } from '../FunnelIcons';
+import DispatchPromise from '../DispatchPromise';
 import type { FunnelHeroContent } from '../../../types/funnel';
 import type { Price } from '../../../types/product';
 
 interface HeroSectionProps {
-  content: Pick<FunnelHeroContent, 'eyebrow' | 'title' | 'body' | 'cta_primary'>;
+  content: Pick<FunnelHeroContent, 'eyebrow' | 'title' | 'body' | 'cta_primary' | 'trust_items'>;
   productName: string;
   /** The live cheapest package price — never hardcoded; renders nothing if unavailable. */
   fromPrice: Price | null | undefined;
-  /**
-   * The configured delivery promise (funnelAssurance.delivery) — passed in
-   * rather than imported directly so the fine print only ever shows the
-   * one already-vetted shipping claim used elsewhere on the page (see
-   * FunnelLandingPage.tsx), never a second, possibly-drifted copy of it.
-   * Falsy/empty hides the delivery half of the line entirely.
-   */
-  deliveryPromise: string;
+  /** Same-day dispatch cutoff (Settings → General) — see DispatchPromise.tsx; renders nothing outside the window. */
+  dispatchCutoff: string | null | undefined;
 }
 
 /**
  * Section 2/20 — Hero. Carries the page's only H1 and the page's one
- * primary CTA (no secondary button — see requirement: "no competing CTA
- * above fold"). Deliberately compact: no star-rating line, no dispatch
- * countdown, no returns claim up here — those still live further down
- * (FunnelTestimonialsSection, PricingSection, DeliveryPaymentReturnsSection)
- * so the fold stays short and single-purpose.
+ * primary CTA (cta_secondary exists in the CMS content but is
+ * deliberately not rendered — "no competing CTA above fold").
+ *
+ * Below the CTA: a compact delivery/returns line (reusing the same
+ * .funnel-hero__benefits treatment the product-attribute row used to
+ * have), the same dispatch-cutoff promise shown in PricingSection, and
+ * the CMS-editable trust_items badge row via TrustIcon/.funnel-trust-row
+ * — previously seeded but never rendered anywhere on the page.
  */
-export default function HeroSection({ content, productName, fromPrice, deliveryPromise }: HeroSectionProps) {
+export default function HeroSection({ content, productName, fromPrice, dispatchCutoff }: HeroSectionProps) {
   const packagesFromLabel = fromPrice ? funnelOffer.packagesFrom(formatPrice(fromPrice.amount, fromPrice.currency)) : null;
 
   return (
@@ -38,27 +38,36 @@ export default function HeroSection({ content, productName, fromPrice, deliveryP
             <h1 className="funnel-hero__title mb-3">{content.title}</h1>
             <p className="lead">{content.body}</p>
 
-            <div className="mt-3 mb-2">
-              <a href="#pricing" className="btn btn-primary btn-lg">
-                {content.cta_primary}
+            <div className="mt-3 mb-2 text-center">
+              <a href="#pricing" className="btn btn-primary btn-lg funnel-hero__cta">
+                <span className="funnel-hero__cta-main">{content.cta_primary}</span>
+                {packagesFromLabel && <span className="funnel-hero__cta-sub">{packagesFromLabel}</span>}
               </a>
             </div>
 
-            {(packagesFromLabel || deliveryPromise) && (
-              <p className="funnel-assurance funnel-assurance--hero">
-                {packagesFromLabel}
-                {packagesFromLabel && deliveryPromise ? ' • ' : null}
-                {deliveryPromise}
-              </p>
-            )}
-
-            <ul className="funnel-hero__benefits">
-              {funnelHeroBenefits.map((item) => (
-                <li key={item.label}>
-                  <span aria-hidden="true">{item.emoji}</span> {item.label}
-                </li>
-              ))}
+            <ul className="funnel-hero__benefits funnel-hero__benefits--centered mb-2">
+              <li>
+                <Icon name="truck" className="funnel-hero__benefit-icon" />
+                {funnelAssurance.delivery}
+              </li>
+              <li>
+                <Icon name="undo" className="funnel-hero__benefit-icon" />
+                {funnelAssurance.returns}
+              </li>
             </ul>
+
+            <div className="mb-3 text-center">
+              <DispatchPromise cutoff={dispatchCutoff} />
+            </div>
+
+            <div className="funnel-trust-row">
+              {content.trust_items.map((item) => (
+                <div className="funnel-trust-item" key={item.label}>
+                  <TrustIcon icon={item.icon} />
+                  <span className="funnel-trust-item__label">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="col-12 col-lg-7">
             <div className="funnel-photo funnel-hero__image">

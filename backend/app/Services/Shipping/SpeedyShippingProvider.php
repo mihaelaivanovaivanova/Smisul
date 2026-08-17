@@ -47,6 +47,8 @@ use Throwable;
  */
 class SpeedyShippingProvider implements ShippingProviderInterface
 {
+    public function __construct(private readonly ShippingProviderSettingsService $settings) {}
+
     private const SERVICE_ID = 505;
 
     public function carrier(): ShippingCarrier
@@ -297,9 +299,11 @@ class SpeedyShippingProvider implements ShippingProviderInterface
      */
     private function withCredentials(array $body): array
     {
+        $credentials = $this->settings->credentialsFor('speedy');
+
         return [
-            'userName' => (string) config('services.shipping.speedy.username'),
-            'password' => (string) config('services.shipping.speedy.password'),
+            'userName' => (string) ($credentials['username'] ?? ''),
+            'password' => (string) ($credentials['password'] ?? ''),
             // Bulgarian-language office names/addresses — this storefront
             // has no English UI to match an 'EN' response against.
             'language' => 'BG',
@@ -309,7 +313,9 @@ class SpeedyShippingProvider implements ShippingProviderInterface
 
     private function client(): PendingRequest
     {
-        return Http::baseUrl((string) config('services.shipping.speedy.base_url'))
+        $credentials = $this->settings->credentialsFor('speedy');
+
+        return Http::baseUrl((string) ($credentials['base_url'] ?? ''))
             ->acceptJson()
             ->timeout(5);
     }

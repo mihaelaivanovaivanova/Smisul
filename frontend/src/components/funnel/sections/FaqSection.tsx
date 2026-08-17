@@ -41,7 +41,9 @@ export default function FaqSection({ content, activeFaqIndex, onToggle }: FaqSec
                       onClick={() => onToggle(index)}
                     >
                       {item.question}
-                      <span aria-hidden="true">{isActive ? '−' : '+'}</span>
+                      <span className="funnel-faq-toggle__indicator" aria-hidden="true">
+                        +
+                      </span>
                     </button>
                     {/* Always mounted so the open/close can animate height
                         (grid-rows 0fr -> 1fr); aria-hidden + delayed

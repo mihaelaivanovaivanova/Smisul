@@ -34,6 +34,10 @@ class FunnelContentUpdateRequest extends FormRequest
                 'title' => ['required', 'string', 'max:255'],
                 'paragraphs' => ['required', 'array', 'min:1'],
                 'paragraphs.*' => ['required', 'string', 'max:1000'],
+                'benefits_title' => ['required', 'string', 'max:255'],
+                'benefits' => ['required', 'array', 'min:1'],
+                'benefits.*.label' => ['required', 'string', 'max:255'],
+                'benefits.*.description' => ['required', 'string', 'max:500'],
             ],
             'why' => [
                 'title' => ['required', 'string', 'max:255'],

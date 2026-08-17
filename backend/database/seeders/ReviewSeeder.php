@@ -11,7 +11,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * Demo customer reviews for the funnel product (Miswak) — the funnel
+ * Demo customer reviews for the funnel product (Miswak) - the funnel
  * landing page's social-proof blocks (hero star rating + testimonials)
  * read from the real reviews API, so development needs real approved
  * rows behind them. Every author is a demo account on @example.com and
@@ -19,7 +19,7 @@ use Illuminate\Database\Seeder;
  * schema's one-review-per-product-per-order constraint.
  *
  * Idempotent: authors are matched by email and reviews by (user, product)
- * — re-running updates the text/rating in place instead of duplicating.
+ * - re-running updates the text/rating in place instead of duplicating.
  * The backing demo order is only created alongside a review's first
  * insert; content edits never mint new orders.
  */
@@ -34,8 +34,8 @@ class ReviewSeeder extends Seeder
             'last_name' => 'Иванова',
             'email' => 'maria.demo@example.com',
             'rating' => 5,
-            'title' => 'Изненадващо приятно усещане',
-            'body' => 'Пробвах Miswak от любопитство и не очаквах да ми хареса толкова. Зъбите ми са гладки като след почистване при дентист, а дъхът остава свеж дълго време. Вече е винаги в чантата ми.',
+            'title' => 'Чудесен заместител през деня',
+            'body' => 'Взех си го от любопитство и в крайна сметка си го използвам в ежедневието. Не съм спряла да си мия зъбите с четка сутрин и вечер, но през деня мисвакът е супер удобен, когато съм навън.',
             'helpful_count' => 12,
             'days_ago' => 9,
         ],
@@ -44,8 +44,8 @@ class ReviewSeeder extends Seeder
             'last_name' => 'Петров',
             'email' => 'georgi.demo@example.com',
             'rating' => 5,
-            'title' => 'Взимам го навсякъде',
-            'body' => 'Пътувам почти всяка седмица и това, че не ми трябват нито паста, нито вода, е огромно предимство. Ползвам го в колата, в офиса, дори в самолета. Практично и никак не личи, че е „четка за зъби“.',
+            'title' => 'Удобен за пътуване',
+            'body' => 'Самото подготвяне на върха отнема малко време първия път, но после е лесно. Държа един вкъщи и един в колата.',
             'helpful_count' => 9,
             'days_ago' => 16,
         ],
@@ -54,8 +54,8 @@ class ReviewSeeder extends Seeder
             'last_name' => 'Стоянова',
             'email' => 'elena.demo@example.com',
             'rating' => 4,
-            'title' => 'Добра алтернатива',
-            'body' => 'Отне ми няколко дни да свикна с вкуса — леко горчив в началото, после става приятен. Сега го предпочитам пред обикновената четка, когато съм навън. Единствено ми се иска дръжката да беше малко по-дълга.',
+            'title' => 'Хубаво усещане, малка забележка',
+            'body' => 'Малко е неудобен за достигане на крайните зъби и вътрешната страна на предните. Иначе оставя усещане за чистота и полиране.',
             'helpful_count' => 7,
             'days_ago' => 24,
         ],
@@ -65,7 +65,7 @@ class ReviewSeeder extends Seeder
             'email' => 'dimitar.demo@example.com',
             'rating' => 5,
             'title' => 'Децата също го харесаха',
-            'body' => 'Взехме семейния пакет и се оказа страхотно решение — на децата им е забавно, а аз съм спокоен, че няма химия. Излиза и по-изгодно на бройка. Ще поръчаме пак.',
+            'body' => 'Взехме семейния пакет и се оказа страхотно решение - на децата им е забавно, а аз съм спокоен, че няма химия. Сега на игра си чистят постоянно зъбите :) Излиза и по-изгодно на бройка. Ще поръчаме пак.',
             'helpful_count' => 5,
             'days_ago' => 31,
         ],
@@ -73,9 +73,9 @@ class ReviewSeeder extends Seeder
             'first_name' => 'Виктория',
             'last_name' => 'Тодорова',
             'email' => 'viktoria.demo@example.com',
-            'rating' => 5,
-            'title' => 'Нула пластмаса, нула отпадък',
-            'body' => 'Търсех начин да махна пластмасата от банята и Miswak се оказа най-лесната първа стъпка. Изхабеният връх просто се отрязва — нищо не се изхвърля в кофата. Усещането за чистота е истинско, не е компромис.',
+            'rating' => 4,
+            'title' => 'По-малко плака между миенията',
+            'body' => 'След около две седмици ми направи впечатление, че по зъбите ми се натрупва по-малко плака между миенията. Не бих казала, че избелва като професионална процедура, но визуално зъбите ми изглеждат по-чисти.',
             'helpful_count' => 8,
             'days_ago' => 42,
         ],
@@ -85,9 +85,49 @@ class ReviewSeeder extends Seeder
             'email' => 'stoyan.demo@example.com',
             'rating' => 5,
             'title' => 'Работи по-добре от очакваното',
-            'body' => 'Признавам, че бях скептичен — клонче вместо четка звучи като маркетинг. След две седмици обаче зъбите ми са видимо по-чисти сутрин, а венците спряха да кървят при почистване. Убеди ме.',
+            'body' => 'Клонче вместо четка звучи като маркетинг, но наистина върши работа. След две седмици обаче зъбите ми са видимо по-чисти сутрин, а венците спряха да кървят при почистване. Убеди ме.',
             'helpful_count' => 4,
             'days_ago' => 55,
+        ],
+        [
+            'first_name' => 'Иван',
+            'last_name' => 'Николов',
+            'email' => 'ivan.demo@example.com',
+            'rating' => 5,
+            'title' => 'Свикнах бързо и ми хареса',
+            'body' => 'Честно казано ми беше странно първите 2–3 пъти. След като свикнах как се използва, започна много да ми харесва усещането след почистване. Най-често го нося в чантата и го ползвам след обяд.',
+            'helpful_count' => 6,
+            'days_ago' => 3,
+        ],
+        [
+            'first_name' => 'Радост',
+            'last_name' => 'Христова',
+            'email' => 'radost.demo@example.com',
+            'rating' => 5,
+            'title' => 'Усещане за истинска чистота',
+            'body' => 'Зъбите ми определено се усещат много чисти след почистване. Най ми харесва, че е изцяло естествен продукт.',
+            'helpful_count' => 3,
+            'days_ago' => 12,
+        ],
+        [
+            'first_name' => 'Симона',
+            'last_name' => 'Ангелова',
+            'email' => 'simona.demo@example.com',
+            'rating' => 4,
+            'title' => 'Вкусът расте с времето',
+            'body' => 'Първия път вкусът ми се стори неприятен, но след няколко дни вече не ми правеше впечатление и даже ми хареса :D. За мен най-големият плюс е, че мога да го използвам по всяко време.',
+            'helpful_count' => 5,
+            'days_ago' => 20,
+        ],
+        [
+            'first_name' => 'Николай',
+            'last_name' => 'Върбанов',
+            'email' => 'nikolay.demo@example.com',
+            'rating' => 5,
+            'title' => 'Просто и работещо решение',
+            'body' => 'Супер е колко е просто. Зарибих даже и приятеля ми, а той е доста скептичен с подобни продукти :D.',
+            'helpful_count' => 7,
+            'days_ago' => 48,
         ],
     ];
 

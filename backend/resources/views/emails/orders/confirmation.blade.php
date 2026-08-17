@@ -1,6 +1,4 @@
 @php
-    /** Dual EUR/BGN labelling per Закона за въвеждане на еврото (until 8 Aug 2026). */
-    $inBgn = fn ($amount) => number_format((float) $amount * 1.95583, 2);
     $frontendUrl = rtrim(config('app.frontend_url'), '/');
 @endphp
 <!DOCTYPE html>
@@ -34,10 +32,9 @@
     </table>
 
     <p>
-        Междинна сума: {{ number_format((float) $order->subtotal, 2) }} {{ $order->currency }} ({{ $inBgn($order->subtotal) }} лв.)<br>
-        Доставка ({{ $order->shipping_method_label }}): {{ number_format((float) $order->shipping_price, 2) }} {{ $order->currency }} ({{ $inBgn($order->shipping_price) }} лв.)<br>
-        <strong>Общо: {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }} ({{ $inBgn($order->grand_total) }} лв.)</strong><br>
-        <span style="color: #666; font-size: 12px;">Официален фиксиран курс: 1 EUR = 1.95583 лв.</span>
+        Междинна сума: {{ number_format((float) $order->subtotal, 2) }} {{ $order->currency }}<br>
+        Доставка ({{ $order->shipping_method_label }}): {{ number_format((float) $order->shipping_price, 2) }} {{ $order->currency }}<br>
+        <strong>Общо: {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }}</strong>
     </p>
 
     <h2 style="font-size: 16px;">Адрес за доставка</h2>

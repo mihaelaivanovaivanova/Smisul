@@ -15,9 +15,16 @@ export interface FunnelHeroContent {
   trust_items: FunnelTrustItem[];
 }
 
+export interface FunnelIntroBenefit {
+  label: string;
+  description: string;
+}
+
 export interface FunnelIntroContent {
   title: string;
   paragraphs: string[];
+  benefits_title: string;
+  benefits: FunnelIntroBenefit[];
 }
 
 export interface FunnelWhyCard {

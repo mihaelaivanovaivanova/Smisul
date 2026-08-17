@@ -6,10 +6,11 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
 
 /**
  * Dual EUR/BGN price labelling per Закона за въвеждане на еврото — the
- * obligation runs 8 Aug 2025 – 8 Aug 2026 (fixed rate 1 EUR = 1.95583
- * лв.). Flip to false once the dual-labelling period ends.
+ * obligation ran 8 Aug 2025 – 8 Aug 2026 (fixed rate 1 EUR = 1.95583
+ * лв.) and has now ended, so this stays off. Flip back to true only if
+ * a legal or business reason to show BGN again comes up.
  */
-export const DUAL_PRICE_BGN = true;
+export const DUAL_PRICE_BGN = false;
 const BGN_PER_EUR = 1.95583;
 
 /**

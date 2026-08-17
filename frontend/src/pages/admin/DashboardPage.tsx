@@ -99,6 +99,7 @@ export default function DashboardPage() {
                     <th>Order #</th>
                     <th>Customer</th>
                     <th>Status</th>
+                    <th>Placed</th>
                     <th className="text-end">Total</th>
                     <th></th>
                   </tr>
@@ -111,6 +112,7 @@ export default function DashboardPage() {
                       <td>
                         <StatusBadge status={order.status} />
                       </td>
+                      <td>{new Date(order.placed_at).toLocaleDateString('bg-BG')}</td>
                       <td className="text-end">{formatPrice(order.totals.grand_total)}</td>
                       <td className="text-end">
                         <Link to={`/admin/orders/${order.id}`}>View</Link>

@@ -52,7 +52,7 @@ export default function StickyDesktopBuyBar({
             )}
           </div>
         </div>
-        <a href="#pricing" className="btn btn-primary">
+        <a href="#pricing" className="btn btn-primary btn-md">
           {ctaLabel}
         </a>
       </div>

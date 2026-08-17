@@ -6,7 +6,7 @@ import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 import { trackFunnelAddToCart, trackFunnelViewContent } from '../services/analytics';
-import { formatPrice, getGalleryImages, getPrimaryImage, getVariantPrice, getVideos } from '../services/productCatalog';
+import { formatPrice, getPrimaryImage, getVariantPrice, getVideos } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import ExitIntentModal from '../components/funnel/ExitIntentModal';
@@ -21,18 +21,14 @@ import CoreBenefitsSection from '../components/funnel/sections/CoreBenefitsSecti
 import HowToUseSection from '../components/funnel/sections/HowToUseSection';
 import ScienceSection from '../components/funnel/sections/ScienceSection';
 import SkepticismHonestySection from '../components/funnel/sections/SkepticismHonestySection';
-import PositioningStatementSection from '../components/funnel/sections/PositioningStatementSection';
 import ComparisonSection from '../components/funnel/sections/ComparisonSection';
-import ActualProductSection from '../components/funnel/sections/ActualProductSection';
 import FunnelTestimonialsSection from '../components/funnel/sections/FunnelTestimonialsSection';
-import NaturalEcoSection from '../components/funnel/sections/NaturalEcoSection';
-import HistorySection from '../components/funnel/sections/HistorySection';
 import BrandStatementSection from '../components/funnel/sections/BrandStatementSection';
 import PricingSection from '../components/funnel/sections/PricingSection';
 import DeliveryPaymentReturnsSection from '../components/funnel/sections/DeliveryPaymentReturnsSection';
 import FaqSection from '../components/funnel/sections/FaqSection';
 import NewsletterSection from '../components/funnel/sections/NewsletterSection';
-import { funnelAssurance, funnelOffer, reviews as reviewsCopy, seo, states } from '../content/copy';
+import { funnelOffer, reviews as reviewsCopy, seo, states } from '../content/copy';
 
 /**
  * The single-product "funnel mode" landing page — section architecture
@@ -46,24 +42,20 @@ import { funnelAssurance, funnelOffer, reviews as reviewsCopy, seo, states } fro
  *  6  How To Use                -> HowToUseSection (funnelHowToUse, fixed copy + optional product video)
  *  7  Science                   -> ScienceSection (funnel.science)
  *  8  Skepticism / Honesty      -> SkepticismHonestySection (funnel.awareness)
- *  9  Positioning Statement     -> PositioningStatementSection (funnel.positioning)
+ *  9  Positioning Statement     -> removed
  *  10 Comparison                -> ComparisonSection (funnel.comparison)
- *  11 Actual Product            -> ActualProductSection (funnel.features)
+ *  11 Actual Product            -> removed
  *  12 Reviews                   -> FunnelTestimonialsSection (reviews API)
- *  13 Natural / Eco             -> NaturalEcoSection (funnel.natural_eco)
+ *  13 Natural / Eco             -> removed
  *  14 Brand Statement           -> BrandStatementSection (funnel.final_cta title/paragraphs)
  *  15 Pricing                   -> PricingSection (funnel.checkout copy + package offers)
  *  16 Delivery/Payment/Returns  -> DeliveryPaymentReturnsSection (funnel.final_cta.trust_items + payment copy)
- *  17 History                   -> HistorySection (funnel.history)
+ *  17 History                   -> removed
  *  18 FAQ                       -> FaqSection (funnel.faq)
  *  19 Newsletter                -> NewsletterSection (lead capture)
  *  20 Footer                    -> Footer.tsx (rendered by PublicLayout, not here)
  *
- * History moved from its original spec position (right after Natural/
- * Eco) to just before FAQ, and was shortened to roughly one mobile
- * screen — supplementary context rather than a primary argument, so it
- * no longer needs to compete for space early in the page. Every other
- * section has since had its real copy filled in too (see each section
+ * Every remaining section has since had its real copy filled in too (see each section
  * component's own doc comment for what changed and why) — this map no
  * longer reflects a single structural-only pass, just the current
  * render order. Sticky buy bars and the exit-intent modal are
@@ -246,8 +238,8 @@ export default function FunnelLandingPage() {
   // one-way reveal. Hidden over the hero (its own primary CTA is already
   // on screen), visible through the informational sections, hidden again
   // once the pricing cards themselves are in view (they carry their own
-  // CTAs), visible again for the short delivery/history stretch right
-  // after pricing, then hidden for good from FAQ onward so it never sits
+  // CTAs), visible again for the short delivery/payment/returns stretch
+  // right after pricing, then hidden for good from FAQ onward so it never sits
   // over the FAQ's accordion controls, the newsletter form, or footer
   // links/the cookie banner below that. faqReached is directional (based
   // on the FAQ section's boundingClientRect.top, not just isIntersecting)
@@ -310,8 +302,7 @@ export default function FunnelLandingPage() {
     return <ErrorState message={error ?? states.loadingDefault} />;
   }
 
-  const { hero, intro, why, features, comparison, history, natural_eco, science, awareness, positioning, final_cta, faq } =
-    funnelContent;
+  const { hero, intro, why, comparison, science, awareness, final_cta, faq } = funnelContent;
   const defaultVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
   const price = defaultVariant ? getVariantPrice(defaultVariant) : null;
   const packageOffers = resolvePackageOffers(product, funnelPackages);
@@ -331,11 +322,6 @@ export default function FunnelLandingPage() {
   // treatment as juun.bg's sticky add-to-cart bar (thumbnail + rating next
   // to the CTA), adapted to our own color/spacing tokens.
   const barImage = getPrimaryImage(product);
-  // WhatIsMiswakSection's 3-step visual — real product photography, sorted
-  // primary-first. Seeded order is [whole stick in hand, prepared-tip
-  // close-up, bundle] (see FunnelSeeder.php), so index 0/1 are exactly the
-  // two steps that have a real photo today.
-  const galleryImages = getGalleryImages(product);
 
   function handleFallbackAddToCart() {
     if (price) {
@@ -416,34 +402,23 @@ export default function FunnelLandingPage() {
 
       {/* 1 Header -> Navbar.tsx, rendered by PublicLayout */}
       {/* 2 Hero — carries the page's only H1 */}
-      <HeroSection
-        content={hero}
-        productName={product.name}
-        fromPrice={fromPrice}
-        deliveryPromise={funnelAssurance.delivery}
-      />
+      <HeroSection content={hero} productName={product.name} fromPrice={fromPrice} dispatchCutoff={dispatchCutoff} />
       {/* 3 Use Cases */}
       <UseCasesSection />
       {/* 4 What Is Miswak */}
-      <WhatIsMiswakSection content={intro} wholeImage={galleryImages[0]} preparedTipImage={galleryImages[1]} />
+      <WhatIsMiswakSection content={intro} />
       {/* 5 Core Benefits */}
       <CoreBenefitsSection content={why} />
       {/* 6 How To Use */}
-      <HowToUseSection videos={productVideos} posterImage={barImage} pdfUrl={usageGuidePdfUrl} />
+      <HowToUseSection videos={productVideos} pdfUrl={usageGuidePdfUrl} ctaPrimaryLabel={hero.cta_primary} fromPrice={fromPrice} />
       {/* 7 Science */}
       <ScienceSection content={science} />
       {/* 8 Skepticism / Honesty */}
       <SkepticismHonestySection content={awareness} />
-      {/* 9 Positioning Statement */}
-      <PositioningStatementSection content={positioning} />
       {/* 10 Comparison */}
-      <ComparisonSection content={comparison} />
-      {/* 11 Actual Product / What You Receive */}
-      <ActualProductSection content={features} ctaPrimaryLabel={hero.cta_primary} fromPriceLabel={fromPriceLabel} />
+      <ComparisonSection content={comparison} ctaPrimaryLabel={hero.cta_primary} fromPrice={fromPrice} />
       {/* 12 Reviews */}
       <FunnelTestimonialsSection topReviews={topReviews} reviewSummary={reviewSummary} productSlug={product.slug} />
-      {/* 13 Natural / Eco */}
-      <NaturalEcoSection content={natural_eco} />
       {/* 14 Brand Statement */}
       <BrandStatementSection content={final_cta} productName={product.name} />
       {/* 15 Pricing */}
@@ -456,10 +431,6 @@ export default function FunnelLandingPage() {
       />
       {/* 16 Delivery / Payment / Returns */}
       <DeliveryPaymentReturnsSection trustItems={final_cta.trust_items} />
-      {/* 17 History — moved here from right after Natural/Eco, shortened
-          to roughly one mobile screen: supplementary context, not a
-          primary argument, so it no longer needs early placement. */}
-      <HistorySection content={history} />
       {/* 18 FAQ */}
       <FaqSection content={faq} activeFaqIndex={activeFaqIndex} onToggle={handleFaqToggle} />
       {/* 19 Newsletter */}

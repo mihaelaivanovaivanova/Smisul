@@ -42,6 +42,7 @@ export default function AdminReviewsPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<AdminReviewFilters>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
@@ -98,6 +99,10 @@ export default function AdminReviewsPage() {
 
   function toggleSelected(id: number) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((existing) => existing !== id) : [...prev, id]));
+  }
+
+  function toggleExpanded(id: number) {
+    setExpandedIds((prev) => (prev.includes(id) ? prev.filter((existing) => existing !== id) : [...prev, id]));
   }
 
   async function submitReply(id: number) {
@@ -213,7 +218,21 @@ export default function AdminReviewsPage() {
                     <td>{review.rating} / 5</td>
                     <td style={{ maxWidth: '20rem' }}>
                       <div className="fw-semibold">{review.title}</div>
-                      <div className="text-muted small text-truncate">{review.body}</div>
+                      <div
+                        className={`text-muted small ${expandedIds.includes(review.id) ? '' : 'text-truncate'}`}
+                        role="button"
+                        tabIndex={0}
+                        title={expandedIds.includes(review.id) ? 'Click to collapse' : 'Click to show full comment'}
+                        onClick={() => toggleExpanded(review.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            toggleExpanded(review.id);
+                          }
+                        }}
+                      >
+                        {review.body}
+                      </div>
                       {review.admin_reply && (
                         <div className="small mt-1">
                           <span className="fw-semibold">Reply:</span> {review.admin_reply}

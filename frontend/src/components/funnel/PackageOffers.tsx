@@ -14,6 +14,7 @@ import type { PackageOffer } from '../../services/funnelOffers';
  * which broke the moment a 4th package (the 1-pack) was added.
  */
 const packageImages: Record<number, string> = {
+  1: '/funnel/v2/packages/pack-1.webp',
   3: '/funnel/v2/packages/pack-3.webp',
   5: '/funnel/v2/packages/pack-5.webp',
   10: '/funnel/v2/packages/pack-10.webp',
@@ -39,13 +40,14 @@ export default function PackageOffers({ offers, showImages = false }: { offers: 
           singleStickPrice && variant.pack_size > 1
             ? Math.round((1 - price.amount / variant.pack_size / singleStickPrice) * 100)
             : null;
+        const hasImage = showImages && Boolean(packageImages[variant.pack_size]);
 
         return (
           <div
-            className={`funnel-package-card${index === featuredIndex ? ' funnel-package-card--featured' : ''}`}
+            className={`funnel-package-card${index === featuredIndex ? ' funnel-package-card--featured' : ''}${hasImage ? '' : ' funnel-package-card--no-image'}`}
             key={pkg.variant_id}
           >
-            {showImages && packageImages[variant.pack_size] && (
+            {hasImage && (
               <div className="funnel-package-card__image">
                 <img
                   src={packageImages[variant.pack_size]}
@@ -86,6 +88,7 @@ export default function PackageOffers({ offers, showImages = false }: { offers: 
                   productVariantId={variant.id}
                   inventory={variant.inventory}
                   label={pkg.button_text}
+                  size="md"
                   hideQuantity
                   // Funnel-only: a "yes" goes straight to the cart page
                   // (with its checkout CTA) instead of leaving the visitor

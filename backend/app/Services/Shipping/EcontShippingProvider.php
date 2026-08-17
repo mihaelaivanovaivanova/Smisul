@@ -33,6 +33,8 @@ use Throwable;
  */
 class EcontShippingProvider implements ShippingProviderInterface
 {
+    public function __construct(private readonly ShippingProviderSettingsService $settings) {}
+
     public function carrier(): ShippingCarrier
     {
         return ShippingCarrier::Econt;
@@ -226,10 +228,12 @@ class EcontShippingProvider implements ShippingProviderInterface
 
     private function client(): PendingRequest
     {
-        return Http::baseUrl((string) config('services.shipping.econt.base_url'))
+        $credentials = $this->settings->credentialsFor('econt');
+
+        return Http::baseUrl((string) ($credentials['base_url'] ?? ''))
             ->withBasicAuth(
-                (string) config('services.shipping.econt.username'),
-                (string) config('services.shipping.econt.password'),
+                (string) ($credentials['username'] ?? ''),
+                (string) ($credentials['password'] ?? ''),
             )
             ->acceptJson()
             ->timeout(5);

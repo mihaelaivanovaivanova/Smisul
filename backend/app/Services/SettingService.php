@@ -4,18 +4,23 @@ namespace App\Services;
 
 use App\Models\Setting;
 use App\Services\Payments\ICardConfigurationService;
+use App\Services\Shipping\ShippingProviderSettingsService;
 use Illuminate\Support\Collection;
 
 /**
  * Backs the admin Settings screen. Only the "editable" groups
  * (general/email/seo/media/system) live in the settings table; Payments
- * and Shipping are env/config-driven (see Sprints 7-8) and are only ever
- * exposed here as a read-only configured/not-configured status — actual
- * credential values are never returned to the admin panel.
+ * and Shipping are DB-backed-with-env-fallback (see ICardConfigurationService
+ * / ShippingProviderSettingsService) and are only ever exposed here as a
+ * read-only configured/not-configured status — actual credential values are
+ * never returned to the admin panel through this endpoint.
  */
 class SettingService
 {
-    public function __construct(private readonly ICardConfigurationService $icardConfiguration) {}
+    public function __construct(
+        private readonly ICardConfigurationService $icardConfiguration,
+        private readonly ShippingProviderSettingsService $shippingSettings,
+    ) {}
 
     public const EDITABLE_GROUPS = ['general', 'email', 'seo', 'media', 'system'];
 
@@ -110,17 +115,7 @@ class SettingService
                     'storage_ready' => $icard['storage_ready'],
                 ],
             ],
-            'shipping' => [
-                'econt' => [
-                    'configured' => filled(config('services.shipping.econt.username')),
-                ],
-                'speedy' => [
-                    'configured' => filled(config('services.shipping.speedy.username')),
-                ],
-                'box_now' => [
-                    'configured' => filled(config('services.shipping.box_now.client_id')),
-                ],
-            ],
+            'shipping' => $this->shippingSettings->status(),
         ];
     }
 }

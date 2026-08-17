@@ -142,11 +142,37 @@
   }
 }
 
-/* Hero benefit bar — four short emoji+label facts under the fine print.
+/* Stacked "label + from-price" button treatment, first built for the
+   Hero CTA and reused as-is by every other standalone buy button on the
+   page (Comparison's) that doesn't already show price nearby some other
+   way (the sticky bars do, in their own layout, so they don't use this).
+   Sizes independently of .btn-lg's own 20px label - .funnel-hero__cta-sub
+   keeps the same --fs-xs/600 weight the fine print used before, just
+   recolored for contrast on the terracotta button. */
+.funnel-hero__cta {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  line-height: 1.2;
+}
+
+.funnel-hero__cta-main {
+  display: block;
+}
+
+.funnel-hero__cta-sub {
+  display: block;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+/* Hero delivery/returns line — two short facts under the CTA.
    Deliberately lighter than .funnel-trust-row's circular-icon badges
-   (used further down for the delivery/payment/returns guarantees): this
-   one reads as a quick scan line, not a trust-badge block, keeping the
-   fold short. */
+   (used both further down for the delivery/payment/returns guarantees,
+   and now also in the hero itself for the product-attribute row below)
+   — this one reads as a quick scan line, not a trust-badge block. */
 .funnel-hero__benefits {
   display: flex;
   flex-wrap: wrap;
@@ -159,10 +185,25 @@
   font-weight: 700;
 }
 
+/* Lines up with the full-width button and the centered trust-badge row
+   below it, rather than the default flex-start rag. */
+.funnel-hero__benefits--centered {
+  justify-content: center;
+}
+
 .funnel-hero__benefits li {
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
+}
+
+/* Sized to the row's own text (1.1em) rather than Icon.tsx's 1.25em
+   default — keeps the "quick scan line" weight the emoji it replaced
+   had, not a heavier icon-led treatment. */
+.funnel-hero__benefit-icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
 }
 
 .funnel-trust-row {
@@ -216,51 +257,70 @@
   line-height: 1.25;
 }
 
+/* Hero's own trust row has 5 items, not the 4 the base grid above is
+   tuned for — a fixed 4-column grid would strand the 5th alone, flush
+   left, on its own row. Flexbox + wrap + center was the first attempt,
+   but wrapping to an uneven split (e.g. 3+2 around the 992-1199px lg
+   band, before the column is wide enough for 5 in one line) centers
+   each row independently around a DIFFERENT content-width midpoint —
+   technically correct per-row, but the two rows visibly don't line up
+   with each other, reading as crooked rather than centered. Sized
+   small enough here that all 5 fit one line at every width from 576px
+   up (matching the same fix already applied at <576px below) avoids
+   the wrapping case entirely instead of trying to make it look right. */
+.funnel-hero .funnel-trust-row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.funnel-hero .funnel-trust-item {
+  flex: 0 1 4rem;
+  padding-inline: 0;
+}
+
+.funnel-hero .funnel-trust-item__icon {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.funnel-hero .funnel-trust-item__label {
+  font-size: 0.65rem;
+  line-height: 1.2;
+}
+
 /* Phone density for the icon rows: the loose 2x2 stacks (Bootstrap's
    default breakpointing) eat a lot of scroll for what are glanceable
    badges — compact single strips / tight grids instead. */
 @media (max-width: 575.98px) {
-  /* Hero trust badges: one strip of four under the CTA. */
+  /* Hero trust badges: a tight strip, sized so all 5 fit on one line
+     even at narrow phone widths instead of wrapping 4+1. */
   .funnel-hero .funnel-trust-row {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-2);
-  }
-
-  .funnel-hero .funnel-trust-item {
-    padding: 0;
+    flex-wrap: nowrap;
     gap: var(--space-1);
   }
 
+  .funnel-hero .funnel-trust-item {
+    flex-basis: 3.5rem;
+    padding: 0;
+    gap: 0.2rem;
+  }
+
   .funnel-hero .funnel-trust-item__icon {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 1.75rem;
+    height: 1.75rem;
   }
 
   .funnel-hero .funnel-trust-item__label {
-    font-size: 0.72rem;
+    font-size: 0.58rem;
+    line-height: 1.15;
   }
 
   /* Buy-section guarantees keep 2x2 (their labels are sentences) but
      lose the padding air. */
   .funnel-final-cta .funnel-trust-item {
     padding: var(--space-1);
-  }
-
-  /* Features: 4x2 grid of smaller badges instead of a 2x4 tower.
-     (.funnel-page prefix: these base rules are declared later in the
-     file, so the mobile overrides need the higher specificity.) */
-  .funnel-page .funnel-feature-row {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-3) var(--space-2);
-  }
-
-  .funnel-page .funnel-feature-item__icon {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
-
-  .funnel-page .funnel-feature-item__label {
-    font-size: 0.72rem;
   }
 
   /* Harvest steps: all three on one line. */
@@ -367,56 +427,142 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ---- What Is Miswak — 3-step photo sequence ---- */
-
-.funnel-whatis-sequence {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.funnel-whatis-sequence__item {
-  flex: 1 1 0;
-  aspect-ratio: 1 / 1;
-  min-width: 0;
-  background-color: var(--color-sand);
-}
-
-.funnel-whatis-sequence__arrow {
-  flex: 0 0 auto;
-  color: var(--color-terracotta);
-  font-size: var(--fs-lg);
-}
-
-/* Stacked on phones — a sideways arrow reads oddly between full-width
-   tiles, so it rotates to point down instead of being hidden outright. */
-@media (max-width: 575.98px) {
-  .funnel-whatis-sequence {
-    flex-direction: column;
-  }
-
-  .funnel-whatis-sequence__item {
-    width: 100%;
-    max-width: 14rem;
-  }
-
-  .funnel-whatis-sequence__arrow {
-    transform: rotate(90deg);
-  }
-}
-
-/* ---- How-to-use step cards (#how-to-use) ---- */
-
-/* Extends .funnel-usecase-card's plain surface treatment with a numbered
-   marker instead of an emoji title — same card shell, reused rather than
-   duplicated. */
-.funnel-step-card__number {
+/* Same circular-badge recipe as .funnel-step-card__number (HowToUseSection)
+   — a plain icon in place of that one's number, kept as its own class
+   since the two aren't the same semantic marker. */
+.funnel-usecase-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2rem;
   height: 2rem;
   margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--color-forest);
+  color: #fff;
+}
+
+.funnel-usecase-card__icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* .section-lead's own max-width (42rem) has no auto margins by default,
+   so it stays flush left in a wider container — text-align:center alone
+   only centers the text within that left-anchored box, not the box
+   itself. Center the box too so the line reads centered under the
+   full-width card grid above it. */
+.funnel-usecases__closing {
+  margin-inline: auto;
+}
+
+/* Same fix as .funnel-usecases__closing above — .section-lead's own
+   max-width has no auto margins by default, so text-align:center alone
+   only centers the text within a box that's itself left-anchored. */
+.funnel-why__closing {
+  margin-inline: auto;
+}
+
+.funnel-howtouse__subtitle {
+  margin-inline: auto;
+}
+
+/* ---- What Is Miswak — natural-substances checklist ---- */
+
+.funnel-intro-benefits {
+  margin-top: var(--space-4);
+}
+
+.funnel-intro-benefits__title {
+  margin-bottom: var(--space-2);
+  font-weight: 700;
+  color: var(--color-forest-dark);
+}
+
+.funnel-intro-benefits__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.funnel-intro-benefits__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.funnel-intro-benefits__icon {
+  flex-shrink: 0;
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.2em;
+  color: var(--color-forest);
+}
+
+/* ---- How-to-use step cards (#how-to-use) ---- */
+
+/* Same hover-lift language as .funnel-package-card — opt-in via
+   .funnel-usecase-card--hover so it doesn't apply to every card built on
+   the shared .funnel-usecase-card base, only the ones that ask for it
+   (step cards, Use Cases cards). */
+.funnel-step-card,
+.funnel-usecase-card--hover {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.funnel-step-card:hover,
+.funnel-usecase-card--hover:hover {
+  position: relative;
+  z-index: 2;
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-sage);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-step-card:hover,
+  .funnel-usecase-card--hover:hover {
+    transform: none;
+  }
+}
+
+/* Extends .funnel-usecase-card's plain surface treatment with a numbered
+   marker instead of an emoji title — same card shell, reused rather than
+   duplicated. */
+.funnel-step-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+/* Desktop only: number and title stack on separate lines instead of
+   sharing a row — mobile/tablet keep the inline treatment above. */
+@media (min-width: 992px) {
+  .funnel-step-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .funnel-step-card__number {
+    margin-bottom: var(--space-2);
+  }
+}
+
+.funnel-step-card__number {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   background-color: var(--color-forest);
   color: #fff;
@@ -432,6 +578,7 @@
   position: relative;
   display: block;
   width: 100%;
+  height: 100%;
   padding: 0;
   border: none;
   border-radius: var(--radius-lg);
@@ -443,7 +590,8 @@
 .funnel-video__poster-button img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   opacity: 0.85;
 }
 
@@ -464,34 +612,6 @@
   background-color: rgba(0, 0, 0, 0.4);
 }
 
-/* ---- Natural / Eco (#natural-eco) ---- */
-
-.funnel-natural-eco__statement {
-  max-width: 40rem;
-  margin: var(--space-5) auto 0;
-  color: var(--color-forest-dark);
-  font-family: var(--font-heading);
-  font-size: var(--fs-md);
-  font-weight: 700;
-  line-height: 1.5;
-  text-align: center;
-}
-
-/* ---- History (#history) — short, text-only, no photo/stats ---- */
-
-.funnel-history__inner {
-  max-width: 36rem;
-  margin-inline: auto;
-}
-
-.funnel-history__subtitle {
-  margin-bottom: var(--space-3);
-  color: var(--color-terracotta);
-  font-family: var(--font-heading);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-}
-
 /* ---- Brand statement tagline (#brand-statement) ---- */
 
 .funnel-brand-statement__tagline {
@@ -503,22 +623,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ---- Positioning statement (#positioning-statement) ---- */
-
-.funnel-positioning-statement {
-  max-width: 40rem;
-  margin-inline: auto;
-}
-
-.funnel-positioning-statement__title {
-  margin-bottom: var(--space-2);
-  color: var(--color-forest-dark);
-  font-family: var(--font-heading);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  line-height: 1.4;
-}
-
 /* ---- Science (#science) ---- */
 
 .funnel-science-intro {
@@ -526,12 +630,51 @@
   margin: 0 auto var(--space-4);
 }
 
+/* Matches .funnel-step-card's own h3 size (HowToUseSection, the section
+   directly above) — both are plain .funnel-usecase-card titles, so this
+   keeps them reading as the same weight of heading. */
+.funnel-science-card__title {
+  font-size: var(--fs-md);
+}
+
+.funnel-science-card__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-3);
+  border-radius: var(--radius-md);
+  position: relative;
+  transform: scale(1);
+  transform-origin: center;
+  transition: transform 0.25s ease;
+  cursor: zoom-in;
+}
+
+/* The source clip is a screenshot of a study headline — small enough at
+   card width that the text isn't reliably legible. Hovering scales it up
+   in place (z-index above sibling cards, since it overflows its own
+   column at this scale) so the text can actually be read without a
+   separate lightbox/modal. */
+.funnel-science-card__image:hover {
+  transform: scale(1.8);
+  z-index: 5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-science-card__image:hover {
+    transform: none;
+  }
+}
+
+/* Shrunk down to roughly the line-height the card title had before it was
+   bumped up above — a quiet CTA, not competing with the title for weight. */
 .funnel-science-card__source {
   display: inline-block;
   margin-top: var(--space-3);
   color: var(--color-forest);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 700;
+  line-height: 1.2;
   text-decoration: none;
 }
 
@@ -557,13 +700,6 @@
   font-size: var(--fs-lg);
   font-weight: 700;
   line-height: 1.4;
-}
-
-.funnel-science-safety {
-  max-width: 42rem;
-  margin: var(--space-4) auto 0;
-  padding-left: var(--space-4);
-  border-left: 3px solid var(--color-terracotta);
 }
 
 /* ---- "Why" cards ---- */
@@ -628,26 +764,6 @@
   aspect-ratio: 2 / 1;
   border-radius: var(--radius-md);
   margin-top: auto;
-}
-
-/* ---- Features (icon-crop grid) ---- */
-
-.funnel-feature-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4) var(--space-3);
-}
-
-@media (min-width: 576px) {
-  .funnel-feature-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (min-width: 992px) {
-  .funnel-feature-row {
-    grid-template-columns: repeat(8, 1fr);
-  }
 }
 
 /* Matches .funnel-hero-tone's cream so this section reads as a
@@ -736,45 +852,6 @@
 .funnel-from-tree__photo-col {
   display: flex;
   align-items: center;
-}
-
-.funnel-feature-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  text-align: center;
-}
-
-/* All 8 crops (see public/funnel/v2) have their tan fill stripped back
-   to a transparent glyph-only PNG — draw one uniform circle color here
-   instead of relying on each source image's own (slightly inconsistent)
-   baked-in badge shade. */
-.funnel-feature-item__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 4rem;
-  height: 4rem;
-  border-radius: 50%;
-  overflow: hidden;
-  background-color: #e3e2d1;
-}
-
-/* object-fit:contain at a fixed scale (rather than cover at 100%) keeps
-   every glyph the same visual size regardless of how tightly each one
-   was cropped — a glyph that touches its own bounding box edges (e.g.
-   the plane) would otherwise render larger than one with more built-in
-   padding (e.g. the leaf). */
-.funnel-feature-item__icon img {
-  width: 72%;
-  height: 72%;
-  object-fit: contain;
-}
-
-.funnel-feature-item__label {
-  font-size: var(--fs-xs);
-  font-weight: 700;
 }
 
 /* ---- From tree ---- */
@@ -871,6 +948,19 @@
   mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
 }
 
+/* Desktop only: the row height (and with it, the whole band) was being
+   driven by this image's own tall portrait crop stretching to fill the
+   row — a fixed wide aspect ratio keeps the band shallow regardless of
+   viewport width, instead of scaling with it. Height now comes from
+   aspect-ratio (not the row), so the bleed is a plain fixed offset. */
+@media (min-width: 992px) {
+  .funnel-awareness__image {
+    height: auto;
+    aspect-ratio: 21 / 9;
+    margin-block: calc(-1 * var(--space-4));
+  }
+}
+
 /* ---- Assurance microcopy (payment/delivery facts near CTAs) ---- */
 
 .funnel-assurance {
@@ -935,9 +1025,19 @@
   width: 28%;
 }
 
+/* Subordinate to PositioningStatementSection's title immediately above
+   (now the real section-level H2 for this transition, using the
+   standard .section-title treatment) — --fs-lg (22px) reads clearly as
+   a card/internal heading here, not a second section boundary. Shared
+   by both the desktop table's <th> and the mobile-only duplicate
+   heading below, so the two stay in sync (the margin reset only applies
+   inside the table — the mobile instance keeps its own mb-4 spacing). */
 .funnel-comparison__title {
+  font-size: var(--fs-lg);
+}
+
+.funnel-comparison__table .funnel-comparison__title {
   margin: 0;
-  font-size: var(--fs-xl);
 }
 
 /* Product photo above the column label, both centered. The two photos
@@ -965,6 +1065,19 @@
   /* The photos sit on pure-white backgrounds; multiply melts that white
      into the (tinted) cell background instead of showing a hard box. */
   mix-blend-mode: multiply;
+}
+
+/* The source photo is a saturated blue toothbrush/toothpaste stock shot —
+   conflicts with the site's warm photographic language everywhere else.
+   No warm-toned replacement photo or matching SVG icon exists in the
+   project (checked public/funnel/v2 and Icon.tsx's set) — see the plan
+   note in ComparisonSection.tsx for what a proper asset needs. Toning
+   it into the page's cream/olive palette via filter, same technique
+   already used to tune the footer's payment logos, so it visually
+   coexists with the Miswak photo beside it rather than replacing the
+   asset outright. */
+.funnel-comparison__toothbrush-img {
+  filter: grayscale(0.8) sepia(0.45) saturate(1.5) brightness(1.08);
 }
 
 .funnel-comparison__table tbody th {
@@ -1077,16 +1190,82 @@
   font-size: var(--fs-sm);
 }
 
+/* ---- How-to-use layout (steps + video) ---- */
+
+/* Mobile default (<768px): single column, all 6 steps first, video last —
+   reordered via `order` since the DOM keeps steps 1-3, video, steps 4-6
+   throughout (that DOM order is what tablet/desktop actually want). */
+.funnel-howtouse__layout--with-video {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.funnel-howtouse__cards-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.funnel-howtouse__video-col {
+  order: 3;
+}
+
+.funnel-howtouse__cards-col--right {
+  order: 2;
+}
+
+/* Tablet (768-991px): restore natural DOM order — steps 1-3, video,
+   steps 4-6, stacked top to bottom. */
+@media (min-width: 768px) {
+  .funnel-howtouse__video-col,
+  .funnel-howtouse__cards-col--right {
+    order: 0;
+  }
+}
+
+/* Desktop, and only when a video exists: 3 equal columns — steps 1-3,
+   the video + its CTA centered in the middle, steps 4-6. */
+@media (min-width: 992px) {
+  .funnel-howtouse__layout--with-video {
+    flex-direction: row;
+    align-items: stretch;
+    gap: var(--space-6);
+  }
+
+  .funnel-howtouse__layout--with-video > * {
+    flex: 1 1 0;
+  }
+
+  .funnel-howtouse__cards-col {
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .funnel-howtouse__video-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
 /* ---- Usage video ---- */
 
+/* aspect-ratio matches the source clip's own 1080x1920 (9:16) frame, so the
+   wrap reserves its final on-screen size before either the poster or the
+   <video> paints — switching between them (click-to-play) no longer resizes
+   the screen out from under the visitor. */
 .funnel-video__wrap {
   max-width: 22rem;
   margin-inline: auto;
+  aspect-ratio: 9 / 16;
 }
 
 .funnel-video__wrap video {
   display: block;
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   background-color: #000;
@@ -1239,6 +1418,23 @@
     border-color 0.2s ease;
 }
 
+/* The 1-pack card has no matching entry in packageImages (no suitable
+   product photo exists yet — see PackageOffers.tsx). Without the
+   image's ~4:3 slot, this card's content is shorter than its siblings;
+   once the desktop/tablet grid stretches every card to equal height
+   (align-items: stretch above), the existing margin-top: auto on
+   .funnel-package-card__cta absorbs ALL of that extra height as one
+   oversized gap right above the button, reading as unfinished. Giving
+   the badge (the first child) its own margin-top: auto too splits that
+   free space evenly between "above the content block" and "above the
+   CTA" — the content reads as deliberately centered, and the CTA stays
+   pinned to the same bottom edge as every other card (unchanged). No
+   effect where there's no extra height to distribute (mobile's
+   single-column stack sizes each card to its own content). */
+.funnel-package-card--no-image .funnel-package-card__badge {
+  margin-top: auto;
+}
+
 .funnel-package-card__image {
   width: 100%;
   aspect-ratio: 4 / 3;
@@ -1330,6 +1526,20 @@
   font-weight: 700;
   line-height: 1;
   color: var(--color-forest-dark);
+  white-space: nowrap;
+}
+
+/* 4-column band (992-1439px): columns are narrow enough here that the
+   full --fs-xl price ("3.99 € (7.80 лв.)" etc.) wraps awkwardly
+   mid-string. One size down, same token the tablet band above uses —
+   desktop (>=1440px) keeps the full --fs-xl size. Placed after the base
+   rule above (not next to the tablet band it mirrors) so it actually
+   wins the cascade — media queries don't add specificity, only source
+   order breaks the tie against a later plain rule. */
+@media (min-width: 992px) and (max-width: 1439.98px) {
+  .funnel-package-card__price {
+    font-size: var(--fs-lg);
+  }
 }
 
 .funnel-package-card__save {
@@ -1430,6 +1640,24 @@
   border-color: var(--color-forest);
   background-color: rgba(36, 54, 44, 0.06);
   color: var(--color-forest-dark);
+}
+
+/* "+" rotates into an "×" on open instead of swapping to "−" — a
+   continuous, animatable state change rather than an instant glyph
+   swap the old text-content toggle had no way to transition. */
+.funnel-faq-toggle__indicator {
+  display: inline-block;
+  transition: transform 0.2s ease-out;
+}
+
+.funnel-faq-toggle.is-active .funnel-faq-toggle__indicator {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-faq-toggle__indicator {
+    transition: none;
+  }
 }
 
 /* Animated accordion: the wrapper's grid row interpolates 0fr -> 1fr so

@@ -1,5 +1,6 @@
 import { WhyIcon } from '../FunnelIcons';
 import type { FunnelWhyContent } from '../../../types/funnel';
+import type { IconName } from '../../icons/Icon';
 
 interface CoreBenefitsSectionProps {
   content: FunnelWhyContent;
@@ -7,14 +8,18 @@ interface CoreBenefitsSectionProps {
 
 // object-position per image so the wider 2:1 crop (see funnel.css) keeps
 // each photo's actual subject in frame instead of a blind center-crop.
-// Order matches the 3 new cards (always-at-hand / naturally-simple /
-// no-paste), reassigned from the old card order — see this file's doc
-// comment.
-const WHY_IMAGES = [
-  { file: '03-bag-pocket', focus: '50% 55%' }, // miswak stick + bag zipper — fits "always at hand"
-  { file: '05-seedling', focus: '50% 25%' }, // plant sprout — fits "naturally simple / plant-based"
-  { file: '04-mouth-bite', focus: '50% 40%' }, // mouth/teeth — fits "no paste, used directly on teeth"
-];
+// Keyed by the card's own icon (a stable CMS-owned field) rather than
+// array position — a previous version matched by index, which silently
+// mispairs the photo the moment a card's position changes (e.g.
+// reordering cards in the admin panel, or here). Same class of fragility
+// already fixed once for ActualProductSection's icons; fixed at the root
+// here too instead of patching around it.
+const WHY_IMAGES: Partial<Record<IconName, { file: string; focus: string }>> = {
+  clock: { file: '03-bag-pocket', focus: '50% 55%' }, // miswak stick + bag zipper — fits "always at hand"
+  globe: { file: '05-seedling', focus: '50% 25%' }, // plant sprout — fits "naturally simple / plant-based"
+  tooth: { file: '04-mouth-bite', focus: '50% 40%' }, // mouth/teeth — fits "no paste, used directly on teeth"
+};
+const FALLBACK_IMAGE = { file: '03-bag-pocket', focus: '50% 55%' };
 
 /**
  * Section 5/20 — Core Benefits. Powered by the existing "funnel.why"
@@ -43,31 +48,34 @@ export default function CoreBenefitsSection({ content }: CoreBenefitsSectionProp
           <span className="funnel-eyebrow-accent">Miswak?</span>
         </h2>
         <div className="row row-cols-1 row-cols-md-3 g-5 funnel-why-row">
-          {content.cards.map((card, index) => (
-            <div className="col" key={card.title}>
-              <div className="funnel-why-card">
-                <WhyIcon icon={card.icon} />
-                <div>
-                  <h3 className="h6 mb-2">{card.title}</h3>
-                  <p className="section-lead lead mb-0">{card.text}</p>
+          {content.cards.map((card) => {
+            const image = WHY_IMAGES[card.icon] ?? FALLBACK_IMAGE;
+            return (
+              <div className="col" key={card.title}>
+                <div className="funnel-why-card">
+                  <WhyIcon icon={card.icon} />
+                  <div>
+                    <h3 className="h6 mb-2">{card.title}</h3>
+                    <p className="section-lead lead mb-0">{card.text}</p>
+                  </div>
+                </div>
+                <div className="funnel-photo funnel-why-card__photo">
+                  <img
+                    src={`/funnel/v2/${image.file}.webp`}
+                    srcSet={`/funnel/v2/${image.file}-800.webp 800w, /funnel/v2/${image.file}.webp 1536w`}
+                    sizes="(min-width: 768px) 33vw, 100vw"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{ objectPosition: image.focus }}
+                  />
                 </div>
               </div>
-              <div className="funnel-photo funnel-why-card__photo">
-                <img
-                  src={`/funnel/v2/${(WHY_IMAGES[index] ?? WHY_IMAGES[0]).file}.webp`}
-                  srcSet={`/funnel/v2/${(WHY_IMAGES[index] ?? WHY_IMAGES[0]).file}-800.webp 800w, /funnel/v2/${(WHY_IMAGES[index] ?? WHY_IMAGES[0]).file}.webp 1536w`}
-                  sizes="(min-width: 768px) 33vw, 100vw"
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  style={{ objectPosition: (WHY_IMAGES[index] ?? WHY_IMAGES[0]).focus }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        <p className="section-lead lead text-center fw-semibold mt-5 mb-0">{content.closing}</p>
+        <p className="funnel-why__closing section-lead lead text-center fw-semibold mt-5 mb-0">{content.closing}</p>
       </div>
     </section>
   );

@@ -106,10 +106,16 @@ export default function Footer() {
 
         <hr className="my-0" style={{ borderColor: 'rgba(255, 255, 255, 0.18)' }} />
 
-        {/* Legal links — one wrapping line. */}
+        {/* Legal links — a clean single column at narrow widths (a wrapping
+            row here left uneven, ragged center-aligned lines whose length
+            varies link to link); back to the original wrapping row from
+            sm (576px) up, where there's enough width for it to read as
+            intentional. row-gap-3 in the stacked column gives each link
+            a comfortable tap target (row-gap-1 was fine for a wrapped
+            row's occasional second line, too tight for a full stack). */}
         <nav
           aria-label={footer.legalHeading}
-          className="d-flex flex-wrap justify-content-center justify-content-md-start column-gap-4 row-gap-1"
+          className="d-flex flex-column flex-sm-row flex-wrap align-items-center justify-content-center justify-content-md-start column-gap-4 row-gap-3 row-gap-sm-1"
         >
           {legalDocuments?.map((document) => (
             <Link key={document.slug} className="text-decoration-none text-muted small" to={`/legal/${document.slug}`}>

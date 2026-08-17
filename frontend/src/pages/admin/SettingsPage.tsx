@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { fetchSettings, updateSettings } from '../../api/admin/settings';
 import { fetchAdminLegalDocuments, publishLegalDocument } from '../../api/admin/legalDocuments';
 import type { SettingItem } from '../../types/admin';
@@ -7,6 +7,7 @@ import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import ICardSettingsPanel from '../../components/admin/ICardSettingsPanel';
+import ShippingSettingsPanel from '../../components/admin/ShippingSettingsPanel';
 
 const EDITABLE_GROUPS = new Set(['general', 'email', 'seo', 'media', 'system']);
 
@@ -104,26 +105,6 @@ function EditableGroupPanel({ group, items, onSaved }: { group: string; items: S
   );
 }
 
-function ProviderStatusPanel({ providers }: { providers: Record<string, { configured: boolean; environment?: string }> }) {
-  return (
-    <div className="row g-3">
-      {Object.entries(providers).map(([name, status]) => (
-        <div key={name} className="col-sm-6 col-md-4">
-          <div className="card h-100">
-            <div className="card-body">
-              <h6 className="text-capitalize">{name.replace(/_/g, ' ')}</h6>
-              <span className={`badge text-bg-${status.configured ? 'success' : 'secondary'}`}>
-                {status.configured ? 'Configured' : 'Not configured'}
-              </span>
-              {status.environment && <div className="small text-muted mt-1">Environment: {status.environment}</div>}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function LegalPanel() {
   const [reloadKey, setReloadKey] = useState(0);
   const { data: documents, isLoading, error } = useAsync(fetchAdminLegalDocuments, [reloadKey], 'Could not load legal documents.');
@@ -134,6 +115,22 @@ function LegalPanel() {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [viewingId, setViewingId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  async function handleCopy(text: string, id: number) {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+  }
+
+  function handleUseAsNewVersion(document: { type: string; title: string; content: string | null }) {
+    setType(document.type);
+    setTitle(document.title);
+    setContent(document.content ?? '');
+    setVersion('');
+  }
 
   async function handlePublish() {
     setIsSubmitting(true);
@@ -164,18 +161,58 @@ function LegalPanel() {
                 <th>Version</th>
                 <th>Current</th>
                 <th>Published</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {documents.map((document) => (
-                <tr key={document.id}>
-                  <td>{document.type_label}</td>
-                  <td>{document.version}</td>
-                  <td>
-                    {document.is_current && <span className="badge text-bg-success">Current</span>}
-                  </td>
-                  <td>{new Date(document.published_at).toLocaleDateString('bg-BG')}</td>
-                </tr>
+                <Fragment key={document.id}>
+                  <tr>
+                    <td>{document.type_label}</td>
+                    <td>{document.version}</td>
+                    <td>
+                      {document.is_current && <span className="badge text-bg-success">Current</span>}
+                    </td>
+                    <td>{new Date(document.published_at).toLocaleDateString('bg-BG')}</td>
+                    <td className="text-end">
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => setViewingId((current) => (current === document.id ? null : document.id))}
+                      >
+                        {viewingId === document.id ? 'Hide' : 'View'}
+                      </button>
+                    </td>
+                  </tr>
+                  {viewingId === document.id && (
+                    <tr>
+                      <td colSpan={5} className="bg-body-tertiary">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <strong className="small">
+                            {document.type_label} v{document.version} — {document.title}
+                          </strong>
+                          <div className="d-flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() => void handleCopy(document.content ?? '', document.id)}
+                            >
+                              {copiedId === document.id ? 'Copied!' : 'Copy content'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleUseAsNewVersion(document)}
+                            >
+                              Use as new version
+                            </button>
+                          </div>
+                        </div>
+                        <textarea className="form-control font-monospace small" rows={8} readOnly value={document.content ?? ''} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -253,7 +290,7 @@ export default function SettingsPage() {
           </ul>
 
           {activeTab === 'payments' && <ICardSettingsPanel />}
-          {activeTab === 'shipping' && <ProviderStatusPanel providers={data.providers.shipping} />}
+          {activeTab === 'shipping' && <ShippingSettingsPanel />}
           {activeTab === 'legal' && <LegalPanel />}
           {EDITABLE_GROUPS.has(activeTab) && (
             <EditableGroupPanel

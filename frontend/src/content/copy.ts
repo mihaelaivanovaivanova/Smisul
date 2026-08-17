@@ -1,17 +1,18 @@
 /**
  * Bulgarian marketing/content copy for the public storefront.
  *
- * Centralized here (rather than a full i18n framework — this is a
+ * Centralized here (rather than a full i18n framework - this is a
  * single-locale site for now) so brand voice lives in one obvious,
  * editable place instead of scattered across page components. All copy
  * is placeholder content: natural/premium in tone, and deliberately
  * avoids medical claims ("cures", "treats", "heals", guaranteed health
  * outcomes) per brand guidelines.
  */
+import type { IconName } from '../components/icons/Icon';
 
 export const siteName = 'Smisul';
 
-/** The permanent brand promise (ai/context/00_Project_Vision.md) — a fixed slogan, not admin-editable marketing content. Used in BrandStatementSection.tsx. */
+/** The permanent brand promise (ai/context/00_Project_Vision.md) - a fixed slogan, not admin-editable marketing content. Used in BrandStatementSection.tsx. */
 export const brandTagline = 'По-малко излишно. Повече смисъл.';
 
 export const nav = {
@@ -35,12 +36,12 @@ export const footer = {
   about: 'За нас',
   contact: 'Контакти',
   cookieSettings: 'Настройки на бисквитките',
-  /** Legal merchant identity block — shown only once the admin fills the settings. */
+  /** Legal merchant identity block - shown only once the admin fills the settings. */
   merchantHeading: 'Данни за търговеца',
   companyLabel: 'Фирма',
   managerLabel: 'Управител',
   companyIdLabel: 'ЕИК',
-  cardOnlyPayment: 'Само плащане с карта — сигурно, бързо и изцяло дигитално.',
+  cardOnlyPayment: 'Само плащане с карта - сигурно, бързо и изцяло дигитално.',
   walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
 };
 
@@ -234,7 +235,7 @@ export const listing = {
 
 export const stock = {
   inStock: 'В наличност',
-  lowStock: (quantity: number) => `Ограничена наличност — остават ${quantity} бр.`,
+  lowStock: (quantity: number) => `Ограничена наличност - остават ${quantity} бр.`,
   outOfStock: 'Изчерпан',
   unknown: 'Наличността не е известна',
 };
@@ -247,29 +248,14 @@ export const price = {
 export const funnelOffer = {
   perUnit: (formattedPrice: string) => `${formattedPrice} / бр.`,
   fromPrice: (formattedPrice: string) => `от ${formattedPrice}`,
-  /** Hero's under-CTA fine print — the live cheapest package price, never hardcoded. */
+  /** Hero's under-CTA fine print - the live cheapest package price, never hardcoded. */
   packagesFrom: (formattedPrice: string) => `Пакети от ${formattedPrice}`,
-  /** Mobile sticky CTA's fixed label — paired with the live fromPrice() price at render. */
+  /** Mobile sticky CTA's fixed label - paired with the live fromPrice() price at render. */
   mobileCtaLabel: 'ИЗБЕРИ ПАКЕТ',
 };
 
 /**
- * The funnel hero's benefit bar — four short, fixed badges under the
- * CTA. Emoji rather than the Icon.tsx SVG set: no image/SVG request,
- * zero layout-shift risk, and reads clearly at the small size this row
- * renders at. Not admin-editable via the CMS (unlike the bigger hero
- * fields) — this is fixed UI microcopy in the same vein as
- * funnelAssurance below, not marketing "section" content.
- */
-export const funnelHeroBenefits = [
-  { emoji: '🌿', label: 'Растителен продукт' },
-  { emoji: '💧', label: 'Без паста' },
-  { emoji: '♻️', label: 'Без пластмасова дръжка' },
-  { emoji: '👜', label: 'Навсякъде с теб' },
-];
-
-/**
- * The Use Cases section (#use-cases), immediately below the hero — same
+ * The Use Cases section (#use-cases), immediately below the hero - same
  * "fixed UI microcopy, not CMS content" treatment as funnelHeroBenefits
  * above, for the same reason (small, fixed card set, not a big editable
  * marketing section).
@@ -277,16 +263,20 @@ export const funnelHeroBenefits = [
 export const funnelUseCases = {
   title: 'Познато ли ти е?',
   cards: [
-    { title: '☕ След кафе', body: 'Кафето приключи. Вкусът остана. А четката ти е вкъщи.' },
-    { title: '🍴 След обяд', body: 'След малко имаш среща, а няма къде удобно да си измиеш зъбите.' },
-    { title: '🚗 В движение', body: 'От работа тръгваш директно към вечеря, среща или събитие.' },
-    { title: '✈️ На път', body: 'Летище, хотел, къмпинг, фестивал или просто дълъг ден навън.' },
+    { icon: 'coffee' as IconName, title: 'След кафе', body: 'Кафето приключи. Вкусът остана. А четката ти е вкъщи.' },
+    {
+      icon: 'fork' as IconName,
+      title: 'След обяд',
+      body: 'След малко имаш среща, а няма къде удобно да си измиеш зъбите.',
+    },
+    { icon: 'car' as IconName, title: 'В движение', body: 'От работа тръгваш директно към вечеря, среща или събитие.' },
+    { icon: 'plane' as IconName, title: 'На път', body: 'Летище, хотел, къмпинг, фестивал или просто дълъг ден навън.' },
   ],
-  closing: 'Точно за тези моменти съществува Miswak.',
+  closing: 'Винаги, когато ти потрябва бляскава усмивка, Мисвак идва на помощ!',
   cta: 'ВИЖ КАК РАБОТИ ↓',
 };
 
-/** The funnel landing page's social-proof blocks — hero rating line + testimonial cards. */
+/** The funnel landing page's social-proof blocks - hero rating line + testimonial cards. */
 export const funnelReviews = {
   title: 'Какво казват клиентите ни',
   average: (value: string) => `${value} / 5`,
@@ -295,7 +285,7 @@ export const funnelReviews = {
 
 /**
  * The funnel landing page's email opt-in block (see LeadCaptureForm.tsx)
- * and exit-intent modal. Both promise the usage-manual PDF on signup —
+ * and exit-intent modal. Both promise the usage-manual PDF on signup -
  * a real promise, not aspirational copy: FunnelLeadController sends
  * FunnelLeadWelcomeMail (backend/resources/views/emails/funnel-lead-welcome.blade.php)
  * on first capture, linking to the same /funnel/docs/miswak-usage-manual.pdf
@@ -305,7 +295,7 @@ export const funnelLead = {
   title: 'Нов си в света на Miswak?',
   body: 'Получи краткия ни наръчник „Как да използваш Miswak правилно" + полезни материали, новини и специални предложения от с|мисъл.',
   exitTitle: 'Преди да си тръгнеш…',
-  exitBody: 'Остави имейл и ще ти изпратим безплатното ръководство за Miswak — и ще ти пишем при промоция.',
+  exitBody: 'Остави имейл и ще ти изпратим безплатното ръководство за Miswak - и ще ти пишем при промоция.',
   exitCloseAria: 'Затвори',
   placeholder: 'Твоят имейл',
   emailAria: 'Имейл за известия',
@@ -322,7 +312,7 @@ export const funnelLead = {
  * hero's CTA. Every claim must stay true to checkout: the delivery window
  * matches the shipping methods' estimated_delivery. No free-shipping claim
  * (there is no free-shipping threshold) and no payment-method claims here
- * — those live in the DB-seeded #delivery-payment-returns trust row (see FunnelSeeder), which
+ * - those live in the DB-seeded #delivery-payment-returns trust row (see FunnelSeeder), which
  * must track PaymentService::availablePaymentMethods() (COD is currently
  * withheld there, so the page must not advertise "наложен платеж").
  */
@@ -330,11 +320,11 @@ export const funnelAssurance = {
   delivery: 'Доставка 1-2 работни дни',
   returns: '30 дни право на връщане',
   /** Shown only on weekdays before the admin-configured cutoff (see DispatchPromise.tsx). */
-  dispatch: (time: string, remaining: string) => `Поръчай до ${time} ч. — изпращаме още днес (остават ${remaining})`,
+  dispatch: (time: string, remaining: string) => `Поръчай до ${time} ч. - изпращаме още днес (остават ${remaining})`,
   paymentLogosAria: 'Приемани начини на плащане',
   /**
    * #delivery-payment-returns's own payment sub-section (heading + one
-   * line of copy) — replaces the old single fine-print paragraph, which
+   * line of copy) - replaces the old single fine-print paragraph, which
    * also used to justify card-only checkout via the BIO/ECO philosophy;
    * dropped, since the real reason is simply that iCard is the only
    * integrated gateway today (see PaymentService::availablePaymentMethods()).
@@ -343,17 +333,12 @@ export const funnelAssurance = {
   paymentCopy: 'Плащанията се обработват чрез защитена платежна система.',
 };
 
-/** Caption shown above the optional demo video inside HowToUseSection — media comes from the product's own video media. */
-export const funnelVideo = {
-  title: 'Виж колко е лесно',
-};
-
 /**
- * The How To Use section (#how-to-use) — fixed UI microcopy, same
+ * The How To Use section (#how-to-use) - fixed UI microcopy, same
  * treatment as funnelUseCases (new section, no prior CMS backing to
  * extend). The CTA scrolls to the FAQ's existing detailed usage answer
  * (which carries the downloadable PDF manual) via the #usage-guide
- * pseudo-anchor — see FunnelLandingPage.tsx's hash-scroll effect —
+ * pseudo-anchor - see FunnelLandingPage.tsx's hash-scroll effect -
  * rather than a new instructions page/modal.
  */
 export const funnelHowToUse = {
@@ -363,10 +348,11 @@ export const funnelHowToUse = {
     { title: 'ОБЕЛИ', body: 'Обели приблизително 1 см от кората.' },
     { title: 'РАЗМЕКНИ', body: 'Потопете обеленият край във вода за 5-10 минути до омекване.' },
     // Renamed from the old "РАЗМЕКНИ" (now taken by the new soak step
-    // above) to "СДЪВЧИ" — derived from this step's own body text, same
+    // above) to "СДЪВЧИ" - derived from this step's own body text, same
     // as every other step's title matches its own body's verb.
     { title: 'СДЪВЧИ', body: 'Сдъвчи внимателно края, докато влакната се разделят и заприличат на малка четка.' },
     { title: 'ПОЧИСТИ', body: 'Почиствай зъбите нежно с влакната, без силен натиск.' },
+    { title: 'СЪХРАНИ', body: 'Съхранявай на сухо и проветриво място, далеч от пряка слънчева светлина.' },
     { title: 'ОСВЕЖИ КРАЯ', body: 'Когато влакната се износят, отрежи използваната част и подготви нов край.' },
   ],
   cta: 'ВИЖ ПЪЛНИТЕ ИНСТРУКЦИИ →',
@@ -393,21 +379,21 @@ export const breadcrumbLabels = {
 export const legalPage = {
   loading: 'Зареждане на документа…',
   loadError: 'Този документ не е намерен.',
-  seoTitleSuffix: ` — ${siteName}`,
+  seoTitleSuffix: ` - ${siteName}`,
   lastUpdatedLabel: 'Версия',
 };
 
 export const about = {
-  seoTitle: `За нас — ${siteName}`,
+  seoTitle: `За нас - ${siteName}`,
   seoDescription: 'Опознай историята и ценностите на Smisul.',
   title: 'За нас',
   intro:
     'Smisul е създаден от вярата, че естествените продукти трябва да са семпли, честни и достъпни. Работим директно с внимателно подбрани доставчици, за да предложим продукти с ясен произход и състав.',
-  // Placeholder copy — replace with the real company story/team/mission before production.
+  // Placeholder copy - replace with the real company story/team/mission before production.
   sections: [
     {
       title: 'Нашата мисия',
-      text: 'Стремим се да направим грижата за тялото и ума по-семпла — без излишни съставки и без сложни обещания.',
+      text: 'Стремим се да направим грижата за тялото и ума по-семпла - без излишни съставки и без сложни обещания.',
     },
     {
       title: 'Как работим',
@@ -420,24 +406,24 @@ export const notFound = {
   title: '404',
   lead: 'Страницата, която търсиш, не съществува или е преместена.',
   cta: 'Обратно към началото',
-  seoTitle: `Страницата не е намерена — ${siteName}`,
+  seoTitle: `Страницата не е намерена - ${siteName}`,
   seoDescription: 'Страницата, която търсиш, не съществува или е преместена.',
 };
 
 export const seo = {
-  homeTitle: `${siteName} — естествени продукти с ясен смисъл`,
+  homeTitle: `${siteName} - естествени продукти с ясен смисъл`,
   homeDescription: 'Открий Smisul: естествени продукти с ясен произход, семпъл състав и грижа във всеки детайл.',
   // Shown at "/" instead of homeTitle/homeDescription while funnel mode is
-  // on (see FunnelLandingPage) — the funnel page markets a single product,
+  // on (see FunnelLandingPage) - the funnel page markets a single product,
   // not the general catalog, so it needs its own meta copy.
-  funnelTitle: `Miswak — натурална четка за зъби | ${siteName}`,
-  funnelDescription: 'Открий Miswak — 100% натурална четка за зъби от Salvadora persica. Без паста, без вода, без пластмаса.',
-  productTitleSuffix: ` — ${siteName}`,
-  productDescriptionFallback: 'Естествен продукт от Smisul — семпъл състав, ясен произход и грижа във всеки детайл.',
-  categoryTitleSuffix: ` — ${siteName}`,
-  categoryDescriptionFallback: 'Разгледай продуктите на Smisul в тази категория — естествени, семпли и създадени с грижа.',
-  searchTitleAll: `Всички продукти — ${siteName}`,
-  searchTitleQuery: (query: string) => `Резултати за „${query}“ — ${siteName}`,
+  funnelTitle: `Miswak - натурална четка за зъби | ${siteName}`,
+  funnelDescription: 'Открий Miswak - 100% натурална четка за зъби от Salvadora persica. Без паста, без вода, без пластмаса.',
+  productTitleSuffix: ` - ${siteName}`,
+  productDescriptionFallback: 'Естествен продукт от Smisul - семпъл състав, ясен произход и грижа във всеки детайл.',
+  categoryTitleSuffix: ` - ${siteName}`,
+  categoryDescriptionFallback: 'Разгледай продуктите на Smisul в тази категория - естествени, семпли и създадени с грижа.',
+  searchTitleAll: `Всички продукти - ${siteName}`,
+  searchTitleQuery: (query: string) => `Резултати за „${query}“ - ${siteName}`,
   searchHeadingAll: 'Всички продукти',
   searchHeadingQuery: (query: string) => `Резултати за „${query}“`,
   searchDescription: 'Разгледай и намери продуктите на Smisul по твоите критерии.',
@@ -445,7 +431,7 @@ export const seo = {
 
 /**
  * Short category-tag eyebrow labels for homepage sections whose heading/
- * body copy comes from the admin-editable CMS (see types/content.ts —
+ * body copy comes from the admin-editable CMS (see types/content.ts -
  * BenefitsContent/UsageContent/TrustContent/DeliveryContent/FaqContent
  * have no eyebrow field). These are structural labels, not marketing
  * copy, so they live here as static UI strings instead of going through
@@ -493,13 +479,13 @@ export const cart = {
   clearError: 'Неуспешно изпразване на количката.',
   loadError: 'Неуспешно зареждане на количката.',
   noImage: 'Няма снимка',
-  seoTitle: `Количка — ${siteName}`,
+  seoTitle: `Количка - ${siteName}`,
   seoDescription: 'Прегледай продуктите в количката си в Smisul.',
 };
 
 export const checkout = {
   title: 'Плащане',
-  seoTitle: `Плащане — ${siteName}`,
+  seoTitle: `Плащане - ${siteName}`,
   seoDescription: 'Завърши поръчката си в Smisul.',
   emptyCartTitle: 'Количката е празна',
   emptyCartMessage: 'Добави продукти в количката, преди да продължиш към плащане.',
@@ -522,11 +508,11 @@ export const checkout = {
   paymentStep: {
     title: 'Плащане',
     description:
-      'Приемаме плащания само с карта. Така процесът остава бърз, сигурен и максимално дигитален — в духа на нашата BIO • ECO • friendly философия. Плащането се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
+      'Приемаме плащания само с карта. Така процесът остава бърз, сигурен и максимално дигитален - в духа на нашата BIO • ECO • friendly философия. Плащането се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
     walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
     methodLabel: 'Начин на плащане',
     methodsLoading: 'Зареждане на начините на плащане…',
-    methodsLoadError: 'Неуспешно зареждане на начините на плащане — ще продължим с плащане с карта.',
+    methodsLoadError: 'Неуспешно зареждане на начините на плащане - ще продължим с плащане с карта.',
     methods: {
       cash_on_delivery: 'Наложен платеж',
       card: 'Плащане с карта',
@@ -619,7 +605,7 @@ export const checkout = {
   },
 
   confirmation: {
-    seoTitle: `Потвърждение на поръчка — ${siteName}`,
+    seoTitle: `Потвърждение на поръчка - ${siteName}`,
     loading: 'Зареждане на поръчката…',
     loadError: 'Неуспешно зареждане на поръчката.',
     thankYou: 'Благодарим ти за поръчката!',
@@ -634,7 +620,7 @@ export const checkout = {
 };
 
 export const tracking = {
-  seoTitle: `Проследяване на пратка — ${siteName}`,
+  seoTitle: `Проследяване на пратка - ${siteName}`,
   title: 'Проследяване на пратка',
   loading: 'Зареждане на информация за пратката…',
   loadError: 'Неуспешно зареждане на информация за пратката.',
@@ -649,7 +635,7 @@ export const tracking = {
 
 export const orders = {
   title: 'Моите поръчки',
-  seoTitle: `Моите поръчки — ${siteName}`,
+  seoTitle: `Моите поръчки - ${siteName}`,
   seoDescription: 'Прегледай историята на поръчките си в Smisul.',
   loading: 'Зареждане на поръчките…',
   loadError: 'Неуспешно зареждане на поръчките.',
@@ -681,7 +667,7 @@ export const orders = {
 
 export const favorites = {
   title: 'Любими',
-  seoTitle: `Любими — ${siteName}`,
+  seoTitle: `Любими - ${siteName}`,
   seoDescription: 'Продуктите, които си запазил/а в любими.',
   loading: 'Зареждане на любими продукти…',
   loadError: 'Неуспешно зареждане на любимите продукти.',
@@ -696,7 +682,7 @@ export const favorites = {
   addError: 'Неуспешно добавяне в любими.',
   removeError: 'Неуспешно премахване от любими.',
   duplicateError: 'Този продукт вече е в любимите ти.',
-  // Same underlying favorite — just relabeled on a product page when the
+  // Same underlying favorite - just relabeled on a product page when the
   // item is currently unavailable, since "save this for later" reads as
   // "notify me when it's back" rather than "I like this" in that context.
   addToWishlist: 'Добави в списък за изчакване',
@@ -706,7 +692,7 @@ export const favorites = {
 
 export const reviews = {
   title: 'Отзиви',
-  seoTitle: `Моите отзиви — ${siteName}`,
+  seoTitle: `Моите отзиви - ${siteName}`,
   seoDescription: 'Прегледай отзивите, които си оставил/а за продукти на Smisul.',
   loading: 'Зареждане на отзиви…',
   loadError: 'Неуспешно зареждане на отзивите.',
@@ -765,7 +751,7 @@ export const reviews = {
   },
 
   writePrompt: {
-    title: 'Продуктът е доставен — сподели мнение',
+    title: 'Продуктът е доставен - сподели мнение',
     cta: 'Напиши отзив',
     alreadyReviewed: 'Вече си оставил/а отзив за този продукт',
     editCta: 'Редактирай отзива си',
@@ -774,14 +760,14 @@ export const reviews = {
 
 /**
  * Bulgarian placeholder copy for backend-owned seed content (product
- * name/description/short_description). NOT applied automatically — these
+ * name/description/short_description). NOT applied automatically - these
  * fields live in the backend's ProductSeeder, which this sprint's brief
  * asked us not to touch without confirming first. Kept here so the copy
  * is ready to drop in once that's approved (see the sprint report's
  * "known limitations" section).
  */
 export const productSeedContentDraft = {
-  shortDescription: 'Оригиналната смес на Smisul — чиста, семпла и направена с грижа.',
+  shortDescription: 'Оригиналната смес на Smisul - чиста, семпла и направена с грижа.',
   description:
-    'Създадена от внимателно подбрани съставки, оригиналната смес на Smisul е за хората, които ценят простотата и прозрачността. Без излишни добавки, без сложни списъци — само това, което наистина има значение. Достъпна в четири разфасовки, за да намериш темпото, което пасва на твоя ден.',
+    'Създадена от внимателно подбрани съставки, оригиналната смес на Smisul е за хората, които ценят простотата и прозрачността. Без излишни добавки, без сложни списъци - само това, което наистина има значение. Достъпна в четири разфасовки, за да намериш темпото, което пасва на твоя ден.',
 };

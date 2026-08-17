@@ -6,7 +6,7 @@ use App\Models\Category;
 use Illuminate\Database\Seeder;
 
 /**
- * Three categories — enough to exercise category listing, filtering, and
+ * Three categories - enough to exercise category listing, filtering, and
  * category-scoped promotions without pretending this is the final taxonomy.
  * Products are linked to these by slug in ProductSeeder.
  */
@@ -18,7 +18,7 @@ class CategorySeeder extends Seeder
             [
                 'slug' => 'original',
                 'name' => 'Original',
-                'description' => 'Оригиналната серия на Smisul — семпъл състав и ясен произход.',
+                'description' => 'Оригиналната серия на Smisul - семпъл състав и ясен произход.',
                 'sort_order' => 0,
             ],
             [

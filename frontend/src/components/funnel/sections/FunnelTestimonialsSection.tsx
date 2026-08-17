@@ -32,7 +32,6 @@ export default function FunnelTestimonialsSection({ topReviews, reviewSummary, p
             <div className="col" key={review.id}>
               <figure className="funnel-review-card">
                 <StarRating rating={review.rating} />
-                <h3 className="h6 mb-0">{review.title}</h3>
                 <blockquote className="funnel-review-card__body mb-0">{review.body}</blockquote>
                 <figcaption className="funnel-review-card__author">
                   {review.author_name}

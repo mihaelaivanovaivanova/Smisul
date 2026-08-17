@@ -1,8 +1,14 @@
 import Icon from '../../icons/Icon';
+import { formatPrice } from '../../../services/productCatalog';
+import { funnelOffer } from '../../../content/copy';
 import type { FunnelComparisonContent } from '../../../types/funnel';
+import type { Price } from '../../../types/product';
 
 interface ComparisonSectionProps {
   content: FunnelComparisonContent;
+  ctaPrimaryLabel: string;
+  /** The live cheapest package price - same source as the Hero CTA's own price line, never hardcoded. */
+  fromPrice: Price | null | undefined;
 }
 
 /**
@@ -38,6 +44,20 @@ function ComparisonValue({ value }: { value: string }) {
 }
 
 /**
+ * IMPLEMENTATION NOTE (asset gap, not fixed here): compare-toothbrush.webp
+ * is a saturated blue stock photo that conflicts with the site's warm
+ * photographic language — flagged in an audit. Checked both fallback
+ * options before touching anything: no warm-toned realistic toothbrush+
+ * toothpaste photo exists anywhere in public/funnel/v2, and no matching
+ * neutral icon exists in Icon.tsx's SVG set (its 'tooth' glyph is a
+ * molar, not a toothbrush — wrong subject). Per instruction, not
+ * fabricating a replacement stock asset either. Toned the existing photo
+ * warmer via CSS (.funnel-comparison__toothbrush-img in funnel.css) as
+ * an interim fix. If a real fix is wanted: a warm/neutral-toned
+ * toothbrush + toothpaste product photo (or a custom line-icon in the
+ * same style as the other funnel/v2 icon-*.webp assets) shot/cropped to
+ * roughly the same ~3.5:1 letterbox as compare-miswak.webp.
+ *
  * Section 10/20 — Comparison. Powered by "funnel.comparison", rebuilt as
  * a complementary comparison (Miswak vs. brush-for-specific-moments, not
  * an "us vs. them" checklist) — see FunnelSeeder.php's doc comment. Each
@@ -53,8 +73,9 @@ function ComparisonValue({ value }: { value: string }) {
  *    a cramped 3-column table (and any horizontal scroll) at 320-360px,
  *    per the explicit requirement.
  */
-export default function ComparisonSection({ content }: ComparisonSectionProps) {
+export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice }: ComparisonSectionProps) {
   const rows = Array.isArray(content?.rows) ? content.rows : [];
+  const packagesFromLabel = fromPrice ? funnelOffer.packagesFrom(formatPrice(fromPrice.amount, fromPrice.currency)) : null;
 
   if (rows.length === 0) {
     return null;
@@ -63,7 +84,7 @@ export default function ComparisonSection({ content }: ComparisonSectionProps) {
   return (
     <section className="section funnel-hero-tone funnel-divided-section funnel-comparison" id="comparison">
       <div className="container">
-        <h2 className="section-title mb-4 text-center d-md-none">{content.title}</h2>
+        <h2 className="funnel-comparison__title mb-4 text-center d-md-none">{content.title}</h2>
 
         <div className="funnel-comparison__wrap d-none d-md-block">
           <table className="funnel-comparison__table">
@@ -80,7 +101,15 @@ export default function ComparisonSection({ content }: ComparisonSectionProps) {
                 </th>
                 <th scope="col">
                   <span className="funnel-comparison__col-head">
-                    <img src="/funnel/v2/compare-toothbrush.webp" alt="" width={1137} height={320} loading="lazy" decoding="async" />
+                    <img
+                      src="/funnel/v2/compare-toothbrush.webp"
+                      alt=""
+                      width={1137}
+                      height={320}
+                      loading="lazy"
+                      decoding="async"
+                      className="funnel-comparison__toothbrush-img"
+                    />
                     <span>{content.brush_label}</span>
                   </span>
                 </th>
@@ -120,7 +149,12 @@ export default function ComparisonSection({ content }: ComparisonSectionProps) {
           ))}
         </div>
 
-        <p className="section-lead lead text-center fw-semibold mt-4 mb-0">{content.closing}</p>
+        <div className="text-center mt-4">
+          <a href="#pricing" className="btn btn-primary btn-lg funnel-hero__cta">
+            <span className="funnel-hero__cta-main">{ctaPrimaryLabel}</span>
+            {packagesFromLabel && <span className="funnel-hero__cta-sub">{packagesFromLabel}</span>}
+          </a>
+        </div>
       </div>
     </section>
   );

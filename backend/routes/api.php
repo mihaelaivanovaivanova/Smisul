@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardContr
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
 use App\Http\Controllers\Api\V1\Admin\FunnelLeadController as AdminFunnelLeadController;
 use App\Http\Controllers\Api\V1\Admin\ICardConfigurationController as AdminICardConfigurationController;
+use App\Http\Controllers\Api\V1\Admin\ShippingProviderConfigurationController as AdminShippingProviderConfigurationController;
 use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
@@ -290,6 +291,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/payment-settings/icard', [AdminICardConfigurationController::class, 'index'])->name('payment-settings.icard.index');
         Route::put('/payment-settings/icard/{environment}', [AdminICardConfigurationController::class, 'update'])->name('payment-settings.icard.update');
         Route::post('/payment-settings/icard/{environment}/activate', [AdminICardConfigurationController::class, 'activate'])->name('payment-settings.icard.activate');
+        Route::get('/shipping-settings', [AdminShippingProviderConfigurationController::class, 'index'])->name('shipping-settings.index');
+        Route::put('/shipping-settings/{provider}', [AdminShippingProviderConfigurationController::class, 'update'])->name('shipping-settings.update');
         Route::post('/payments/{payment}/reverse', [AdminPaymentOperationController::class, 'reverse'])->name('payments.reverse');
         Route::post('/payments/{payment}/refund', [AdminPaymentOperationController::class, 'refund'])->name('payments.refund');
 

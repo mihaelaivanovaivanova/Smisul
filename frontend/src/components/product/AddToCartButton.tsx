@@ -12,8 +12,14 @@ interface AddToCartButtonProps {
   inventory: Inventory | null | undefined;
   /** Icon-only button + smaller stepper, for tight spaces like listing cards. */
   compact?: boolean;
-  /** Larger button (btn-lg) — e.g. the funnel page's final CTA. */
-  large?: boolean;
+  /**
+   * Button size tier beyond the default (small, ~38px): 'md' (~48px,
+   * btn-md) for purchase actions that need to outrank secondary/outline
+   * buttons without matching hero weight — package-card buttons, the
+   * sticky desktop buy bar's CTA; 'lg' (~56px, btn-lg) for a single
+   * hero-level CTA.
+   */
+  size?: 'md' | 'lg';
   /** Hides the quantity stepper — always adds 1. */
   hideQuantity?: boolean;
   /** Overrides the button's text (non-compact only) — e.g. the funnel page's per-package "Вземи стартов пакет" copy. */
@@ -47,7 +53,7 @@ export default function AddToCartButton({
   productVariantId,
   inventory,
   compact = false,
-  large = false,
+  size,
   hideQuantity = false,
   label,
   onAdded,
@@ -89,7 +95,7 @@ export default function AddToCartButton({
         {!hideQuantity && <QuantityStepper quantity={quantity} max={maxQuantity} disabled={isPending} onChange={setQuantity} />}
         <button
           type="button"
-          className={`btn btn-primary ${compact ? 'btn-sm' : ''} ${large ? 'btn-lg' : ''}`}
+          className={`btn btn-primary ${compact ? 'btn-sm' : ''} ${size === 'md' ? 'btn-md' : ''} ${size === 'lg' ? 'btn-lg' : ''}`}
           onClick={() => void handleAdd()}
           disabled={isPending}
           aria-label={cartCopy.addToCart}

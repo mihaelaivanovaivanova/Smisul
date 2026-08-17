@@ -36,6 +36,14 @@
   transform: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .btn:hover,
+  .btn:focus,
+  .btn:active {
+    transform: none;
+  }
+}
+
 /* Text-only buttons (e.g. the footer's "Email us"/"Cookie settings"
    actions) shouldn't float a card-like shadow under plain text. */
 .btn-link {
@@ -49,10 +57,20 @@
   transform: none;
 }
 
+/* Purchase buttons get their own tighter, more restrained motion than
+   the shared .btn recipe (-2px lift + active scale) — 1px of lift and
+   no scaling reads as precise/considered rather than bouncy, which
+   matters more here since these are the buttons that actually complete
+   a purchase. Scoped to .btn-primary only; outline/secondary buttons
+   keep the shared .btn treatment above, unchanged. */
 .btn-primary {
   background-color: var(--color-forest);
   border-color: var(--color-forest);
   color: #fff;
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.15s ease-out,
+    background-color 0.15s ease-out;
 }
 
 .btn-primary:hover,
@@ -60,6 +78,12 @@
   background-color: var(--color-forest-dark);
   border-color: var(--color-forest-dark);
   color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-outline-primary {
@@ -102,6 +126,23 @@
   border-radius: var(--radius-md);
   padding-block: var(--space-3);
   padding-inline: var(--space-6);
+}
+
+/* Custom mid-size tier — Bootstrap only ships .btn-sm/.btn-lg. Sits
+   between the unmodified default .btn (~38px, 6px radius, 16px text)
+   and .btn-lg (~56px, 12px radius, 20px text): ~48-49px tall at
+   --fs-md (18px) with the padding below (line-height 1.5 * 18px = 27px
+   + 2*10px padding + 2px border ≈ 49px), 10px radius (no existing
+   token sits between --radius-sm/6px and --radius-md/12px, so this one
+   value is hardcoded rather than reusing either). For purchase actions
+   that need to outrank secondary/outline buttons without matching the
+   hero's full btn-lg weight — package-card buttons, the sticky desktop
+   buy bar's CTA. */
+.btn-md {
+  border-radius: 10px;
+  padding-block: 0.625rem;
+  padding-inline: var(--space-5);
+  font-size: var(--fs-md);
 }
 
 /* ---- Cards ---- */

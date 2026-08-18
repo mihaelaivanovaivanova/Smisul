@@ -67,7 +67,7 @@ class ShippingQuoteTest extends TestCase
      * not a flat guess.
      */
     #[Test]
-    public function speedy_and_box_now_quotes_use_their_own_endpoints(): void
+    public function speedy_quote_uses_its_own_endpoint(): void
     {
         Http::fake([
             'api.speedy.bg/*' => Http::response([
@@ -75,16 +75,31 @@ class ShippingQuoteTest extends TestCase
                     ['price' => ['total' => 6.20, 'currency' => 'EUR'], 'deliveryDeadline' => '2026-07-08T12:00:00+03:00'],
                 ],
             ]),
-            'sandbox-api.boxnow.bg/*' => Http::response(['price' => 4.50, 'currency' => 'EUR']),
         ]);
 
         $speedy = $this->quote(['carrier' => 'speedy', 'delivery_type' => 'office', 'city' => 'Sofia', 'postal_code' => '1000']);
         $speedy->assertOk();
         $speedy->assertJsonPath('data.price', 6.2);
+    }
+
+    /**
+     * Confirmed against BOX NOW's real partner API guide: there is no live
+     * pricing/quote endpoint at all, so baseRate() is the real (contractual)
+     * price — quote() must never make a network call for it, unlike every
+     * other carrier here.
+     */
+    #[Test]
+    public function box_now_quote_never_makes_a_network_call(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/*' => Http::response(['error' => 'quote endpoint does not exist'], 404),
+        ]);
 
         $boxNow = $this->quote(['carrier' => 'box_now', 'delivery_type' => 'locker', 'city' => 'Sofia', 'postal_code' => '1000']);
         $boxNow->assertOk();
-        $boxNow->assertJsonPath('data.price', 4.5);
+        $boxNow->assertJsonPath('data.price', 4.99);
+
+        Http::assertNothingSent();
     }
 
     /**

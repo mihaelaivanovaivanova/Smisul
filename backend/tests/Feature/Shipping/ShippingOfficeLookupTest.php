@@ -134,20 +134,61 @@ class ShippingOfficeLookupTest extends TestCase
         $response->assertJsonCount(0, 'data');
     }
 
+    /**
+     * The fake response mirrors BOX NOW's real, confirmed shape (see their
+     * partner API guide, https://boxnow.bg/partner-api — addressLine1 is
+     * the street, addressLine2 the settlement/city) — verified against a
+     * live production account during development, not a guess.
+     */
     #[Test]
     public function box_now_lockers_are_listed(): void
     {
         Http::fake([
-            'sandbox-api.boxnow.bg/oauth/*' => Http::response(['access_token' => 'test-token']),
-            'sandbox-api.boxnow.bg/v1/lockers*' => Http::response([
-                'lockers' => [['id' => 'BN1', 'name' => 'BOX NOW Sofia Mall', 'city' => 'Sofia', 'address' => 'bul. Cherni Vrah 100']],
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/destinations*' => Http::response([
+                'data' => [[
+                    'id' => 'BN1',
+                    'type' => 'apm',
+                    'name' => 'BOX NOW Sofia Mall',
+                    'addressLine1' => 'bul. Cherni Vrah 100',
+                    'addressLine2' => 'Sofia',
+                    'postalCode' => '1000',
+                    'country' => 'BG',
+                ]],
             ]),
         ]);
 
         $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=box_now&city=Sofia');
 
         $response->assertOk();
-        $response->assertJsonFragment(['id' => 'BN1', 'type' => 'locker']);
+        $response->assertJsonFragment(['id' => 'BN1', 'type' => 'locker', 'city' => 'Sofia', 'address' => 'bul. Cherni Vrah 100']);
+    }
+
+    /**
+     * Regression test for a real bug found in production: a meaningful
+     * share of BOX NOW's real destinations have stray trailing tabs/spaces
+     * on addressLine2 (e.g. "София\t\t") — left untrimmed, the same city
+     * showed up twice in the checkout city dropdown under two
+     * different-looking (but functionally identical) entries.
+     */
+    #[Test]
+    public function box_now_locker_city_whitespace_is_trimmed(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/destinations*' => Http::response([
+                'data' => [
+                    ['id' => 'BN1', 'type' => 'apm', 'name' => 'BOX NOW Mall 1', 'addressLine1' => 'ul. Test 1', 'addressLine2' => "София\t\t"],
+                    ['id' => 'BN2', 'type' => 'apm', 'name' => 'BOX NOW Mall 2', 'addressLine1' => ' ul. Test 2 ', 'addressLine2' => 'София'],
+                ],
+            ]),
+        ]);
+
+        $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=box_now');
+
+        $response->assertOk();
+        $response->assertJsonFragment(['id' => 'BN1', 'city' => 'София']);
+        $response->assertJsonFragment(['id' => 'BN2', 'city' => 'София', 'address' => 'ul. Test 2']);
     }
 
     /**

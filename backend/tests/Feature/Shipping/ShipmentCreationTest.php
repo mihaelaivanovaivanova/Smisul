@@ -88,12 +88,22 @@ class ShipmentCreationTest extends TestCase
         $service->createShipment($order->fresh());
     }
 
+    /**
+     * The fake response mirrors BOX NOW's real, confirmed shape (see their
+     * partner API guide, https://boxnow.bg/partner-api) — the top-level
+     * "id" is the delivery-request's own reference; the parcel's own id
+     * (parcels.0.id) is what's actually used as our tracking number, since
+     * that's what every other endpoint (tracking, label) is keyed by.
+     */
     #[Test]
     public function creating_a_box_now_shipment_uses_the_selected_locker(): void
     {
         Http::fake([
-            'sandbox-api.boxnow.bg/oauth/*' => Http::response(['access_token' => 'test-token']),
-            'sandbox-api.boxnow.bg/v1/parcels' => Http::response(['trackingNumber' => 'BN-TEST-1']),
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/delivery-requests' => Http::response([
+                'id' => 'DR-TEST-1',
+                'parcels' => [['id' => 'BN-TEST-1']],
+            ]),
         ]);
 
         $order = Order::factory()->create([
@@ -107,6 +117,14 @@ class ShipmentCreationTest extends TestCase
 
         $this->assertSame('BN-TEST-1', $shipment->tracking_number);
         $this->assertSame('locker-42', $shipment->office_id);
+
+        Http::assertSent(function ($request) use ($order) {
+            return str_contains($request->url(), 'delivery-requests')
+                && $request['orderNumber'] === $order->order_number
+                && $request['paymentMode'] === 'prepaid'
+                && $request['destination']['locationId'] === 'locker-42'
+                && $request['origin']['locationId'] === 'any-apm';
+        });
     }
 
     /**

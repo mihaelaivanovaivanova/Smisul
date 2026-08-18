@@ -92,12 +92,24 @@ function OfficePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOfficeId, offices]);
 
+  // Case-insensitive de-dup (keeping whichever casing is seen first) — real
+  // carrier data isn't perfectly consistent (e.g. BOX NOW's own destination
+  // list has both "Нови хан" and "Нови Хан"), and without this the same
+  // city would appear twice under two different-looking entries.
   const cities = useMemo(() => {
     if (!offices) return [];
-    return Array.from(new Set(offices.map((office) => office.city).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'bg'));
+    const seen = new Map<string, string>();
+    for (const office of offices) {
+      if (!office.city || seen.has(office.city.toLowerCase())) continue;
+      seen.set(office.city.toLowerCase(), office.city);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'bg'));
   }, [offices]);
 
-  const officesInCity = useMemo(() => (offices ?? []).filter((office) => office.city === city), [offices, city]);
+  const officesInCity = useMemo(
+    () => (offices ?? []).filter((office) => office.city.toLowerCase() === city.toLowerCase()),
+    [offices, city],
+  );
 
   const cityOptions = useMemo(() => cities.map((cityOption) => ({ value: cityOption, label: cityOption })), [cities]);
   const officeOptions = useMemo(

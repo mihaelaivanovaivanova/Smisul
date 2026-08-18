@@ -48,11 +48,15 @@ class PlaceOrderRequest extends FormRequest
 
             // Only collected (and only meaningful) for home delivery — an
             // office/locker pickup has nowhere to put a street address, so
-            // the form doesn't ask for one and this must stay optional then.
-            'address.country' => ['required_if:shipping_delivery_type,address', 'string', 'max:100'],
-            'address.city' => ['required_if:shipping_delivery_type,address', 'string', 'max:100'],
-            'address.postal_code' => ['required_if:shipping_delivery_type,address', 'string', 'max:20'],
-            'address.address_line' => ['required_if:shipping_delivery_type,address', 'string', 'max:255'],
+            // the form doesn't ask for one and sends these empty. 'nullable'
+            // is required alongside required_if (not redundant with it):
+            // ConvertEmptyStringsToNull turns that empty string into null
+            // before validation runs, and without 'nullable' the 'string'
+            // rule would reject the null even though it isn't required.
+            'address.country' => ['nullable', 'required_if:shipping_delivery_type,address', 'string', 'max:100'],
+            'address.city' => ['nullable', 'required_if:shipping_delivery_type,address', 'string', 'max:100'],
+            'address.postal_code' => ['nullable', 'required_if:shipping_delivery_type,address', 'string', 'max:20'],
+            'address.address_line' => ['nullable', 'required_if:shipping_delivery_type,address', 'string', 'max:255'],
             'address.apartment' => ['nullable', 'string', 'max:100'],
 
             'wants_invoice' => ['sometimes', 'boolean'],
@@ -64,11 +68,11 @@ class PlaceOrderRequest extends FormRequest
             // details are always collected on their own, regardless of what
             // that flag says (the frontend forces it false in that case,
             // but this closes the gap for a direct API call that doesn't).
-            'billing_address' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'array'],
-            'billing_address.country' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:100'],
-            'billing_address.city' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:100'],
-            'billing_address.postal_code' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:20'],
-            'billing_address.address_line' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:255'],
+            'billing_address' => ['nullable', Rule::requiredIf(fn () => $this->billingAddressRequired()), 'array'],
+            'billing_address.country' => ['nullable', Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:100'],
+            'billing_address.city' => ['nullable', Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:100'],
+            'billing_address.postal_code' => ['nullable', Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:20'],
+            'billing_address.address_line' => ['nullable', Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:255'],
             'billing_address.apartment' => ['nullable', 'string', 'max:100'],
 
             'delivery_notes' => ['nullable', 'string', 'max:1000'],

@@ -25,6 +25,16 @@ class SettingService
     public const EDITABLE_GROUPS = ['general', 'email', 'seo', 'media', 'system'];
 
     /**
+     * Single-key lookup for callers outside the admin Settings screen that
+     * just need one value (e.g. the store's own contact details as the
+     * "sender" on a BOX NOW shipment — see BoxNowShippingProvider).
+     */
+    public function get(string $key): ?string
+    {
+        return Setting::query()->where('key', $key)->value('value');
+    }
+
+    /**
      * @return array<string, list<array{key: string, group: string, label: string, type: string, value: string|int|bool|null}>>
      */
     public function allGrouped(): array

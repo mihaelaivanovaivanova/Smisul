@@ -127,11 +127,11 @@ return [
     | Shipping providers (Econt, Speedy, BOX NOW)
     |--------------------------------------------------------------------------
     |
-    | Sandbox/demo configuration only — no real courier credentials exist
-    | yet. Each provider (see App\Services\Shipping) falls back to a flat
-    | rate when its API is unreachable, so checkout keeps working without
-    | these ever being filled in; only shipment creation/tracking require
-    | them to actually succeed.
+    | Econt/Speedy are still sandbox/demo configuration — each falls back to
+    | a flat rate when its API is unreachable, so checkout keeps working
+    | without real credentials; only shipment creation/tracking require them
+    | to actually succeed. BOX NOW is configured against its real production
+    | API (see App\Services\Shipping\BoxNowShippingProvider).
     |
     */
 
@@ -147,9 +147,16 @@ return [
             'password' => env('SPEEDY_PASSWORD'),
         ],
         'box_now' => [
-            'base_url' => env('BOX_NOW_BASE_URL', 'https://sandbox-api.boxnow.bg/'),
+            'base_url' => env('BOX_NOW_BASE_URL', 'https://api-production.boxnow.bg/api/v1/'),
             'client_id' => env('BOX_NOW_CLIENT_ID'),
             'client_secret' => env('BOX_NOW_CLIENT_SECRET'),
+            // This storefront has no BOX NOW-registered warehouse — orders
+            // are fulfilled by dropping the parcel off at a locker in
+            // person, and "any-apm" is BOX NOW's own documented origin
+            // locationId for exactly that flow (see their partner API
+            // guide, section 4.4). Override via .env if a real warehouse
+            // location is registered with BOX NOW later.
+            'origin_location_id' => env('BOX_NOW_ORIGIN_LOCATION_ID', 'any-apm'),
         ],
     ],
 

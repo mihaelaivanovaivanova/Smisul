@@ -4,7 +4,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
-import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments } from '../api/checkout';
+import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments, fetchSettlements } from '../api/checkout';
 import { initiatePayment, recordPaymentReturn } from '../api/payment';
 import { trackBeginCheckout } from '../services/analytics';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
@@ -23,7 +23,7 @@ import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import IcardModal from '../components/checkout/IcardModal';
 import { isValidBgMobile } from '../utils/phone';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
-import type { CustomerInfo, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
+import type { CustomerInfo, Settlement, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
 import type { Payment, PaymentMethodValue } from '../types/payment';
 
 interface ActivePayment {
@@ -69,7 +69,7 @@ export default function CheckoutPage() {
     company: '',
     vat_number: '',
   });
-  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [wantsInvoice, setWantsInvoice] = useState(false);
   const [address, setAddress] = useState<ShippingAddress>({
     country: 'България',
     city: '',
@@ -90,6 +90,9 @@ export default function CheckoutPage() {
   const [offices, setOffices] = useState<ShippingOffice[] | null>(null);
   const [isLoadingOffices, setIsLoadingOffices] = useState(false);
   const [officesError, setOfficesError] = useState<string | null>(null);
+  const [settlements, setSettlements] = useState<Settlement[] | null>(null);
+  const [isLoadingSettlements, setIsLoadingSettlements] = useState(false);
+  const [settlementsError, setSettlementsError] = useState<string | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodValue>('card');
   const [storedPaymentMethodId, setStoredPaymentMethodId] = useState<number | null>(null);
@@ -111,10 +114,26 @@ export default function CheckoutPage() {
     checkoutCopy.legal.loadError,
   );
 
-  // Offices/lockers depend on both the chosen method (which carrier) and
-  // the shipping city already typed above — refetches whenever either
-  // changes, and clears out entirely for methods that don't need one
-  // (Address delivery).
+  // BOX NOW is the default shipping method — pre-selected as soon as the
+  // catalog loads, but only ever once: this must not clobber a method the
+  // customer has since deliberately picked (including switching away from
+  // BOX NOW itself).
+  const defaultMethodApplied = useRef(false);
+  useEffect(() => {
+    if (defaultMethodApplied.current || !shippingMethods) return;
+
+    const boxNow = shippingMethods.find((method) => method.carrier === 'box_now');
+    if (boxNow) {
+      defaultMethodApplied.current = true;
+      setSelectedMethod(boxNow);
+    }
+  }, [shippingMethods]);
+
+  // Offices/lockers depend only on the chosen carrier — fetched once,
+  // unfiltered by city (the DeliveryStep's own city/office dropdowns filter
+  // the already-fetched list client-side, independent of the shipping
+  // address above), and cleared out entirely for methods that don't need
+  // one (Address delivery).
   useEffect(() => {
     if (!selectedMethod?.requires_office) {
       setOffices(null);
@@ -126,7 +145,7 @@ export default function CheckoutPage() {
     setIsLoadingOffices(true);
     setOfficesError(null);
 
-    fetchShippingOffices(selectedMethod.carrier, address.city || undefined)
+    fetchShippingOffices(selectedMethod.carrier)
       .then((result) => {
         if (isMounted) setOffices(result);
       })
@@ -140,13 +159,60 @@ export default function CheckoutPage() {
     return () => {
       isMounted = false;
     };
+  }, [selectedMethod?.carrier, selectedMethod?.requires_office]);
+
+  // The settlement list (~1MB, effectively static) is fetched at most once
+  // per visit — lazily, the first time it's actually needed (home delivery
+  // selected), not unconditionally on page load. isLoadingSettlements is
+  // deliberately NOT a dependency here even though the effect reads it —
+  // this effect is the only thing that ever sets it, so depending on it
+  // would make the effect's own setIsLoadingSettlements(true) call trigger
+  // an immediate re-run, whose cleanup then flips this run's `isMounted`
+  // to false before the in-flight fetch resolves, silently discarding the
+  // result forever.
+  useEffect(() => {
+    if (selectedMethod?.delivery_type !== 'address' || settlements !== null || isLoadingSettlements) {
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingSettlements(true);
+    setSettlementsError(null);
+
+    fetchSettlements()
+      .then((result) => {
+        if (isMounted) setSettlements(result);
+      })
+      .catch((error: unknown) => {
+        if (isMounted) setSettlementsError(getErrorMessage(error, checkoutCopy.delivery.settlementLoadError));
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingSettlements(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMethod?.carrier, selectedMethod?.requires_office, address.city]);
+  }, [selectedMethod?.delivery_type, settlements]);
 
   function handleSelectMethod(method: ShippingMethod): void {
     setSelectedMethod(method);
     setSelectedOffice(null);
   }
+
+  // Billing address only exists to support an invoice, so it's collected at
+  // all only when the customer opted into one on the customer-info step —
+  // and once it is collected, office/locker pickup has no shipping address
+  // to copy into it, so the "same as shipping" shortcut must not stay on
+  // (with billing details silently blank) for that case. Runs as an effect
+  // rather than only inside handleSelectMethod so it stays correct
+  // regardless of whether the invoice opt-in or the method is picked first.
+  useEffect(() => {
+    if (wantsInvoice && selectedMethod?.requires_office) {
+      setBillingSameAsShipping(false);
+    }
+  }, [wantsInvoice, selectedMethod?.requires_office]);
 
   // Prefills whatever the account already knows once it loads, without
   // clobbering anything the customer has already typed themselves.
@@ -201,14 +267,27 @@ export default function CheckoutPage() {
   function validateDeliveryStep(): boolean {
     const stepErrors: Record<string, string> = {};
 
-    if (!address.country.trim()) stepErrors['address.country'] = checkoutCopy.errors.countryRequired;
-    if (!address.city.trim()) stepErrors['address.city'] = checkoutCopy.errors.cityRequired;
-    if (!address.postal_code.trim()) stepErrors['address.postal_code'] = checkoutCopy.errors.postalCodeRequired;
-    if (!address.address_line.trim()) stepErrors['address.address_line'] = checkoutCopy.errors.addressLineRequired;
     if (!selectedMethod) stepErrors.shipping_carrier = checkoutCopy.errors.shippingMethodRequired;
     if (selectedMethod?.requires_office && !selectedOffice) stepErrors.shipping_office_id = checkoutCopy.delivery.officeRequired;
 
-    if (!billingSameAsShipping) {
+    // Home delivery is the only method that collects a street address —
+    // office/locker pickup has nothing here to validate. Country is
+    // hardcoded and postal_code is derived from the chosen settlement, so
+    // only the settlement itself (address.city) and the free-text address
+    // line are ever actually unset here.
+    if (selectedMethod?.delivery_type === 'address') {
+      if (!address.city.trim()) stepErrors['address.city'] = checkoutCopy.errors.settlementRequired;
+      if (!address.address_line.trim()) stepErrors['address.address_line'] = checkoutCopy.errors.addressLineRequired;
+    }
+
+    // Company/VAT number and billing address only exist to support an
+    // invoice — an unissued invoice has nothing to validate.
+    if (wantsInvoice) {
+      if (!customer.company.trim()) stepErrors['customer.company'] = checkoutCopy.errors.companyRequired;
+      if (!customer.vat_number.trim()) stepErrors['customer.vat_number'] = checkoutCopy.errors.vatNumberRequired;
+    }
+
+    if (wantsInvoice && (selectedMethod?.requires_office || !billingSameAsShipping)) {
       if (!billingAddress.country.trim()) stepErrors['billing_address.country'] = checkoutCopy.errors.countryRequired;
       if (!billingAddress.city.trim()) stepErrors['billing_address.city'] = checkoutCopy.errors.cityRequired;
       if (!billingAddress.postal_code.trim()) stepErrors['billing_address.postal_code'] = checkoutCopy.errors.postalCodeRequired;
@@ -265,6 +344,11 @@ export default function CheckoutPage() {
     setSubmitError(null);
     setErrors({});
 
+    // Billing address only exists to support an invoice — collected (and
+    // sent) at all only when the customer opted into one; mirrors
+    // validateDeliveryStep's condition for when it's shown/required.
+    const needsBillingAddress = wantsInvoice && (selectedMethod.requires_office || !billingSameAsShipping);
+
     try {
       const { order, guestAccessToken, payment } = await checkoutApi.placeOrder({
         customer: {
@@ -272,8 +356,10 @@ export default function CheckoutPage() {
           last_name: customer.last_name,
           email: customer.email,
           phone: customer.phone,
-          company: customer.company || undefined,
-          vat_number: customer.vat_number || undefined,
+          // Left over text from before the customer unchecked the invoice
+          // opt-in must not be submitted as if it were still requested.
+          company: wantsInvoice ? customer.company || undefined : undefined,
+          vat_number: wantsInvoice ? customer.vat_number || undefined : undefined,
         },
         address: {
           country: address.country,
@@ -282,17 +368,17 @@ export default function CheckoutPage() {
           address_line: address.address_line,
           apartment: address.apartment || undefined,
         },
-        billing_same_as_shipping: billingSameAsShipping,
-        billing_address: billingSameAsShipping
-          ? undefined
-          : {
+        wants_invoice: wantsInvoice,
+        billing_same_as_shipping: !needsBillingAddress,
+        billing_address: needsBillingAddress
+          ? {
               country: billingAddress.country,
               city: billingAddress.city,
               postal_code: billingAddress.postal_code,
               address_line: billingAddress.address_line,
               apartment: billingAddress.apartment || undefined,
-            },
-        delivery_notes: deliveryNotes || undefined,
+            }
+          : undefined,
         shipping_carrier: selectedMethod.carrier,
         shipping_delivery_type: selectedMethod.delivery_type,
         shipping_office_id: selectedOffice?.id,
@@ -404,9 +490,7 @@ export default function CheckoutPage() {
                 {step === 0 && (
                   <CustomerInfoStep
                     customer={customer}
-                    deliveryNotes={deliveryNotes}
                     onCustomerChange={updateCustomer}
-                    onDeliveryNotesChange={setDeliveryNotes}
                     errors={errors}
                   />
                 )}
@@ -415,6 +499,13 @@ export default function CheckoutPage() {
                   <DeliveryStep
                     address={address}
                     onAddressChange={updateAddress}
+                    settlements={settlements}
+                    isLoadingSettlements={isLoadingSettlements}
+                    settlementsError={settlementsError}
+                    customer={customer}
+                    onCustomerChange={updateCustomer}
+                    wantsInvoice={wantsInvoice}
+                    onToggleWantsInvoice={setWantsInvoice}
                     billingSameAsShipping={billingSameAsShipping}
                     onToggleBillingSameAsShipping={setBillingSameAsShipping}
                     billingAddress={billingAddress}

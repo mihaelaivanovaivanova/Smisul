@@ -75,6 +75,10 @@ class CheckoutShippingSelectionTest extends TestCase
                 'shipping_office_name' => 'Econt Sofia Center',
                 'shipping_office_city' => 'Sofia',
                 'shipping_office_address' => 'bul. Vitosha 100',
+                // Office pickup has no shipping address for "same as
+                // shipping" to copy — billing must be submitted on its own.
+                'billing_same_as_shipping' => false,
+                'billing_address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
             ]),
         );
 
@@ -149,6 +153,8 @@ class CheckoutShippingSelectionTest extends TestCase
                 'shipping_office_name' => 'BOX NOW Mall of Sofia',
                 'shipping_office_city' => 'Sofia',
                 'shipping_office_address' => 'Mall of Sofia, bul. Alexander Malinov 1',
+                'billing_same_as_shipping' => false,
+                'billing_address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
             ]),
         );
 

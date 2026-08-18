@@ -5,19 +5,11 @@ import type { CustomerInfo } from '../../types/checkout';
 
 interface CustomerInfoStepProps {
   customer: CustomerInfo;
-  deliveryNotes: string;
   onCustomerChange: <K extends keyof CustomerInfo>(field: K, value: CustomerInfo[K]) => void;
-  onDeliveryNotesChange: (value: string) => void;
   errors: Record<string, string>;
 }
 
-export default function CustomerInfoStep({
-  customer,
-  deliveryNotes,
-  onCustomerChange,
-  onDeliveryNotesChange,
-  errors,
-}: CustomerInfoStepProps) {
+export default function CustomerInfoStep({ customer, onCustomerChange, errors }: CustomerInfoStepProps) {
   return (
     <div>
       <div className="row">
@@ -63,40 +55,6 @@ export default function CustomerInfoStep({
           onChange={(value) => onCustomerChange('phone', value)}
           error={errors['customer.phone']}
           required
-        />
-      </div>
-
-      <div className="row">
-        <div className="col-12 col-sm-6 mb-3">
-          <FormField
-            id="checkout-company"
-            label={checkoutCopy.customer.company}
-            value={customer.company}
-            onChange={(value) => onCustomerChange('company', value)}
-            error={errors['customer.company']}
-          />
-        </div>
-        <div className="col-12 col-sm-6 mb-3">
-          <FormField
-            id="checkout-vat-number"
-            label={checkoutCopy.customer.vatNumber}
-            value={customer.vat_number}
-            onChange={(value) => onCustomerChange('vat_number', value)}
-            error={errors['customer.vat_number']}
-          />
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label htmlFor="checkout-delivery-notes" className="form-label">
-          {checkoutCopy.customer.deliveryNotes}
-        </label>
-        <textarea
-          id="checkout-delivery-notes"
-          className={`form-control ${errors.delivery_notes ? 'is-invalid' : ''}`}
-          rows={3}
-          value={deliveryNotes}
-          onChange={(event) => onDeliveryNotesChange(event.target.value)}
         />
       </div>
     </div>

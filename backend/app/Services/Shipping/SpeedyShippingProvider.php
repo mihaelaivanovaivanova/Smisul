@@ -125,12 +125,22 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             }
 
             return collect($response->json('offices'))
+                // Speedy's location/office list mixes staffed offices in
+                // with APT entries (automated parcel terminals/machines) —
+                // the checkout office picker only wants staffed offices.
+                ->filter(fn (array $office) => ($office['type'] ?? 'OFFICE') === 'OFFICE')
                 ->map(fn (array $office) => new ShippingOfficeData(
                     id: (string) $office['id'],
                     carrier: $this->carrier(),
                     type: ShippingDeliveryType::Office,
                     name: (string) $office['name'],
-                    city: (string) ($city ?? ''),
+                    // The office's own site name (e.g. "СОФИЯ"), not the
+                    // $city filter — the two used to always match because
+                    // this only ran with a city filter applied, but an
+                    // unfiltered nationwide lookup (no $city) needs the
+                    // real per-office city to group by, same as Econt
+                    // already does above.
+                    city: (string) ($office['address']['siteName'] ?? $city ?? ''),
                     address: (string) ($office['address']['fullAddressString'] ?? ''),
                 ))
                 ->values()

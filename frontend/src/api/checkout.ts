@@ -4,6 +4,7 @@ import type {
   LegalDocument,
   Order,
   PlaceOrderPayload,
+  Settlement,
   Shipment,
   ShippingCarrier,
   ShippingMethod,
@@ -34,6 +35,17 @@ export async function fetchShippingOffices(carrier: ShippingCarrier, city?: stri
 
 export async function fetchLegalDocuments(): Promise<LegalDocument[]> {
   const { data } = await apiClient.get<{ data: LegalDocument[] }>('/checkout/legal-documents');
+  return data.data;
+}
+
+/**
+ * The full Bulgarian settlement list (towns, cities, villages) for the
+ * "Населено място" picker — a large (~1MB), rarely-changing payload, so
+ * callers should fetch it once and hold onto the result rather than
+ * re-fetching on every render (see CheckoutPage's lazy fetch-on-first-need).
+ */
+export async function fetchSettlements(): Promise<Settlement[]> {
+  const { data } = await apiClient.get<{ data: Settlement[] }>('/checkout/settlements');
   return data.data;
 }
 

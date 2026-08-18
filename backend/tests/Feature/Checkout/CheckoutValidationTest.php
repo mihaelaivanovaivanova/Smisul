@@ -71,6 +71,13 @@ class CheckoutValidationTest extends TestCase
             ->assertJsonFragment(['message' => 'Your cart is empty — add something before checking out.']);
     }
 
+    /**
+     * address.* is only required for home delivery (see
+     * address_fields_are_not_required_for_office_or_locker_delivery below)
+     * — shipping_delivery_type is set explicitly here so this stays a test
+     * of the customer/address fields, not an incidental test of that
+     * conditional.
+     */
     #[Test]
     public function missing_customer_and_address_fields_are_rejected(): void
     {
@@ -79,7 +86,7 @@ class CheckoutValidationTest extends TestCase
         $guestToken = $addToCart->json('meta.guest_token');
 
         $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
-            ->postJson('/api/v1/checkout/orders', []);
+            ->postJson('/api/v1/checkout/orders', ['shipping_delivery_type' => 'address']);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors([
@@ -93,6 +100,92 @@ class CheckoutValidationTest extends TestCase
             'address.address_line',
             'shipping_carrier',
             'legal_document_ids',
+        ]);
+    }
+
+    /**
+     * Office/locker pickup has nowhere to put a street address — the
+     * checkout form doesn't collect one in that case, so the API must not
+     * demand it either (see PlaceOrderRequest::rules()).
+     */
+    #[Test]
+    public function address_fields_are_not_required_for_office_or_locker_delivery(): void
+    {
+        $variant = $this->purchasableVariant();
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->postJson('/api/v1/checkout/orders', ['shipping_delivery_type' => 'locker']);
+
+        $response->assertStatus(422);
+        $response->assertJsonMissingValidationErrors([
+            'address.country',
+            'address.city',
+            'address.postal_code',
+            'address.address_line',
+        ]);
+    }
+
+    /**
+     * Billing address only exists to support an invoice — without one
+     * requested, there's nothing to collect for it even for office/locker
+     * pickup, which (unlike home delivery) has no shipping address of its
+     * own to fall back on otherwise.
+     */
+    #[Test]
+    public function billing_address_is_not_required_for_office_or_locker_delivery_without_an_invoice_request(): void
+    {
+        $variant = $this->purchasableVariant();
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson(
+            '/api/v1/checkout/orders',
+            $this->validPayload([
+                'shipping_carrier' => 'box_now',
+                'shipping_delivery_type' => 'locker',
+                'shipping_office_id' => 'locker-1',
+                'shipping_office_name' => 'BOX NOW Sofia Center',
+                'shipping_office_city' => 'Sofia',
+                'shipping_office_address' => 'bul. Sofia 1',
+            ]),
+        );
+
+        $response->assertCreated();
+    }
+
+    /**
+     * Once the customer does opt into an invoice, billing details must be
+     * collected somewhere — office/locker pickup has no shipping address to
+     * default to, so a missing billing_address is rejected in that case.
+     */
+    #[Test]
+    public function billing_address_is_required_for_office_or_locker_delivery_with_an_invoice_request(): void
+    {
+        $variant = $this->purchasableVariant();
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson(
+            '/api/v1/checkout/orders',
+            $this->validPayload([
+                'shipping_carrier' => 'box_now',
+                'shipping_delivery_type' => 'locker',
+                'shipping_office_id' => 'locker-1',
+                'shipping_office_name' => 'BOX NOW Sofia Center',
+                'shipping_office_city' => 'Sofia',
+                'shipping_office_address' => 'bul. Sofia 1',
+                'wants_invoice' => true,
+            ]),
+        );
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors([
+            'billing_address.country',
+            'billing_address.city',
+            'billing_address.postal_code',
+            'billing_address.address_line',
         ]);
     }
 

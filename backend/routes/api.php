@@ -204,6 +204,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/shipping-methods', [CheckoutController::class, 'shippingMethods'])->name('checkout.shipping-methods');
         Route::get('/shipping-quote', [CheckoutController::class, 'shippingQuote'])->name('checkout.shipping-quote');
         Route::get('/shipping-offices', [CheckoutController::class, 'shippingOffices'])->name('checkout.shipping-offices');
+        Route::get('/settlements', [CheckoutController::class, 'settlements'])->name('checkout.settlements');
         Route::get('/legal-documents', [CheckoutController::class, 'legalDocuments'])->name('checkout.legal-documents');
         Route::get('/payment-methods', [CheckoutController::class, 'paymentMethods'])->name('checkout.payment-methods');
         Route::post('/orders', [CheckoutController::class, 'placeOrder'])

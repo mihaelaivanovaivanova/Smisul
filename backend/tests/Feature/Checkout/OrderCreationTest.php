@@ -66,6 +66,15 @@ class OrderCreationTest extends TestCase
             'shipping_office_name' => 'BOX NOW Sofia Center',
             'shipping_office_city' => 'Sofia',
             'shipping_office_address' => 'bul. Sofia 1',
+            // Locker pickup has no shipping address for "same as shipping"
+            // to copy — billing details must be submitted on their own.
+            'billing_same_as_shipping' => false,
+            'billing_address' => [
+                'country' => 'Bulgaria',
+                'city' => 'Sofia',
+                'postal_code' => '1000',
+                'address_line' => 'ul. Vitosha 1',
+            ],
             'legal_document_ids' => $overrides['legal_document_ids'] ?? $this->acceptAllCurrentLegalDocuments(),
         ], $overrides);
     }

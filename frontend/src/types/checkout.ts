@@ -40,6 +40,16 @@ export interface ShippingOffice {
   address: string;
 }
 
+/** A Bulgarian settlement (town, city, or village) for the "Населено място" picker shown once "до адрес" delivery is selected. */
+export interface Settlement {
+  id: string;
+  type: string;
+  name: string;
+  municipality: string;
+  region: string;
+  postal_code: string;
+}
+
 export interface LegalDocument {
   id: number;
   type: string;
@@ -65,6 +75,10 @@ export interface PlaceOrderPayload {
     address_line: string;
     apartment?: string;
   };
+  // Billing address only exists to support an invoice — the API mirrors
+  // this flag so it can decide (server-side, not just in the UI) whether
+  // billing_address is actually required for a given payload.
+  wants_invoice: boolean;
   billing_same_as_shipping: boolean;
   billing_address?: {
     country: string;

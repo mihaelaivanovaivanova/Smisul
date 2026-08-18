@@ -90,7 +90,10 @@ class EcontShippingProvider implements ShippingProviderInterface
      * it returns real nationwide office data with no credentials required.
      * The endpoint doesn't filter by city itself (cityName is accepted but
      * ignored), so filtering happens here; the nested address/city shape
-     * below is the real response shape, not a placeholder.
+     * below is the real response shape, not a placeholder. It also mixes
+     * staffed offices in with APS machines and MPS mobile post-station vans
+     * in one flat list, distinguished by the `isAPS`/`isMPS` booleans —
+     * also confirmed live — which is why those are filtered out below.
      */
     public function offices(?string $city = null): array
     {
@@ -105,6 +108,12 @@ class EcontShippingProvider implements ShippingProviderInterface
             }
 
             return collect($response->json('offices'))
+                // Econt's nomenclature list mixes staffed offices in with
+                // APS machines (isAPS) and mobile post-station vans (isMPS)
+                // — the checkout office picker only wants staffed offices,
+                // so both are excluded here rather than left for the
+                // frontend to filter.
+                ->filter(fn (array $office) => ! ($office['isAPS'] ?? false) && ! ($office['isMPS'] ?? false))
                 ->filter(fn (array $office) => $city === null || $city === '' || $this->matchesCity($office, $city))
                 ->map(fn (array $office) => new ShippingOfficeData(
                     id: (string) $office['id'],

@@ -14,9 +14,11 @@ use App\Http\Resources\Checkout\PaymentMethodResource;
 use App\Http\Resources\Checkout\ShippingMethodResource;
 use App\Http\Resources\Checkout\ShippingOfficeResource;
 use App\Http\Resources\Checkout\ShippingQuoteResource;
+use App\Http\Resources\Checkout\SettlementResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Cart;
+use App\Services\BulgarianSettlementService;
 use App\Services\CartService;
 use App\Services\LegalDocumentService;
 use App\Services\OrderService;
@@ -39,6 +41,7 @@ class CheckoutController extends Controller
         private readonly ShippingMethodService $shippingMethods,
         private readonly ShippingService $shipping,
         private readonly LegalDocumentService $legalDocuments,
+        private readonly BulgarianSettlementService $settlements,
     ) {}
 
     public function shippingMethods(): JsonResponse
@@ -89,6 +92,17 @@ class CheckoutController extends Controller
     public function legalDocuments(): JsonResponse
     {
         return LegalDocumentResource::collection($this->legalDocuments->currentRequiredForCheckout())->response();
+    }
+
+    /**
+     * The full Bulgarian settlement list (towns, cities, villages) for the
+     * "Населено място" picker shown once "до адрес" delivery is selected —
+     * see BulgarianSettlementService for where this comes from. Cached
+     * server-side, so this is cheap to call on every visit to that step.
+     */
+    public function settlements(): JsonResponse
+    {
+        return SettlementResource::collection($this->settlements->all())->response();
     }
 
     /** Checkout exposes only cash on delivery and iCard's hosted modal. */

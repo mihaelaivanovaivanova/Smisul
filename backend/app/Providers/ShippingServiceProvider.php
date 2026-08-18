@@ -21,9 +21,11 @@ class ShippingServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ShippingService::class, function ($app) {
             return new ShippingService([
+                // Array order is display order (see ShippingService::availableMethods())
+                // — BOX NOW leads the checkout list and is the default selection.
+                ShippingCarrier::BoxNow->value => $app->make(BoxNowShippingProvider::class),
                 ShippingCarrier::Econt->value => $app->make(EcontShippingProvider::class),
                 ShippingCarrier::Speedy->value => $app->make(SpeedyShippingProvider::class),
-                ShippingCarrier::BoxNow->value => $app->make(BoxNowShippingProvider::class),
             ]);
         });
     }

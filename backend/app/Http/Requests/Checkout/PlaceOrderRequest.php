@@ -46,18 +46,29 @@ class PlaceOrderRequest extends FormRequest
             'customer.company' => ['nullable', 'string', 'max:150'],
             'customer.vat_number' => ['nullable', 'string', 'max:50'],
 
-            'address.country' => ['required', 'string', 'max:100'],
-            'address.city' => ['required', 'string', 'max:100'],
-            'address.postal_code' => ['required', 'string', 'max:20'],
-            'address.address_line' => ['required', 'string', 'max:255'],
+            // Only collected (and only meaningful) for home delivery — an
+            // office/locker pickup has nowhere to put a street address, so
+            // the form doesn't ask for one and this must stay optional then.
+            'address.country' => ['required_if:shipping_delivery_type,address', 'string', 'max:100'],
+            'address.city' => ['required_if:shipping_delivery_type,address', 'string', 'max:100'],
+            'address.postal_code' => ['required_if:shipping_delivery_type,address', 'string', 'max:20'],
+            'address.address_line' => ['required_if:shipping_delivery_type,address', 'string', 'max:255'],
             'address.apartment' => ['nullable', 'string', 'max:100'],
 
+            'wants_invoice' => ['sometimes', 'boolean'],
             'billing_same_as_shipping' => ['sometimes', 'boolean'],
-            'billing_address' => ['required_if:billing_same_as_shipping,false', 'array'],
-            'billing_address.country' => ['required_if:billing_same_as_shipping,false', 'string', 'max:100'],
-            'billing_address.city' => ['required_if:billing_same_as_shipping,false', 'string', 'max:100'],
-            'billing_address.postal_code' => ['required_if:billing_same_as_shipping,false', 'string', 'max:20'],
-            'billing_address.address_line' => ['required_if:billing_same_as_shipping,false', 'string', 'max:255'],
+            // Billing address only exists to support an invoice, so it's
+            // never required unless wants_invoice is set — and even then,
+            // "same as shipping" only means something when there IS a
+            // shipping address to copy: for office/locker pickup, billing
+            // details are always collected on their own, regardless of what
+            // that flag says (the frontend forces it false in that case,
+            // but this closes the gap for a direct API call that doesn't).
+            'billing_address' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'array'],
+            'billing_address.country' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:100'],
+            'billing_address.city' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:100'],
+            'billing_address.postal_code' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:20'],
+            'billing_address.address_line' => [Rule::requiredIf(fn () => $this->billingAddressRequired()), 'string', 'max:255'],
             'billing_address.apartment' => ['nullable', 'string', 'max:100'],
 
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
@@ -75,5 +86,20 @@ class PlaceOrderRequest extends FormRequest
             'legal_document_ids' => ['required', 'array', 'min:1'],
             'legal_document_ids.*' => ['integer', 'exists:legal_documents,id'],
         ];
+    }
+
+    /**
+     * Mirrors PlaceOrderData::fromArray()'s own `?? true` default for a
+     * missing billing_same_as_shipping — $request->boolean() defaults an
+     * absent key to false instead, which would wrongly demand a separate
+     * billing address on every payload that omits the flag.
+     */
+    private function billingAddressRequired(): bool
+    {
+        if (! $this->boolean('wants_invoice')) {
+            return false;
+        }
+
+        return ! $this->boolean('billing_same_as_shipping', true) || $this->input('shipping_delivery_type') !== 'address';
     }
 }

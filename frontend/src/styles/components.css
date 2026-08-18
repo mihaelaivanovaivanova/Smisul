@@ -609,6 +609,79 @@
   width: auto;
 }
 
+/* ---- Shipping (checkout delivery method + office/locker picker) ---- */
+
+.shipping-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
+}
+
+.shipping-option:hover {
+  border-color: var(--color-sage);
+}
+
+.shipping-option-wrapper.is-selected .shipping-option {
+  border-color: var(--color-forest);
+  background-color: rgba(36, 54, 44, 0.06);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.shipping-carrier-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+
+.shipping-carrier-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.shipping-option__label {
+  font-weight: 700;
+  color: var(--color-forest-dark);
+}
+
+.shipping-option__hint {
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+}
+
+.shipping-office-panel {
+  border: 1px solid var(--color-forest);
+  border-top: none;
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+}
+
+/* ---- SearchableSelect (filterable city/office dropdowns) ---- */
+
+.search-select-menu {
+  width: 100%;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.search-select-menu .dropdown-item {
+  white-space: normal;
+}
+
 /* ---- Cookie consent banner ---- */
 /* Compact corner card rather than a full-width bar. Mobile keeps it inset
    from all four edges — a true corner anchor would just read as full-width

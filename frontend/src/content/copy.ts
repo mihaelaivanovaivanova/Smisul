@@ -570,7 +570,10 @@ export const checkout = {
     } as Record<string, string>,
     officeCityLabel: 'Град',
     officeCityPlaceholder: 'Избери град',
-    officePlaceholder: 'Избери офис или автомат',
+    officePlaceholderByType: {
+      office: 'Избери офис',
+      locker: 'Избери автомат',
+    } as Record<string, string>,
     officeLoading: 'Зареждане на офиси…',
     officeLoadError: 'Неуспешно зареждане на офисите.',
     officeEmpty: 'Няма намерени офиси за този град. Опитай с друг град.',

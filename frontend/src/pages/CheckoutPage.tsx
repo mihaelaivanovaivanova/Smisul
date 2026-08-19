@@ -23,8 +23,13 @@ import CheckoutSummary from '../components/checkout/CheckoutSummary';
 import IcardModal from '../components/checkout/IcardModal';
 import { isValidBgMobile } from '../utils/phone';
 import { breadcrumbLabels, checkout as checkoutCopy } from '../content/copy';
-import type { CustomerInfo, Settlement, ShippingAddress, ShippingMethod, ShippingOffice } from '../types/checkout';
+import type { CustomerInfo, Settlement, ShippingAddress, ShippingCarrier, ShippingMethod, ShippingOffice } from '../types/checkout';
 import type { Payment, PaymentMethodValue } from '../types/payment';
+
+// Every carrier this storefront supports — used to prefetch all of their
+// office/locker lists up front rather than one at a time as the customer
+// switches methods.
+const ALL_CARRIERS: ShippingCarrier[] = ['econt', 'speedy', 'box_now'];
 
 interface ActivePayment {
   orderId: number;
@@ -87,11 +92,11 @@ export default function CheckoutPage() {
   });
   const [selectedMethod, setSelectedMethod] = useState<ShippingMethod | null>(null);
   const [selectedOffice, setSelectedOffice] = useState<ShippingOffice | null>(null);
-  const [offices, setOffices] = useState<ShippingOffice[] | null>(null);
-  const [isLoadingOffices, setIsLoadingOffices] = useState(false);
-  const [officesError, setOfficesError] = useState<string | null>(null);
+  const [officesByCarrier, setOfficesByCarrier] = useState<Partial<Record<ShippingCarrier, ShippingOffice[]>>>({});
+  const [officesErrorByCarrier, setOfficesErrorByCarrier] = useState<Partial<Record<ShippingCarrier, string>>>({});
+  const [isLoadingOffices, setIsLoadingOffices] = useState(true);
   const [settlements, setSettlements] = useState<Settlement[] | null>(null);
-  const [isLoadingSettlements, setIsLoadingSettlements] = useState(false);
+  const [isLoadingSettlements, setIsLoadingSettlements] = useState(true);
   const [settlementsError, setSettlementsError] = useState<string | null>(null);
   const [acceptedLegalDocumentIds, setAcceptedLegalDocumentIds] = useState<number[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodValue>('card');
@@ -129,28 +134,36 @@ export default function CheckoutPage() {
     }
   }, [shippingMethods]);
 
-  // Offices/lockers depend only on the chosen carrier — fetched once,
-  // unfiltered by city (the DeliveryStep's own city/office dropdowns filter
-  // the already-fetched list client-side, independent of the shipping
-  // address above), and cleared out entirely for methods that don't need
-  // one (Address delivery).
+  // Every carrier's office/locker list is prefetched in parallel as soon as
+  // the checkout page mounts — not lazily as the customer picks a method —
+  // so switching between shipping options never shows a loading spinner in
+  // the middle of the flow; the dropdowns are already populated by the time
+  // the customer reaches the delivery step.
   useEffect(() => {
-    if (!selectedMethod?.requires_office) {
-      setOffices(null);
-      setSelectedOffice(null);
-      return;
-    }
-
     let isMounted = true;
-    setIsLoadingOffices(true);
-    setOfficesError(null);
 
-    fetchShippingOffices(selectedMethod.carrier)
-      .then((result) => {
-        if (isMounted) setOffices(result);
-      })
-      .catch((error: unknown) => {
-        if (isMounted) setOfficesError(getErrorMessage(error, checkoutCopy.delivery.officeLoadError));
+    Promise.all(
+      ALL_CARRIERS.map((carrier) =>
+        fetchShippingOffices(carrier)
+          .then((result) => ({ carrier, offices: result, error: null as string | null }))
+          .catch((error: unknown) => ({
+            carrier,
+            offices: [] as ShippingOffice[],
+            error: getErrorMessage(error, checkoutCopy.delivery.officeLoadError),
+          })),
+      ),
+    )
+      .then((results) => {
+        if (!isMounted) return;
+
+        const byCarrier: Partial<Record<ShippingCarrier, ShippingOffice[]>> = {};
+        const errorsByCarrier: Partial<Record<ShippingCarrier, string>> = {};
+        for (const { carrier, offices: result, error } of results) {
+          byCarrier[carrier] = result;
+          if (error) errorsByCarrier[carrier] = error;
+        }
+        setOfficesByCarrier(byCarrier);
+        setOfficesErrorByCarrier(errorsByCarrier);
       })
       .finally(() => {
         if (isMounted) setIsLoadingOffices(false);
@@ -159,25 +172,13 @@ export default function CheckoutPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedMethod?.carrier, selectedMethod?.requires_office]);
+  }, []);
 
-  // The settlement list (~1MB, effectively static) is fetched at most once
-  // per visit — lazily, the first time it's actually needed (home delivery
-  // selected), not unconditionally on page load. isLoadingSettlements is
-  // deliberately NOT a dependency here even though the effect reads it —
-  // this effect is the only thing that ever sets it, so depending on it
-  // would make the effect's own setIsLoadingSettlements(true) call trigger
-  // an immediate re-run, whose cleanup then flips this run's `isMounted`
-  // to false before the in-flight fetch resolves, silently discarding the
-  // result forever.
+  // The nationwide settlement list (~1MB, effectively static) is prefetched
+  // the same way, once on mount, instead of lazily the first time address
+  // delivery is selected.
   useEffect(() => {
-    if (selectedMethod?.delivery_type !== 'address' || settlements !== null || isLoadingSettlements) {
-      return;
-    }
-
     let isMounted = true;
-    setIsLoadingSettlements(true);
-    setSettlementsError(null);
 
     fetchSettlements()
       .then((result) => {
@@ -193,8 +194,7 @@ export default function CheckoutPage() {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMethod?.delivery_type, settlements]);
+  }, []);
 
   function handleSelectMethod(method: ShippingMethod): void {
     setSelectedMethod(method);
@@ -464,6 +464,8 @@ export default function CheckoutPage() {
   }
 
   const selectedShippingMethod = selectedMethod;
+  const offices = selectedMethod ? officesByCarrier[selectedMethod.carrier] ?? null : null;
+  const officesError = selectedMethod ? officesErrorByCarrier[selectedMethod.carrier] ?? null : null;
 
   return (
     <div className="container py-4">

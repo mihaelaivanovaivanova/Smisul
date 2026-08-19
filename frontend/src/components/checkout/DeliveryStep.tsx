@@ -135,6 +135,7 @@ function OfficePicker({
   }
 
   const officeLabel = checkoutCopy.delivery.officeLabelByType[deliveryType] ?? checkoutCopy.delivery.officeLabelByType.office;
+  const officePlaceholder = checkoutCopy.delivery.officePlaceholderByType[deliveryType] ?? checkoutCopy.delivery.officePlaceholderByType.office;
 
   return (
     <div className="row g-2">
@@ -162,7 +163,7 @@ function OfficePicker({
           id={`${idPrefix}-office`}
           value={selectedOfficeId ?? ''}
           options={officeOptions}
-          placeholder={checkoutCopy.delivery.officePlaceholder}
+          placeholder={officePlaceholder}
           disabled={!city}
           invalid={Boolean(officeIdError)}
           onChange={(officeId) => {
@@ -466,7 +467,7 @@ export default function DeliveryStep({
                   </div>
 
                   <div className="row">
-                    <div className="col-12 col-sm-6 mb-3">
+                    <div className="col-12 col-sm-6 mb-4">
                       <FormField
                         id="checkout-billing-postal-code"
                         label={checkoutCopy.address.postalCode}
@@ -476,26 +477,16 @@ export default function DeliveryStep({
                         required
                       />
                     </div>
-                    <div className="col-12 col-sm-6 mb-3">
+                    <div className="col-12 col-sm-6 mb-4">
                       <FormField
-                        id="checkout-billing-apartment"
-                        label={checkoutCopy.address.apartment}
-                        value={billingAddress.apartment}
-                        onChange={(value) => onBillingAddressChange('apartment', value)}
-                        error={errors['billing_address.apartment']}
+                        id="checkout-billing-address-line"
+                        label={checkoutCopy.address.addressLine}
+                        value={billingAddress.address_line}
+                        onChange={(value) => onBillingAddressChange('address_line', value)}
+                        error={errors['billing_address.address_line']}
+                        required
                       />
                     </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <FormField
-                      id="checkout-billing-address-line"
-                      label={checkoutCopy.address.addressLine}
-                      value={billingAddress.address_line}
-                      onChange={(value) => onBillingAddressChange('address_line', value)}
-                      error={errors['billing_address.address_line']}
-                      required
-                    />
                   </div>
                 </>
               )}

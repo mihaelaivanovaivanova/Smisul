@@ -1,0 +1,115 @@
+- generic [ref=e3]:
+  - navigation "Основна навигация" [ref=e4]:
+    - generic [ref=e5]:
+      - link "Начало" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img "Smisul" [ref=e7]
+      - generic [ref=e8]:
+        - button "Количка, 1 артикула" [ref=e606] [cursor=pointer]:
+          - generic "Количка, 1 артикула" [ref=e607]: "1"
+        - link "Вход" [ref=e52] [cursor=pointer]:
+          - /url: /login
+  - main [ref=e16]:
+    - generic [ref=e609]:
+      - navigation "breadcrumb" [ref=e610]:
+        - list [ref=e611]:
+          - listitem [ref=e612]:
+            - link "Начало" [ref=e613] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e614]: / Количка
+      - heading "Количка" [level=1] [ref=e615]
+      - generic [ref=e616]:
+        - generic [ref=e617]:
+          - generic [ref=e619]:
+            - generic [ref=e620]:
+              - heading "Артикули" [level=2] [ref=e621]
+              - button "Изпразни количката" [ref=e622] [cursor=pointer]
+            - generic [ref=e623]:
+              - link [ref=e624] [cursor=pointer]:
+                - /url: /products/miswak
+                - img "Ръка, която държи Miswak" [ref=e626]
+              - generic [ref=e627]:
+                - generic [ref=e628]:
+                  - generic [ref=e629]:
+                    - link "Miswak" [ref=e630] [cursor=pointer]:
+                      - /url: /products/miswak
+                    - generic [ref=e631]: 10 бр.
+                  - generic [ref=e632]:
+                    - generic [ref=e633]: 32.99 €
+                    - generic [ref=e634]: 32.99 € / бр.
+                - generic [ref=e635]:
+                  - group "Количество" [ref=e636]:
+                    - button "Намали количеството" [disabled]: −
+                    - generic: "1"
+                    - button "Увеличи количеството" [ref=e637] [cursor=pointer]: +
+                  - button "Премахни Miswak от количката" [ref=e638] [cursor=pointer]: Премахни
+          - link "Продължи пазаруването" [ref=e639] [cursor=pointer]:
+            - /url: /search
+        - generic [ref=e640]:
+          - generic [ref=e642]:
+            - heading "Общо" [level=2] [ref=e643]
+            - generic [ref=e644]:
+              - generic [ref=e645]: Междинна сума
+              - generic [ref=e646]: 32.99 €
+            - generic [ref=e647]:
+              - generic [ref=e648]: Доставка
+              - generic [ref=e649]: изчислява се на следваща стъпка
+            - separator [ref=e650]
+            - generic [ref=e651]:
+              - generic [ref=e652]: Общо
+              - generic [ref=e653]: 32.99 €
+          - link "Продължи към плащане" [ref=e654] [cursor=pointer]:
+            - /url: /checkout
+  - contentinfo [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - img "Smisul" [ref=e24]
+        - navigation "Компания" [ref=e25]:
+          - link "Начало" [ref=e26] [cursor=pointer]:
+            - /url: /
+          - link "За нас" [ref=e28] [cursor=pointer]:
+            - /url: /about
+          - link "Вход" [ref=e595] [cursor=pointer]:
+            - /url: /login
+          - button "Контакти" [ref=e29] [cursor=pointer]
+      - separator [ref=e30]
+      - navigation "Правна информация" [ref=e31]:
+        - link "Общи условия" [ref=e596] [cursor=pointer]:
+          - /url: /legal/terms-of-service
+        - link "Политика за поверителност" [ref=e597] [cursor=pointer]:
+          - /url: /legal/privacy-policy
+        - link "Право на отказ от договора" [ref=e598] [cursor=pointer]:
+          - /url: /legal/right-of-withdrawal
+        - link "Политика за бисквитките" [ref=e599] [cursor=pointer]:
+          - /url: /legal/cookie-policy
+        - link "Политика за доставка" [ref=e600] [cursor=pointer]:
+          - /url: /legal/shipping-policy
+        - link "Политика за връщане и рекламации" [ref=e601] [cursor=pointer]:
+          - /url: /legal/returns-policy
+        - button "Настройки на бисквитките" [ref=e32] [cursor=pointer]
+      - paragraph [ref=e602]:
+        - generic [ref=e603]: "Фирма: Filchev Web LTD / Филчев Уеб ЕООД"
+        - generic [ref=e604]: "ЕИК: 208699419"
+        - link "contact@smisul.bg" [ref=e605] [cursor=pointer]:
+          - /url: mailto:contact@smisul.bg
+      - generic [ref=e33]:
+        - generic [ref=e34]: © 2026 Smisul. Всички права запазени.
+        - generic [ref=e35]:
+          - generic "Приемани карти" [ref=e36]:
+            - img "Visa" [ref=e37]
+            - img "Mastercard" [ref=e38]
+            - img "American Express" [ref=e39]
+            - img "Apple Pay" [ref=e40]
+            - img "Google Pay" [ref=e41]
+          - generic [ref=e42]: Само плащане с карта - сигурно, бързо и изцяло дигитално.
+          - generic [ref=e43]: Приемаме също Apple Pay и Google Pay.
+  - dialog "Настройки на бисквитките" [ref=e44]:
+    - paragraph [ref=e45]:
+      - text: Използваме бисквитки, за да подобрим работата на сайта, да анализираме трафика и да ти предложим по-подходящо съдържание. Можеш да приемеш всички бисквитки или да персонализираш избора си.
+      - link "Политика за бисквитки" [ref=e46] [cursor=pointer]:
+        - /url: /legal/cookie-policy
+    - generic [ref=e47]:
+      - button "Приеми всички" [ref=e48] [cursor=pointer]
+      - generic [ref=e49]:
+        - button "Само необходими" [ref=e50] [cursor=pointer]
+        - button "Персонализирай" [ref=e51] [cursor=pointer]

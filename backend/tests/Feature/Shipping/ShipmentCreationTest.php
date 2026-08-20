@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Shipping;
 
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentProvider;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Exceptions\Shipping\ShippingProviderException;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -119,6 +122,44 @@ class ShipmentCreationTest extends TestCase
                 && $request['paymentMode'] === 'prepaid'
                 && $request['destination']['locationId'] === 'locker-42'
                 && $request['origin']['locationId'] === 'any-apm';
+        });
+    }
+
+    /**
+     * Confirmed against BOX NOW's guide v1.69 (section 4.4/4.8): "cod" is
+     * the real paymentMode value, and amountToBeCollected must carry the
+     * amount their courier actually collects — not the "0.00" every
+     * prepaid shipment sends.
+     */
+    #[Test]
+    public function creating_a_box_now_shipment_sends_cod_and_the_real_amount_to_collect_for_a_cash_on_delivery_order(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/delivery-requests' => Http::response([
+                'id' => 'DR-TEST-2',
+                'parcels' => [['id' => 'BN-TEST-2']],
+            ]),
+        ]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::BoxNow,
+            'shipping_delivery_type' => ShippingDeliveryType::Locker,
+            'shipping_office_id' => 'locker-42',
+            'shipping_office_name' => 'BOX NOW Sofia Mall',
+            'grand_total' => 27.98,
+        ]);
+        Payment::factory()->for($order)->create([
+            'payment_method' => PaymentMethod::CashOnDelivery,
+            'provider' => PaymentProvider::CashOnDelivery,
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'delivery-requests')
+                && $request['paymentMode'] === 'cod'
+                && $request['amountToBeCollected'] === '27.98';
         });
     }
 

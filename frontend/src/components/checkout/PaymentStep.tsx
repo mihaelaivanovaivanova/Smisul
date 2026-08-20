@@ -16,10 +16,11 @@ interface PaymentStepProps {
   onSelectStoredPaymentMethod: (id: number | null) => void;
 }
 
-// Cash on delivery is temporarily withheld — see
+// Card-only fallback for the rare case the fetch itself fails — cash on
+// delivery is only ever selectable for BOX NOW (see
 // PaymentService::availablePaymentMethods() on the backend, the actual
-// source of truth this list only mirrors for the rare case its fetch fails.
-const fallbackMethods: PaymentMethodOption[] = [{ value: 'card', label: 'Плащане с карта' }];
+// source of truth this list only mirrors), so it's never a safe guess here.
+const fallbackMethods: PaymentMethodOption[] = [{ value: 'card', label: 'Плащане с карта', available: true }];
 
 const cardTrustMarks = ['Visa', 'Mastercard', 'Amex', 'Borica'];
 
@@ -39,7 +40,8 @@ export default function PaymentStep({
 
   useEffect(() => {
     let isMounted = true;
-    fetchPaymentMethods()
+    setIsLoading(true);
+    fetchPaymentMethods(shippingMethod?.carrier)
       .then((result) => { if (isMounted) setMethods(result); })
       .catch(() => {
         if (isMounted) {
@@ -50,20 +52,24 @@ export default function PaymentStep({
       .finally(() => { if (isMounted) setIsLoading(false); });
 
     return () => { isMounted = false; };
-  }, []);
+  }, [shippingMethod?.carrier]);
 
   useEffect(() => {
     fetchStoredPaymentMethods().then(setStoredMethods).catch(() => setStoredMethods([]));
   }, []);
 
   useEffect(() => {
-    if (methods && !methods.some((method) => method.value === selectedMethod)) onSelectMethod('card');
+    const selected = methods?.find((method) => method.value === selectedMethod);
+    if (methods && !selected?.available) onSelectMethod('card');
   }, [methods, onSelectMethod, selectedMethod]);
+
+  const hasCashOnDelivery = methods?.some((method) => method.value === 'cash_on_delivery' && method.available) ?? false;
+  const description = hasCashOnDelivery ? checkoutCopy.paymentStep.descriptionWithCashOnDelivery : checkoutCopy.paymentStep.description;
 
   return (
     <div>
       <h2 className="h6 mb-3">{checkoutCopy.paymentStep.title}</h2>
-      <p className="text-muted">{checkoutCopy.paymentStep.description}</p>
+      {description && <p className="text-muted">{description}</p>}
 
       <div className="payment-panel mb-3">
         <div className="small text-muted mb-3">{checkoutCopy.paymentStep.methodLabel}</div>
@@ -75,12 +81,16 @@ export default function PaymentStep({
             {methods.map((method) => {
               const isSelected = selectedMethod === method.value;
               return (
-                <label key={method.value} className={`payment-option ${isSelected ? 'is-selected' : ''}`}>
+                <label
+                  key={method.value}
+                  className={`payment-option ${isSelected ? 'is-selected' : ''} ${!method.available ? 'is-disabled' : ''}`}
+                >
                   <input
                     type="radio"
                     name="payment_method"
                     className="form-check-input mt-0"
                     checked={isSelected}
+                    disabled={!method.available}
                     onChange={() => onSelectMethod(method.value)}
                   />
                   <span>
@@ -88,7 +98,9 @@ export default function PaymentStep({
                       {checkoutCopy.paymentStep.methods[method.value] ?? method.label}
                     </span>
                     <span className="payment-option__hint d-block">
-                      {checkoutCopy.paymentStep.methodHints[method.value]}
+                      {method.available
+                        ? checkoutCopy.paymentStep.methodHints[method.value]
+                        : checkoutCopy.paymentStep.methodUnavailableNotes[method.value]}
                     </span>
                     {method.value === 'card' && (
                       <>

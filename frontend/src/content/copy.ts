@@ -511,8 +511,9 @@ export const checkout = {
 
   paymentStep: {
     title: 'Плащане',
-    description:
-      'Приемаме плащания само с карта. Така процесът остава бърз, сигурен и максимално дигитален - в духа на нашата BIO • ECO • friendly философия. Плащането се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
+    description: '',
+    descriptionWithCashOnDelivery:
+      'При доставка с BOX NOW можеш да платиш и с наложен платеж - в брой на куриера при получаване. Плащането с карта се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
     walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
     methodLabel: 'Начин на плащане',
     methodsLoading: 'Зареждане на начините на плащане…',
@@ -524,6 +525,9 @@ export const checkout = {
     methodHints: {
       cash_on_delivery: 'Плащаш на куриера при получаване на поръчката.',
       card: 'Ще се отвори защитеният платежен прозорец на iCard.',
+    } as Record<string, string>,
+    methodUnavailableNotes: {
+      cash_on_delivery: 'Наличен само при доставка с BOX NOW.',
     } as Record<string, string>,
     payButton: 'Плати',
     payButtonWithMethod: (methodLabel: string) => `Плати с ${methodLabel}`,

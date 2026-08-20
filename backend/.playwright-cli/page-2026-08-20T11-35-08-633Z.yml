@@ -1,0 +1,133 @@
+- generic [ref=e3]:
+  - generic [ref=e4]: Безплатна доставка с Box Now до края на септември!
+  - navigation "Основна навигация" [ref=e9]:
+    - generic [ref=e10]:
+      - link "Начало" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img "Smisul" [ref=e12]
+      - generic [ref=e13]:
+        - button "Количка, 1 артикула" [ref=e603] [cursor=pointer]:
+          - generic "Количка, 1 артикула" [ref=e604]: "1"
+        - link "Вход" [ref=e57] [cursor=pointer]:
+          - /url: /login
+  - main [ref=e21]:
+    - generic [ref=e652]:
+      - navigation "breadcrumb" [ref=e653]:
+        - list [ref=e654]:
+          - listitem [ref=e655]:
+            - link "Начало" [ref=e656] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e657]: / Плащане
+      - heading "Плащане" [level=1] [ref=e658]
+      - generic [ref=e659]:
+        - generic [ref=e660]:
+          - list [ref=e661]:
+            - listitem [ref=e662]:
+              - generic [ref=e663]: ✓
+              - generic [ref=e664]: Данни за поръчката
+            - listitem [ref=e665]:
+              - generic [ref=e666]: "2"
+              - generic [ref=e667]: Доставка
+            - listitem [ref=e668]:
+              - generic [ref=e669]: "3"
+              - generic [ref=e670]: Преглед
+            - listitem [ref=e671]:
+              - generic [ref=e672]: "4"
+              - generic [ref=e673]: Плащане
+          - generic [ref=e675]:
+            - generic [ref=e712]:
+              - heading "Начин на доставка" [level=2] [ref=e713]
+              - generic [ref=e714]:
+                - generic [ref=e716] [cursor=pointer]:
+                  - 'radio "BOX NOW BOX NOW Доставка до автомат на BOX NOW. Очаквана доставка: 1-2 работни дни 4.99 €" [ref=e717]'
+                  - img "BOX NOW" [ref=e719]
+                  - generic [ref=e720]:
+                    - generic [ref=e721]: BOX NOW
+                    - generic [ref=e722]: Доставка до автомат на BOX NOW.
+                    - generic [ref=e723]: "Очаквана доставка: 1-2 работни дни"
+                  - generic [ref=e724]: 4.99 €
+                - generic [ref=e736] [cursor=pointer]:
+                  - 'radio "Speedy Speedy Доставка до офис на Speedy. Очаквана доставка: 1-2 работни дни 5.99 €" [ref=e737]'
+                  - img "Speedy" [ref=e739]
+                  - generic [ref=e740]:
+                    - generic [ref=e741]: Speedy
+                    - generic [ref=e742]: Доставка до офис на Speedy.
+                    - generic [ref=e743]: "Очаквана доставка: 1-2 работни дни"
+                  - generic [ref=e744]: 5.99 €
+                - generic [ref=e745]:
+                  - generic [ref=e746] [cursor=pointer]:
+                    - 'radio "Speedy Speedy (до адрес) Доставка до адрес с Speedy. Очаквана доставка: 1-2 работни дни 5.99 €" [checked] [ref=e747]'
+                    - img "Speedy" [ref=e749]
+                    - generic [ref=e750]:
+                      - generic [ref=e751]: Speedy (до адрес)
+                      - generic [ref=e752]: Доставка до адрес с Speedy.
+                      - generic [ref=e753]: "Очаквана доставка: 1-2 работни дни"
+                    - generic [ref=e754]: 5.99 €
+                  - generic [ref=e762]:
+                    - generic [ref=e763]:
+                      - generic [ref=e764]: Населено място
+                      - combobox "Населено място" [active] [ref=e766]: гр. СОФИЯ (общ. СТОЛИЧНА, обл. СОФИЯ (СТОЛИЦА))
+                    - generic [ref=e767]:
+                      - generic [ref=e768]: Адрес за доставка
+                      - textbox "Адрес за доставка" [ref=e769]
+              - generic [ref=e755]:
+                - checkbox "Искате ли фактура?" [ref=e756]
+                - generic [ref=e757]: Искате ли фактура?
+            - generic [ref=e696]:
+              - button "Назад" [ref=e758] [cursor=pointer]
+              - button "Напред" [ref=e697] [cursor=pointer]
+        - generic [ref=e700]:
+          - heading "Общо" [level=2] [ref=e701]
+          - generic [ref=e702]:
+            - generic [ref=e703]: Артикули (1)
+            - generic [ref=e704]: 32.99 €
+          - generic [ref=e705]:
+            - generic [ref=e706]: Доставка
+            - generic [ref=e707]: 5.99 €
+          - separator [ref=e708]
+          - generic [ref=e709]:
+            - generic [ref=e710]: Общо
+            - generic [ref=e711]: 38.98 €
+  - contentinfo [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - img "Smisul" [ref=e29]
+        - navigation "Компания" [ref=e30]:
+          - link "Начало" [ref=e31] [cursor=pointer]:
+            - /url: /
+          - link "За нас" [ref=e33] [cursor=pointer]:
+            - /url: /about
+          - link "Вход" [ref=e592] [cursor=pointer]:
+            - /url: /login
+          - button "Контакти" [ref=e34] [cursor=pointer]
+      - separator [ref=e35]
+      - navigation "Правна информация" [ref=e36]:
+        - link "Общи условия" [ref=e593] [cursor=pointer]:
+          - /url: /legal/terms-of-service
+        - link "Политика за поверителност" [ref=e594] [cursor=pointer]:
+          - /url: /legal/privacy-policy
+        - link "Право на отказ от договора" [ref=e595] [cursor=pointer]:
+          - /url: /legal/right-of-withdrawal
+        - link "Политика за бисквитките" [ref=e596] [cursor=pointer]:
+          - /url: /legal/cookie-policy
+        - link "Политика за доставка" [ref=e597] [cursor=pointer]:
+          - /url: /legal/shipping-policy
+        - link "Политика за връщане и рекламации" [ref=e598] [cursor=pointer]:
+          - /url: /legal/returns-policy
+        - button "Настройки на бисквитките" [ref=e37] [cursor=pointer]
+      - paragraph [ref=e599]:
+        - generic [ref=e600]: "Фирма: Filchev Web LTD / Филчев Уеб ЕООД"
+        - generic [ref=e601]: "ЕИК: 208699419"
+        - link "contact@smisul.bg" [ref=e602] [cursor=pointer]:
+          - /url: mailto:contact@smisul.bg
+      - generic [ref=e38]:
+        - generic [ref=e39]: © 2026 Smisul. Всички права запазени.
+        - generic [ref=e40]:
+          - generic "Приемани карти" [ref=e41]:
+            - img "Visa" [ref=e42]
+            - img "Mastercard" [ref=e43]
+            - img "American Express" [ref=e44]
+            - img "Apple Pay" [ref=e45]
+            - img "Google Pay" [ref=e46]
+          - generic [ref=e47]: Само плащане с карта - сигурно, бързо и изцяло дигитално.
+          - generic [ref=e48]: Приемаме също Apple Pay и Google Pay.

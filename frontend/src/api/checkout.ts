@@ -49,9 +49,11 @@ export async function fetchSettlements(): Promise<Settlement[]> {
   return data.data;
 }
 
-/** Card is always included; Apple Pay/Google Pay only appear when enabled server-side (see PaymentService::availablePaymentMethods). */
-export async function fetchPaymentMethods(): Promise<PaymentMethodOption[]> {
-  const { data } = await apiClient.get<{ data: PaymentMethodOption[] }>('/checkout/payment-methods');
+/** Card is always included; cash on delivery only appears once a BOX NOW delivery carrier is passed (see PaymentService::availablePaymentMethods). */
+export async function fetchPaymentMethods(carrier?: ShippingCarrier): Promise<PaymentMethodOption[]> {
+  const { data } = await apiClient.get<{ data: PaymentMethodOption[] }>('/checkout/payment-methods', {
+    params: { carrier: carrier || undefined },
+  });
   return data.data;
 }
 

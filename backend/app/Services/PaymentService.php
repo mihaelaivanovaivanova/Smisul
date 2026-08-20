@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
+use App\Enums\ShippingCarrier;
 use App\Exceptions\Payment\InvalidPaymentMethodException;
 use App\Exceptions\Payment\InvalidWebhookSignatureException;
 use App\Models\Order;
@@ -57,7 +58,7 @@ class PaymentService
      */
     public function initiate(Order $order, PaymentMethod $method = PaymentMethod::Card, ?int $storedPaymentMethodId = null): Payment
     {
-        $this->assertMethodEnabled($method);
+        $this->assertMethodEnabled($method, $order->shipping_carrier);
 
         return DB::transaction(function () use ($order, $method, $storedPaymentMethodId) {
             $storedMethod = null;
@@ -142,22 +143,46 @@ class PaymentService
     }
 
     /**
-     * Checkout offers one hosted iCard method. Wallet brands are rendered
-     * by iCard inside that modal, never as separate methods here.
+     * The methods a payment can actually be *placed with* right now — one
+     * hosted iCard method everywhere, plus cash on delivery, but only for
+     * BOX NOW orders. BOX NOW's own courier collects cash in person at
+     * hand-off, which Speedy's flow here has no equivalent for; re-check
+     * this the moment Speedy (or another carrier) gains a real COD
+     * capability instead of just widening the condition.
      *
-     * CashOnDelivery is temporarily withheld here (not removed — the enum
-     * case, PaymentProvider mapping, and PaymentService::initiate() branch
-     * all still fully support it) until it's ready to be offered again;
-     * re-add it to this list to turn it back on everywhere at once
-     * (checkout's method list, PlaceOrderRequest/InitiatePaymentRequest
-     * validation, and PaymentController's enabled-methods check all read
-     * from this single source of truth).
+     * $carrier is nullable so a caller with no order/carrier context yet
+     * (e.g. before checkout has a shipping selection) still gets a safe,
+     * card-only default rather than an error.
+     *
+     * This is the single source of truth PlaceOrderRequest's validation and
+     * PaymentController's enabled-methods check both read from. Checkout's
+     * method list (CheckoutController::paymentMethods()) also reads from
+     * this, but combined with offerableMethods() below — it still *shows*
+     * cash on delivery for a non-BOX-NOW carrier (greyed out, with an
+     * explanation), rather than hiding it, so don't reuse this method alone
+     * anywhere the UI needs to render every option.
      *
      * @return list<PaymentMethod>
      */
-    public function availablePaymentMethods(): array
+    public function availablePaymentMethods(?ShippingCarrier $carrier = null): array
     {
-        return [PaymentMethod::Card];
+        return $carrier === ShippingCarrier::BoxNow
+            ? [PaymentMethod::Card, PaymentMethod::CashOnDelivery]
+            : [PaymentMethod::Card];
+    }
+
+    /**
+     * Every payment method ever worth showing at checkout, regardless of
+     * whether the current carrier actually allows it — see
+     * availablePaymentMethods() for that. Wallets (Apple Pay/Google Pay)
+     * are deliberately excluded: they're never a separate checkout option,
+     * only rendered inside the iCard modal.
+     *
+     * @return list<PaymentMethod>
+     */
+    public function offerableMethods(): array
+    {
+        return [PaymentMethod::Card, PaymentMethod::CashOnDelivery];
     }
 
     /**
@@ -166,9 +191,9 @@ class PaymentService
      * method any future caller could reach directly with a method that
      * was never checked against current config.
      */
-    private function assertMethodEnabled(PaymentMethod $method): void
+    private function assertMethodEnabled(PaymentMethod $method, ?ShippingCarrier $carrier): void
     {
-        if (! in_array($method, $this->availablePaymentMethods(), strict: true)) {
+        if (! in_array($method, $this->availablePaymentMethods($carrier), strict: true)) {
             throw InvalidPaymentMethodException::disabled($method->value);
         }
     }

@@ -24,13 +24,18 @@ class PlaceOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        // Validated against currently-*enabled* methods, not just any
-        // PaymentMethod case — a disabled wallet must fail here with a
-        // clean 422, not reach PaymentService::initiate() (which would
-        // also reject it, but with a less specific error for the caller).
+        // Validated against currently-*enabled* methods for the payload's
+        // own shipping_carrier, not just any PaymentMethod case — cash on
+        // delivery is only enabled for BOX NOW (see
+        // PaymentService::availablePaymentMethods()), and a disabled
+        // method must fail here with a clean 422, not reach
+        // PaymentService::initiate() (which would also reject it, but
+        // with a less specific error for the caller).
         $enabledMethods = array_map(
             fn ($method) => $method->value,
-            app(PaymentService::class)->availablePaymentMethods(),
+            app(PaymentService::class)->availablePaymentMethods(
+                ShippingCarrier::tryFrom((string) $this->input('shipping_carrier')),
+            ),
         );
 
         return [

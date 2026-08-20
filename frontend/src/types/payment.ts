@@ -13,6 +13,8 @@ export type PaymentMethodValue = 'cash_on_delivery' | 'card';
 export interface PaymentMethodOption {
   value: PaymentMethodValue;
   label: string;
+  /** false when this method is listed but not currently selectable (e.g. cash on delivery for a non-BOX-NOW carrier) — show it greyed out, not hidden. */
+  available: boolean;
 }
 
 export interface PaymentModalSession {

@@ -9,6 +9,7 @@ use App\DataTransferObjects\Shipping\ShippingQuoteData;
 use App\DataTransferObjects\Shipping\ShippingQuoteRequestData;
 use App\DataTransferObjects\Shipping\TrackingData;
 use App\DataTransferObjects\Shipping\TrackingEventData;
+use App\Enums\PaymentMethod;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
@@ -45,7 +46,13 @@ use Throwable;
  *    registered BOX NOW warehouse — orders are fulfilled by dropping the
  *    parcel off at a locker in person, and "any-apm" is BOX NOW's own
  *    documented origin locationId for exactly that flow (see the
- *    BOX_NOW_ORIGIN_LOCATION_ID config default below).
+ *    BOX_NOW_ORIGIN_LOCATION_ID config default below). paymentMode is
+ *    "prepaid" for every order except cash-on-delivery ones (only ever
+ *    possible for this carrier — see PaymentService::availablePaymentMethods()),
+ *    which send "cod" plus the real amountToBeCollected — confirmed
+ *    against guide v1.69, section 4.4/4.8 (valid values: prepaid, cod;
+ *    amountToBeCollected must be a number in (0, 5000) whenever cod is
+ *    used).
  *  - Quote: BOX NOW's guide has no live pricing endpoint at all — the flat
  *    rate in baseRate() IS the real (contractual) price, not a guessed
  *    fallback, so quote() never makes a network call.
@@ -151,15 +158,17 @@ class BoxNowShippingProvider implements ShippingProviderInterface
             'weight' => 1,
         ])->all();
 
+        // Cash on delivery only ever reaches this provider (see
+        // PaymentService::availablePaymentMethods()) — every other order,
+        // including every Speedy one, is prepaid with nothing to collect.
+        $isCashOnDelivery = $order->payments()->where('payment_method', PaymentMethod::CashOnDelivery)->exists();
+
         try {
             $response = $this->client()->post('delivery-requests', [
                 'orderNumber' => $order->order_number,
-                // The storefront is card-only — cash on delivery is coded
-                // but disabled (see PaymentService::availablePaymentMethods)
-                // — so every shipment is prepaid with nothing to collect.
-                'paymentMode' => 'prepaid',
+                'paymentMode' => $isCashOnDelivery ? 'cod' : 'prepaid',
                 'invoiceValue' => (string) $order->grand_total,
-                'amountToBeCollected' => '0.00',
+                'amountToBeCollected' => $isCashOnDelivery ? (string) $order->grand_total : '0.00',
                 'allowReturn' => true,
                 'origin' => [
                     'contactNumber' => $this->originContactNumber(),

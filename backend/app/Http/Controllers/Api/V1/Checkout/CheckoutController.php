@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Checkout;
 use App\DataTransferObjects\Checkout\PlaceOrderData;
 use App\DataTransferObjects\Shipping\ShippingQuoteRequestData;
 use App\Enums\PaymentMethod;
+use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
@@ -105,10 +106,28 @@ class CheckoutController extends Controller
         return SettlementResource::collection($this->settlements->all())->response();
     }
 
-    /** Checkout exposes only cash on delivery and iCard's hosted modal. */
-    public function paymentMethods(): JsonResponse
+    /**
+     * Every offerable method is always listed (see
+     * PaymentService::offerableMethods()) — cash on delivery included even
+     * for a non-BOX-NOW carrier, marked `available: false` so the frontend
+     * can show it greyed out with an explanation instead of hiding it.
+     * carrier is optional — called with none yet before the delivery step
+     * has a selection, which still needs a safe (card-only-available)
+     * response.
+     */
+    public function paymentMethods(Request $request): JsonResponse
     {
-        return PaymentMethodResource::collection($this->payments->availablePaymentMethods())->response();
+        $request->validate(['carrier' => ['nullable', 'string']]);
+
+        $carrier = ShippingCarrier::tryFrom((string) $request->string('carrier'));
+        $enabledMethods = $this->payments->availablePaymentMethods($carrier);
+
+        $methods = collect($this->payments->offerableMethods())->map(fn ($method) => [
+            'method' => $method,
+            'available' => in_array($method, $enabledMethods, true),
+        ]);
+
+        return PaymentMethodResource::collection($methods)->response();
     }
 
     /** Place the order and start iCard only when card was selected. */

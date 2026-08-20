@@ -15,6 +15,10 @@ export const siteName = 'Smisul';
 /** The permanent brand promise (ai/context/00_Project_Vision.md) - a fixed slogan, not admin-editable marketing content. Used in BrandStatementSection.tsx. */
 export const brandTagline = 'По-малко излишно. Повече смисъл.';
 
+export const topBanner = {
+  message: 'Безплатна доставка с Box Now до края на септември!',
+};
+
 export const nav = {
   home: 'Начало',
   browseProducts: 'Продукти',

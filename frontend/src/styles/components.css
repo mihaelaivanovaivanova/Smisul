@@ -12,6 +12,49 @@
   height: 56px;
 }
 
+/* ---- Top announcement bar ---- */
+
+.top-announcement-bar {
+  overflow: hidden;
+  padding: 0.5rem 0;
+  background-color: #468513;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.top-announcement-bar__track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: max-content;
+  white-space: nowrap;
+  animation: top-announcement-scroll 28s linear infinite;
+}
+
+.top-announcement-bar svg {
+  width: 1.75em;
+  height: 1.75em;
+  flex-shrink: 0;
+}
+
+@keyframes top-announcement-scroll {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-announcement-bar__track {
+    animation: none;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ---- Navbar ---- */
 
 /*

@@ -1,0 +1,53 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: 🚚
+    - text: Безплатна доставка с Box Now до края на септември!
+  - navigation "Основна навигация" [ref=e6]:
+    - generic [ref=e7]:
+      - link "Начало" [ref=e8] [cursor=pointer]:
+        - /url: /
+        - img "Smisul" [ref=e9]
+      - button "Количка, 0 артикула" [ref=e12] [cursor=pointer]
+      - search [ref=e16]:
+        - searchbox "Търсене на продукти" [ref=e17]
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - status [ref=e20]:
+        - generic [ref=e21]: Зареждане…
+      - paragraph [ref=e22]: Зареждане…
+  - contentinfo [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - img "Smisul" [ref=e26]
+        - navigation "Компания" [ref=e27]:
+          - link "Начало" [ref=e28] [cursor=pointer]:
+            - /url: /
+          - link "Продукти" [ref=e29] [cursor=pointer]:
+            - /url: /search
+          - link "За нас" [ref=e30] [cursor=pointer]:
+            - /url: /about
+          - button "Контакти" [ref=e31] [cursor=pointer]
+      - separator [ref=e32]
+      - navigation "Правна информация" [ref=e33]:
+        - button "Настройки на бисквитките" [ref=e34] [cursor=pointer]
+      - generic [ref=e35]:
+        - generic [ref=e36]: © 2026 Smisul. Всички права запазени.
+        - generic [ref=e37]:
+          - generic "Приемани карти" [ref=e38]:
+            - img "Visa" [ref=e39]
+            - img "Mastercard" [ref=e40]
+            - img "American Express" [ref=e41]
+            - img "Apple Pay" [ref=e42]
+            - img "Google Pay" [ref=e43]
+          - generic [ref=e44]: Само плащане с карта - сигурно, бързо и изцяло дигитално.
+          - generic [ref=e45]: Приемаме също Apple Pay и Google Pay.
+  - dialog "Настройки на бисквитките" [ref=e46]:
+    - paragraph [ref=e47]:
+      - text: Използваме бисквитки, за да подобрим работата на сайта, да анализираме трафика и да ти предложим по-подходящо съдържание. Можеш да приемеш всички бисквитки или да персонализираш избора си.
+      - link "Политика за бисквитки" [ref=e48] [cursor=pointer]:
+        - /url: /legal/cookie-policy
+    - generic [ref=e49]:
+      - button "Приеми всички" [ref=e50] [cursor=pointer]
+      - generic [ref=e51]:
+        - button "Само необходими" [ref=e52] [cursor=pointer]
+        - button "Персонализирай" [ref=e53] [cursor=pointer]

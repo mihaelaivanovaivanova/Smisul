@@ -21,15 +21,10 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_shipment_persists_a_tracking_number_and_status_event(): void
     {
-        Http::fake([
-            'demo.econt.com/*' => Http::response([
-                'trackingNumber' => 'ECONT-TEST-123',
-                'labelUrl' => 'https://demo.econt.com/labels/123.pdf',
-            ]),
-        ]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-123'])]);
 
         $order = Order::factory()->create([
-            'shipping_carrier' => ShippingCarrier::Econt,
+            'shipping_carrier' => ShippingCarrier::Speedy,
             'shipping_delivery_type' => ShippingDeliveryType::Address,
             'shipping_office_id' => null,
             'shipping_office_name' => null,
@@ -37,13 +32,13 @@ class ShipmentCreationTest extends TestCase
 
         $shipment = $this->app->make(ShippingService::class)->createShipment($order);
 
-        $this->assertSame('ECONT-TEST-123', $shipment->tracking_number);
+        $this->assertSame('SPEEDY-TEST-123', $shipment->tracking_number);
         $this->assertSame(ShipmentStatus::Accepted, $shipment->status);
-        $this->assertSame('https://demo.econt.com/labels/123.pdf', $shipment->label_url);
+        $this->assertNull($shipment->label_url);
 
         $this->assertDatabaseHas('shipments', [
             'order_id' => $order->id,
-            'tracking_number' => 'ECONT-TEST-123',
+            'tracking_number' => 'SPEEDY-TEST-123',
             'status' => 'accepted',
         ]);
         $this->assertDatabaseHas('shipment_status_events', [
@@ -55,10 +50,10 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_shipment_throws_when_the_carrier_rejects_the_request(): void
     {
-        Http::fake(['demo.econt.com/*' => Http::response(['error' => 'invalid address'], 422)]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['error' => 'invalid address'], 422)]);
 
         $order = Order::factory()->create([
-            'shipping_carrier' => ShippingCarrier::Econt,
+            'shipping_carrier' => ShippingCarrier::Speedy,
             'shipping_delivery_type' => ShippingDeliveryType::Address,
         ]);
 
@@ -74,10 +69,10 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function a_shipment_cannot_be_created_twice_for_the_same_order(): void
     {
-        Http::fake(['demo.econt.com/*' => Http::response(['trackingNumber' => 'ECONT-TEST-1'])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1'])]);
 
         $order = Order::factory()->create([
-            'shipping_carrier' => ShippingCarrier::Econt,
+            'shipping_carrier' => ShippingCarrier::Speedy,
             'shipping_delivery_type' => ShippingDeliveryType::Address,
         ]);
 

@@ -21,30 +21,32 @@ class ShipmentTrackingTest extends TestCase
     public function tracking_a_shipment_records_a_new_status_event_when_the_status_changed(): void
     {
         Http::fake([
-            'demo.econt.com/*' => Http::response([
-                'events' => [
-                    ['status' => 'accepted', 'date' => '2026-07-06T10:00:00+03:00', 'description' => null],
-                    ['status' => 'in_transit', 'date' => '2026-07-06T14:00:00+03:00', 'description' => null],
-                ],
-                'estimatedDelivery' => '2026-07-08T12:00:00+03:00',
+            'api.speedy.bg/*' => Http::response([
+                'parcels' => [[
+                    'operations' => [
+                        ['operationCode' => 39, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
+                        ['operationCode' => 1, 'dateTime' => '2026-07-06T14:00:00+03:00', 'description' => null],
+                    ],
+                ]],
             ]),
         ]);
 
-        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Econt]);
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
         $shipment = Shipment::factory()->for($order)->created()->create([
-            'carrier' => ShippingCarrier::Econt,
-            'status' => ShipmentStatus::Accepted,
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::PickedUp,
         ]);
 
         $tracking = $this->app->make(ShippingService::class)->track($shipment);
 
         $this->assertSame(ShipmentStatus::InTransit, $tracking->currentStatus);
         $this->assertCount(2, $tracking->events);
-        $this->assertNotNull($tracking->estimatedDeliveryAt);
+        // Speedy's track endpoint never returns an ETA (see
+        // SpeedyShippingProvider::track()).
+        $this->assertNull($tracking->estimatedDeliveryAt);
 
         $shipment->refresh();
         $this->assertSame(ShipmentStatus::InTransit, $shipment->status);
-        $this->assertNotNull($shipment->estimated_delivery_at);
         $this->assertDatabaseHas('shipment_status_events', ['shipment_id' => $shipment->id, 'status' => 'in_transit']);
     }
 
@@ -52,15 +54,17 @@ class ShipmentTrackingTest extends TestCase
     public function tracking_does_not_record_a_duplicate_event_when_the_status_is_unchanged(): void
     {
         Http::fake([
-            'demo.econt.com/*' => Http::response([
-                'events' => [['status' => 'accepted', 'date' => '2026-07-06T10:00:00+03:00']],
+            'api.speedy.bg/*' => Http::response([
+                'parcels' => [[
+                    'operations' => [['operationCode' => 39, 'dateTime' => '2026-07-06T10:00:00+03:00']],
+                ]],
             ]),
         ]);
 
-        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Econt]);
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
         $shipment = Shipment::factory()->for($order)->created()->create([
-            'carrier' => ShippingCarrier::Econt,
-            'status' => ShipmentStatus::Accepted,
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::PickedUp,
         ]);
 
         $this->app->make(ShippingService::class)->track($shipment);
@@ -71,10 +75,10 @@ class ShipmentTrackingTest extends TestCase
     #[Test]
     public function tracking_throws_when_the_carrier_api_fails(): void
     {
-        Http::fake(['demo.econt.com/*' => Http::response(null, 500)]);
+        Http::fake(['api.speedy.bg/*' => Http::response(null, 500)]);
 
-        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Econt]);
-        $shipment = Shipment::factory()->for($order)->created()->create(['carrier' => ShippingCarrier::Econt]);
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create(['carrier' => ShippingCarrier::Speedy]);
 
         $this->expectException(ShippingProviderException::class);
 

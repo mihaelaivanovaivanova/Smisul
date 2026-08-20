@@ -56,7 +56,7 @@ class GuestCheckoutTest extends TestCase
                 'postal_code' => '1000',
                 'address_line' => 'ul. Vitosha 1',
             ],
-            'shipping_carrier' => 'econt',
+            'shipping_carrier' => 'speedy',
             'shipping_delivery_type' => 'address',
             'legal_document_ids' => $overrides['legal_document_ids'] ?? $this->acceptAllCurrentLegalDocuments(),
         ], $overrides);
@@ -68,11 +68,9 @@ class GuestCheckoutTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/shipping-methods');
 
         $response->assertOk();
-        // Econt (office + address) + Speedy (office + address) + BOX NOW
-        // (locker only) — see ShippingProviderInterface::supportedDeliveryTypes().
-        $response->assertJsonCount(5, 'data');
-        $response->assertJsonFragment(['carrier' => 'econt', 'delivery_type' => 'office']);
-        $response->assertJsonFragment(['carrier' => 'econt', 'delivery_type' => 'address']);
+        // Speedy (office + address) + BOX NOW (locker only) — see
+        // ShippingProviderInterface::supportedDeliveryTypes().
+        $response->assertJsonCount(3, 'data');
         $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'office']);
         $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'address']);
         $response->assertJsonFragment(['carrier' => 'box_now', 'delivery_type' => 'locker']);
@@ -106,7 +104,7 @@ class GuestCheckoutTest extends TestCase
         // awaiting_payment as part of the same request.
         $response->assertJsonPath('data.status', 'awaiting_payment');
         $response->assertJsonPath('data.customer.first_name', 'Ivan');
-        $response->assertJsonPath('data.shipping.carrier', 'econt');
+        $response->assertJsonPath('data.shipping.carrier', 'speedy');
         $response->assertJsonPath('data.shipping.price', 5.99);
         $response->assertJsonCount(1, 'data.items');
         $response->assertJsonPath('data.items.0.quantity', 2);

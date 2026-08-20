@@ -6,7 +6,7 @@ namespace App\Enums;
  * How the parcel reaches the customer for a given carrier — not every
  * carrier supports every type (see each ShippingProviderInterface
  * implementation's supportedDeliveryTypes()). BOX NOW is locker-only;
- * Econt/Speedy support both office pickup and home delivery.
+ * Speedy supports both office pickup and home delivery.
  */
 enum ShippingDeliveryType: string
 {

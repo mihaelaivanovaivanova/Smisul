@@ -124,23 +124,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Shipping providers (Econt, Speedy, BOX NOW)
+    | Shipping providers (Speedy, BOX NOW)
     |--------------------------------------------------------------------------
     |
-    | Econt/Speedy are still sandbox/demo configuration — each falls back to
-    | a flat rate when its API is unreachable, so checkout keeps working
-    | without real credentials; only shipment creation/tracking require them
-    | to actually succeed. BOX NOW is configured against its real production
+    | Speedy is still sandbox/demo configuration — it falls back to a flat
+    | rate when its API is unreachable, so checkout keeps working without
+    | real credentials; only shipment creation/tracking require them to
+    | actually succeed. BOX NOW is configured against its real production
     | API (see App\Services\Shipping\BoxNowShippingProvider).
     |
     */
 
     'shipping' => [
-        'econt' => [
-            'base_url' => env('ECONT_BASE_URL', 'https://demo.econt.com/ee/services/'),
-            'username' => env('ECONT_USERNAME'),
-            'password' => env('ECONT_PASSWORD'),
-        ],
         'speedy' => [
             'base_url' => env('SPEEDY_BASE_URL', 'https://api.speedy.bg/v1/'),
             'username' => env('SPEEDY_USERNAME'),

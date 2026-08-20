@@ -17,7 +17,6 @@ import type {
 
 /** Each carrier's own real logo (see frontend/public/shipping/), sourced from their official sites. */
 const CARRIER_LOGOS: Record<ShippingCarrier, { src: string; alt: string }> = {
-  econt: { src: '/shipping/econt.png', alt: 'Econt' },
   speedy: { src: '/shipping/speedy.png', alt: 'Speedy' },
   box_now: { src: '/shipping/box-now.svg', alt: 'BOX NOW' },
 };

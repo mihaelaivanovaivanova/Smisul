@@ -10,131 +10,6 @@ use Tests\TestCase;
 class ShippingOfficeLookupTest extends TestCase
 {
     /**
-     * The fake response below mirrors the real, confirmed shape returned by
-     * Econt's actual public demo endpoint (nested address/city objects,
-     * not flat strings) — verified by hand against
-     * https://demo.econt.com/ee/services/Nomenclatures/NomenclaturesService.getOffices.json
-     * during development, since Econt's real sandbox is reachable without
-     * credentials for nomenclature lookups. This also confirms the
-     * (unfiltered by the API itself) client-side city filtering in
-     * EcontShippingProvider::offices() actually excludes the non-matching
-     * city.
-     */
-    #[Test]
-    public function econt_offices_are_listed_for_a_city(): void
-    {
-        Http::fake([
-            'demo.econt.com/*' => Http::response([
-                'offices' => [
-                    [
-                        'id' => 37381,
-                        'name' => 'Econt Sofia Center',
-                        'address' => [
-                            'fullAddress' => 'София, ул. Резбарска №9',
-                            'city' => ['name' => 'София', 'nameEn' => 'Sofia'],
-                        ],
-                    ],
-                    [
-                        'id' => 40122,
-                        'name' => 'Econt Plovdiv Center',
-                        'address' => [
-                            'fullAddress' => 'Пловдив, ул. Главна №1',
-                            'city' => ['name' => 'Пловдив', 'nameEn' => 'Plovdiv'],
-                        ],
-                    ],
-                ],
-            ]),
-        ]);
-
-        $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=econt&city=Sofia');
-
-        $response->assertOk();
-        $response->assertJsonCount(1, 'data');
-        // Matching is done against the office's English city name (nameEn),
-        // but the office is displayed with its Bulgarian name — consistent
-        // with the rest of the (Bulgarian) storefront.
-        $response->assertJsonFragment(['id' => '37381', 'name' => 'Econt Sofia Center', 'city' => 'София', 'type' => 'office']);
-    }
-
-    /**
-     * Econt's real getOffices response mixes staffed offices in with APS
-     * machines (isAPS) and mobile post-station vans (isMPS) in the same
-     * flat list — confirmed by hand against the live demo endpoint. The
-     * checkout office picker must only offer staffed offices.
-     */
-    #[Test]
-    public function econt_aps_machines_and_mobile_post_stations_are_excluded(): void
-    {
-        Http::fake([
-            'demo.econt.com/*' => Http::response([
-                'offices' => [
-                    [
-                        'id' => 37381,
-                        'isAPS' => false,
-                        'isMPS' => false,
-                        'name' => 'Econt Sofia Center',
-                        'address' => [
-                            'fullAddress' => 'София, ул. Резбарска №9',
-                            'city' => ['name' => 'София', 'nameEn' => 'Sofia'],
-                        ],
-                    ],
-                    [
-                        'id' => 106441,
-                        'isAPS' => true,
-                        'isMPS' => false,
-                        'name' => 'Econt APS Sofia Mall',
-                        'address' => [
-                            'fullAddress' => 'София, бул. Черни връх №100',
-                            'city' => ['name' => 'София', 'nameEn' => 'Sofia'],
-                        ],
-                    ],
-                    [
-                        'id' => 100022756,
-                        'isAPS' => false,
-                        'isMPS' => true,
-                        'name' => 'Мобилен офис (София)',
-                        'address' => [
-                            'fullAddress' => 'София, ул. Тестова №1',
-                            'city' => ['name' => 'София', 'nameEn' => 'Sofia'],
-                        ],
-                    ],
-                ],
-            ]),
-        ]);
-
-        $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=econt&city=Sofia');
-
-        $response->assertOk();
-        $response->assertJsonCount(1, 'data');
-        $response->assertJsonFragment(['id' => '37381', 'name' => 'Econt Sofia Center']);
-    }
-
-    /**
-     * Regression test for the real bug this shape mismatch caused during
-     * development: casting an unexpected array value to string raises
-     * "Array to string conversion", which Laravel's error handler promotes
-     * to an ErrorException — this must degrade to an empty list rather than
-     * a 500, since the exact response shape from a live carrier API is
-     * never fully guaranteed.
-     */
-    #[Test]
-    public function econt_offices_with_an_unexpected_field_type_degrade_to_an_empty_list_instead_of_500ing(): void
-    {
-        Http::fake([
-            'demo.econt.com/*' => Http::response(['offices' => [[
-                'id' => ['unexpected' => 'array'],
-                'name' => 'Bad Shape',
-                'address' => ['fullAddress' => 'test', 'city' => ['name' => 'София', 'nameEn' => 'Sofia']],
-            ]]]),
-        ]);
-
-        $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=econt&city=Sofia');
-
-        $response->assertOk();
-        $response->assertJsonCount(0, 'data');
-    }
-
-    /**
      * The fake response mirrors BOX NOW's real, confirmed shape (see their
      * partner API guide, https://boxnow.bg/partner-api — addressLine1 is
      * the street, addressLine2 the settlement/city) — verified against a
@@ -226,7 +101,7 @@ class ShippingOfficeLookupTest extends TestCase
      * whatever city string the caller filtered by (harmless while every
      * call passed a city, but broken for an unfiltered nationwide lookup,
      * where every office would report the same — empty — city). Now reads
-     * the office's own siteName, same as Econt's city mapping already did.
+     * the office's own siteName instead.
      */
     #[Test]
     public function speedy_offices_report_their_own_city_when_no_city_filter_is_given(): void

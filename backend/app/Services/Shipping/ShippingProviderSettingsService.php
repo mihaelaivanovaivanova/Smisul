@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
- * Admin-editable overrides for the three shipping providers' credentials
- * (Econt/Speedy: base_url + username + password; BOX NOW: base_url +
- * client_id + client_secret) — same DB-backed-with-env-fallback shape as
+ * Admin-editable overrides for the two shipping providers' credentials
+ * (Speedy: base_url + username + password; BOX NOW: base_url + client_id +
+ * client_secret) — same DB-backed-with-env-fallback shape as
  * ICardConfigurationService, scaled down (no PEM keys, no environments).
  *
  * A row only overrides the fields it has non-null values for; anything
@@ -20,7 +20,7 @@ use Throwable;
  */
 class ShippingProviderSettingsService
 {
-    private const PROVIDERS = [ShippingCarrier::Econt, ShippingCarrier::Speedy, ShippingCarrier::BoxNow];
+    private const PROVIDERS = [ShippingCarrier::Speedy, ShippingCarrier::BoxNow];
 
     private const REQUIRED_COLUMNS = [
         'provider', 'enabled', 'base_url', 'username', 'password', 'client_id', 'client_secret',

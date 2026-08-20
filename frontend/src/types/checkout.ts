@@ -17,7 +17,7 @@ export interface ShippingAddress {
   apartment: string;
 }
 
-export type ShippingCarrier = 'econt' | 'speedy' | 'box_now';
+export type ShippingCarrier = 'speedy' | 'box_now';
 export type ShippingDeliveryType = 'office' | 'locker' | 'address';
 
 export interface ShippingMethod {

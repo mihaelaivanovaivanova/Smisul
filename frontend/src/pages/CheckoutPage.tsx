@@ -29,7 +29,7 @@ import type { Payment, PaymentMethodValue } from '../types/payment';
 // Every carrier this storefront supports — used to prefetch all of their
 // office/locker lists up front rather than one at a time as the customer
 // switches methods.
-const ALL_CARRIERS: ShippingCarrier[] = ['econt', 'speedy', 'box_now'];
+const ALL_CARRIERS: ShippingCarrier[] = ['speedy', 'box_now'];
 
 interface ActivePayment {
   orderId: number;

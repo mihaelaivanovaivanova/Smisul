@@ -21,10 +21,10 @@ class ShipmentFactory extends Factory
     {
         return [
             'order_id' => Order::factory(),
-            'carrier' => ShippingCarrier::Econt,
+            'carrier' => ShippingCarrier::Speedy,
             'delivery_type' => ShippingDeliveryType::Office,
             'office_id' => 'office-1',
-            'office_name' => 'Econt Office 1',
+            'office_name' => 'Speedy Office 1',
             'tracking_number' => null,
             'status' => ShipmentStatus::Pending,
             'price' => 5.99,

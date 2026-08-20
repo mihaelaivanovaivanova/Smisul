@@ -56,7 +56,7 @@ class PaymentInitiationTest extends TestCase
         return $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/checkout/orders', [
             'customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => '+359888123456'],
             'address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
-            'shipping_carrier' => 'econt',
+            'shipping_carrier' => 'speedy',
             'shipping_delivery_type' => 'address',
             'legal_document_ids' => $this->acceptAllCurrentLegalDocuments(),
         ]);

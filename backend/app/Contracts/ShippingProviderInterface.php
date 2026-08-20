@@ -12,8 +12,8 @@ use App\Enums\ShippingDeliveryType;
 use App\Models\Order;
 
 /**
- * Every courier integration (Econt, Speedy, BOX NOW, and any future
- * addition) implements this so ShippingService never needs carrier-specific
+ * Every courier integration (Speedy, BOX NOW, and any future addition)
+ * implements this so ShippingService never needs carrier-specific
  * logic — mirrors PaymentGatewayInterface in the payments domain. Each
  * implementation is independent: no shared base class, so replacing or
  * retiring one carrier never touches another.

@@ -16,33 +16,13 @@ class ShippingQuoteTest extends TestCase
     }
 
     #[Test]
-    public function a_live_econt_quote_is_returned_when_the_carrier_api_succeeds(): void
-    {
-        Http::fake([
-            'demo.econt.com/*' => Http::response([
-                'price' => 7.50,
-                'currency' => 'EUR',
-                'estimatedDelivery' => '1 работен ден',
-            ]),
-        ]);
-
-        $response = $this->quote(['carrier' => 'econt', 'delivery_type' => 'office', 'city' => 'Sofia', 'postal_code' => '1000']);
-
-        $response->assertOk();
-        $response->assertJsonPath('data.carrier', 'econt');
-        $response->assertJsonPath('data.price', 7.5);
-        $response->assertJsonPath('data.currency', 'EUR');
-        $response->assertJsonPath('data.estimated_delivery', '1 работен ден');
-    }
-
-    #[Test]
     public function the_flat_rate_fallback_is_used_when_the_carrier_api_is_unreachable(): void
     {
         Http::fake(function () {
             throw new ConnectionException('Could not resolve host');
         });
 
-        $response = $this->quote(['carrier' => 'econt', 'delivery_type' => 'address', 'city' => 'Sofia', 'postal_code' => '1000']);
+        $response = $this->quote(['carrier' => 'speedy', 'delivery_type' => 'address', 'city' => 'Sofia', 'postal_code' => '1000']);
 
         $response->assertOk();
         $response->assertJsonPath('data.price', 5.99);
@@ -52,9 +32,9 @@ class ShippingQuoteTest extends TestCase
     #[Test]
     public function the_flat_rate_fallback_is_used_when_the_carrier_api_returns_an_unexpected_shape(): void
     {
-        Http::fake(['demo.econt.com/*' => Http::response(['unexpected' => 'shape'])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['unexpected' => 'shape'])]);
 
-        $response = $this->quote(['carrier' => 'econt', 'delivery_type' => 'office', 'city' => 'Sofia', 'postal_code' => '1000']);
+        $response = $this->quote(['carrier' => 'speedy', 'delivery_type' => 'office', 'city' => 'Sofia', 'postal_code' => '1000']);
 
         $response->assertOk();
         $response->assertJsonPath('data.price', 5.99);
@@ -141,7 +121,7 @@ class ShippingQuoteTest extends TestCase
     #[Test]
     public function a_missing_required_field_is_rejected(): void
     {
-        $response = $this->quote(['carrier' => 'econt', 'delivery_type' => 'address']);
+        $response = $this->quote(['carrier' => 'speedy', 'delivery_type' => 'address']);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['city', 'postal_code']);

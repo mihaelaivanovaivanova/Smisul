@@ -10,7 +10,6 @@ import { tracking as trackingCopy } from '../content/copy';
 import type { Shipment, ShippingCarrier } from '../types/checkout';
 
 const CARRIER_LABELS: Record<ShippingCarrier, string> = {
-  econt: 'Econt',
   speedy: 'Speedy',
   box_now: 'BOX NOW',
 };

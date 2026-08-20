@@ -55,8 +55,7 @@ use Throwable;
  *
  * BOX NOW is locker-only (no office or home delivery) — the only provider
  * whose supportedDeliveryTypes() is a single entry. Independent of
- * EcontShippingProvider/SpeedyShippingProvider by design — no shared base
- * class.
+ * SpeedyShippingProvider by design — no shared base class.
  */
 class BoxNowShippingProvider implements ShippingProviderInterface
 {

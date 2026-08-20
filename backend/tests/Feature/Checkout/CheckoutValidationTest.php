@@ -57,7 +57,7 @@ class CheckoutValidationTest extends TestCase
                 'postal_code' => '1000',
                 'address_line' => 'ul. Vitosha 1',
             ],
-            'shipping_carrier' => 'econt',
+            'shipping_carrier' => 'speedy',
             'shipping_delivery_type' => 'address',
             'legal_document_ids' => $overrides['legal_document_ids'] ?? $this->acceptAllCurrentLegalDocuments(),
         ], $overrides);

@@ -28,8 +28,8 @@ use Throwable;
  * quote, office lookup, shipment creation, and tracking have all returned
  * real data, not just documented-but-unverified shapes. Credentials are
  * embedded as `userName`/`password` fields in every request body, not an
- * HTTP auth header, and every endpoint requires them — including office
- * lookups, unlike Econt's public nomenclature endpoint.
+ * HTTP auth header, and every endpoint requires them, including office
+ * lookups.
  *
  * Two endpoints, two different field shapes for the same concepts —
  * confirmed by trial against the real API, not guessed:
@@ -42,8 +42,7 @@ use Throwable;
  *
  * `serviceId` 505 is confirmed valid for this account (returns real prices
  * and creates real test shipments) — no longer a placeholder guess.
- * Independent of EcontShippingProvider/BoxNowShippingProvider by design —
- * no shared base class.
+ * Independent of BoxNowShippingProvider by design — no shared base class.
  */
 class SpeedyShippingProvider implements ShippingProviderInterface
 {
@@ -138,8 +137,7 @@ class SpeedyShippingProvider implements ShippingProviderInterface
                     // $city filter — the two used to always match because
                     // this only ran with a city filter applied, but an
                     // unfiltered nationwide lookup (no $city) needs the
-                    // real per-office city to group by, same as Econt
-                    // already does above.
+                    // real per-office city to group by.
                     city: (string) ($office['address']['siteName'] ?? $city ?? ''),
                     address: (string) ($office['address']['fullAddressString'] ?? ''),
                 ))
@@ -286,9 +284,9 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     /**
      * Speedy's `calculate` endpoint returns a precise ISO deadline
      * (e.g. "2026-07-07T19:00:00+0300"), not a display-ready string like
-     * Econt/BOX NOW's mocked responses — showing that raw value verbatim
-     * in checkout looked like a bug. Falls back to the same generic range
-     * the other carriers use if the value is missing or unparsable.
+     * BOX NOW's mocked responses — showing that raw value verbatim in
+     * checkout looked like a bug. Falls back to the same generic range
+     * the other carrier uses if the value is missing or unparsable.
      */
     private function formatDeliveryDeadline(mixed $deadline): string
     {

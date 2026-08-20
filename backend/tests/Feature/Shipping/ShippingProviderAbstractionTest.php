@@ -6,7 +6,6 @@ use App\Contracts\ShippingProviderInterface;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Services\Shipping\BoxNowShippingProvider;
-use App\Services\Shipping\EcontShippingProvider;
 use App\Services\Shipping\SpeedyShippingProvider;
 use App\Services\ShippingService;
 use PHPUnit\Framework\Attributes\Test;
@@ -15,23 +14,21 @@ use Tests\TestCase;
 /**
  * Verifies the courier abstraction itself: every provider implements
  * ShippingProviderInterface independently, ShippingServiceProvider wires
- * all three into the container, and ShippingService dispatches to the
- * right one per carrier without any carrier-specific logic of its own.
+ * both into the container, and ShippingService dispatches to the right one
+ * per carrier without any carrier-specific logic of its own.
  */
 class ShippingProviderAbstractionTest extends TestCase
 {
     #[Test]
     public function each_provider_implements_the_shared_interface(): void
     {
-        $econt = $this->app->make(EcontShippingProvider::class);
         $speedy = $this->app->make(SpeedyShippingProvider::class);
         $boxNow = $this->app->make(BoxNowShippingProvider::class);
 
-        foreach ([$econt, $speedy, $boxNow] as $provider) {
+        foreach ([$speedy, $boxNow] as $provider) {
             $this->assertInstanceOf(ShippingProviderInterface::class, $provider);
         }
 
-        $this->assertSame(ShippingCarrier::Econt, $econt->carrier());
         $this->assertSame(ShippingCarrier::Speedy, $speedy->carrier());
         $this->assertSame(ShippingCarrier::BoxNow, $boxNow->carrier());
     }
@@ -45,15 +42,10 @@ class ShippingProviderAbstractionTest extends TestCase
     }
 
     #[Test]
-    public function econt_and_speedy_support_office_and_address_delivery(): void
+    public function speedy_supports_office_and_address_delivery(): void
     {
-        $econt = $this->app->make(EcontShippingProvider::class);
         $speedy = $this->app->make(SpeedyShippingProvider::class);
 
-        $this->assertEqualsCanonicalizing(
-            [ShippingDeliveryType::Office, ShippingDeliveryType::Address],
-            $econt->supportedDeliveryTypes(),
-        );
         $this->assertEqualsCanonicalizing(
             [ShippingDeliveryType::Office, ShippingDeliveryType::Address],
             $speedy->supportedDeliveryTypes(),
@@ -65,9 +57,8 @@ class ShippingProviderAbstractionTest extends TestCase
     {
         $methods = $this->app->make(ShippingService::class)->availableMethods();
 
-        $this->assertCount(5, $methods);
+        $this->assertCount(3, $methods);
         $this->assertCount(1, array_filter($methods, fn ($m) => $m->carrier === ShippingCarrier::BoxNow));
-        $this->assertCount(2, array_filter($methods, fn ($m) => $m->carrier === ShippingCarrier::Econt));
         $this->assertCount(2, array_filter($methods, fn ($m) => $m->carrier === ShippingCarrier::Speedy));
     }
 
@@ -76,10 +67,10 @@ class ShippingProviderAbstractionTest extends TestCase
     {
         $service = $this->app->make(ShippingService::class);
 
-        $method = $service->find('econt', 'office');
+        $method = $service->find('speedy', 'office');
 
         $this->assertNotNull($method);
-        $this->assertSame(ShippingCarrier::Econt, $method->carrier);
+        $this->assertSame(ShippingCarrier::Speedy, $method->carrier);
         $this->assertSame(ShippingDeliveryType::Office, $method->deliveryType);
     }
 

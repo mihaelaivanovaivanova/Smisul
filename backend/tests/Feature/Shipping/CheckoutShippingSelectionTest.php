@@ -69,10 +69,10 @@ class CheckoutShippingSelectionTest extends TestCase
         $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson(
             '/api/v1/checkout/orders',
             $this->basePayload([
-                'shipping_carrier' => 'econt',
+                'shipping_carrier' => 'speedy',
                 'shipping_delivery_type' => 'office',
                 'shipping_office_id' => 'office-42',
-                'shipping_office_name' => 'Econt Sofia Center',
+                'shipping_office_name' => 'Speedy Sofia Center',
                 'shipping_office_city' => 'Sofia',
                 'shipping_office_address' => 'bul. Vitosha 100',
                 // Office pickup has no shipping address for "same as
@@ -85,7 +85,7 @@ class CheckoutShippingSelectionTest extends TestCase
         $response->assertCreated();
         $response->assertJsonPath('data.shipping.delivery_type', 'office');
         $response->assertJsonPath('data.shipping.office_id', 'office-42');
-        $response->assertJsonPath('data.shipping.office_name', 'Econt Sofia Center');
+        $response->assertJsonPath('data.shipping.office_name', 'Speedy Sofia Center');
 
         $order = Order::findOrFail($response->json('data.id'));
         $this->assertSame('office-42', $order->shipping_office_id);
@@ -94,7 +94,7 @@ class CheckoutShippingSelectionTest extends TestCase
         // (kept only for billing purposes) — since that's where the
         // parcel is actually delivered.
         $this->assertSame('Sofia', $order->shipping_city);
-        $this->assertSame('Econt Sofia Center, bul. Vitosha 100', $order->shipping_address_line);
+        $this->assertSame('Speedy Sofia Center, bul. Vitosha 100', $order->shipping_address_line);
     }
 
     #[Test]
@@ -104,7 +104,7 @@ class CheckoutShippingSelectionTest extends TestCase
 
         $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson(
             '/api/v1/checkout/orders',
-            $this->basePayload(['shipping_carrier' => 'econt', 'shipping_delivery_type' => 'address']),
+            $this->basePayload(['shipping_carrier' => 'speedy', 'shipping_delivery_type' => 'address']),
         );
 
         $response->assertCreated();
@@ -119,7 +119,7 @@ class CheckoutShippingSelectionTest extends TestCase
 
         $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson(
             '/api/v1/checkout/orders',
-            $this->basePayload(['shipping_carrier' => 'econt', 'shipping_delivery_type' => 'office']),
+            $this->basePayload(['shipping_carrier' => 'speedy', 'shipping_delivery_type' => 'office']),
         );
 
         $response->assertStatus(422);

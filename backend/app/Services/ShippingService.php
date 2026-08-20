@@ -19,10 +19,10 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * The single seam between the rest of the app and the three independent
+ * The single seam between the rest of the app and the two independent
  * courier integrations (see ShippingProviderInterface) — mirrors how
  * PaymentService sits in front of PaymentGatewayInterface for payments.
- * Nothing outside this class ever talks to Econt/Speedy/BOX NOW directly.
+ * Nothing outside this class ever talks to Speedy/BOX NOW directly.
  */
 class ShippingService
 {

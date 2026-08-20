@@ -6,8 +6,8 @@ use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 
 /**
- * A pickup point a customer can choose at checkout — an Econt/Speedy office
- * or a BOX NOW locker. `id` is the carrier's own identifier, echoed back
+ * A pickup point a customer can choose at checkout — a Speedy office or a
+ * BOX NOW locker. `id` is the carrier's own identifier, echoed back
  * verbatim in ShippingProviderInterface::createShipment().
  */
 final readonly class ShippingOfficeData

@@ -1,0 +1,61 @@
+- generic [ref=f1e3]:
+  - generic [ref=f1e4]: Безплатна доставка с Box Now до края на септември!
+  - navigation "Основна навигация" [ref=f1e9]:
+    - generic [ref=f1e10]:
+      - link "Начало" [ref=f1e11] [cursor=pointer]:
+        - /url: /
+        - img "Smisul" [ref=f1e12]
+      - generic [ref=f1e13]:
+        - button "Количка, 1 артикула" [ref=f1e45] [cursor=pointer]:
+          - generic "Количка, 1 артикула" [ref=f1e46]: "1"
+        - button "Профил" [ref=f1e84] [cursor=pointer]
+  - main [ref=f1e21]:
+    - generic [ref=f1e87]:
+      - status [ref=f1e88]:
+        - generic [ref=f1e89]: Зареждане…
+      - paragraph [ref=f1e90]: Зареждане…
+  - contentinfo [ref=f1e22]:
+    - generic [ref=f1e23]:
+      - generic [ref=f1e24]:
+        - img "Smisul" [ref=f1e25]
+        - navigation "Компания" [ref=f1e26]:
+          - link "Начало" [ref=f1e27] [cursor=pointer]:
+            - /url: /
+          - link "За нас" [ref=f1e29] [cursor=pointer]:
+            - /url: /about
+          - link "Профил" [ref=f1e91] [cursor=pointer]:
+            - /url: /profile
+          - link "Моите поръчки" [ref=f1e92] [cursor=pointer]:
+            - /url: /profile/orders
+          - button "Контакти" [ref=f1e30] [cursor=pointer]
+      - separator [ref=f1e31]
+      - navigation "Правна информация" [ref=f1e32]:
+        - link "Общи условия" [ref=f1e73] [cursor=pointer]:
+          - /url: /legal/terms-of-service
+        - link "Политика за поверителност" [ref=f1e74] [cursor=pointer]:
+          - /url: /legal/privacy-policy
+        - link "Право на отказ от договора" [ref=f1e75] [cursor=pointer]:
+          - /url: /legal/right-of-withdrawal
+        - link "Политика за бисквитките" [ref=f1e76] [cursor=pointer]:
+          - /url: /legal/cookie-policy
+        - link "Политика за доставка" [ref=f1e77] [cursor=pointer]:
+          - /url: /legal/shipping-policy
+        - link "Политика за връщане и рекламации" [ref=f1e78] [cursor=pointer]:
+          - /url: /legal/returns-policy
+        - button "Настройки на бисквитките" [ref=f1e33] [cursor=pointer]
+      - paragraph [ref=f1e79]:
+        - generic [ref=f1e80]: "Фирма: Filchev Web LTD / Филчев Уеб ЕООД"
+        - generic [ref=f1e81]: "ЕИК: 208699419"
+        - link "contact@smisul.bg" [ref=f1e82] [cursor=pointer]:
+          - /url: mailto:contact@smisul.bg
+      - generic [ref=f1e34]:
+        - generic [ref=f1e35]: © 2026 Smisul. Всички права запазени.
+        - generic [ref=f1e36]:
+          - generic "Приемани карти" [ref=f1e37]:
+            - img "Visa" [ref=f1e38]
+            - img "Mastercard" [ref=f1e39]
+            - img "American Express" [ref=f1e40]
+            - img "Apple Pay" [ref=f1e41]
+            - img "Google Pay" [ref=f1e42]
+          - generic [ref=f1e43]: Само плащане с карта - сигурно, бързо и изцяло дигитално.
+          - generic [ref=f1e44]: Приемаме също Apple Pay и Google Pay.

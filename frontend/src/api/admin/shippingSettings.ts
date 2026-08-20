@@ -1,7 +1,7 @@
 import { apiClient } from '../client';
 
 export interface ShippingProviderSetting {
-  provider: 'econt' | 'speedy' | 'box_now';
+  provider: 'speedy' | 'box_now';
   label: string;
   enabled: boolean;
   base_url: string | null;

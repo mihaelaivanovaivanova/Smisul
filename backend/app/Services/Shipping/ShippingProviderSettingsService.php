@@ -3,6 +3,7 @@
 namespace App\Services\Shipping;
 
 use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use App\Models\ShippingProviderSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -11,11 +12,13 @@ use Throwable;
 /**
  * Admin-editable overrides for the two shipping providers' credentials
  * (Speedy: base_url + username + password; BOX NOW: base_url + client_id +
- * client_secret) — same DB-backed-with-env-fallback shape as
- * ICardConfigurationService, scaled down (no PEM keys, no environments).
+ * client_secret) and their per-delivery-type flat rates — same
+ * DB-backed-with-hardcoded-fallback shape as ICardConfigurationService,
+ * scaled down (no PEM keys, no environments).
  *
  * A row only overrides the fields it has non-null values for; anything
- * still null falls back to config('services.shipping.{provider}.*') (env),
+ * still null falls back to config('services.shipping.{provider}.*') (env)
+ * for credentials, or each provider's own hardcoded baseRate() for prices —
  * so an uninitialized install keeps working exactly as before this existed.
  */
 class ShippingProviderSettingsService
@@ -24,6 +27,7 @@ class ShippingProviderSettingsService
 
     private const REQUIRED_COLUMNS = [
         'provider', 'enabled', 'base_url', 'username', 'password', 'client_id', 'client_secret',
+        'price_office', 'price_locker', 'price_address',
     ];
 
     public function storageReady(): bool
@@ -82,6 +86,42 @@ class ShippingProviderSettingsService
     }
 
     /**
+     * Admin-configured flat-rate override for a given provider + delivery
+     * type — same DB-override/hardcoded-fallback shape as credentialsFor().
+     * Returns null when there's no row, the row is disabled, or that
+     * delivery type's price column was left blank, so the caller's own
+     * hardcoded default (see each provider's baseRate()) applies unchanged.
+     */
+    public function priceFor(string $provider, ShippingDeliveryType $deliveryType): ?float
+    {
+        if (! $this->storageReady()) {
+            return null;
+        }
+
+        try {
+            $row = ShippingProviderSetting::query()->where('provider', $provider)->first();
+        } catch (Throwable $exception) {
+            Log::warning('Could not read shipping provider price; falling back to the hardcoded default.', [
+                'provider' => $provider,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if ($row === null || ! $row->enabled) {
+            return null;
+        }
+
+        return match ($deliveryType) {
+            ShippingDeliveryType::Office => $row->price_office,
+            ShippingDeliveryType::Locker => $row->price_locker,
+            ShippingDeliveryType::Address => $row->price_address,
+        };
+    }
+
+    /**
      * Lightweight status per provider (never decrypts secrets) — feeds the
      * general Settings response's provider badges.
      *
@@ -128,8 +168,9 @@ class ShippingProviderSettingsService
     }
 
     /**
-     * Admin-facing list of all 3 providers — real values for base_url/
-     * enabled, but only *_configured booleans for every credential field.
+     * Admin-facing list of all providers — real values for base_url/enabled/
+     * prices, but only *_configured booleans for every credential field
+     * (prices aren't secret, so they're shown and edited directly).
      *
      * @return list<array<string, mixed>>
      */
@@ -151,6 +192,9 @@ class ShippingProviderSettingsService
                 'password_configured' => filled($row?->getRawOriginal('password')),
                 'client_id_configured' => filled($row?->getRawOriginal('client_id')),
                 'client_secret_configured' => filled($row?->getRawOriginal('client_secret')),
+                'price_office' => $row->price_office ?? null,
+                'price_locker' => $row->price_locker ?? null,
+                'price_address' => $row->price_address ?? null,
                 'configured' => $this->isConfigured($provider),
             ];
         }, self::PROVIDERS);

@@ -45,6 +45,9 @@ class ShippingProviderConfigurationController extends Controller
             'password' => ['nullable', 'string', 'max:500'],
             'client_id' => ['nullable', 'string', 'max:500'],
             'client_secret' => ['nullable', 'string', 'max:500'],
+            'price_office' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
+            'price_locker' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
+            'price_address' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
         ]);
 
         if ($provider === 'box_now') {

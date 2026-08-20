@@ -65,7 +65,7 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         return new ShippingQuoteData(
             carrier: $this->carrier(),
             deliveryType: $deliveryType,
-            price: 5.99,
+            price: $this->settings->priceFor('speedy', $deliveryType) ?? 5.99,
             currency: 'EUR',
             estimatedDelivery: '1-2 работни дни',
         );

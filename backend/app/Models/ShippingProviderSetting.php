@@ -10,6 +10,7 @@ class ShippingProviderSetting extends Model
 
     protected $fillable = [
         'provider', 'enabled', 'base_url', 'username', 'password', 'client_id', 'client_secret',
+        'price_office', 'price_locker', 'price_address',
     ];
 
     protected $hidden = ['username', 'password', 'client_id', 'client_secret'];
@@ -22,6 +23,9 @@ class ShippingProviderSetting extends Model
             'password' => 'encrypted',
             'client_id' => 'encrypted',
             'client_secret' => 'encrypted',
+            'price_office' => 'float',
+            'price_locker' => 'float',
+            'price_address' => 'float',
         ];
     }
 }

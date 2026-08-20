@@ -79,7 +79,7 @@ class BoxNowShippingProvider implements ShippingProviderInterface
         return new ShippingQuoteData(
             carrier: $this->carrier(),
             deliveryType: $deliveryType,
-            price: 4.99,
+            price: $this->settings->priceFor('box_now', $deliveryType) ?? 4.99,
             currency: 'EUR',
             estimatedDelivery: '1-2 работни дни',
         );

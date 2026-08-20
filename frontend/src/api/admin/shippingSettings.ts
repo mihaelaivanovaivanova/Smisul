@@ -9,6 +9,9 @@ export interface ShippingProviderSetting {
   password_configured: boolean;
   client_id_configured: boolean;
   client_secret_configured: boolean;
+  price_office: number | null;
+  price_locker: number | null;
+  price_address: number | null;
   configured: boolean;
 }
 
@@ -19,6 +22,9 @@ export interface ShippingProviderSettingUpdate {
   password?: string;
   client_id?: string;
   client_secret?: string;
+  price_office: number | null;
+  price_locker: number | null;
+  price_address: number | null;
 }
 
 export async function fetchShippingProviderSettings(): Promise<ShippingProviderSetting[]> {

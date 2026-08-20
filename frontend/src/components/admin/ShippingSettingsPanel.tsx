@@ -8,6 +8,15 @@ import {
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../LoadingState';
 
+/** '' means "no override — use the hardcoded default", distinct from 0 (a genuine free-shipping price). */
+function priceFieldState(value: number | null): string {
+  return value === null ? '' : String(value);
+}
+
+function parsePriceField(value: string): number | null {
+  return value === '' ? null : Number(value);
+}
+
 function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetting; onChanged: (providers: ShippingProviderSetting[]) => void }) {
   const isBoxNow = provider.provider === 'box_now';
   const [enabled, setEnabled] = useState(provider.enabled);
@@ -16,6 +25,9 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
   const [password, setPassword] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [priceOffice, setPriceOffice] = useState(priceFieldState(provider.price_office));
+  const [priceLocker, setPriceLocker] = useState(priceFieldState(provider.price_locker));
+  const [priceAddress, setPriceAddress] = useState(priceFieldState(provider.price_address));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +37,13 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
     setError(null);
     setMessage(null);
     try {
-      const values: ShippingProviderSettingUpdate = { enabled, base_url: baseUrl };
+      const values: ShippingProviderSettingUpdate = {
+        enabled,
+        base_url: baseUrl,
+        price_office: parsePriceField(priceOffice),
+        price_locker: parsePriceField(priceLocker),
+        price_address: parsePriceField(priceAddress),
+      };
       if (isBoxNow) {
         if (clientId) values.client_id = clientId;
         if (clientSecret) values.client_secret = clientSecret;
@@ -122,6 +140,50 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
             </>
           )}
         </div>
+
+        <hr className="my-4" />
+        <h6>Delivery prices</h6>
+        <p className="text-body-secondary small">Leave a field blank to use the built-in default price for that delivery type.</p>
+        <div className="row g-3">
+          {!isBoxNow && (
+            <div className="col-md-4">
+              <label className="form-label">Price to office (EUR)</label>
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                step="0.01"
+                value={priceOffice}
+                onChange={(event) => setPriceOffice(event.target.value)}
+              />
+            </div>
+          )}
+          <div className="col-md-4">
+            <label className="form-label">Price to box (EUR)</label>
+            <input
+              className="form-control"
+              type="number"
+              min="0"
+              step="0.01"
+              value={priceLocker}
+              onChange={(event) => setPriceLocker(event.target.value)}
+            />
+          </div>
+          {!isBoxNow && (
+            <div className="col-md-4">
+              <label className="form-label">Price to address (EUR)</label>
+              <input
+                className="form-control"
+                type="number"
+                min="0"
+                step="0.01"
+                value={priceAddress}
+                onChange={(event) => setPriceAddress(event.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
         <button className="btn btn-primary mt-4" type="button" onClick={() => void save()} disabled={saving}>
           {saving ? 'Saving…' : `Save ${provider.label}`}
         </button>
@@ -148,7 +210,7 @@ export default function ShippingSettingsPanel() {
       <div className="alert alert-info mb-0">Passwords and client secrets are encrypted in the database and never returned to the browser. Leave those fields blank to keep the current values.</div>
       {providers.map((provider) => (
         <ProviderForm
-          key={`${provider.provider}-${provider.username_configured}-${provider.password_configured}-${provider.client_id_configured}-${provider.client_secret_configured}`}
+          key={`${provider.provider}-${provider.username_configured}-${provider.password_configured}-${provider.client_id_configured}-${provider.client_secret_configured}-${provider.price_office}-${provider.price_locker}-${provider.price_address}`}
           provider={provider}
           onChanged={setProviders}
         />

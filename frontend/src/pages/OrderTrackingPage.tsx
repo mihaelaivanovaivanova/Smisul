@@ -9,7 +9,12 @@ import Seo from '../components/Seo';
 import { tracking as trackingCopy } from '../content/copy';
 import type { Shipment, ShippingCarrier } from '../types/checkout';
 
-const CARRIER_LABELS: Record<ShippingCarrier, string> = {
+// Partial, not Record<ShippingCarrier, string>: a shipment placed before
+// Econt was removed can still carry that carrier value (the backend enum
+// keeps the case for exactly this reason — see ShippingCarrier::active()),
+// so this must tolerate a value outside the current type instead of
+// assuming every possible value has a label.
+const CARRIER_LABELS: Partial<Record<ShippingCarrier, string>> = {
   speedy: 'Speedy',
   box_now: 'BOX NOW',
 };
@@ -77,7 +82,7 @@ export default function OrderTrackingPage() {
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <div>
                     <div className="text-muted small">{trackingCopy.carrierLabel}</div>
-                    <div className="fw-semibold">{CARRIER_LABELS[shipment.carrier]}</div>
+                    <div className="fw-semibold">{CARRIER_LABELS[shipment.carrier] ?? shipment.carrier}</div>
                   </div>
                   <span className="badge text-bg-primary">{shipment.status_label}</span>
                 </div>

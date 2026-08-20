@@ -117,8 +117,15 @@ class ShippingProviderSettingsTest extends TestCase
         $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'address', 'price' => 7.25]);
     }
 
+    /**
+     * `enabled` only gates whether credentialsFor() trusts this row's API
+     * credentials — a saved price applies regardless, since an admin
+     * setting only a price (never touching the credential fields) has no
+     * reason to expect "Enable Speedy" to matter. See
+     * ShippingProviderSettingsService::priceFor()'s own docblock.
+     */
     #[Test]
-    public function a_disabled_provider_row_does_not_override_the_price(): void
+    public function a_disabled_provider_row_still_overrides_the_price(): void
     {
         ShippingProviderSetting::query()->create([
             'provider' => 'speedy',
@@ -129,6 +136,21 @@ class ShippingProviderSettingsTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/shipping-methods');
 
         $response->assertOk();
-        $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'office', 'price' => 5.99]);
+        $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'office', 'price' => 1.0]);
+    }
+
+    #[Test]
+    public function a_disabled_provider_row_still_falls_back_to_env_credentials(): void
+    {
+        ShippingProviderSetting::query()->create([
+            'provider' => 'speedy',
+            'enabled' => false,
+            'username' => 'admin-entered-username',
+            'price_office' => 1.00,
+        ]);
+
+        $credentials = app(\App\Services\Shipping\ShippingProviderSettingsService::class)->credentialsFor('speedy');
+
+        $this->assertNotSame('admin-entered-username', $credentials['username'] ?? null);
     }
 }

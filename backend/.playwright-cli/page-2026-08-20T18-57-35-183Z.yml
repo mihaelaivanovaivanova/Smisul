@@ -1,0 +1,40 @@
+- generic [active] [ref=f1e1]:
+  - heading "Фактура (placeholder)" [level=1] [ref=f1e2]
+  - paragraph [ref=f1e3]:
+    - text: "Поръчка:"
+    - strong [ref=f1e4]: SM-260817-2NDXDF
+    - text: "Дата: 17.08.2026"
+  - heading "Продавач" [level=2] [ref=f1e5]
+  - paragraph [ref=f1e6]: "Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД Управител: Владимир Стоянов Филчев ЕИК: 208699419 contact@smisul.bg"
+  - heading "Клиент" [level=2] [ref=f1e7]
+  - paragraph [ref=f1e8]: "Иван Петров test@example.com +359888123456 ACME EOOD (ДДС №: BG123456789)"
+  - heading "Адрес за фактуриране" [level=2] [ref=f1e9]
+  - paragraph [ref=f1e10]: ul. Vitosha 1 Sofia, 1000 България
+  - table [ref=f1e11]:
+    - rowgroup [ref=f1e12]:
+      - row [ref=f1e13]:
+        - columnheader "Продукт" [ref=f1e14]
+        - columnheader "SKU" [ref=f1e15]
+        - columnheader "Количество" [ref=f1e16]
+        - columnheader "Ед. цена" [ref=f1e17]
+        - columnheader "Общо" [ref=f1e18]
+    - rowgroup [ref=f1e19]:
+      - row [ref=f1e20]:
+        - cell "Miswak (10 бр.)" [ref=f1e21]
+        - cell "MISWAK-10" [ref=f1e22]
+        - cell "1" [ref=f1e23]
+        - cell "32.99 EUR" [ref=f1e24]
+        - cell "32.99 EUR" [ref=f1e25]
+    - rowgroup [ref=f1e26]:
+      - row [ref=f1e27]:
+        - cell "Междинна сума" [ref=f1e28]
+        - cell "32.99 EUR" [ref=f1e29]
+      - row [ref=f1e30]:
+        - cell "Доставка (Speedy (до адрес))" [ref=f1e31]
+        - cell "5.99 EUR" [ref=f1e32]
+      - row [ref=f1e33]:
+        - cell [ref=f1e34]:
+          - strong [ref=f1e35]: Общо
+        - cell [ref=f1e36]:
+          - strong [ref=f1e37]: 38.98 EUR
+  - paragraph [ref=f1e38]: Това е временен, опростен документ и не представлява данъчна фактура. Реалното фактуриране предстои да бъде внедрено.

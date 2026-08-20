@@ -10,6 +10,7 @@ final readonly class PlaceOrderData
     public function __construct(
         public CustomerData $customer,
         public ShippingAddressData $address,
+        public bool $wantsInvoice,
         public bool $billingSameAsShipping,
         public ?ShippingAddressData $billingAddress,
         public ?string $deliveryNotes,
@@ -32,6 +33,7 @@ final readonly class PlaceOrderData
         return new self(
             customer: CustomerData::fromArray($data['customer']),
             address: ShippingAddressData::fromArray($data['address']),
+            wantsInvoice: (bool) ($data['wants_invoice'] ?? false),
             billingSameAsShipping: $billingSameAsShipping,
             billingAddress: $billingSameAsShipping ? null : ShippingAddressData::fromArray($data['billing_address']),
             deliveryNotes: isset($data['delivery_notes']) ? (string) $data['delivery_notes'] : null,

@@ -32,7 +32,7 @@ class ShippingProviderConfigurationController extends Controller
     public function update(Request $request, string $provider): JsonResponse
     {
         $this->authorize('update', Setting::class);
-        abort_unless(in_array($provider, array_column(ShippingCarrier::cases(), 'value'), true), 404);
+        abort_unless(in_array($provider, array_column(ShippingCarrier::active(), 'value'), true), 404);
 
         if (! $this->settings->storageReady()) {
             return $this->migrationRequired();

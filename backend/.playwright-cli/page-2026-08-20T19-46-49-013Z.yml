@@ -1,0 +1,7 @@
+- generic [active] [ref=f4e1]:
+  - img "Smisul" [ref=f4e2]
+  - text: Поръчка
+  - strong [ref=f4e3]: "#SM-260817-2NDXDF"
+  - heading "Фактурата за поръчка SM-260817-2NDXDF е готова" [level=1] [ref=f4e4]
+  - paragraph [ref=f4e5]: Здравей, Иван! Поръчката беше доставена — прилагаме фактурата за поръчката като прикачен файл.
+  - text: При въпроси около фактурата пиши ни на contact@smisul.bg. Приятен ден!

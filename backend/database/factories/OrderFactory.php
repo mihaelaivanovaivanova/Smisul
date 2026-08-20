@@ -25,7 +25,7 @@ class OrderFactory extends Factory
         $city = fake()->city();
         $postalCode = fake()->postcode();
         $addressLine = fake()->streetAddress();
-        $carrier = fake()->randomElement(ShippingCarrier::cases());
+        $carrier = fake()->randomElement(ShippingCarrier::active());
         $deliveryType = $carrier === ShippingCarrier::BoxNow ? ShippingDeliveryType::Locker : ShippingDeliveryType::Address;
 
         return [

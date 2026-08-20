@@ -20,7 +20,7 @@ class ShippingQuoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'carrier' => ['required', 'string', Rule::in(array_column(ShippingCarrier::cases(), 'value'))],
+            'carrier' => ['required', 'string', Rule::in(array_column(ShippingCarrier::active(), 'value'))],
             'delivery_type' => ['required', 'string', Rule::in(array_column(ShippingDeliveryType::cases(), 'value'))],
             'city' => ['required', 'string', 'max:100'],
             'postal_code' => ['required', 'string', 'max:20'],

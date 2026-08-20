@@ -20,6 +20,12 @@ use Throwable;
  * still null falls back to config('services.shipping.{provider}.*') (env)
  * for credentials, or each provider's own hardcoded baseRate() for prices —
  * so an uninitialized install keeps working exactly as before this existed.
+ *
+ * `enabled` only gates credentials (see credentialsFor()) — prices
+ * (priceFor()) apply as soon as they're saved, regardless of that flag.
+ * Conflating the two originally meant a saved price silently did nothing
+ * until "Enable X" was also checked, which had no obvious connection to
+ * price from the admin UI; see priceFor()'s own docblock for why.
  */
 class ShippingProviderSettingsService
 {
@@ -87,10 +93,13 @@ class ShippingProviderSettingsService
 
     /**
      * Admin-configured flat-rate override for a given provider + delivery
-     * type — same DB-override/hardcoded-fallback shape as credentialsFor().
-     * Returns null when there's no row, the row is disabled, or that
-     * delivery type's price column was left blank, so the caller's own
-     * hardcoded default (see each provider's baseRate()) applies unchanged.
+     * type. Deliberately independent of `enabled` — that flag only gates
+     * whether credentialsFor() trusts this row's API credentials, since a
+     * half-entered credential set could break real carrier calls; a price
+     * has no such failure mode, so it applies as soon as it's saved. Returns
+     * null when there's no row or that delivery type's price column was
+     * left blank, so the caller's own hardcoded default (see each
+     * provider's baseRate()) applies unchanged.
      */
     public function priceFor(string $provider, ShippingDeliveryType $deliveryType): ?float
     {
@@ -110,7 +119,7 @@ class ShippingProviderSettingsService
             return null;
         }
 
-        if ($row === null || ! $row->enabled) {
+        if ($row === null) {
             return null;
         }
 

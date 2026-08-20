@@ -115,7 +115,17 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     public function offices(?string $city = null): array
     {
         try {
-            $response = $this->client()->post('location/office', $this->withCredentials(
+            // The unfiltered (no $city) nationwide office list is a large
+            // payload — 1-3MB observed against the real API, since it's
+            // every staffed office and APT machine in Bulgaria in one
+            // response. The shared client()'s 5s timeout is tuned for the
+            // small, latency-sensitive calls (quote/shipment/track) and was
+            // cutting this one off mid-download (cURL error 28: timed out
+            // with megabytes already received), silently degrading to an
+            // empty list — intermittently, depending on how much had
+            // downloaded by the 5s mark — which is exactly what made the
+            // Speedy office picker unreliable at checkout.
+            $response = $this->client()->timeout(30)->post('location/office', $this->withCredentials(
                 array_filter(['siteName' => $city]),
             ));
 

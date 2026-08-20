@@ -1,5 +1,16 @@
 # iCard payments: embedded modal (card) and wallet SDK (Apple Pay / Google Pay)
 
+> **Status: superseded.** The separate `WalletPaymentController`,
+> `IcardWalletButtons.tsx`, and dedicated wallet endpoints
+> (`/payments/{order}/wallet/*`) this document describes were later
+> reverted and no longer exist in the codebase. Apple Pay/Google Pay are
+> currently rendered by iCard *inside* its own hosted modal, not as a
+> separate application-owned flow — see `docs/icard-integration.md` for
+> the current, accurate architecture. This document is kept for its
+> historical technical detail (real IPG field shapes for
+> `IPGTokenProviderSession`/`IPGTokenizedCardPurchase`) in case a
+> standalone wallet SDK integration is attempted again.
+
 ## Architecture
 
 Every payment method renders **entirely in-page** — the customer never

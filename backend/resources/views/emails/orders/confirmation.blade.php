@@ -1,71 +1,77 @@
+@extends('emails.layout')
+
 @php
     $frontendUrl = rtrim(config('app.frontend_url'), '/');
+    $isCashOnDelivery = $order->payments->first()?->payment_method === \App\Enums\PaymentMethod::CashOnDelivery;
+    $isOfficeDelivery = $order->shipping_delivery_type?->requiresOfficeSelection() ?? false;
+
+    $trackingUrl = "{$frontendUrl}/orders/{$order->id}/tracking"
+        .($order->guest_access_token ? '?token='.$order->guest_access_token : '');
+
+    $deliverySummary = $isOfficeDelivery
+        ? "{$order->shipping_method_label} — {$order->shipping_office_name}, {$order->shipping_city}"
+        : "{$order->shipping_method_label}, {$order->shipping_address_line}, {$order->shipping_city}";
 @endphp
-<!DOCTYPE html>
-<html lang="bg">
-<head>
-    <meta charset="utf-8">
-    <title>Потвърждение на поръчка {{ $order->order_number }}</title>
-</head>
-<body style="font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto;">
-    <h1 style="font-size: 20px;">Благодарим ти за поръчката, {{ $order->customer_first_name }}!</h1>
 
-    <p>Поръчка <strong>{{ $order->order_number }}</strong> е приета и очаква обработка.</p>
+@section('title', "Потвърждение на поръчка {$order->order_number}")
 
-    <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin: 16px 0;">
-        <thead>
-            <tr style="border-bottom: 1px solid #ddd; text-align: left;">
-                <th>Продукт</th>
-                <th>Количество</th>
-                <th>Цена</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($order->items as $item)
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td>{{ $item->product_name }}{{ $item->variant_name ? " ({$item->variant_name})" : '' }}</td>
-                    <td>{{ $item->quantity }}</td>
-                    <td>{{ number_format((float) $item->line_total, 2) }} {{ $order->currency }}</td>
+@section('content')
+    {{-- Hero --}}
+    <tr>
+        <td align="center" style="padding: 32px 24px 24px;">
+            <h1 style="margin: 0 0 8px; font-size: 20px; color: #24362c;">Благодарим ти за поръчката, {{ $order->customer_first_name }}!</h1>
+            <p style="margin: 0; font-size: 14px; color: #24362c;">Продуктите ще стигнат до теб чрез {{ $deliverySummary }}.</p>
+        </td>
+    </tr>
+
+    {{-- Info box --}}
+    <tr>
+        <td style="padding: 0 24px 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1e8d8; border-radius: 8px;">
+                <tr>
+                    <td style="padding: 16px 20px; font-size: 13px; color: #2b2822; line-height: 1.5;">
+                        @if ($isCashOnDelivery)
+                            Плащаш в брой на куриера при получаване.
+                        @else
+                            Обработваме плащането с карта.
+                        @endif
+                        Очаквана доставка: 1-2 работни дни.
+                    </td>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
+            </table>
+        </td>
+    </tr>
 
-    <p>
-        Междинна сума: {{ number_format((float) $order->subtotal, 2) }} {{ $order->currency }}<br>
-        Доставка ({{ $order->shipping_method_label }}): {{ number_format((float) $order->shipping_price, 2) }} {{ $order->currency }}<br>
-        <strong>Общо: {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }}</strong>
-    </p>
+    @include('emails.partials.cta-button', ['url' => $trackingUrl, 'label' => 'Детайли за поръчката'])
 
-    <h2 style="font-size: 16px;">Адрес за доставка</h2>
-    <p>
-        {{ $order->shipping_address_line }}{{ $order->shipping_apartment ? ', '.$order->shipping_apartment : '' }}<br>
-        {{ $order->shipping_city }}, {{ $order->shipping_postal_code }}<br>
-        {{ $order->shipping_country }}
-    </p>
+    @include('emails.partials.items-table', ['order' => $order])
 
-    <p style="color: #666; font-size: 13px;">
-        Плащането ще бъде добавено в следваща стъпка — засега поръчката е регистрирана и очаква потвърждение.
-    </p>
+    {{-- Order details --}}
+    <tr>
+        <td style="padding: 24px;">
+            <h2 style="margin: 0 0 12px; font-size: 15px; color: #24362c;">Детайли за поръчката:</h2>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
+                <tr>
+                    <td style="color: #71695c; padding: 4px 0; width: 90px; vertical-align: top;">Име:</td>
+                    <td style="color: #2b2822; padding: 4px 0;">{{ $order->customerFullName() }}</td>
+                </tr>
+                <tr>
+                    <td style="color: #71695c; padding: 4px 0; vertical-align: top;">Дата:</td>
+                    <td style="color: #2b2822; padding: 4px 0;">{{ $order->created_at->format('d.m.Y') }}</td>
+                </tr>
+                <tr>
+                    <td style="color: #71695c; padding: 4px 0; vertical-align: top;">Плащане:</td>
+                    <td style="color: #2b2822; padding: 4px 0;">{{ $isCashOnDelivery ? 'Наложен платеж' : 'Плащане с карта' }}</td>
+                </tr>
+                <tr>
+                    <td style="color: #71695c; padding: 4px 0; vertical-align: top;">Доставка:</td>
+                    <td style="color: #2b2822; padding: 4px 0;">
+                        {{ $deliverySummary }}
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
 
-    {{-- Durable-medium disclosures per чл. 49, ал. 8 ЗЗП: merchant identity,
-         withdrawal right and links to the full pre-contract information. --}}
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0 12px;">
-    <p style="color: #666; font-size: 12px;">
-        Продавач: Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД, ЕИК 208699419, управител Владимир Стоянов Филчев,<br>
-        България, гр. Варна 9000, р-н „Одесос“,
-        ул. „Баба Тонка“ № 7, ет. 2, ап. 4 · contact@smisul.bg
-    </p>
-    <p style="color: #666; font-size: 12px;">
-        Имаш право да се откажеш от договора в 14-дневен срок от получаването на стоката, без да посочваш
-        причина (за разпечатани хигиенни продукти правото на отказ не се прилага — чл. 57, т. 5 ЗЗП).
-        За продукти с ненарушена опаковка предлагаме и доброволно връщане до 30 дни. Пълните условия:
-    </p>
-    <p style="color: #666; font-size: 12px;">
-        <a href="{{ $frontendUrl }}/legal/terms-of-service" style="color: #24362c;">Общи условия</a> ·
-        <a href="{{ $frontendUrl }}/legal/right-of-withdrawal" style="color: #24362c;">Право на отказ (със стандартен формуляр)</a> ·
-        <a href="{{ $frontendUrl }}/legal/returns-policy" style="color: #24362c;">Връщане и рекламации</a> ·
-        <a href="{{ $frontendUrl }}/legal/privacy-policy" style="color: #24362c;">Поверителност</a>
-    </p>
-</body>
-</html>
+    @include('emails.partials.legal-disclosures', ['frontendUrl' => $frontendUrl])
+@endsection

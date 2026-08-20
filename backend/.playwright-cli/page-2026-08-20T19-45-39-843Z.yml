@@ -1,0 +1,10 @@
+- generic [active] [ref=e1]:
+  - img "Smisul" [ref=e2]
+  - text: Поръчка
+  - strong [ref=e3]: "#SM-260817-2NDXDF"
+  - heading "Поръчката ти е потвърдена, Иван!" [level=1] [ref=e4]
+  - paragraph [ref=e5]: Плащането по поръчка SM-260817-2NDXDF е получено и вече подготвяме пратката ти.
+  - link "Детайли за поръчката" [ref=e6] [cursor=pointer]:
+    - /url: http://localhost:5173/orders/11/tracking?token=a00e97ef-1072-4bf1-b54e-3bbe681613bf
+  - heading "Продукти" [level=2] [ref=e7]
+  - text: Miswak (10 бр.) 1 бр. 32.99 EUR Междинна сума 32.99 EUR Доставка (Speedy (до адрес)) 5.99 EUR Общо 38.98 EUR Приятен ден!

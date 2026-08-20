@@ -12,6 +12,8 @@
     </style>
 </head>
 <body>
+    <img src="{{ rtrim(config('app.url'), '/') }}/mail/smisul-logo.png" alt="Smisul" height="48" style="display: block; height: 48px; width: auto; margin-bottom: 16px;">
+
     <h1>Фактура (placeholder)</h1>
     <p>
         Поръчка: <strong>{{ $order->order_number }}</strong><br>

@@ -1,16 +1,20 @@
-<!DOCTYPE html>
-<html lang="bg">
-<head>
-    <meta charset="utf-8">
-    <title>Поръчка {{ $order->order_number }} е отказана</title>
-</head>
-<body style="font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto;">
-    <h1 style="font-size: 20px;">Поръчка {{ $order->order_number }} е отказана</h1>
+@extends('emails.layout')
 
-    <p>Здравей, {{ $order->customer_first_name }},</p>
+@section('title', "Поръчка {$order->order_number} е отказана")
 
-    <p>Поръчка <strong>{{ $order->order_number }}</strong> на стойност {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }} беше отказана.</p>
+@section('content')
+    <tr>
+        <td align="center" style="padding: 32px 24px 24px;">
+            <h1 style="margin: 0 0 8px; font-size: 20px; color: #24362c;">Поръчка {{ $order->order_number }} е отказана</h1>
+            <p style="margin: 0; font-size: 14px; color: #24362c;">
+                Здравей, {{ $order->customer_first_name }} — поръчка {{ $order->order_number }} на стойност {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }} беше отказана.
+            </p>
+        </td>
+    </tr>
 
-    <p>Ако не си очаквал/а това или имаш въпроси, свържи се с нас.</p>
-</body>
-</html>
+    <tr>
+        <td align="center" style="padding: 0 24px 32px; font-size: 13px; color: #71695c;">
+            Ако не си очаквал/а това или имаш въпроси, свържи се с нас.
+        </td>
+    </tr>
+@endsection

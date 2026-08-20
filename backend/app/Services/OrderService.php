@@ -164,6 +164,7 @@ class OrderService
                 'customer_phone' => $data->customer->phone,
                 'customer_company' => $data->customer->company,
                 'customer_vat_number' => $data->customer->vatNumber,
+                'wants_invoice' => $data->wantsInvoice,
                 'delivery_notes' => $data->deliveryNotes,
                 'shipping_country' => $data->address->country,
                 'shipping_city' => $shippingCity,

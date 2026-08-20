@@ -1,0 +1,413 @@
+- generic [ref=e3]:
+  - generic [ref=e4]: Безплатна доставка с Box Now до края на септември!
+  - navigation "Основна навигация" [ref=e9]:
+    - generic [ref=e10]:
+      - link "Начало" [ref=e11] [cursor=pointer]:
+        - /url: /
+        - img "Smisul" [ref=e12]
+      - generic [ref=e13]:
+        - button "Количка, 1 артикула" [ref=e603] [cursor=pointer]:
+          - generic "Количка, 1 артикула" [ref=e604]: "1"
+        - link "Вход" [ref=e57] [cursor=pointer]:
+          - /url: /login
+  - main [ref=e21]:
+    - generic [ref=e652]:
+      - navigation "breadcrumb" [ref=e653]:
+        - list [ref=e654]:
+          - listitem [ref=e655]:
+            - link "Начало" [ref=e656] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e657]: / Плащане
+      - heading "Плащане" [level=1] [ref=e658]
+      - generic [ref=e659]:
+        - generic [ref=e660]:
+          - list [ref=e661]:
+            - listitem [ref=e662]:
+              - generic [ref=e663]: ✓
+              - generic [ref=e664]: Данни за поръчката
+            - listitem [ref=e665]:
+              - generic [ref=e666]: "2"
+              - generic [ref=e667]: Доставка
+            - listitem [ref=e668]:
+              - generic [ref=e669]: "3"
+              - generic [ref=e670]: Преглед
+            - listitem [ref=e671]:
+              - generic [ref=e672]: "4"
+              - generic [ref=e673]: Плащане
+          - generic [ref=e675]:
+            - generic [ref=e712]:
+              - heading "Начин на доставка" [level=2] [ref=e713]
+              - generic [ref=e714]:
+                - generic [ref=e716] [cursor=pointer]:
+                  - 'radio "BOX NOW BOX NOW Доставка до автомат на BOX NOW. Очаквана доставка: 1-2 работни дни 0.00 €" [ref=e717]'
+                  - img "BOX NOW" [ref=e719]
+                  - generic [ref=e720]:
+                    - generic [ref=e721]: BOX NOW
+                    - generic [ref=e722]: Доставка до автомат на BOX NOW.
+                    - generic [ref=e723]: "Очаквана доставка: 1-2 работни дни"
+                  - generic [ref=e724]: 0.00 €
+                - generic [ref=e735]:
+                  - generic [ref=e736] [cursor=pointer]:
+                    - 'radio "Speedy Speedy Доставка до офис на Speedy. Очаквана доставка: 1-2 работни дни 2.20 €" [checked] [ref=e737]'
+                    - img "Speedy" [ref=e739]
+                    - generic [ref=e740]:
+                      - generic [ref=e741]: Speedy
+                      - generic [ref=e742]: Доставка до офис на Speedy.
+                      - generic [ref=e743]: "Очаквана доставка: 1-2 работни дни"
+                    - generic [ref=e744]: 2.20 €
+                  - generic [ref=e760]:
+                    - generic [ref=e761]:
+                      - generic [ref=e762]: Град
+                      - generic [ref=e763]:
+                        - combobox "Град" [expanded] [active] [ref=e764]
+                        - listbox [ref=e769]:
+                          - listitem [ref=e770]:
+                            - option "АЙТОС" [ref=e771] [cursor=pointer]
+                          - listitem [ref=e772]:
+                            - option "АКСАКОВО" [ref=e773] [cursor=pointer]
+                          - listitem [ref=e774]:
+                            - option "АСЕНОВГРАД" [ref=e775] [cursor=pointer]
+                          - listitem [ref=e776]:
+                            - option "БАЛЧИК" [ref=e777] [cursor=pointer]
+                          - listitem [ref=e778]:
+                            - option "БАНКЯ" [ref=e779] [cursor=pointer]
+                          - listitem [ref=e780]:
+                            - option "БАНСКО" [ref=e781] [cursor=pointer]
+                          - listitem [ref=e782]:
+                            - option "БЕЛЕНЕ" [ref=e783] [cursor=pointer]
+                          - listitem [ref=e784]:
+                            - option "БЕЛИЦА" [ref=e785] [cursor=pointer]
+                          - listitem [ref=e786]:
+                            - option "БЕЛОВО" [ref=e787] [cursor=pointer]
+                          - listitem [ref=e788]:
+                            - option "БЕЛОСЛАВ" [ref=e789] [cursor=pointer]
+                          - listitem [ref=e790]:
+                            - option "БЕРКОВИЦА" [ref=e791] [cursor=pointer]
+                          - listitem [ref=e792]:
+                            - option "БЛАГОЕВГРАД" [ref=e793] [cursor=pointer]
+                          - listitem [ref=e794]:
+                            - option "БОЖУРИЩЕ" [ref=e795] [cursor=pointer]
+                          - listitem [ref=e796]:
+                            - option "БОТЕВГРАД" [ref=e797] [cursor=pointer]
+                          - listitem [ref=e798]:
+                            - option "БУРГАС" [ref=e799] [cursor=pointer]
+                          - listitem [ref=e800]:
+                            - option "БЯЛА" [ref=e801] [cursor=pointer]
+                          - listitem [ref=e802]:
+                            - option "БЯЛА СЛАТИНА" [ref=e803] [cursor=pointer]
+                          - listitem [ref=e804]:
+                            - option "ВАРНА" [ref=e805] [cursor=pointer]
+                          - listitem [ref=e806]:
+                            - option "ВЕЛИКИ ПРЕСЛАВ" [ref=e807] [cursor=pointer]
+                          - listitem [ref=e808]:
+                            - option "ВЕЛИКО ТЪРНОВО" [ref=e809] [cursor=pointer]
+                          - listitem [ref=e810]:
+                            - option "ВЕЛИНГРАД" [ref=e811] [cursor=pointer]
+                          - listitem [ref=e812]:
+                            - option "ВИДИН" [ref=e813] [cursor=pointer]
+                          - listitem [ref=e814]:
+                            - option "ВРАЦА" [ref=e815] [cursor=pointer]
+                          - listitem [ref=e816]:
+                            - option "ГАБРОВО" [ref=e817] [cursor=pointer]
+                          - listitem [ref=e818]:
+                            - option "ГОДЕЧ" [ref=e819] [cursor=pointer]
+                          - listitem [ref=e820]:
+                            - option "ГОРНА ОРЯХОВИЦА" [ref=e821] [cursor=pointer]
+                          - listitem [ref=e822]:
+                            - option "ГОЦЕ ДЕЛЧЕВ" [ref=e823] [cursor=pointer]
+                          - listitem [ref=e824]:
+                            - option "ГЪЛЪБОВО" [ref=e825] [cursor=pointer]
+                          - listitem [ref=e826]:
+                            - option "ДЕВИН" [ref=e827] [cursor=pointer]
+                          - listitem [ref=e828]:
+                            - option "ДИМИТРОВГРАД" [ref=e829] [cursor=pointer]
+                          - listitem [ref=e830]:
+                            - option "ДОБРИНИЩЕ" [ref=e831] [cursor=pointer]
+                          - listitem [ref=e832]:
+                            - option "ДОБРИЧ" [ref=e833] [cursor=pointer]
+                          - listitem [ref=e834]:
+                            - option "ДОЛНИ ЧИФЛИК" [ref=e835] [cursor=pointer]
+                          - listitem [ref=e836]:
+                            - option "ДОСПАТ" [ref=e837] [cursor=pointer]
+                          - listitem [ref=e838]:
+                            - option "ДРЯНОВО" [ref=e839] [cursor=pointer]
+                          - listitem [ref=e840]:
+                            - option "ДУЛОВО" [ref=e841] [cursor=pointer]
+                          - listitem [ref=e842]:
+                            - option "ДУПНИЦА" [ref=e843] [cursor=pointer]
+                          - listitem [ref=e844]:
+                            - option "ЕЛЕНА" [ref=e845] [cursor=pointer]
+                          - listitem [ref=e846]:
+                            - option "ЕЛИН ПЕЛИН" [ref=e847] [cursor=pointer]
+                          - listitem [ref=e848]:
+                            - option "ЕЛХОВО" [ref=e849] [cursor=pointer]
+                          - listitem [ref=e850]:
+                            - option "ЕТРОПОЛЕ" [ref=e851] [cursor=pointer]
+                          - listitem [ref=e852]:
+                            - option "ЗЛАТОГРАД" [ref=e853] [cursor=pointer]
+                          - listitem [ref=e854]:
+                            - option "ИСПЕРИХ" [ref=e855] [cursor=pointer]
+                          - listitem [ref=e856]:
+                            - option "ИХТИМАН" [ref=e857] [cursor=pointer]
+                          - listitem [ref=e858]:
+                            - option "КАБЛЕШКОВО" [ref=e859] [cursor=pointer]
+                          - listitem [ref=e860]:
+                            - option "КАВАРНА" [ref=e861] [cursor=pointer]
+                          - listitem [ref=e862]:
+                            - option "КАЗАНЛЪК" [ref=e863] [cursor=pointer]
+                          - listitem [ref=e864]:
+                            - option "КАЗИЧЕНЕ" [ref=e865] [cursor=pointer]
+                          - listitem [ref=e866]:
+                            - option "КАРЛОВО" [ref=e867] [cursor=pointer]
+                          - listitem [ref=e868]:
+                            - option "КАРНОБАТ" [ref=e869] [cursor=pointer]
+                          - listitem [ref=e870]:
+                            - option "КНЕЖА" [ref=e871] [cursor=pointer]
+                          - listitem [ref=e872]:
+                            - option "КОЗЛОДУЙ" [ref=e873] [cursor=pointer]
+                          - listitem [ref=e874]:
+                            - option "КОСТЕНЕЦ" [ref=e875] [cursor=pointer]
+                          - listitem [ref=e876]:
+                            - option "КОСТИНБРОД" [ref=e877] [cursor=pointer]
+                          - listitem [ref=e878]:
+                            - option "КОТЕЛ" [ref=e879] [cursor=pointer]
+                          - listitem [ref=e880]:
+                            - option "КРИЧИМ" [ref=e881] [cursor=pointer]
+                          - listitem [ref=e882]:
+                            - option "КРУМОВГРАД" [ref=e883] [cursor=pointer]
+                          - listitem [ref=e884]:
+                            - option "КУБРАТ" [ref=e885] [cursor=pointer]
+                          - listitem [ref=e886]:
+                            - option "КЪРДЖАЛИ" [ref=e887] [cursor=pointer]
+                          - listitem [ref=e888]:
+                            - option "КЮСТЕНДИЛ" [ref=e889] [cursor=pointer]
+                          - listitem [ref=e890]:
+                            - option "ЛЕВСКИ" [ref=e891] [cursor=pointer]
+                          - listitem [ref=e892]:
+                            - option "ЛОВЕЧ" [ref=e893] [cursor=pointer]
+                          - listitem [ref=e894]:
+                            - option "ЛОЗЕН" [ref=e895] [cursor=pointer]
+                          - listitem [ref=e896]:
+                            - option "ЛОМ" [ref=e897] [cursor=pointer]
+                          - listitem [ref=e898]:
+                            - option "ЛУКОВИТ" [ref=e899] [cursor=pointer]
+                          - listitem [ref=e900]:
+                            - option "ЛЯСКОВЕЦ" [ref=e901] [cursor=pointer]
+                          - listitem [ref=e902]:
+                            - option "МАДАН" [ref=e903] [cursor=pointer]
+                          - listitem [ref=e904]:
+                            - option "МЕЗДРА" [ref=e905] [cursor=pointer]
+                          - listitem [ref=e906]:
+                            - option "МИЗИЯ" [ref=e907] [cursor=pointer]
+                          - listitem [ref=e908]:
+                            - option "МОМЧИЛГРАД" [ref=e909] [cursor=pointer]
+                          - listitem [ref=e910]:
+                            - option "МОНТАНА" [ref=e911] [cursor=pointer]
+                          - listitem [ref=e912]:
+                            - option "НЕСЕБЪР" [ref=e913] [cursor=pointer]
+                          - listitem [ref=e914]:
+                            - option "НОВА ЗАГОРА" [ref=e915] [cursor=pointer]
+                          - listitem [ref=e916]:
+                            - option "НОВИ ИСКЪР" [ref=e917] [cursor=pointer]
+                          - listitem [ref=e918]:
+                            - option "НОВИ ПАЗАР" [ref=e919] [cursor=pointer]
+                          - listitem [ref=e920]:
+                            - option "ОМУРТАГ" [ref=e921] [cursor=pointer]
+                          - listitem [ref=e922]:
+                            - option "ОРЯХОВО" [ref=e923] [cursor=pointer]
+                          - listitem [ref=e924]:
+                            - option "ПАВЛИКЕНИ" [ref=e925] [cursor=pointer]
+                          - listitem [ref=e926]:
+                            - option "ПАЗАРДЖИК" [ref=e927] [cursor=pointer]
+                          - listitem [ref=e928]:
+                            - option "ПАНАГЮРИЩЕ" [ref=e929] [cursor=pointer]
+                          - listitem [ref=e930]:
+                            - option "ПЕРНИК" [ref=e931] [cursor=pointer]
+                          - listitem [ref=e932]:
+                            - option "ПЕТРИЧ" [ref=e933] [cursor=pointer]
+                          - listitem [ref=e934]:
+                            - option "ПЕЩЕРА" [ref=e935] [cursor=pointer]
+                          - listitem [ref=e936]:
+                            - option "ПИРДОП" [ref=e937] [cursor=pointer]
+                          - listitem [ref=e938]:
+                            - option "ПЛЕВЕН" [ref=e939] [cursor=pointer]
+                          - listitem [ref=e940]:
+                            - option "ПЛОВДИВ" [ref=e941] [cursor=pointer]
+                          - listitem [ref=e942]:
+                            - option "ПОЛСКИ ТРЪМБЕШ" [ref=e943] [cursor=pointer]
+                          - listitem [ref=e944]:
+                            - option "ПОМОРИЕ" [ref=e945] [cursor=pointer]
+                          - listitem [ref=e946]:
+                            - option "ПОПОВО" [ref=e947] [cursor=pointer]
+                          - listitem [ref=e948]:
+                            - option "ПРИМОРСКО" [ref=e949] [cursor=pointer]
+                          - listitem [ref=e950]:
+                            - option "ПРОВАДИЯ" [ref=e951] [cursor=pointer]
+                          - listitem [ref=e952]:
+                            - option "ПЪРВОМАЙ" [ref=e953] [cursor=pointer]
+                          - listitem [ref=e954]:
+                            - option "РАДНЕВО" [ref=e955] [cursor=pointer]
+                          - listitem [ref=e956]:
+                            - option "РАДОМИР" [ref=e957] [cursor=pointer]
+                          - listitem [ref=e958]:
+                            - option "РАЗГРАД" [ref=e959] [cursor=pointer]
+                          - listitem [ref=e960]:
+                            - option "РАЗЛОГ" [ref=e961] [cursor=pointer]
+                          - listitem [ref=e962]:
+                            - option "РАКИТОВО" [ref=e963] [cursor=pointer]
+                          - listitem [ref=e964]:
+                            - option "РАКОВСКИ" [ref=e965] [cursor=pointer]
+                          - listitem [ref=e966]:
+                            - option "РУДОЗЕМ" [ref=e967] [cursor=pointer]
+                          - listitem [ref=e968]:
+                            - option "РУСЕ" [ref=e969] [cursor=pointer]
+                          - listitem [ref=e970]:
+                            - option "САМОКОВ" [ref=e971] [cursor=pointer]
+                          - listitem [ref=e972]:
+                            - option "САНДАНСКИ" [ref=e973] [cursor=pointer]
+                          - listitem [ref=e974]:
+                            - option "САТОВЧА" [ref=e975] [cursor=pointer]
+                          - listitem [ref=e976]:
+                            - option "СВЕТИ ВЛАС" [ref=e977] [cursor=pointer]
+                          - listitem [ref=e978]:
+                            - option "СВИЛЕНГРАД" [ref=e979] [cursor=pointer]
+                          - listitem [ref=e980]:
+                            - option "СВИЩОВ" [ref=e981] [cursor=pointer]
+                          - listitem [ref=e982]:
+                            - option "СВОГЕ" [ref=e983] [cursor=pointer]
+                          - listitem [ref=e984]:
+                            - option "СЕВЛИЕВО" [ref=e985] [cursor=pointer]
+                          - listitem [ref=e986]:
+                            - option "СЕПТЕМВРИ" [ref=e987] [cursor=pointer]
+                          - listitem [ref=e988]:
+                            - option "СИЛИСТРА" [ref=e989] [cursor=pointer]
+                          - listitem [ref=e990]:
+                            - option "СИМИТЛИ" [ref=e991] [cursor=pointer]
+                          - listitem [ref=e992]:
+                            - option "СЛИВЕН" [ref=e993] [cursor=pointer]
+                          - listitem [ref=e994]:
+                            - option "СЛИВНИЦА" [ref=e995] [cursor=pointer]
+                          - listitem [ref=e996]:
+                            - option "СЛЪНЧЕВ БРЯГ" [ref=e997] [cursor=pointer]
+                          - listitem [ref=e998]:
+                            - option "СМОЛЯН" [ref=e999] [cursor=pointer]
+                          - listitem [ref=e1000]:
+                            - option "СОЗОПОЛ" [ref=e1001] [cursor=pointer]
+                          - listitem [ref=e1002]:
+                            - option "СОПОТ" [ref=e1003] [cursor=pointer]
+                          - listitem [ref=e1004]:
+                            - option "СОФИЯ" [ref=e1005] [cursor=pointer]
+                          - listitem [ref=e1006]:
+                            - option "СРЕДЕЦ" [ref=e1007] [cursor=pointer]
+                          - listitem [ref=e1008]:
+                            - option "СТАМБОЛИЙСКИ" [ref=e1009] [cursor=pointer]
+                          - listitem [ref=e1010]:
+                            - option "СТАРА ЗАГОРА" [ref=e1011] [cursor=pointer]
+                          - listitem [ref=e1012]:
+                            - option "СЪЕДИНЕНИЕ" [ref=e1013] [cursor=pointer]
+                          - listitem [ref=e1014]:
+                            - option "ТВЪРДИЦА" [ref=e1015] [cursor=pointer]
+                          - listitem [ref=e1016]:
+                            - option "ТЕТЕВЕН" [ref=e1017] [cursor=pointer]
+                          - listitem [ref=e1018]:
+                            - option "ТОПОЛИ" [ref=e1019] [cursor=pointer]
+                          - listitem [ref=e1020]:
+                            - option "ТРОЯН" [ref=e1021] [cursor=pointer]
+                          - listitem [ref=e1022]:
+                            - option "ТРУД" [ref=e1023] [cursor=pointer]
+                          - listitem [ref=e1024]:
+                            - option "ТРЯВНА" [ref=e1025] [cursor=pointer]
+                          - listitem [ref=e1026]:
+                            - option "ТУТРАКАН" [ref=e1027] [cursor=pointer]
+                          - listitem [ref=e1028]:
+                            - option "ТЪРГОВИЩЕ" [ref=e1029] [cursor=pointer]
+                          - listitem [ref=e1030]:
+                            - option "ХАРМАНЛИ" [ref=e1031] [cursor=pointer]
+                          - listitem [ref=e1032]:
+                            - option "ХАСКОВО" [ref=e1033] [cursor=pointer]
+                          - listitem [ref=e1034]:
+                            - option "ХИСАРЯ" [ref=e1035] [cursor=pointer]
+                          - listitem [ref=e1036]:
+                            - option "ЦАРЕВО" [ref=e1037] [cursor=pointer]
+                          - listitem [ref=e1038]:
+                            - option "ЧЕРВЕН БРЯГ" [ref=e1039] [cursor=pointer]
+                          - listitem [ref=e1040]:
+                            - option "ЧИРПАН" [ref=e1041] [cursor=pointer]
+                          - listitem [ref=e1042]:
+                            - option "ШУМЕН" [ref=e1043] [cursor=pointer]
+                          - listitem [ref=e1044]:
+                            - option "ЯКОРУДА" [ref=e1045] [cursor=pointer]
+                          - listitem [ref=e1046]:
+                            - option "ЯМБОЛ" [ref=e1047] [cursor=pointer]
+                    - generic [ref=e765]:
+                      - generic [ref=e766]: Офис
+                      - combobox "Офис" [disabled] [ref=e768]
+                - generic [ref=e746] [cursor=pointer]:
+                  - 'radio "Speedy Speedy (до адрес) Доставка до адрес с Speedy. Очаквана доставка: 1-2 работни дни 3.15 €" [ref=e747]'
+                  - img "Speedy" [ref=e749]
+                  - generic [ref=e750]:
+                    - generic [ref=e751]: Speedy (до адрес)
+                    - generic [ref=e752]: Доставка до адрес с Speedy.
+                    - generic [ref=e753]: "Очаквана доставка: 1-2 работни дни"
+                  - generic [ref=e754]: 3.15 €
+              - generic [ref=e755]:
+                - checkbox "Искате ли фактура?" [ref=e756]
+                - generic [ref=e757]: Искате ли фактура?
+            - generic [ref=e696]:
+              - button "Назад" [ref=e758] [cursor=pointer]
+              - button "Напред" [ref=e697] [cursor=pointer]
+        - generic [ref=e700]:
+          - heading "Общо" [level=2] [ref=e701]
+          - generic [ref=e702]:
+            - generic [ref=e703]: Артикули (1)
+            - generic [ref=e704]: 32.99 €
+          - generic [ref=e705]:
+            - generic [ref=e706]: Доставка
+            - generic [ref=e707]: 2.20 €
+          - separator [ref=e708]
+          - generic [ref=e709]:
+            - generic [ref=e710]: Общо
+            - generic [ref=e711]: 35.19 €
+  - contentinfo [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - img "Smisul" [ref=e29]
+        - navigation "Компания" [ref=e30]:
+          - link "Начало" [ref=e31] [cursor=pointer]:
+            - /url: /
+          - link "За нас" [ref=e33] [cursor=pointer]:
+            - /url: /about
+          - link "Вход" [ref=e592] [cursor=pointer]:
+            - /url: /login
+          - button "Контакти" [ref=e34] [cursor=pointer]
+      - separator [ref=e35]
+      - navigation "Правна информация" [ref=e36]:
+        - link "Общи условия" [ref=e593] [cursor=pointer]:
+          - /url: /legal/terms-of-service
+        - link "Политика за поверителност" [ref=e594] [cursor=pointer]:
+          - /url: /legal/privacy-policy
+        - link "Право на отказ от договора" [ref=e595] [cursor=pointer]:
+          - /url: /legal/right-of-withdrawal
+        - link "Политика за бисквитките" [ref=e596] [cursor=pointer]:
+          - /url: /legal/cookie-policy
+        - link "Политика за доставка" [ref=e597] [cursor=pointer]:
+          - /url: /legal/shipping-policy
+        - link "Политика за връщане и рекламации" [ref=e598] [cursor=pointer]:
+          - /url: /legal/returns-policy
+        - button "Настройки на бисквитките" [ref=e37] [cursor=pointer]
+      - paragraph [ref=e599]:
+        - generic [ref=e600]: "Фирма: Filchev Web LTD / Филчев Уеб ЕООД"
+        - generic [ref=e601]: "ЕИК: 208699419"
+        - link "contact@smisul.bg" [ref=e602] [cursor=pointer]:
+          - /url: mailto:contact@smisul.bg
+      - generic [ref=e38]:
+        - generic [ref=e39]: © 2026 Smisul. Всички права запазени.
+        - generic [ref=e40]:
+          - generic "Приемани карти" [ref=e41]:
+            - img "Visa" [ref=e42]
+            - img "Mastercard" [ref=e43]
+            - img "American Express" [ref=e44]
+            - img "Apple Pay" [ref=e45]
+            - img "Google Pay" [ref=e46]
+          - generic [ref=e47]: Само плащане с карта - сигурно, бързо и изцяло дигитално.
+          - generic [ref=e48]: Приемаме също Apple Pay и Google Pay.

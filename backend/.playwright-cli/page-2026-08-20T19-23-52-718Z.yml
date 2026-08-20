@@ -1,0 +1,29 @@
+- generic [active] [ref=e1]:
+  - img "Smisul" [ref=e2]
+  - text: Поръчка
+  - strong [ref=e3]: "#SM-260817-2NDXDF"
+  - heading "Благодарим ти за поръчката, Иван!" [level=1] [ref=e4]
+  - paragraph [ref=e5]: Продуктите ще стигнат до теб чрез Speedy (до адрес), ul. Vitosha 1, Sofia.
+  - text: "Очаквана доставка: 1-2 работни дни."
+  - link "Детайли за поръчката" [ref=e6] [cursor=pointer]:
+    - /url: http://localhost:5173/orders/11/tracking?token=a00e97ef-1072-4bf1-b54e-3bbe681613bf
+  - heading "Продукти" [level=2] [ref=e7]
+  - text: Miswak (10 бр.) 1 бр. 32.99 EUR Междинна сума 32.99 EUR Доставка (Speedy (до адрес)) 5.99 EUR Общо 38.98 EUR
+  - heading "Детайли за поръчката:" [level=2] [ref=e8]
+  - text: "Име: Иван Петров Дата: 17.08.2026 Плащане: Плащане с карта Доставка: Speedy (до адрес), ul. Vitosha 1, Sofia"
+  - separator [ref=e9]
+  - paragraph [ref=e10]: "Продавач: Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД, ЕИК 208699419, управител Владимир Стоянов Филчев, България, гр. Варна 9000, р-н „Одесос“, ул. „Баба Тонка“ № 7, ет. 2, ап. 4 · contact@smisul.bg"
+  - paragraph [ref=e11]: "Имаш право да се откажеш от договора в 14-дневен срок от получаването на стоката, без да посочваш причина (за разпечатани хигиенни продукти правото на отказ не се прилага — чл. 57, т. 5 ЗЗП). За продукти с ненарушена опаковка предлагаме и доброволно връщане до 30 дни. Пълните условия:"
+  - paragraph [ref=e12]:
+    - link "Общи условия" [ref=e13] [cursor=pointer]:
+      - /url: http://localhost:5173/legal/terms-of-service
+    - text: ·
+    - link "Право на отказ (със стандартен формуляр)" [ref=e14] [cursor=pointer]:
+      - /url: http://localhost:5173/legal/right-of-withdrawal
+    - text: ·
+    - link "Връщане и рекламации" [ref=e15] [cursor=pointer]:
+      - /url: http://localhost:5173/legal/returns-policy
+    - text: ·
+    - link "Поверителност" [ref=e16] [cursor=pointer]:
+      - /url: http://localhost:5173/legal/privacy-policy
+  - text: Приятен ден!

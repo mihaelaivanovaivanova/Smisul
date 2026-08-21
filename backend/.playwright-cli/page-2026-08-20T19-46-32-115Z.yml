@@ -1,7 +1,0 @@
-- generic [active] [ref=f3e1]:
-  - img "Smisul" [ref=f3e2]
-  - text: Поръчка
-  - strong [ref=f3e3]: "#SM-260817-2NDXDF"
-  - heading "Поръчка SM-260817-2NDXDF е отказана" [level=1] [ref=f3e4]
-  - paragraph [ref=f3e5]: Здравей, Иван — поръчка SM-260817-2NDXDF на стойност 38.98 EUR беше отказана.
-  - text: Ако не си очаквал/а това или имаш въпроси, свържи се с нас. Приятен ден!

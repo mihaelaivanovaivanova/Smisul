@@ -1,8 +1,0 @@
-- generic [active] [ref=e1]:
-  - heading "Фактурата за поръчка SM-260817-2NDXDF е готова" [level=1] [ref=e2]
-  - paragraph [ref=e3]: Здравей, Иван!
-  - paragraph [ref=e4]:
-    - text: Поръчка
-    - strong [ref=e5]: SM-260817-2NDXDF
-    - text: беше доставена. Прилагаме фактурата за поръчката като прикачен файл.
-  - paragraph [ref=e6]: При въпроси около фактурата пиши ни на contact@smisul.bg.

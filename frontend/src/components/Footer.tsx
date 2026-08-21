@@ -159,15 +159,20 @@ export default function Footer() {
             &copy; {year} {siteName}. Всички права запазени.
           </span>
           <span className="footer-payment-info text-center text-sm-end">
-            <span className="footer-payment-logos d-inline-flex align-items-center gap-2" aria-label="Приемани карти">
-              <img src="/payments/visa-2021.svg" alt="Visa" height={14} loading="lazy" />
-              <img src="/payments/mastercard.svg" alt="Mastercard" height={22} loading="lazy" />
-              <img src="/payments/amex.png" alt="American Express" height={22} loading="lazy" />
-              <img src="/payments/apple-pay.svg" alt="Apple Pay" height={22} loading="lazy" />
-              <img src="/payments/google-pay.svg" alt="Google Pay" height={22} loading="lazy" />
+            {/* Monochrome simple-icons marks (Icon.tsx), not the real payment
+                logos + grayscale-filter treatment DeliveryPaymentReturnsSection.tsx
+                uses on the funnel page — those brand logos read wrong under a
+                filter (Mastercard's two circles wash to the same near-white
+                and lose the overlap, etc.); these are vector glyphs designed
+                to be a single flat color from the start. */}
+            <span className="footer-payment-logos d-inline-flex align-items-center gap-3" aria-label="Приемани карти и начини на плащане">
+              <Icon name="visa" />
+              <Icon name="mastercard" />
+              <Icon name="amex" />
+              <Icon name="apple-pay" />
+              <Icon name="google-pay" />
+              <Icon name="hand-coins" />
             </span>
-            <span className="footer-payment-copy d-block">{footer.cardOnlyPayment}</span>
-            <span className="footer-payment-wallets d-block">{footer.walletsAccepted}</span>
           </span>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import LeadCaptureForm from '../LeadCaptureForm';
 import { funnelLead } from '../../../content/copy';
+import { renderWithBrandWordmark } from '../../../utils/renderWithBrandWordmark';
 
 /**
  * Section 19/20 — Newsletter. Powered by the existing "funnelLead" UI
@@ -13,7 +14,7 @@ export default function NewsletterSection() {
       <div className="container">
         <div className="funnel-lead__inner text-center">
           <h2 className="section-title">{funnelLead.title}</h2>
-          <p className="section-lead lead">{funnelLead.body}</p>
+          <p className="section-lead lead">{renderWithBrandWordmark(funnelLead.body)}</p>
           <LeadCaptureForm />
         </div>
       </div>

@@ -1,36 +1,83 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import Icon from '../../icons/Icon';
 import StarRating from '../../reviews/StarRating';
 import { funnelReviews, reviews as reviewsCopy } from '../../../content/copy';
-import type { Review, ReviewSummary } from '../../../types/review';
+import type { Review } from '../../../types/review';
 
 interface FunnelTestimonialsSectionProps {
   topReviews: Review[];
-  reviewSummary: ReviewSummary | null;
-  productSlug: string;
 }
 
 /**
- * Section 12/20 — Reviews. Top approved reviews straight from the
- * reviews API, unchanged behavior/copy. Named "FunnelTestimonialsSection"
- * (not "ReviewsSection") to avoid colliding with the existing, more
- * full-featured components/reviews/ReviewsSection.tsx used on the
- * product detail page — this one is the lightweight 3-card strip, not a
- * genuine reuse candidate for that component.
+ * Section 12/20 — Reviews. A horizontally-scrolling carousel (scroll-snap +
+ * prev/next arrows) over the top reviews from the reviews API — up to 10 of
+ * them (ReviewService::listForProduct's default page size), not the
+ * previous static 3-card grid. Deliberately no "see all reviews" link out
+ * to the product page anymore: the full paginated list still lives at
+ * components/reviews/ReviewsSection.tsx on the product detail page,
+ * unchanged, but this landing page no longer sends visitors away from it —
+ * by request.
  */
-export default function FunnelTestimonialsSection({ topReviews, reviewSummary, productSlug }: FunnelTestimonialsSectionProps) {
+export default function FunnelTestimonialsSection({ topReviews }: FunnelTestimonialsSectionProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) {
+      return;
+    }
+
+    function updateScrollState() {
+      if (!track) {
+        return;
+      }
+      setCanScrollPrev(track.scrollLeft > 4);
+      setCanScrollNext(track.scrollLeft + track.clientWidth < track.scrollWidth - 4);
+    }
+
+    updateScrollState();
+    track.addEventListener('scroll', updateScrollState, { passive: true });
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      track.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, [topReviews]);
+
   if (topReviews.length === 0) {
     return null;
+  }
+
+  function scrollByCard(direction: 1 | -1) {
+    const track = trackRef.current;
+    const card = track?.querySelector<HTMLElement>('.funnel-review-card');
+    if (!track || !card) {
+      return;
+    }
+    const trackGap = parseFloat(getComputedStyle(track).columnGap || '0');
+    track.scrollBy({ left: (card.getBoundingClientRect().width + trackGap) * direction, behavior: 'smooth' });
   }
 
   return (
     <section className="section funnel-hero-tone funnel-divided-section funnel-reviews" id="reviews">
       <div className="container">
         <h2 className="section-title mb-4 text-center">{funnelReviews.title}</h2>
-        <div className="row row-cols-1 row-cols-md-3 g-3 g-lg-4">
-          {topReviews.map((review) => (
-            <div className="col" key={review.id}>
-              <figure className="funnel-review-card">
+        <div className="funnel-reviews-carousel">
+          <button
+            type="button"
+            className="funnel-reviews-carousel__arrow funnel-reviews-carousel__arrow--prev"
+            onClick={() => scrollByCard(-1)}
+            disabled={!canScrollPrev}
+            aria-label={funnelReviews.prevAria}
+          >
+            <Icon name="chevron-left" />
+          </button>
+
+          <div className="funnel-reviews-carousel__track" ref={trackRef}>
+            {topReviews.map((review) => (
+              <figure className="funnel-review-card" key={review.id}>
                 <StarRating rating={review.rating} />
                 <blockquote className="funnel-review-card__body mb-0">{review.body}</blockquote>
                 <figcaption className="funnel-review-card__author">
@@ -42,16 +89,19 @@ export default function FunnelTestimonialsSection({ topReviews, reviewSummary, p
                   )}
                 </figcaption>
               </figure>
-            </div>
-          ))}
-        </div>
-        {reviewSummary && reviewSummary.review_count > topReviews.length && (
-          <div className="text-center mt-4">
-            <Link to={`/products/${productSlug}`} className="funnel-reviews__see-all">
-              {funnelReviews.seeAll(reviewSummary.review_count)}
-            </Link>
+            ))}
           </div>
-        )}
+
+          <button
+            type="button"
+            className="funnel-reviews-carousel__arrow funnel-reviews-carousel__arrow--next"
+            onClick={() => scrollByCard(1)}
+            disabled={!canScrollNext}
+            aria-label={funnelReviews.nextAria}
+          >
+            <Icon name="chevron-right" />
+          </button>
+        </div>
       </div>
     </section>
   );

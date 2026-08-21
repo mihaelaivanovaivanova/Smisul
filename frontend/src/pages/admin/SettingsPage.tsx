@@ -24,6 +24,9 @@ const TABS: { key: string; label: string }[] = [
 
 const LEGAL_TYPES = ['terms_of_service', 'privacy_policy', 'right_of_withdrawal', 'cookie_policy'];
 
+/** Rendered inside the Shipping tab's Box Now card instead (see ShippingSettingsPanel.tsx's BoxNowMarketingFields) — filtered out of the generic General list so they don't show up twice. */
+const BOX_NOW_MARKETING_KEYS = new Set(['general.box_now_banner_enabled', 'general.box_now_badge_enabled', 'general.box_now_banner_message']);
+
 function SettingField({ item, value, onChange }: { item: SettingItem; value: string | number | boolean; onChange: (value: string | number | boolean) => void }) {
   if (item.type === 'boolean') {
     return (
@@ -296,7 +299,7 @@ export default function SettingsPage() {
             <EditableGroupPanel
               key={activeTab}
               group={activeTab}
-              items={data.editable[activeTab] ?? []}
+              items={(data.editable[activeTab] ?? []).filter((item) => !BOX_NOW_MARKETING_KEYS.has(item.key))}
               onSaved={() => setReloadKey((key) => key + 1)}
             />
           )}

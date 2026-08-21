@@ -14,6 +14,10 @@ export interface PublicSettings {
   social_instagram: string | null;
   social_facebook: string | null;
   social_tiktok: string | null;
+  /** Admin-configurable via the Shipping tab's Box Now card (see ShippingSettingsPanel.tsx) — TopAnnouncementBar.tsx / BoxNowBadge.tsx. */
+  box_now_banner_enabled: boolean;
+  box_now_badge_enabled: boolean;
+  box_now_banner_message: string | null;
 }
 
 /** Public, unauthenticated — fetched once by the footer. */

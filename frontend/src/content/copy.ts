@@ -19,6 +19,15 @@ export const topBanner = {
   message: 'Безплатна доставка с Box Now до края на септември!',
 };
 
+/** Persistent floating sticker (BoxNowBadge.tsx) — links to the delivery/payment/returns section. Two curved lines stacked over the top arc, matching the reference seal's layout. */
+export const boxNowBadge = {
+  curvedLine1: 'БЕЗПЛАТНА',
+  curvedLine2: 'ДОСТАВКА С',
+  brandLine1: 'BOX',
+  brandLine2: 'NOW',
+  aria: 'Безплатна доставка с Box Now',
+};
+
 export const nav = {
   home: 'Начало',
   browseProducts: 'Продукти',
@@ -45,8 +54,6 @@ export const footer = {
   companyLabel: 'Фирма',
   managerLabel: 'Управител',
   companyIdLabel: 'ЕИК',
-  cardOnlyPayment: 'Само плащане с карта - сигурно, бързо и изцяло дигитално.',
-  walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
 };
 
 export const contactForm = {
@@ -280,11 +287,12 @@ export const funnelUseCases = {
   cta: 'ВИЖ КАК РАБОТИ ↓',
 };
 
-/** The funnel landing page's social-proof blocks - hero rating line + testimonial cards. */
+/** The funnel landing page's social-proof blocks - hero rating line + testimonial carousel. */
 export const funnelReviews = {
   title: 'Какво казват клиентите ни',
   average: (value: string) => `${value} / 5`,
-  seeAll: (count: number) => `Виж всички отзиви (${count}) →`,
+  prevAria: 'Предишен отзив',
+  nextAria: 'Следващ отзив',
 };
 
 /**
@@ -316,9 +324,10 @@ export const funnelLead = {
  * hero's CTA. Every claim must stay true to checkout: the delivery window
  * matches the shipping methods' estimated_delivery. No free-shipping claim
  * (there is no free-shipping threshold) and no payment-method claims here
- * - those live in the DB-seeded #delivery-payment-returns trust row (see FunnelSeeder), which
- * must track PaymentService::availablePaymentMethods() (COD is currently
- * withheld there, so the page must not advertise "наложен платеж").
+ * - those live in the DB-seeded #delivery-payment-returns trust row (see
+ * FunnelSeeder), which must track PaymentService::availablePaymentMethods()
+ * - card always, plus CashOnDelivery ("наложен платеж") when the carrier
+ * is BoxNow.
  */
 export const funnelAssurance = {
   delivery: 'Доставка 1-2 работни дни',
@@ -327,13 +336,11 @@ export const funnelAssurance = {
   dispatch: (time: string, remaining: string) => `Поръчай до ${time} ч. - изпращаме още днес (остават ${remaining})`,
   paymentLogosAria: 'Приемани начини на плащане',
   /**
-   * #delivery-payment-returns's own payment sub-section (heading + one
-   * line of copy) - replaces the old single fine-print paragraph, which
-   * also used to justify card-only checkout via the BIO/ECO philosophy;
-   * dropped, since the real reason is simply that iCard is the only
-   * integrated gateway today (see PaymentService::availablePaymentMethods()).
+   * #delivery-payment-returns's own payment sub-section fine print, above
+   * the Visa/Mastercard/Apple Pay/Google Pay/cash badges - the section's
+   * own "Сигурно онлайн плащане" heading was dropped (by request), so this
+   * is the sub-section's only remaining copy.
    */
-  paymentHeading: 'Сигурно онлайн плащане',
   paymentCopy: 'Плащанията се обработват чрез защитена платежна система.',
 };
 

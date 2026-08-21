@@ -16,6 +16,11 @@ desktop.ini
 
 # Logs
 *.log
+
+# playwright-cli snapshots/screenshots — debugging artifacts from browser
+# automation, not source; can appear at the repo root or inside backend/
+# or frontend/ depending on where the tool was invoked from.
+.playwright-cli/
 # Generated SuperHosting deployment artifacts
 /release-superhosting/
 /smisul-superhosting.zip

@@ -12,15 +12,34 @@
   height: 56px;
 }
 
+/* Inline "с|мисъл" wordmark swapped into body copy (see
+   utils/renderWithBrandWordmark.tsx) — sized to the surrounding text's
+   line-height (1em) rather than a fixed pixel size, so it scales with
+   whatever font-size the paragraph around it is set at. The small
+   negative vertical-align nudges it down to sit on the text baseline
+   instead of floating above it (the source SVG's crop has a hair of
+   padding above the cap-height for the "|" divider's rounded top). */
+.brand-wordmark-inline {
+  display: inline-block;
+  height: 1em;
+  width: auto;
+  vertical-align: -0.15em;
+}
+
 /* ---- Top announcement bar ---- */
 
+/* Brand palette match for BoxNowBadge.tsx (see funnel.css) — Pantone 802C
+   green / Pantone 1C cream, and the same Montserrat ExtraBold used for that
+   badge's curved text, since this bar makes the same Box Now claim. */
 .top-announcement-bar {
   overflow: hidden;
   padding: 0.5rem 0;
-  background-color: #468513;
-  color: #ffffff;
+  background-color: #44d62c;
+  color: #efefe6;
+  font-family: 'Montserrat', var(--font-body, system-ui, sans-serif);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .top-announcement-bar__track {
@@ -192,39 +211,23 @@
   color: rgba(255, 255, 255, 0.7) !important;
 }
 
-/* Card brand marks in the bottom bar — lightened to read on the dark
-   forest background, kept quiet like the rest of the fine print. Exempted
-   below: logos this treatment breaks rather than quiets. Mastercard's
-   two overlapping circles (red #EB001B, orange #F79E1B) both wash out to
-   the same near-white under grayscale+brightness(3), which erases the
-   overlap structure that makes the mark recognizable — kept at its
-   natural colors instead, same as the other exemptions already here. */
-.footer-payment-logos img {
-  filter: grayscale(1) brightness(3);
-  opacity: 0.75;
+/* Payment marks in the bottom bar — real vector glyphs (Icon.tsx, from
+   simple-icons/Phosphor) that are a single flat color by design, so they
+   just inherit this quiet muted tone directly via currentColor. Sized by
+   width, not height: the marks have very different natural aspect ratios
+   (Visa wide and short, Amex/Mastercard near-square) and matching width
+   instead reads as a more even row than matching height would. */
+.footer-payment-logos {
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.footer-payment-logos img[src$="/amex.png"],
-.footer-payment-logos img[src$="/apple-pay.svg"],
-.footer-payment-logos img[src$="/google-pay.svg"],
-.footer-payment-logos img[src$="/mastercard.svg"] {
-  filter: none;
-  opacity: 1;
+.footer-payment-logos svg {
+  width: 2rem;
+  height: auto;
 }
 
 .footer-payment-info {
   max-width: 29rem;
-}
-
-.footer-payment-copy,
-.footer-payment-wallets {
-  margin-top: var(--space-1);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: var(--fs-xs);
-}
-
-.footer-payment-wallets {
-  color: rgba(255, 255, 255, 0.52);
 }
 
 /* Social profile buttons — quiet outlined circles that light up on hover. */

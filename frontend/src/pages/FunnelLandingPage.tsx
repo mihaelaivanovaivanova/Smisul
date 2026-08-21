@@ -12,6 +12,7 @@ import ErrorState from '../components/ErrorState';
 import ExitIntentModal from '../components/funnel/ExitIntentModal';
 import StickyMobileBuyBar from '../components/funnel/StickyMobileBuyBar';
 import StickyDesktopBuyBar from '../components/funnel/StickyDesktopBuyBar';
+import BoxNowBadge from '../components/funnel/BoxNowBadge';
 import { resolvePackageOffers } from '../services/funnelOffers';
 import Seo from '../components/Seo';
 import HeroSection from '../components/funnel/sections/HeroSection';
@@ -97,7 +98,10 @@ export default function FunnelLandingPage() {
     reviewsCopy.loadError,
   );
   const reviewSummary = socialProof && socialProof[0].review_count > 0 ? socialProof[0] : null;
-  const topReviews = socialProof?.[1].data.slice(0, 3) ?? [];
+  // All of page 1 (up to 10 — ReviewService::listForProduct's default page
+  // size), not just the top 3: the carousel scrolls, so it isn't limited to
+  // however many fit in a static row.
+  const topReviews = socialProof?.[1].data ?? [];
 
   // Merchant settings (same-day dispatch cutoff) — non-gating like the
   // social proof: a failed fetch just hides the dispatch promise line.
@@ -403,6 +407,21 @@ export default function FunnelLandingPage() {
       {/* 1 Header -> Navbar.tsx, rendered by PublicLayout */}
       {/* 2 Hero — carries the page's only H1 */}
       <HeroSection content={hero} productName={product.name} fromPrice={fromPrice} dispatchCutoff={dispatchCutoff} />
+      {/* Early buy box — a second, non-anchor copy of the Pricing section
+          (see PricingSection's doc comment) placed immediately after the
+          Hero so a ready-to-buy visitor doesn't have to scroll past 13
+          more sections to reach it. The numbered #pricing instance further
+          down stays the one every CTA/sticky bar links to. */}
+      <PricingSection
+        id="pricing-early"
+        packageOffers={packageOffers}
+        defaultVariant={defaultVariant}
+        fallbackCtaLabel={final_cta.cta}
+        dispatchCutoff={dispatchCutoff}
+        onAdded={handleFallbackAddToCart}
+        showSubtitle={false}
+        showSalesNote={false}
+      />
       {/* 3 Use Cases */}
       <UseCasesSection />
       {/* 4 What Is Miswak */}
@@ -418,7 +437,7 @@ export default function FunnelLandingPage() {
       {/* 10 Comparison */}
       <ComparisonSection content={comparison} ctaPrimaryLabel={hero.cta_primary} fromPrice={fromPrice} />
       {/* 12 Reviews */}
-      <FunnelTestimonialsSection topReviews={topReviews} reviewSummary={reviewSummary} productSlug={product.slug} />
+      <FunnelTestimonialsSection topReviews={topReviews} />
       {/* 14 Brand Statement */}
       <BrandStatementSection content={final_cta} productName={product.name} />
       {/* 15 Pricing */}
@@ -438,6 +457,10 @@ export default function FunnelLandingPage() {
       {/* 20 Footer -> Footer.tsx, rendered by PublicLayout */}
 
       {/* Persistent chrome — not part of the 20-section scroll order */}
+      {/* Defaults to shown while publicSettings is still loading (matches
+          its always-on behavior before this toggle existed); explicit
+          `false` hides it once the setting has actually loaded. */}
+      {publicSettings?.box_now_badge_enabled !== false && <BoxNowBadge />}
       <StickyMobileBuyBar visible={showMobileBar} fromPriceLabel={fromPriceLabel} />
       <ExitIntentModal />
       <StickyDesktopBuyBar

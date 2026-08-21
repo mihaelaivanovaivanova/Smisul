@@ -218,6 +218,40 @@
   }
 }
 
+/* #delivery-payment-returns's trust row carries 5 items — a 4-column grid
+   (the base rule above, tuned for the other trust row's 4 items) would
+   strand the 5th alone on its own row, flush left under column 1. Flex +
+   wrap + center instead: items keep a natural width and wrap to however
+   many fit per row, always centered, with all 5 fitting on one row at
+   typical desktop widths. */
+.funnel-trust-row.funnel-final-cta__trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-5) var(--space-4);
+}
+
+/* Desktop: all 5 stay on one row (flex-shrink below still lets them
+   compress rather than overflow if the viewport is narrower than the
+   widened .funnel-final-cta__trust max-width can fully accommodate).
+   Below this, wrapping to 2-3 per row (mobile/tablet) reads better than
+   forcing 5 cramped columns. */
+@media (min-width: 768px) {
+  .funnel-trust-row.funnel-final-cta__trust {
+    flex-wrap: nowrap;
+  }
+}
+
+.funnel-final-cta__trust .funnel-trust-item {
+  /* Wide enough that every current label wraps to at most 2 lines (the
+     longest single word, "гаранция за качество", needs this to avoid a
+     3rd line) — check new/edited labels against this if the copy changes.
+     flex-shrink (the "1") lets items compress below this on narrower
+     desktop widths instead of overflowing, once flex-wrap: nowrap kicks
+     in above. */
+  flex: 0 1 11rem;
+}
+
 .funnel-trust-item {
   display: flex;
   flex-direction: column;
@@ -272,21 +306,21 @@
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-4);
 }
 
 .funnel-hero .funnel-trust-item {
-  flex: 0 1 4rem;
+  flex: 0 1 5rem;
   padding-inline: 0;
 }
 
 .funnel-hero .funnel-trust-item__icon {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 .funnel-hero .funnel-trust-item__label {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   line-height: 1.2;
 }
 
@@ -317,9 +351,14 @@
     line-height: 1.15;
   }
 
-  /* Buy-section guarantees keep 2x2 (their labels are sentences) but
-     lose the padding air. */
+  /* Buy-section guarantees (now 5, since "100% гаранция" and "Наложен
+     платеж" came back) keep a compact multi-per-row wrap on phones — the
+     11rem desktop flex-basis (sized for "гаранция за качество" to fit on
+     one line at the wider desktop nowrap layout) is too wide for 2 per
+     row on a ~360px content width, so it's narrowed back down here. Also
+     loses the padding air. */
   .funnel-final-cta .funnel-trust-item {
+    flex-basis: 8rem;
     padding: var(--space-1);
   }
 
@@ -984,13 +1023,25 @@
 /* ---- Comparison table (#compare) ---- */
 
 .funnel-comparison__wrap {
+  position: relative;
   max-width: 56rem;
   margin-inline: auto;
-  overflow-x: auto;
+  /* Vertical breathing room for .funnel-comparison__miswak-highlight to pop
+     out past the table's own top/bottom edge into — overflow stays visible
+     (not auto) so that pop-out isn't clipped; the table's own column
+     widths (table-layout: fixed below) mean it never needs to scroll. */
+  padding-block: 1rem;
 }
 
 .funnel-comparison__table {
+  position: relative;
   width: 100%;
+  /* Fixed, not auto: the highlight pill is positioned by percentage
+     against .funnel-comparison__wrap independently of the table, so it
+     only stays aligned with the real Miswak column if the columns are
+     guaranteed to render at exactly the widths declared below (auto
+     layout would size columns from content instead and could drift). */
+  table-layout: fixed;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -1000,6 +1051,50 @@
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
+}
+
+/* The pill sits behind the table in DOM order but a positive z-index
+   lifts it above the table's own (non-positioned) background/borders —
+   which is exactly the point within the Miswak column's rectangle: it
+   replaces that column's background, reading as one continuous rounded
+   bar with the real column below rather than two separate shapes.
+   Solid/opaque fill (#f4f3ef), not the semi-transparent rgba tint the
+   column used before this pill existed: growing the pill on hover in
+   both directions (see below) makes it overlap the real column cells'
+   own background by a different amount each frame, and two
+   *semi-transparent* tints stacked don't look the same as one — that
+   showed up as a visible seam where the overlap amount changed. Same
+   pre-composited color (rgba(36,54,44,0.05) over the table's
+   --color-surface), but opaque: painting it twice now looks identical
+   to painting it once, so the overlap amount stops mattering. */
+.funnel-comparison__miswak-highlight {
+  position: absolute;
+  top: -0.625rem;
+  bottom: -0.625rem;
+  /* Matches .funnel-comparison__title-cell's 44% / the 28% column width
+     below exactly — table-layout: fixed guarantees these hold. */
+  left: 44%;
+  width: 28%;
+  background-color: #f4f3ef;
+  border: 1px solid var(--color-border);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.25s ease;
+}
+
+/* Grows on hovering any cell in the real column (header or any row) —
+   :has() lets a hover on the (topmost, transparent) cell drive the
+   decorative pill sitting behind it. */
+.funnel-comparison__wrap:has(.funnel-comparison__miswak-col:hover) .funnel-comparison__miswak-highlight {
+  transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-comparison__miswak-highlight {
+    transition: none;
+  }
 }
 
 .funnel-comparison__table th,
@@ -1123,10 +1218,27 @@
   white-space: normal;
 }
 
-/* The Miswak column is the argument — tinted so the eye reads it as "the
-   good column" at a glance. */
+/* The Miswak column is the argument — same color .funnel-comparison__miswak-highlight
+   uses, and position:relative + z-index lifts this cell (its background,
+   border, text, icons) above that pill, so the pill only ever shows in
+   the sliver it pops out into above/below the table — everywhere else
+   this cell's own identical-colored background paints over it, and the
+   two being the exact same opaque color means it's seamless regardless
+   of exactly how far the pill's hover-grow overlaps this cell (see the
+   pill's own comment for why opaque, not the original rgba tint,
+   matters here). This same z-index promotion is also what makes the
+   product photo's mix-blend-mode: multiply work: this cell becomes the
+   photo's own local stacking context, and — because its background is
+   now opaque instead of the old semi-transparent tint — there's an
+   actual solid backdrop within that context for the photo to blend
+   against (a semi-transparent backdrop inside an isolated stacking
+   context doesn't give mix-blend-mode enough to blend with, which is
+   why that combination briefly regressed to a flat white photo
+   background while this was being built). */
 .funnel-comparison__table .funnel-comparison__miswak-col {
-  background-color: rgba(36, 54, 44, 0.05);
+  position: relative;
+  z-index: 2;
+  background-color: #f4f3ef;
   color: var(--color-forest-dark);
 }
 
@@ -1284,10 +1396,6 @@
   text-align: center;
 }
 
-.funnel-payment-block__title {
-  margin-bottom: var(--space-2);
-}
-
 .funnel-payment-block__copy {
   margin-bottom: 0;
   color: var(--color-muted);
@@ -1298,12 +1406,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: var(--space-4);
   margin-top: var(--space-4);
 }
 
+
 /* ---- Testimonials (#reviews) ---- */
 
+/* Same hover-lift language as .funnel-package-card / .funnel-step-card. */
 .funnel-review-card {
   display: flex;
   flex-direction: column;
@@ -1315,6 +1426,22 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.funnel-review-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-sage);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-review-card:hover {
+    transform: none;
+  }
 }
 
 .funnel-review-card__body {
@@ -1342,14 +1469,93 @@
   font-weight: 600;
 }
 
-.funnel-reviews__see-all {
-  color: var(--color-forest);
-  font-weight: 700;
-  text-decoration: none;
+/* Horizontally-scrolling carousel (scroll-snap track + prev/next arrows)
+   over however many reviews are passed in (up to 10 — see
+   FunnelLandingPage's topReviews). Replaces the old static 3-up
+   .row-cols-md-3 grid, which had no way to reach reviews beyond the first
+   3 without the now-removed "see all" link to the product page. */
+.funnel-reviews-carousel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.funnel-reviews__see-all:hover {
-  text-decoration: underline;
+.funnel-reviews-carousel__track {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding-block: var(--space-1);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.funnel-reviews-carousel__track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile: one card at a time, with the next one peeking in at the edge as
+   a swipe affordance. sm+: two up. md+: three up, matching the old grid's
+   look when the track hasn't been scrolled yet. */
+.funnel-review-card {
+  scroll-snap-align: start;
+  flex: 0 0 86%;
+}
+
+@media (min-width: 576px) {
+  .funnel-review-card {
+    flex-basis: calc(50% - var(--space-3) / 2);
+  }
+}
+
+@media (min-width: 768px) {
+  .funnel-review-card {
+    flex-basis: calc((100% - 2 * var(--space-3)) / 3);
+  }
+}
+
+/* Arrows are md+ only — touch swipe already covers the carousel on phones
+   without adding tap targets that would crowd a narrow viewport. */
+.funnel-reviews-carousel__arrow {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-forest);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+@media (min-width: 768px) {
+  .funnel-reviews-carousel__arrow {
+    display: inline-flex;
+  }
+}
+
+.funnel-reviews-carousel__arrow:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-md);
+}
+
+.funnel-reviews-carousel__arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.funnel-reviews-carousel__arrow svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* ---- Package offer stack (#pricing, see PackageOffers.tsx) ---- */
@@ -1596,9 +1802,13 @@
 }
 
 /* The guarantee/trust row now closes the whole buy section rather than
-   sitting inside the text column — cap and center it under the cards. */
+   sitting inside the text column — cap and center it under the cards.
+   64rem fits all 5 items at their full 11rem flex-basis plus generous
+   gaps without needing to shrink (5 * 11rem + 4 * gap ≈ 61rem) — narrower
+   than this and flex-shrink compresses them instead of wrapping/overflowing
+   (see .funnel-trust-row.funnel-final-cta__trust's nowrap breakpoint). */
 .funnel-final-cta__trust {
-  max-width: 52rem;
+  max-width: 64rem;
   margin-inline: auto;
 }
 
@@ -1947,5 +2157,94 @@
   .funnel-final-cta__image {
     width: 100%;
     margin-right: 0;
+  }
+}
+
+/* ---- Box Now floating badge ---- */
+
+/* Always-mounted, never toggled by scroll position (unlike the two sticky
+   buy bars) — a constant trust seal, not a scroll-triggered nudge. Sits
+   below the sticky navbar's own box (top offset clears both the
+   announcement bar + navbar in the unscrolled state, and leaves a gap once
+   the navbar alone is stuck at top:0) and to the right, clear of the
+   bottom-anchored sticky buy bars and the bottom-left cookie banner.
+   z-index stays under the navbar's 1020 so the two never fight if a
+   viewport is narrow enough to bring them close. */
+.funnel-boxnow-badge {
+  position: fixed;
+  top: 6.75rem;
+  right: var(--space-3);
+  z-index: 1015;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  filter: drop-shadow(var(--shadow-lg));
+  animation: funnel-boxnow-pulse 2.6s ease-in-out infinite;
+}
+
+.funnel-boxnow-badge:hover,
+.funnel-boxnow-badge:focus-visible {
+  animation-play-state: paused;
+  transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-boxnow-badge {
+    animation: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .funnel-boxnow-badge {
+    top: auto;
+    bottom: 5rem;
+    right: var(--space-2);
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+}
+
+.funnel-boxnow-badge__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Exact brand palette — Pantone 802C (green) / Pantone 1C (cream), the two
+   "Main" swatches supplied for this badge. No other colors anywhere in it. */
+.funnel-boxnow-badge__ring {
+  fill: #efefe6;
+}
+
+.funnel-boxnow-badge__disc {
+  fill: #44d62c;
+}
+
+.funnel-boxnow-badge__arc-path {
+  fill: none;
+  stroke: none;
+}
+
+.funnel-boxnow-badge__arc-text {
+  fill: #efefe6;
+  font-family: 'Montserrat', var(--font-body, system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.funnel-boxnow-badge__wordmark path {
+  fill: #efefe6;
+}
+
+@keyframes funnel-boxnow-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.045);
   }
 }

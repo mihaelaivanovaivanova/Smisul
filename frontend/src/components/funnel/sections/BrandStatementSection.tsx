@@ -1,4 +1,5 @@
 import { brandTagline } from '../../../content/copy';
+import { renderWithBrandWordmark } from '../../../utils/renderWithBrandWordmark';
 import type { FunnelFinalCtaContent } from '../../../types/funnel';
 
 interface BrandStatementSectionProps {
@@ -36,7 +37,7 @@ export default function BrandStatementSection({ content, productName }: BrandSta
             <h2 className="section-title">{content.title}</h2>
             {content.paragraphs.map((paragraph) => (
               <p className="section-lead lead" key={paragraph}>
-                {paragraph}
+                {renderWithBrandWordmark(paragraph)}
               </p>
             ))}
             <p className="funnel-brand-statement__tagline mb-0">{brandTagline}</p>

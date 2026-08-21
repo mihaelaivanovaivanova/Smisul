@@ -76,14 +76,31 @@ class SettingService
             'general.social_instagram' => 'social_instagram',
             'general.social_facebook' => 'social_facebook',
             'general.social_tiktok' => 'social_tiktok',
+            'general.box_now_banner_enabled' => 'box_now_banner_enabled',
+            'general.box_now_badge_enabled' => 'box_now_badge_enabled',
+            'general.box_now_banner_message' => 'box_now_banner_message',
         ];
 
         $settings = Setting::query()->whereIn('key', array_keys($keys))->get()->keyBy('key');
 
         return collect($keys)
-            ->mapWithKeys(fn (string $publicKey, string $key) => [
-                $publicKey => ($value = $settings->get($key)?->value) !== '' ? $value : null,
-            ])
+            ->mapWithKeys(function (string $publicKey, string $key) use ($settings) {
+                $setting = $settings->get($key);
+
+                if ($setting === null) {
+                    return [$publicKey => null];
+                }
+
+                // Booleans must come back as real booleans, not the raw '1'/'0'
+                // string stored in the column — every other public setting so
+                // far has been a string, so this is the first key that needs
+                // castValue() rather than the raw ->value.
+                if ($setting->type === 'boolean') {
+                    return [$publicKey => $setting->castValue()];
+                }
+
+                return [$publicKey => $setting->value !== '' ? $setting->value : null];
+            })
             ->all();
     }
 

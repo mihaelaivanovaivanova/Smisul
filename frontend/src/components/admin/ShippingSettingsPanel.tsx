@@ -5,8 +5,121 @@ import {
   type ShippingProviderSetting,
   type ShippingProviderSettingUpdate,
 } from '../../api/admin/shippingSettings';
+import { fetchSettings, updateSettings } from '../../api/admin/settings';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../LoadingState';
+
+/**
+ * Storefront-wide "Box Now marketing chrome" toggles — the top announcement
+ * banner (TopAnnouncementBar.tsx, every page) and the funnel page's
+ * floating badge (BoxNowBadge.tsx). These live in the generic Setting
+ * table (group "general", same system as the General tab — see
+ * SettingsSeeder.php) rather than on the box_now ShippingProviderSetting
+ * row itself, since that row's `enabled` flag means "API credentials are
+ * live" (gates real BOX NOW shipments — see ShippingProviderSettingsService),
+ * a different concern from "show this marketing copy." Rendered here,
+ * inside the Box Now card, purely as a UI placement choice; SettingsPage.tsx
+ * filters these same keys out of the generic General tab list so they
+ * don't show up twice.
+ */
+const BOX_NOW_BANNER_ENABLED_KEY = 'general.box_now_banner_enabled';
+const BOX_NOW_BADGE_ENABLED_KEY = 'general.box_now_badge_enabled';
+const BOX_NOW_BANNER_MESSAGE_KEY = 'general.box_now_banner_message';
+
+function BoxNowMarketingFields() {
+  const [bannerEnabled, setBannerEnabled] = useState(true);
+  const [badgeEnabled, setBadgeEnabled] = useState(true);
+  const [bannerMessage, setBannerMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSettings()
+      .then((data) => {
+        const items = data.editable.general ?? [];
+        const findValue = (key: string) => items.find((item) => item.key === key)?.value;
+        setBannerEnabled(Boolean(findValue(BOX_NOW_BANNER_ENABLED_KEY) ?? true));
+        setBadgeEnabled(Boolean(findValue(BOX_NOW_BADGE_ENABLED_KEY) ?? true));
+        setBannerMessage(String(findValue(BOX_NOW_BANNER_MESSAGE_KEY) ?? ''));
+      })
+      .catch((err) => setError(getErrorMessage(err, 'Could not load Box Now marketing settings.')))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await updateSettings({
+        [BOX_NOW_BANNER_ENABLED_KEY]: bannerEnabled,
+        [BOX_NOW_BADGE_ENABLED_KEY]: badgeEnabled,
+        [BOX_NOW_BANNER_MESSAGE_KEY]: bannerMessage,
+      });
+      setMessage('Box Now marketing settings saved.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not save Box Now marketing settings.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return <LoadingState message="Loading Box Now marketing settings…" />;
+  }
+
+  return (
+    <>
+      <hr className="my-4" />
+      <h6>Box Now marketing</h6>
+      <p className="text-body-secondary small">
+        Controls the storefront's top announcement banner (every page) and the funnel page's floating Box Now badge.
+      </p>
+      {error && <div className="alert alert-danger">{error}</div>}
+      {message && <div className="alert alert-success">{message}</div>}
+      <div className="form-check form-switch mb-2">
+        <input
+          className="form-check-input"
+          type="checkbox"
+          id="box-now-banner-enabled"
+          checked={bannerEnabled}
+          onChange={(event) => setBannerEnabled(event.target.checked)}
+        />
+        <label className="form-check-label" htmlFor="box-now-banner-enabled">
+          Show top banner
+        </label>
+      </div>
+      <div className="form-check form-switch mb-3">
+        <input
+          className="form-check-input"
+          type="checkbox"
+          id="box-now-badge-enabled"
+          checked={badgeEnabled}
+          onChange={(event) => setBadgeEnabled(event.target.checked)}
+        />
+        <label className="form-check-label" htmlFor="box-now-badge-enabled">
+          Show floating badge
+        </label>
+      </div>
+      <div className="mb-3">
+        <label className="form-label" htmlFor="box-now-banner-message">
+          Top banner message
+        </label>
+        <input
+          className="form-control"
+          id="box-now-banner-message"
+          value={bannerMessage}
+          onChange={(event) => setBannerMessage(event.target.value)}
+        />
+      </div>
+      <button className="btn btn-primary" type="button" onClick={() => void save()} disabled={saving}>
+        {saving ? 'Saving…' : 'Save Box Now marketing'}
+      </button>
+    </>
+  );
+}
 
 /** '' means "no override — use the hardcoded default", distinct from 0 (a genuine free-shipping price). */
 function priceFieldState(value: number | null): string {
@@ -187,6 +300,8 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
         <button className="btn btn-primary mt-4" type="button" onClick={() => void save()} disabled={saving}>
           {saving ? 'Saving…' : `Save ${provider.label}`}
         </button>
+
+        {isBoxNow && <BoxNowMarketingFields />}
       </div>
     </div>
   );

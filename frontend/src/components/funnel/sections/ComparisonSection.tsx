@@ -87,6 +87,14 @@ export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice 
         <h2 className="funnel-comparison__title mb-4 text-center d-md-none">{content.title}</h2>
 
         <div className="funnel-comparison__wrap d-none d-md-block">
+          {/* Decorative — the actual highlight is the .funnel-comparison__miswak-col
+              cells below (real content, real semantics). This is purely the
+              rounded pill that pops out above/below the table, matching the
+              reference "featured column" treatment. Positioned via
+              table-layout: fixed's guaranteed column widths (see funnel.css),
+              so it needs table-layout: fixed to stay aligned with the real
+              column — auto layout wouldn't guarantee the match. */}
+          <div className="funnel-comparison__miswak-highlight" aria-hidden="true" />
           <table className="funnel-comparison__table">
             <thead>
               <tr>
@@ -149,7 +157,7 @@ export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice 
           ))}
         </div>
 
-        <div className="text-center mt-4">
+        <div className="text-center mt-5">
           <a href="#pricing" className="btn btn-primary btn-lg funnel-hero__cta">
             <span className="funnel-hero__cta-main">{ctaPrimaryLabel}</span>
             {packagesFromLabel && <span className="funnel-hero__cta-sub">{packagesFromLabel}</span>}

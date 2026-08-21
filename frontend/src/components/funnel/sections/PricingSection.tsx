@@ -11,18 +11,22 @@ interface PricingSectionProps {
   fallbackCtaLabel: string;
   dispatchCutoff: string | null | undefined;
   onAdded: () => void;
+  /** Defaults to "pricing", the canonical anchor every CTA links to (#pricing). Override for a second, non-anchor placement (see FunnelLandingPage's early instance right after the Hero) so the two don't collide as duplicate DOM ids. */
+  id?: string;
+  /** Both default true. The early instance right after the Hero hides the subtitle and sales-note copy — by request, so it reads as a compact buy box rather than repeating the full pitch the numbered #pricing section below already makes. */
+  showSubtitle?: boolean;
+  showSalesNote?: boolean;
 }
 
 /**
  * Section 16/20 — Pricing. Powered by the existing "funnel.checkout" UI
- * copy (previously the "early" placement of the old dual-instance
- * checkout block, shown once right after the hero); now the single,
- * consolidated purchase section per the new architecture, positioned
- * per the requested section order rather than duplicated at two scroll
- * positions. The sticky mobile/desktop buy bars (unchanged, rendered
- * outside the section list) still give a persistent path to purchase
- * regardless of scroll position, so this consolidation doesn't remove
- * the ability to buy early — only the duplicated full section.
+ * copy. Once consolidated to a single instance (see git history), but the
+ * dual placement is back by request: FunnelLandingPage now renders this
+ * twice — once right after the Hero (id="pricing-early", not a link
+ * target) and once here, in its numbered slot (id="pricing", the anchor
+ * every CTA/sticky bar links to). Both instances are otherwise identical;
+ * PackageOffers/AddToCartButton have no shared DOM ids or radio-group
+ * `name`s, so two live copies on the page don't collide.
  *
  * id renamed from the pre-refactor "buy" to "pricing" — every internal
  * link that used to point at #buy (hero CTA, mid-page CTA, sticky bars,
@@ -38,17 +42,20 @@ export default function PricingSection({
   fallbackCtaLabel,
   dispatchCutoff,
   onAdded,
+  id = 'pricing',
+  showSubtitle = true,
+  showSalesNote = true,
 }: PricingSectionProps) {
   return (
     <section
       className="section funnel-hero-tone funnel-divided-section funnel-final-cta funnel-checkout funnel-checkout--early"
-      id="pricing"
+      id={id}
     >
       <div className="container">
         <div className="row g-5 align-items-center justify-content-center">
           <div className="col-12 col-xl-9 text-center">
             <h2 className="section-title">{funnelCheckout.title}</h2>
-            <p className="section-lead lead">{funnelCheckout.subtitle}</p>
+            {showSubtitle && <p className="section-lead lead">{funnelCheckout.subtitle}</p>}
           </div>
         </div>
 
@@ -74,7 +81,7 @@ export default function PricingSection({
           )
         )}
 
-        <p className="funnel-checkout__sales-note">{funnelCheckout.salesNote}</p>
+        {showSalesNote && <p className="funnel-checkout__sales-note">{funnelCheckout.salesNote}</p>}
       </div>
     </section>
   );

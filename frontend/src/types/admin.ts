@@ -8,6 +8,8 @@ export interface AdminOrder extends Order {
   user_id: number | null;
   payments: Payment[];
   shipment: Shipment | null;
+  /** чл. 54, ал. 2 ЗЗП withdrawal-refund cap: cheapest standard delivery option offered at placement time, not today's price. null for orders placed before this was tracked. */
+  cheapest_standard_shipping_price_at_placement: number | null;
 }
 
 /**
@@ -154,4 +156,22 @@ export interface AdminReviewStatistics {
   reviews_by_status: Record<string, number>;
   average_rating: number;
   pending_count: number;
+}
+
+export type ComplaintStatus = 'received' | 'in_review' | 'resolved' | 'rejected';
+
+export type ComplaintSort = 'submitted_desc' | 'submitted_asc' | 'number_desc' | 'number_asc' | 'status_asc' | 'status_desc';
+
+/** The ЗЗП чл. 128, ал. 4 complaints register entry — distinct from the general contact form. */
+export interface Complaint {
+  id: number;
+  complaint_number: string;
+  order: { id: number; order_number: string; customer_name: string; customer_email: string };
+  description: string;
+  status: ComplaintStatus;
+  status_label: string;
+  resolution: string | null;
+  submitted_at: string;
+  resolved_at: string | null;
+  created_at: string;
 }

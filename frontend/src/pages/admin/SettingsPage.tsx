@@ -22,7 +22,7 @@ const TABS: { key: string; label: string }[] = [
   { key: 'system', label: 'System' },
 ];
 
-const LEGAL_TYPES = ['terms_of_service', 'privacy_policy', 'right_of_withdrawal', 'cookie_policy'];
+const LEGAL_TYPES = ['terms_of_service', 'privacy_policy', 'right_of_withdrawal', 'shipping_policy'];
 
 /** Rendered inside the Shipping tab's Box Now card instead (see ShippingSettingsPanel.tsx's BoxNowMarketingFields) — filtered out of the generic General list so they don't show up twice. */
 const BOX_NOW_MARKETING_KEYS = new Set(['general.box_now_banner_enabled', 'general.box_now_badge_enabled', 'general.box_now_banner_message']);

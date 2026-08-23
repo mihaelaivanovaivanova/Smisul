@@ -35,11 +35,21 @@ class SendOrderStatusEmails
             Mail::to($order->customer_email)->send($mailable);
         }
 
-        // Separate from OrderDeliveredMail above — an invoice is a
-        // financial document, not a "your parcel arrived" notice, and only
-        // goes out at all if the customer actually asked for one at
-        // checkout (see PlaceOrderRequest's wants_invoice field).
-        if ($event->to === OrderStatus::Delivered && $order->wants_invoice) {
+        // Separate from OrderDeliveredMail above — this is the order's
+        // legally required sales document (see OrderController::invoice()'s
+        // docblock: a чл. 6, ал. 1 ЗСч first-level accounting document,
+        // titled "Фактура" by Bulgarian convention even though Smisul isn't
+        // VAT-registered), so it goes out for EVERY delivered order, not
+        // only when the customer checked "wants_invoice" at checkout —
+        // that flag only controls whether a separate billing address/
+        // company/VAT number was collected (see PlaceOrderRequest), not
+        // whether the sale needs documenting. It's the same document
+        // either way; customer_company/customer_vat_number just render
+        // blank when the customer never provided them. Sending it here (at
+        // delivery, when the sale is actually realized) rather than at
+        // order placement matters most for BOX NOW наложен платеж orders,
+        // where no payment has even occurred yet at placement time.
+        if ($event->to === OrderStatus::Delivered) {
             Mail::to($order->customer_email)->send(new OrderInvoiceMail($order));
         }
     }

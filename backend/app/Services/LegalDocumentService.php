@@ -19,8 +19,8 @@ class LegalDocumentService
     /**
      * Every current document, of every type — the public "browse our
      * legal pages" listing (footer links, /legal/{slug}). Includes
-     * ShippingPolicy/ReturnsPolicy, which are informational-only and
-     * never required at checkout (see requiredAtCheckout()/currentRequiredForCheckout()).
+     * ShippingPolicy, which is informational-only and never required at
+     * checkout (see requiredAtCheckout()/currentRequiredForCheckout()).
      *
      * @return Collection<int, LegalDocument>
      */
@@ -49,8 +49,7 @@ class LegalDocumentService
      * throws listing whichever required types weren't covered — by a
      * missing ID, a wrong/stale ID, or an ID for the wrong type. Only
      * LegalDocumentType::requiredAtCheckout() types are enforced —
-     * ShippingPolicy/ReturnsPolicy are informational pages, not checkout
-     * checkboxes.
+     * ShippingPolicy is an informational page, not a checkout checkbox.
      *
      * @param  list<int>  $legalDocumentIds
      * @return Collection<int, LegalDocument>

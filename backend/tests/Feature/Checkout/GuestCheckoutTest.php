@@ -84,7 +84,9 @@ class GuestCheckoutTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/legal-documents');
 
         $response->assertOk();
-        $response->assertJsonCount(4, 'data');
+        // ToS, Privacy (now includes cookies), Right of Withdrawal (now
+        // includes returns/complaints) — see LegalDocumentType::requiredAtCheckout().
+        $response->assertJsonCount(3, 'data');
     }
 
     #[Test]

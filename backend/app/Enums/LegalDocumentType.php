@@ -6,28 +6,40 @@ enum LegalDocumentType: string
 {
     case TermsOfService = 'terms_of_service';
     /**
-     * Covers both general privacy practices and GDPR-specific disclosures
-     * (lawful basis, data subject rights, retention, transfers) as one
-     * document — there used to be a separate GdprPolicy case, but a
-     * GDPR-compliant Privacy Policy already covers everything that
-     * document did, so keeping them apart was redundant. See
-     * docs/legal-gdpr-seo.md.
+     * Covers general privacy practices, GDPR-specific disclosures (lawful
+     * basis, data subject rights, retention, transfers), AND cookies as one
+     * document — there used to be separate GdprPolicy and CookiePolicy
+     * cases, but a GDPR-compliant Privacy Policy already covers everything
+     * either of those did (cookies are just another category of data
+     * processing, disclosed the same way), so keeping them apart was
+     * redundant. See docs/legal-gdpr-seo.md. The cookie-consent banner
+     * (accept/reject/customize) is unaffected — that's a separate runtime
+     * mechanism (CookieConsentContext/ConsentService), not this document.
      */
     case PrivacyPolicy = 'privacy_policy';
+    /**
+     * Covers both the 14-day statutory right of withdrawal AND returns/
+     * complaints (voluntary 30-day return window, the 2-year legal
+     * guarantee of conformity, how to file a complaint) as one document —
+     * there used to be a separate ReturnsPolicy case, but both answer the
+     * same customer question ("how do I get my money back / report a
+     * problem") and merging them means the legal-guarantee disclosure is
+     * now part of the checkout-required acknowledgment (чл. 47, ал. 1, т.
+     * 12 ЗЗП requires pre-contract disclosure of the legal guarantee, same
+     * as the withdrawal right in т. 8 — ReturnsPolicy being
+     * informational-only and checkout-optional was actually a compliance
+     * gap on that point).
+     */
     case RightOfWithdrawal = 'right_of_withdrawal';
-    case CookiePolicy = 'cookie_policy';
     case ShippingPolicy = 'shipping_policy';
-    case ReturnsPolicy = 'returns_policy';
 
     public function label(): string
     {
         return match ($this) {
             self::TermsOfService => 'General Terms',
             self::PrivacyPolicy => 'Privacy Policy',
-            self::RightOfWithdrawal => 'Right of Withdrawal',
-            self::CookiePolicy => 'Cookie Policy',
+            self::RightOfWithdrawal => 'Right of Withdrawal, Returns & Complaints',
             self::ShippingPolicy => 'Shipping Policy',
-            self::ReturnsPolicy => 'Returns & Complaints Policy',
         };
     }
 
@@ -44,9 +56,7 @@ enum LegalDocumentType: string
             self::TermsOfService => 'terms-of-service',
             self::PrivacyPolicy => 'privacy-policy',
             self::RightOfWithdrawal => 'right-of-withdrawal',
-            self::CookiePolicy => 'cookie-policy',
             self::ShippingPolicy => 'shipping-policy',
-            self::ReturnsPolicy => 'returns-policy',
         };
     }
 
@@ -63,21 +73,24 @@ enum LegalDocumentType: string
 
     /**
      * The subset of document types checkout actually requires acceptance
-     * of — unchanged from before ShippingPolicy/ReturnsPolicy existed, so
-     * adding those two new informational-only page types doesn't turn
-     * checkout into a 6-checkbox form. See LegalDocumentService.
+     * of. ShippingPolicy stays informational-only/optional deliberately —
+     * its content (carrier list, promo pricing/dates) can change often,
+     * and requiring re-acceptance on every such change would spam every
+     * existing account holder via NotifyAccountHoldersOfLegalDocumentUpdate
+     * for something that isn't really a legal-terms change. See
+     * LegalDocumentService.
      *
      * @return list<self>
      */
     public static function requiredAtCheckout(): array
     {
-        return [self::TermsOfService, self::PrivacyPolicy, self::RightOfWithdrawal, self::CookiePolicy];
+        return [self::TermsOfService, self::PrivacyPolicy, self::RightOfWithdrawal];
     }
 
     /**
      * The documents a registered account holder must have accepted in
      * their current version — the ongoing account relationship runs on
-     * these two; withdrawal/cookie terms are order- and browse-scoped.
+     * these two; the withdrawal/returns terms are order-scoped instead.
      *
      * @return list<self>
      */

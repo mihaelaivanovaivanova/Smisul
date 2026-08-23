@@ -31,7 +31,7 @@
                 <tr>
                     <td style="padding: 16px 20px; font-size: 13px; color: #2b2822; line-height: 1.5;">
                         @if ($isCashOnDelivery)
-                            Плащаш в брой на куриера при получаване.
+                            Плащаш с банкова карта чрез BOX NOW точно преди да изтеглиш пратката от автомата.
                         @else
                             Обработваме плащането с карта.
                         @endif
@@ -51,6 +51,15 @@
         <td style="padding: 24px;">
             <h2 style="margin: 0 0 12px; font-size: 15px; color: #24362c;">Детайли за поръчката:</h2>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
+                {{-- Also shown in the shared layout's header banner
+                     (emails.layout, every lifecycle email) — repeated here
+                     so it's part of this section's own fields too, not just
+                     chrome around it (Закона за счетоводството чл. 6, ал. 1
+                     wants the sale document to carry its own number). --}}
+                <tr>
+                    <td style="color: #71695c; padding: 4px 0; width: 90px; vertical-align: top;">Поръчка №:</td>
+                    <td style="color: #2b2822; padding: 4px 0;">{{ $order->order_number }}</td>
+                </tr>
                 <tr>
                     <td style="color: #71695c; padding: 4px 0; width: 90px; vertical-align: top;">Име:</td>
                     <td style="color: #2b2822; padding: 4px 0;">{{ $order->customerFullName() }}</td>

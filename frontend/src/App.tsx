@@ -40,6 +40,7 @@ import CustomerDetailPage from './pages/admin/CustomerDetailPage';
 import MediaLibraryPage from './pages/admin/MediaLibraryPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import LogsPage from './pages/admin/LogsPage';
+import ComplaintsPage from './pages/admin/ComplaintsPage';
 import FunnelPage from './pages/admin/FunnelPage';
 import LeadsPage from './pages/admin/LeadsPage';
 
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="customers/:customerId" element={<CustomerDetailPage />} />
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="complaints" element={<ComplaintsPage />} />
           <Route path="logs" element={<LogsPage />} />
         </Route>
       </Route>

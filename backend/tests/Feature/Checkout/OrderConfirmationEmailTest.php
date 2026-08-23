@@ -63,7 +63,7 @@ class OrderConfirmationEmailTest extends TestCase
             return $mail->hasTo('ivan@example.com')
                 && str_contains($rendered, 'Обработваме плащането с карта')
                 && ! str_contains($rendered, 'следваща стъпка')
-                && ! str_contains($rendered, 'в брой на куриера');
+                && ! str_contains($rendered, 'BOX NOW');
         });
     }
 
@@ -85,7 +85,11 @@ class OrderConfirmationEmailTest extends TestCase
         Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) {
             $rendered = $mail->render();
 
-            return str_contains($rendered, 'Плащаш в брой на куриера')
+            // Not "в брой на куриера" — BOX NOW is an unmanned locker
+            // network, so cash-on-delivery there is actually a card charge
+            // through BOX NOW's own payment portal at pickup, not cash
+            // handed to a courier.
+            return str_contains($rendered, 'Плащаш с банкова карта чрез BOX NOW')
                 && ! str_contains($rendered, 'Обработваме плащането с карта');
         });
     }

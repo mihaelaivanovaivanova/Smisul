@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Order;
+use App\Services\SettingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -17,6 +18,9 @@ use Illuminate\Queue\SerializesModels;
 class OrderConfirmationMail extends Mailable
 {
     use Queueable, SerializesModels;
+
+    /** @var array{name: ?string, manager: ?string, company_id: ?string, address: ?string, email: ?string} */
+    public readonly array $seller;
 
     public function __construct(public readonly Order $order)
     {
@@ -34,6 +38,12 @@ class OrderConfirmationMail extends Mailable
             'items.productVariant.product.primaryMedia',
             'payments' => fn ($query) => $query->latest()->limit(1),
         ]);
+
+        // Public property, not passed via Content::with() — Mailable
+        // auto-exposes public properties to the view (same as $order),
+        // which is how emails.partials.legal-disclosures (included from
+        // the confirmation view) gets it.
+        $this->seller = app(SettingService::class)->sellerIdentity();
     }
 
     public function envelope(): Envelope

@@ -5,13 +5,20 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
+use App\Services\InvoiceNumberGenerator;
 use App\Services\OrderService;
+use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 class OrderController extends Controller
 {
+    public function __construct(
+        private readonly InvoiceNumberGenerator $invoiceNumbers,
+        private readonly SettingService $settings,
+    ) {}
+
     /**
      * The authenticated customer's own order history, newest first. Guests
      * have no account to list orders against — this route sits behind
@@ -42,17 +49,23 @@ class OrderController extends Controller
     }
 
     /**
-     * A minimal, dependency-free invoice document — see the view for the
-     * "not a real tax invoice" disclaimer. Real invoicing (PDF generation,
-     * legal numbering sequence, VAT breakdown) is a future extension point;
-     * this establishes the endpoint/URL shape it would live behind.
+     * A dependency-free (no PDF library) but legally-real accounting
+     * document — Smisul isn't VAT-registered, so this is a "стокова
+     * разписка"-style first-level accounting document under Закона за
+     * счетоводството чл. 6, ал. 1 (seller identity, buyer, goods/quantities/
+     * value, document number/date), titled "Фактура" per common Bulgarian
+     * practice for non-VAT sellers, not a VAT tax invoice (no ДДС
+     * breakdown, since none applies). invoice_number is assigned once,
+     * on first request, and reused on every subsequent view/download —
+     * see InvoiceNumberGenerator.
      */
     public function invoice(Request $request, Order $order): Response
     {
         $this->authorizeAccess($request, $order);
 
         $order->load('items');
-        $html = view('invoices.order', ['order' => $order])->render();
+        $this->invoiceNumbers->generateFor($order);
+        $html = view('invoices.order', ['order' => $order, 'seller' => $this->settings->sellerIdentity()])->render();
 
         return response($html, 200, [
             'Content-Type' => 'text/html',

@@ -121,6 +121,13 @@ export default function OrderDetailPage() {
                   </tr>
                 </tfoot>
               </table>
+              {order.cheapest_standard_shipping_price_at_placement !== null && (
+                <p className="text-muted small px-3 pb-2 mb-0">
+                  Cheapest standard shipping option at placement: {formatPrice(order.cheapest_standard_shipping_price_at_placement)} — the
+                  legal cap on the delivery-cost portion of a withdrawal refund (чл. 54, ал. 2 ЗЗП), regardless of what shipping costs
+                  today.
+                </p>
+              )}
             </div>
           </div>
 

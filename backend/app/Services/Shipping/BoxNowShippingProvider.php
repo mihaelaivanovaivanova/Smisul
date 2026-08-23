@@ -86,9 +86,28 @@ class BoxNowShippingProvider implements ShippingProviderInterface
         return new ShippingQuoteData(
             carrier: $this->carrier(),
             deliveryType: $deliveryType,
-            price: $this->settings->priceFor('box_now', $deliveryType) ?? 4.99,
+            price: $this->isFreeShippingPromoActive() ? 0.00 : ($this->settings->priceFor('box_now', $deliveryType) ?? 4.99),
             currency: 'EUR',
             estimatedDelivery: '1-2 работни дни',
+        );
+    }
+
+    /**
+     * Launch promotion confirmed by the business owner on 2026-08-21: every
+     * BOX NOW delivery is free through the end of September 2026 — not the
+     * €25-threshold rule floated earlier (see the now-superseded
+     * funnel-relaunch-decisions note), which never shipped. Takes priority
+     * over any admin-configured priceFor() override so the site's "free
+     * shipping with BOX NOW" badge is never false. Reverts to the normal
+     * flat/admin-priced rate automatically once the window closes, via
+     * config rather than a hardcoded date, so extending the promo is an
+     * env change, not a code change — and nobody has to remember to flip a
+     * setting back when it ends.
+     */
+    private function isFreeShippingPromoActive(): bool
+    {
+        return CarbonImmutable::now()->lessThanOrEqualTo(
+            CarbonImmutable::parse(config('services.shipping.box_now.free_shipping_promo_until', '2026-09-30 23:59:59')),
         );
     }
 

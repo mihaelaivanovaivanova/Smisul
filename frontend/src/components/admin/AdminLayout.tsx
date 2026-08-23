@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/admin/reviews', label: 'Reviews' },
   { to: '/admin/customers', label: 'Customers' },
   { to: '/admin/media', label: 'Media Library' },
+  { to: '/admin/complaints', label: 'Complaints' },
   { to: '/admin/settings', label: 'Settings' },
   { to: '/admin/logs', label: 'Logs' },
 ];

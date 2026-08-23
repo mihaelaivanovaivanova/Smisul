@@ -18,7 +18,7 @@ export default function CookieBanner() {
   return (
     <div className="cookie-banner" role="dialog" aria-live="polite" aria-label={cookieConsent.modal.title}>
       <p className="cookie-banner__message">
-        {cookieConsent.banner.message} <Link to="/legal/cookie-policy">{cookieConsent.banner.privacyLinkLabel}</Link>
+        {cookieConsent.banner.message} <Link to="/legal/privacy-policy">{cookieConsent.banner.privacyLinkLabel}</Link>
       </p>
       <div className="cookie-banner__actions">
         <button type="button" className="btn btn-primary btn-sm" onClick={() => void acceptAll()}>

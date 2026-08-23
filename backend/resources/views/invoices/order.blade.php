@@ -2,30 +2,31 @@
 <html lang="bg">
 <head>
     <meta charset="utf-8">
-    <title>Фактура — {{ $order->order_number }}</title>
+    <title>Фактура № {{ $order->invoice_number }}</title>
     <style>
         body { font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; max-width: 700px; margin: 40px auto; }
         table { width: 100%; border-collapse: collapse; margin: 16px 0; }
         th, td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; }
         .totals td { border: none; }
-        .placeholder-notice { color: #a1a1aa; font-size: 12px; margin-top: 32px; }
+        .tax-status-notice { color: #71695c; font-size: 12px; margin-top: 32px; }
     </style>
 </head>
 <body>
     <img src="{{ rtrim(config('app.url'), '/') }}/mail/smisul-logo.png" alt="Smisul" height="48" style="display: block; height: 48px; width: auto; margin-bottom: 16px;">
 
-    <h1>Фактура (placeholder)</h1>
+    <h1>Фактура № {{ $order->invoice_number }}</h1>
     <p>
         Поръчка: <strong>{{ $order->order_number }}</strong><br>
-        Дата: {{ $order->created_at->format('d.m.Y') }}
+        Дата на издаване: {{ ($order->invoice_issued_at ?? $order->created_at)->format('d.m.Y') }}
     </p>
 
     <h2>Продавач</h2>
     <p>
-        Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД<br>
-        Управител: Владимир Стоянов Филчев<br>
-        ЕИК: 208699419<br>
-        contact@smisul.bg
+        @if ($seller['name_en']){{ $seller['name_en'] }} / @endif{{ $seller['name'] }}<br>
+        @if ($seller['manager']) Управител: {{ $seller['manager'] }}<br> @endif
+        @if ($seller['company_id']) ЕИК: {{ $seller['company_id'] }}<br> @endif
+        @if ($seller['address']) {{ $seller['address'] }}<br> @endif
+        {{ $seller['email'] }}
     </p>
 
     <h2>Клиент</h2>
@@ -79,8 +80,15 @@
         </tfoot>
     </table>
 
-    <p class="placeholder-notice">
-        Това е временен, опростен документ и не представлява данъчна фактура. Реалното фактуриране предстои да бъде внедрено.
+    {{--
+        Real note, not a placeholder disclaimer: Smisul isn't VAT-registered,
+        so there's no ДДС line to show — this tells the buyer's accountant
+        why, rather than leaving the absence unexplained. See
+        InvoiceNumberGenerator/SettingService::sellerIdentity() for where
+        invoice_number/seller come from.
+    --}}
+    <p class="tax-status-notice">
+        Продавачът не е регистриран по Закона за данък върху добавената стойност (ЗДДС) — цените не включват ДДС.
     </p>
 </body>
 </html>

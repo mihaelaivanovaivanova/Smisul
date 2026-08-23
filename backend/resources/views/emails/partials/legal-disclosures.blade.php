@@ -1,14 +1,17 @@
 {{--
     Durable-medium disclosures per чл. 49, ал. 8 ЗЗП: merchant identity,
     withdrawal right and links to the full pre-contract information.
-    Expects $frontendUrl.
+    Expects $frontendUrl and $seller (SettingService::sellerIdentity() —
+    single source of truth shared with invoices/order.blade.php, so
+    editing the admin Settings screen's company fields actually changes
+    what's printed here instead of this partial hardcoding a stale copy).
 --}}
 <tr>
     <td style="padding: 0 24px 24px;">
         <hr style="border: none; border-top: 1px solid #e6dcc7; margin: 0 0 16px;">
         <p style="color: #71695c; font-size: 11px; margin: 0 0 8px; line-height: 1.5;">
-            Продавач: Filchev Web LTD / „ФИЛЧЕВ УЕБ“ ЕООД, ЕИК 208699419, управител Владимир Стоянов Филчев,<br>
-            България, гр. Варна 9000, р-н „Одесос“, ул. „Баба Тонка“ № 7, ет. 2, ап. 4 · contact@smisul.bg
+            Продавач: @if ($seller['name_en']){{ $seller['name_en'] }} / @endif{{ $seller['name'] }}, ЕИК {{ $seller['company_id'] }}@if ($seller['manager']), управител {{ $seller['manager'] }}@endif,<br>
+            {{ $seller['address'] }} · {{ $seller['email'] }}
         </p>
         <p style="color: #71695c; font-size: 11px; margin: 0 0 8px; line-height: 1.5;">
             Имаш право да се откажеш от договора в 14-дневен срок от получаването на стоката, без да посочваш
@@ -17,8 +20,7 @@
         </p>
         <p style="color: #71695c; font-size: 11px; margin: 0;">
             <a href="{{ $frontendUrl }}/legal/terms-of-service" style="color: #24362c;">Общи условия</a> ·
-            <a href="{{ $frontendUrl }}/legal/right-of-withdrawal" style="color: #24362c;">Право на отказ (със стандартен формуляр)</a> ·
-            <a href="{{ $frontendUrl }}/legal/returns-policy" style="color: #24362c;">Връщане и рекламации</a> ·
+            <a href="{{ $frontendUrl }}/legal/right-of-withdrawal" style="color: #24362c;">Право на отказ, връщане и рекламации (със стандартен формуляр)</a> ·
             <a href="{{ $frontendUrl }}/legal/privacy-policy" style="color: #24362c;">Поверителност</a>
         </p>
     </td>

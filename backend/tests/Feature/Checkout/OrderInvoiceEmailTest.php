@@ -109,8 +109,16 @@ class OrderInvoiceEmailTest extends TestCase
         });
     }
 
+    /**
+     * The sales document (титled "Фактура" per Bulgarian convention, but
+     * legally just a чл. 6 ЗСч first-level accounting document since
+     * Smisul isn't VAT-registered — see OrderController::invoice()'s
+     * docblock) is required for every sale, not only when the customer
+     * separately asked for billing/company details. wants_invoice only
+     * gates whether a distinct billing address was collected.
+     */
     #[Test]
-    public function no_invoice_email_is_sent_on_delivery_when_wants_invoice_was_not_checked(): void
+    public function an_invoice_email_is_still_sent_on_delivery_when_wants_invoice_was_not_checked(): void
     {
         Mail::fake();
 
@@ -119,7 +127,13 @@ class OrderInvoiceEmailTest extends TestCase
         $this->deliver($order);
 
         Mail::assertSent(OrderDeliveredMail::class);
-        Mail::assertNotSent(OrderInvoiceMail::class);
+        Mail::assertSent(OrderInvoiceMail::class, function (OrderInvoiceMail $mail) {
+            $rendered = $mail->render();
+
+            return $mail->hasTo('ivan@example.com')
+                && str_contains($rendered, 'Фактурата за поръчка')
+                && $mail->attachments() !== [];
+        });
     }
 
     #[Test]

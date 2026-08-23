@@ -29,16 +29,16 @@ class LegalPagesTest extends TestCase
     public function it_shows_a_single_document_by_slug(): void
     {
         LegalDocument::factory()->create([
-            'type' => LegalDocumentType::CookiePolicy,
-            'title' => 'Cookie Policy',
+            'type' => LegalDocumentType::RightOfWithdrawal,
+            'title' => 'Right of Withdrawal',
             'is_current' => true,
         ]);
 
-        $response = $this->getJson('/api/v1/legal-documents/cookie-policy');
+        $response = $this->getJson('/api/v1/legal-documents/right-of-withdrawal');
 
         $response->assertOk();
-        $response->assertJsonPath('data.slug', 'cookie-policy');
-        $response->assertJsonPath('data.title', 'Cookie Policy');
+        $response->assertJsonPath('data.slug', 'right-of-withdrawal');
+        $response->assertJsonPath('data.title', 'Right of Withdrawal');
     }
 
     #[Test]
@@ -52,9 +52,9 @@ class LegalPagesTest extends TestCase
     #[Test]
     public function a_known_type_with_no_published_document_returns_404(): void
     {
-        LegalDocument::factory()->create(['type' => LegalDocumentType::ReturnsPolicy, 'is_current' => false]);
+        LegalDocument::factory()->create(['type' => LegalDocumentType::ShippingPolicy, 'is_current' => false]);
 
-        $response = $this->getJson('/api/v1/legal-documents/returns-policy');
+        $response = $this->getJson('/api/v1/legal-documents/shipping-policy');
 
         $response->assertNotFound();
     }

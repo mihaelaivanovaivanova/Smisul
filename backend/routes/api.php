@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ComplaintController as AdminComplaintController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
@@ -299,6 +300,14 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/legal-documents', [AdminLegalDocumentController::class, 'index'])->name('legal-documents.index');
         Route::post('/legal-documents', [AdminLegalDocumentController::class, 'store'])->name('legal-documents.store');
+
+        // The ЗЗП чл. 128, ал. 4 complaints register - distinct from the
+        // public contact form. No destroy route by design (see
+        // ComplaintController's docblock).
+        Route::get('/complaints', [AdminComplaintController::class, 'index'])->name('complaints.index');
+        Route::post('/complaints', [AdminComplaintController::class, 'store'])->name('complaints.store');
+        Route::get('/complaints/{complaint}', [AdminComplaintController::class, 'show'])->name('complaints.show');
+        Route::patch('/complaints/{complaint}', [AdminComplaintController::class, 'update'])->name('complaints.update');
 
         Route::get('/media', [AdminMediaController::class, 'index'])->name('media.index');
         Route::post('/media/{media}', [AdminMediaController::class, 'replace'])->name('media.replace');

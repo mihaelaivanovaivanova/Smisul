@@ -37,6 +37,8 @@ class Order extends Model
         'customer_company',
         'customer_vat_number',
         'wants_invoice',
+        'invoice_number',
+        'invoice_issued_at',
         'delivery_notes',
         'shipping_country',
         'shipping_city',
@@ -55,6 +57,7 @@ class Order extends Model
         'shipping_office_name',
         'shipping_method_label',
         'shipping_price',
+        'shipping_rate_snapshot',
         'subtotal',
         'discount_total',
         'tax_total',
@@ -69,7 +72,9 @@ class Order extends Model
             'shipping_delivery_type' => ShippingDeliveryType::class,
             'billing_same_as_shipping' => 'boolean',
             'wants_invoice' => 'boolean',
+            'invoice_issued_at' => 'datetime',
             'shipping_price' => 'decimal:2',
+            'shipping_rate_snapshot' => 'array',
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'tax_total' => 'decimal:2',
@@ -147,5 +152,24 @@ class Order extends Model
     public function customerFullName(): string
     {
         return trim("{$this->customer_first_name} {$this->customer_last_name}");
+    }
+
+    /**
+     * чл. 54, ал. 2 ЗЗП caps a withdrawal refund's delivery-cost component
+     * at the least costly standard delivery option offered at the time of
+     * THIS order - not whatever's cheapest today. Reads from
+     * shipping_rate_snapshot (captured once, at placement, in
+     * OrderService::placeOrder) rather than re-querying current carrier
+     * prices, which may have changed since (promos ending, admin price
+     * edits). Returns null for orders placed before this snapshot existed
+     * - there's no way to reconstruct history for those retroactively.
+     */
+    public function cheapestStandardShippingPriceAtPlacement(): ?float
+    {
+        if ($this->shipping_rate_snapshot === null || $this->shipping_rate_snapshot === []) {
+            return null;
+        }
+
+        return min(array_column($this->shipping_rate_snapshot, 'price'));
     }
 }

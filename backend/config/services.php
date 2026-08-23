@@ -152,6 +152,10 @@ return [
             // guide, section 4.4). Override via .env if a real warehouse
             // location is registered with BOX NOW later.
             'origin_location_id' => env('BOX_NOW_ORIGIN_LOCATION_ID', 'any-apm'),
+            // Launch promo: BOX NOW delivery is free through this date (see
+            // BoxNowShippingProvider::isFreeShippingPromoActive()). Extend
+            // by overriding the env var — no code change needed.
+            'free_shipping_promo_until' => env('BOX_NOW_FREE_SHIPPING_PROMO_UNTIL', '2026-09-30 23:59:59'),
         ],
     ],
 

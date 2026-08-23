@@ -35,6 +35,28 @@ class SettingService
     }
 
     /**
+     * The seller's legal identity — used wherever a real accounting/legal
+     * document needs to name the merchant (order confirmation emails'
+     * legal-disclosures partial, the invoice document). Single source of
+     * truth so editing the admin Settings screen's company fields actually
+     * changes what's printed everywhere, instead of each caller hardcoding
+     * its own copy of the same strings.
+     *
+     * @return array{name: ?string, name_en: ?string, manager: ?string, company_id: ?string, address: ?string, email: ?string}
+     */
+    public function sellerIdentity(): array
+    {
+        return [
+            'name' => $this->get('general.company_name'),
+            'name_en' => $this->get('general.company_name_en'),
+            'manager' => $this->get('general.company_manager'),
+            'company_id' => $this->get('general.company_id'),
+            'address' => $this->get('general.contact_address'),
+            'email' => $this->get('general.store_email'),
+        ];
+    }
+
+    /**
      * @return array<string, list<array{key: string, group: string, label: string, type: string, value: string|int|bool|null}>>
      */
     public function allGrouped(): array

@@ -33,7 +33,7 @@ class LegalDocumentAdminTest extends TestCase
         $admin = User::factory()->administrator()->create();
         LegalDocument::factory()->create(['type' => LegalDocumentType::TermsOfService]);
         LegalDocument::factory()->create(['type' => LegalDocumentType::PrivacyPolicy]);
-        LegalDocument::factory()->create(['type' => LegalDocumentType::CookiePolicy]);
+        LegalDocument::factory()->create(['type' => LegalDocumentType::ShippingPolicy]);
 
         $response = $this->actingAs($admin)->getJson('/api/v1/admin/legal-documents');
 

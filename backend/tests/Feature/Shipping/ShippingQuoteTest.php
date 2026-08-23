@@ -71,6 +71,12 @@ class ShippingQuoteTest extends TestCase
     #[Test]
     public function box_now_quote_never_makes_a_network_call(): void
     {
+        // Travels past the launch promo window (see
+        // BoxNowShippingProvider::isFreeShippingPromoActive()) so this
+        // asserts the underlying flat rate, not the temporary €0 promo
+        // price - the promo itself is covered separately below.
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-01'));
+
         Http::fake([
             'api-production.boxnow.bg/*' => Http::response(['error' => 'quote endpoint does not exist'], 404),
         ]);
@@ -80,6 +86,21 @@ class ShippingQuoteTest extends TestCase
         $boxNow->assertJsonPath('data.price', 4.99);
 
         Http::assertNothingSent();
+    }
+
+    /**
+     * Launch promotion confirmed by the business owner on 2026-08-21: every
+     * BOX NOW delivery is free through the end of September 2026, so the
+     * site's "free shipping with BOX NOW" badge is never a false claim.
+     */
+    #[Test]
+    public function box_now_delivery_is_free_during_the_launch_promo(): void
+    {
+        $this->travelTo(\Carbon\Carbon::parse('2026-09-15'));
+
+        $boxNow = $this->quote(['carrier' => 'box_now', 'delivery_type' => 'locker', 'city' => 'Sofia', 'postal_code' => '1000']);
+        $boxNow->assertOk();
+        $boxNow->assertJsonPath('data.price', 0);
     }
 
     /**

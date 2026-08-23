@@ -3,6 +3,8 @@
 namespace App\Mail;
 
 use App\Models\Order;
+use App\Services\InvoiceNumberGenerator;
+use App\Services\SettingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
@@ -11,11 +13,14 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Sent alongside OrderDeliveredMail, only when the order has wants_invoice
- * set — see SendOrderStatusEmails. Reuses the same invoices.order view
+ * Sent alongside OrderDeliveredMail for every delivered order — see
+ * SendOrderStatusEmails. Reuses the same invoices.order view
  * OrderController::invoice() renders on demand, attached here as a
  * downloadable file rather than requiring the customer to log back in and
- * fetch it themselves.
+ * fetch it themselves. Assigns the order's invoice_number here too (via
+ * InvoiceNumberGenerator, idempotent) in case this is the first time the
+ * invoice is ever issued for this order — a customer who never visited
+ * the on-demand download endpoint would otherwise get an unnumbered one.
  */
 class OrderInvoiceMail extends Mailable
 {
@@ -24,6 +29,7 @@ class OrderInvoiceMail extends Mailable
     public function __construct(public readonly Order $order)
     {
         $this->order->loadMissing('items');
+        app(InvoiceNumberGenerator::class)->generateFor($this->order);
     }
 
     public function envelope(): Envelope
@@ -45,7 +51,10 @@ class OrderInvoiceMail extends Mailable
     {
         return [
             Attachment::fromData(
-                fn () => view('invoices.order', ['order' => $this->order])->render(),
+                fn () => view('invoices.order', [
+                    'order' => $this->order,
+                    'seller' => app(SettingService::class)->sellerIdentity(),
+                ])->render(),
                 "invoice-{$this->order->order_number}.html",
             )->withMime('text/html'),
         ];

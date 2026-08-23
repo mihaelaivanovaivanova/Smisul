@@ -88,6 +88,21 @@ class OrderService
             $shippingMethod = $this->shippingMethods->find($data->shippingCarrier, $data->shippingDeliveryType)
                 ?? throw InvalidShippingMethodException::forCarrierAndDeliveryType($data->shippingCarrier, $data->shippingDeliveryType);
 
+            // чл. 54, ал. 2 ЗЗП refund cap needs "cheapest standard option
+            // AT THE TIME OF THIS ORDER", which can only be answered
+            // correctly later if it's captured now - carrier prices and
+            // promos (e.g. BOX NOW's free-shipping window) change over
+            // time. See Order::cheapestStandardShippingPriceAtPlacement().
+            $shippingRateSnapshot = array_map(
+                fn ($method) => [
+                    'carrier' => $method->carrier->value,
+                    'delivery_type' => $method->deliveryType->value,
+                    'label' => $method->label,
+                    'price' => $method->price,
+                ],
+                $this->shippingMethods->all(),
+            );
+
             if ($shippingMethod->requiresOffice && $data->shippingOfficeId === null) {
                 throw InvalidShippingMethodException::officeRequired($data->shippingCarrier, $data->shippingDeliveryType);
             }
@@ -183,6 +198,7 @@ class OrderService
                 'shipping_office_name' => $shippingMethod->requiresOffice ? $data->shippingOfficeName : null,
                 'shipping_method_label' => $shippingMethod->label,
                 'shipping_price' => $shippingTotal,
+                'shipping_rate_snapshot' => $shippingRateSnapshot,
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
                 'tax_total' => $taxTotal,

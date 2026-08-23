@@ -1,21 +1,35 @@
 # SEO, Legal & GDPR foundation
 
-## ⚠️ Legal copy is placeholder — lawyer review required before production
+## ⚠️ Legal copy has real company data, but still needs a licensed lawyer's sign-off before launch
 
-Every legal document seeded by `LegalDocumentSeeder` (Общи условия,
-Политика за поверителност (includes GDPR-specific disclosures — see
-below), Право на отказ от договора, Политика за бисквитки, Политика за
-доставка, Политика за връщане и рекламации) is realistic-**shaped**
-Bulgarian placeholder copy: it follows
-the section structure a real document would have, but every
-company-specific fact (`[Юридическо име на дружеството]`, `[ЕИК номер]`,
-`[адрес]`, etc.) is a bracketed placeholder, and no clause should be
-treated as final or legally binding. The same applies to the contact
-details on `ContactPage.tsx` (`frontend/src/content/copy.ts`'s `contact`
-export).
+Every legal document seeded by `LegalDocumentSeeder` — now 4, not 6 (see
+"Legal documents architecture" below): Общи условия, Политика за
+поверителност и бисквитки (includes GDPR disclosures and the former
+Cookie Policy), Право на отказ, връщане и рекламации (includes the
+former Returns Policy), Политика за доставка — now carries the **real**
+merchant identity (`„ФИЛЧЕВ УЕБ“ ЕООД`, ЕИК 208699419, Varna address,
+contact@smisul.bg, +359 876 291 040) — not bracketed placeholders. As of
+2026-08-21 the content was reviewed pass-by-pass against the site's
+actual live behavior (COD scoped to BOX NOW only, the BOX NOW free-
+shipping launch promo through 2026-09-30, merchant-initiated order
+cancellation, refund-method fallback for cash-paid orders, locker
+pickup-date semantics for withdrawal) and updated where it had drifted
+from what the code actually does. It is **not** a substitute for review
+by a licensed Bulgarian attorney — no clause here should be treated as
+final until that review happens, especially around VAT-registration
+status (currently "not registered", confirmed 2026-08-21 — reconfirm
+before launch since it changes several clauses if it flips) and the
+mandatory EUR/BGN dual-pricing window under the euro-introduction law
+(verify the actual adoption date against official sources; this doc
+assumes it's still within the dual-display period).
 
-**Before production: a qualified lawyer must review and replace this
-copy.** That review was explicitly out of scope for this sprint.
+The same real merchant identity should also appear on `ContactPage.tsx`
+and the footer (`frontend/src/content/copy.ts`'s `contact` export /
+admin-configured `company_name`/`company_id`/`store_email` settings) —
+**keep these in sync manually.** `LegalDocument` content is static
+versioned text, not templated from `Settings`, so if the merchant
+identity is ever changed in Settings → General, the legal documents
+won't update automatically and will silently drift from the footer.
 
 ## Legal documents architecture
 
@@ -25,13 +39,18 @@ mutating an already-accepted row — so a past order's
 `OrderLegalAcceptance` always points at the exact version the customer
 actually saw.
 
-`LegalDocumentType` has 6 cases. Only 4 (`requiredAtCheckout()`) are
-presented as checkout checkboxes — `ShippingPolicy` and `ReturnsPolicy`
-are informational-only public pages, added this sprint without changing
-checkout's existing checkbox behavior. Every current document (all 6)
-is listed at `GET /api/v1/legal-documents` and readable individually at
-`GET /api/v1/legal-documents/{slug}` — this is what the footer links and
-`/legal/:slug` pages use.
+`LegalDocumentType` has 4 cases (reduced from 6 on 2026-08-21 — see
+below). Only 3 (`requiredAtCheckout()`: ToS, Privacy, Right of
+Withdrawal) are presented as checkout checkboxes — `ShippingPolicy` is
+the one remaining informational-only public page, deliberately kept
+separate (not folded into ToS) because its content (carrier list, promo
+pricing/dates) changes far more often than actual legal terms, and
+merging it into a checkout-required document would trigger a mass
+"please re-accept" notification to every account holder
+(`NotifyAccountHoldersOfLegalDocumentUpdate`) on every such change. Every
+current document (all 4) is listed at `GET /api/v1/legal-documents` and
+readable individually at `GET /api/v1/legal-documents/{slug}` — this is
+what the footer links and `/legal/:slug` pages use.
 
 **GDPR is folded into the Privacy Policy, not a separate document.**
 There used to be a distinct `GdprPolicy` type, but a GDPR-compliant
@@ -40,6 +59,24 @@ basis, data subject rights, retention, international transfers,
 automated decision-making) — keeping them apart was redundant, so the
 GDPR-specific sections were merged into `PrivacyPolicy`'s seeded content
 and the separate type/slug (`gdpr-policy`) was removed.
+
+**2026-08-21: Cookie Policy merged into Privacy Policy, Returns Policy
+merged into Right of Withdrawal.** Same reasoning as the GDPR merge
+above — each pair answered the same underlying customer question
+(data/cookies; money-back/complaints) across two documents instead of
+one, and `CookiePolicy`/`ReturnsPolicy` were removed as enum cases
+entirely (not just deprecated) since nothing was in production yet. One
+side effect worth knowing: merging Returns into Right of Withdrawal
+(a `requiredAtCheckout()` type) means the legal-guarantee-of-conformity
+disclosure is now part of the mandatory checkout acknowledgment, closing
+a real pre-contract-disclosure gap under чл. 47, ал. 1, т. 12 ЗЗП that
+existed while Returns was a separate, checkout-optional document. See
+`LegalDocumentType`'s per-case docblocks for the full reasoning, and
+`legal_documents_review_2026_08` in project memory for the migration
+details (orphaned `legal_documents`/`order_legal_acceptances` rows from
+the old types had to be cleaned up in dev — non-issue for a fresh
+`migrate:fresh --seed`, only relevant because this DB pre-dated the
+change).
 
 ## GDPR consent audit log
 

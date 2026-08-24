@@ -241,34 +241,42 @@ export default function FunnelLandingPage() {
   // Mobile sticky CTA: a three-zone toggle, unlike the desktop bar's
   // one-way reveal. Hidden over the hero (its own primary CTA is already
   // on screen), visible through the informational sections, hidden again
-  // once the pricing cards themselves are in view (they carry their own
-  // CTAs), visible again for the short delivery/payment/returns stretch
-  // right after pricing, then hidden for good from FAQ onward so it never sits
-  // over the FAQ's accordion controls, the newsletter form, or footer
-  // links/the cookie banner below that. faqReached is directional (based
-  // on the FAQ section's boundingClientRect.top, not just isIntersecting)
-  // so scrolling back up above FAQ un-hides the bar again.
+  // once either pricing instance's cards are in view — the early buy box
+  // right after the hero, or the numbered #pricing section further down
+  // (they carry their own CTAs) — visible again for the short
+  // delivery/payment/returns stretch right after pricing, then hidden for
+  // good from FAQ onward so it never sits over the FAQ's accordion
+  // controls, the newsletter form, or footer links/the cookie banner below
+  // that. faqReached is directional (based on the FAQ section's
+  // boundingClientRect.top, not just isIntersecting) so scrolling back up
+  // above FAQ un-hides the bar again.
   useEffect(() => {
     if (settingsLoading || isLoading) {
       return;
     }
 
     const hero = document.querySelector('.funnel-hero');
+    const pricingEarly = document.getElementById('pricing-early');
     const pricing = document.getElementById('pricing');
     const faq = document.getElementById('faq');
 
-    if (!hero || !pricing || !faq) {
+    if (!hero || !pricingEarly || !pricing || !faq) {
       return;
     }
 
     let heroVisible = true;
+    let pricingEarlyVisible = false;
     let pricingVisible = false;
     let faqReached = false;
 
-    const update = () => setShowMobileBar(!heroVisible && !pricingVisible && !faqReached);
+    const update = () => setShowMobileBar(!heroVisible && !pricingEarlyVisible && !pricingVisible && !faqReached);
 
     const heroObserver = new IntersectionObserver(([entry]) => {
       heroVisible = entry.isIntersecting;
+      update();
+    });
+    const pricingEarlyObserver = new IntersectionObserver(([entry]) => {
+      pricingEarlyVisible = entry.isIntersecting;
       update();
     });
     const pricingObserver = new IntersectionObserver(([entry]) => {
@@ -281,11 +289,13 @@ export default function FunnelLandingPage() {
     });
 
     heroObserver.observe(hero);
+    pricingEarlyObserver.observe(pricingEarly);
     pricingObserver.observe(pricing);
     faqObserver.observe(faq);
 
     return () => {
       heroObserver.disconnect();
+      pricingEarlyObserver.disconnect();
       pricingObserver.disconnect();
       faqObserver.disconnect();
     };

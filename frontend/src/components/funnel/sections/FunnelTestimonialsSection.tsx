@@ -22,6 +22,7 @@ export default function FunnelTestimonialsSection({ topReviews }: FunnelTestimon
   const trackRef = useRef<HTMLDivElement>(null);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -35,6 +36,13 @@ export default function FunnelTestimonialsSection({ topReviews }: FunnelTestimon
       }
       setCanScrollPrev(track.scrollLeft > 4);
       setCanScrollNext(track.scrollLeft + track.clientWidth < track.scrollWidth - 4);
+
+      const card = track.querySelector<HTMLElement>('.funnel-review-card');
+      if (card) {
+        const trackGap = parseFloat(getComputedStyle(track).columnGap || '0');
+        const step = card.getBoundingClientRect().width + trackGap;
+        setActiveIndex(step > 0 ? Math.round(track.scrollLeft / step) : 0);
+      }
     }
 
     updateScrollState();
@@ -60,8 +68,18 @@ export default function FunnelTestimonialsSection({ topReviews }: FunnelTestimon
     track.scrollBy({ left: (card.getBoundingClientRect().width + trackGap) * direction, behavior: 'smooth' });
   }
 
+  function scrollToCard(index: number) {
+    const track = trackRef.current;
+    const card = track?.querySelector<HTMLElement>('.funnel-review-card');
+    if (!track || !card) {
+      return;
+    }
+    const trackGap = parseFloat(getComputedStyle(track).columnGap || '0');
+    track.scrollTo({ left: index * (card.getBoundingClientRect().width + trackGap), behavior: 'smooth' });
+  }
+
   return (
-    <section className="section funnel-hero-tone funnel-divided-section funnel-reviews" id="reviews">
+    <section className="section funnel-hero-tone funnel-reviews" id="reviews">
       <div className="container">
         <h2 className="section-title mb-4 text-center">{funnelReviews.title}</h2>
         <div className="funnel-reviews-carousel">
@@ -101,6 +119,24 @@ export default function FunnelTestimonialsSection({ topReviews }: FunnelTestimon
           >
             <Icon name="chevron-right" />
           </button>
+        </div>
+
+        {/* Swipe affordance for mobile, where the peeking next card alone
+            wasn't a clear enough hint that there's more to scroll through —
+            arrows are md+ only (see funnel.css), so this is mobile's only
+            other signal of carousel position/length. */}
+        <div className="funnel-reviews-carousel__dots d-md-none" role="tablist" aria-label={funnelReviews.title}>
+          {topReviews.map((review, index) => (
+            <button
+              key={review.id}
+              type="button"
+              role="tab"
+              className="funnel-reviews-carousel__dot"
+              aria-selected={index === activeIndex}
+              aria-label={funnelReviews.goToAria(index + 1)}
+              onClick={() => scrollToCard(index)}
+            />
+          ))}
         </div>
       </div>
     </section>

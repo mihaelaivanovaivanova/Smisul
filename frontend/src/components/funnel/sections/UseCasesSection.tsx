@@ -17,7 +17,7 @@ import Icon from '../../icons/Icon';
  */
 export default function UseCasesSection() {
   return (
-    <section className="section funnel-hero-tone funnel-divided-section" id="use-cases">
+    <section className="section funnel-hero-tone" id="use-cases">
       <div className="container">
         <h2 className="section-title mb-4 text-center">{funnelUseCases.title}</h2>
 

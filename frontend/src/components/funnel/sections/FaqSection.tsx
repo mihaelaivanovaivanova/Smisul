@@ -21,7 +21,7 @@ export default function FaqSection({ content, activeFaqIndex, onToggle }: FaqSec
   const faqColumnSize = Math.ceil(content.items.length / 2);
 
   return (
-    <section className="section funnel-hero-tone funnel-divided-section funnel-faq" id="faq">
+    <section className="section funnel-hero-tone funnel-faq" id="faq">
       <div className="container">
         <h2 className="section-title mb-4 text-center">{content.title}</h2>
         <div className="funnel-faq-columns">

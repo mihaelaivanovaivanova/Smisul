@@ -17,7 +17,7 @@ interface WhatIsMiswakSectionProps {
  */
 export default function WhatIsMiswakSection({ content }: WhatIsMiswakSectionProps) {
   return (
-    <section className="section funnel-hero-tone funnel-divided-section" id="what-is-miswak">
+    <section className="section funnel-hero-tone" id="what-is-miswak">
       <div className="container">
         <div className="row g-5 align-items-center">
           <div className="col-12 col-lg-6">

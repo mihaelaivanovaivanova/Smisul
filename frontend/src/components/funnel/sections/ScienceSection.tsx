@@ -32,7 +32,7 @@ const SCIENCE_CARD_IMAGES = [
  */
 export default function ScienceSection({ content }: ScienceSectionProps) {
   return (
-    <section className="section funnel-hero-tone funnel-divided-section" id="science">
+    <section className="section funnel-hero-tone" id="science">
       <div className="container">
         <div className="funnel-science-intro text-center">
           <p className="section-eyebrow">{content.eyebrow}</p>

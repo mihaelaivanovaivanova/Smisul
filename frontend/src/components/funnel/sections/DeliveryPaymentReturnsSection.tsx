@@ -46,7 +46,7 @@ interface DeliveryPaymentReturnsSectionProps {
  */
 export default function DeliveryPaymentReturnsSection({ trustItems }: DeliveryPaymentReturnsSectionProps) {
   return (
-    <section className="section funnel-hero-tone funnel-divided-section funnel-final-cta" id="delivery-payment-returns">
+    <section className="section funnel-hero-tone funnel-final-cta" id="delivery-payment-returns">
       <div className="container">
         <div className="funnel-trust-row funnel-final-cta__trust">
           {trustItems.map((item) => (

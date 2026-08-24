@@ -1,30 +1,24 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
-import ContactModal from './ContactModal';
 import Icon from './icons/Icon';
 import { fetchLegalDocuments } from '../api/legal';
 import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
-import { useAuth } from '../hooks/useAuth';
 import { useCookieConsent } from '../hooks/useCookieConsent';
-import { useSettings } from '../hooks/useSettings';
-import { footer, nav, orders as ordersCopy, siteName } from '../content/copy';
+import { footer, siteName } from '../content/copy';
 
 /**
- * Deliberately flat and horizontal: one brand/nav/socials row, one
- * wrapping line of legal links, one bottom line — instead of tall
- * stacked columns. The merchant-identity line and the social icons
- * appear only once the admin fills them in (Settings → General).
+ * Deliberately flat and horizontal: one brand/legal/socials row, one
+ * bottom line — instead of tall stacked columns. The legal links sit
+ * to the right of the logo, bottom-aligned with it. The merchant-identity
+ * line and the social icons appear only once the admin fills them in
+ * (Settings → General).
  */
 export default function Footer() {
   const year = new Date().getFullYear();
   const { data: legalDocuments } = useAsync(fetchLegalDocuments, [], '');
   const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
   const { openPreferencesModal } = useCookieConsent();
-  const { funnelModeEnabled } = useSettings();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const socials = [
     { icon: 'instagram' as const, label: 'Instagram', url: publicSettings?.social_instagram },
@@ -44,92 +38,48 @@ export default function Footer() {
   return (
     <footer className="footer-dark mt-auto py-4">
       <div className="container d-flex flex-column gap-3">
-        {/* Brand · primary nav · socials — one row. */}
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+        {/* Brand · legal links · socials — one row, legal + socials
+            bottom-aligned with the logo on md+ (align-items-end); centered
+            and stacked on narrow screens where there's no "bottom" to
+            align to. */}
+        <div className="d-flex flex-column flex-md-row justify-content-center justify-content-md-start align-items-center align-items-md-end gap-3 gap-md-5">
           <Logo tagline light />
 
-          <nav aria-label={footer.companyHeading} className="d-flex flex-wrap justify-content-center align-items-center column-gap-4 row-gap-1">
-            <Link className="text-decoration-none text-muted small" to="/">
-              {nav.home}
-            </Link>
-            {!funnelModeEnabled && (
-              <Link className="text-decoration-none text-muted small" to="/search">
-                {nav.browseProducts}
-              </Link>
-            )}
-            <Link className="text-decoration-none text-muted small" to="/about">
-              {footer.about}
-            </Link>
-            {/* The header keeps only a discreet account icon (see
-                Navbar.tsx) — account/login/orders stay fully reachable
-                here as plain text links. */}
-            {!authLoading && (
-              isAuthenticated ? (
-                <>
-                  <Link className="text-decoration-none text-muted small" to="/profile">
-                    {nav.profile}
-                  </Link>
-                  <Link className="text-decoration-none text-muted small" to="/profile/orders">
-                    {ordersCopy.title}
-                  </Link>
-                </>
-              ) : (
-                <Link className="text-decoration-none text-muted small" to="/login">
-                  {nav.login}
-                </Link>
-              )
-            )}
-            <button
-              type="button"
-              className="border-0 bg-transparent p-0 text-decoration-none text-muted small"
-              onClick={() => setIsContactModalOpen(true)}
+          <div className="d-flex flex-column align-items-center align-items-md-end gap-2 mt-md-3">
+            <nav
+              aria-label={footer.legalHeading}
+              className="d-flex flex-column flex-md-row flex-md-wrap align-items-center justify-content-center justify-content-md-end column-gap-4 row-gap-3 row-gap-md-1"
             >
-              {footer.contact}
-            </button>
-          </nav>
-
-          <span className="d-inline-flex align-items-center gap-2">
-            {socials.map((social) => (
-              <a
-                key={social.icon}
-                className="footer-social"
-                href={social.url as string}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={social.label}
+              {legalDocuments?.map((document) => (
+                <Link key={document.slug} className="text-decoration-none text-muted small" to={`/legal/${document.slug}`}>
+                  {document.title}
+                </Link>
+              ))}
+              <button
+                type="button"
+                className="border-0 bg-transparent p-0 text-decoration-none text-muted small"
+                onClick={openPreferencesModal}
               >
-                <Icon name={social.icon} />
-              </a>
-            ))}
-          </span>
+                {footer.cookieSettings}
+              </button>
+            </nav>
+
+            <span className="d-inline-flex align-items-center gap-2">
+              {socials.map((social) => (
+                <a
+                  key={social.icon}
+                  className="footer-social"
+                  href={social.url as string}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                >
+                  <Icon name={social.icon} />
+                </a>
+              ))}
+            </span>
+          </div>
         </div>
-
-        <hr className="my-0" style={{ borderColor: 'rgba(255, 255, 255, 0.18)' }} />
-
-        {/* Legal links — a clean single column at narrow widths (a wrapping
-            row here left uneven, ragged center-aligned lines whose length
-            varies link to link); back to the original wrapping row from
-            sm (576px) up, where there's enough width for it to read as
-            intentional. row-gap-3 in the stacked column gives each link
-            a comfortable tap target (row-gap-1 was fine for a wrapped
-            row's occasional second line, too tight for a full stack). */}
-        <nav
-          aria-label={footer.legalHeading}
-          className="d-flex flex-column flex-sm-row flex-wrap align-items-center justify-content-center justify-content-md-start column-gap-4 row-gap-3 row-gap-sm-1"
-        >
-          {legalDocuments?.map((document) => (
-            <Link key={document.slug} className="text-decoration-none text-muted small" to={`/legal/${document.slug}`}>
-              {document.title}
-            </Link>
-          ))}
-          <button
-            type="button"
-            className="border-0 bg-transparent p-0 text-decoration-none text-muted small"
-            onClick={openPreferencesModal}
-          >
-            {footer.cookieSettings}
-          </button>
-        </nav>
 
         {/* Merchant identity — one muted line, only when configured. */}
         {hasMerchantInfo && publicSettings && (
@@ -176,8 +126,6 @@ export default function Footer() {
           </span>
         </div>
       </div>
-
-      <ContactModal show={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
     </footer>
   );
 }

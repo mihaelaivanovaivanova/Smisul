@@ -43,33 +43,13 @@ export const nav = {
 };
 
 export const footer = {
-  columnsAria: 'Долна навигация',
   legalHeading: 'Правна информация',
-  companyHeading: 'Компания',
-  about: 'За нас',
-  contact: 'Контакти',
   cookieSettings: 'Настройки на бисквитките',
   /** Legal merchant identity block - shown only once the admin fills the settings. */
   merchantHeading: 'Данни за търговеца',
   companyLabel: 'Фирма',
   managerLabel: 'Управител',
   companyIdLabel: 'ЕИК',
-};
-
-export const contactForm = {
-  title: 'Свържи се с нас',
-  description: 'Попълни формата и ще ти отговорим на посочения имейл възможно най-скоро.',
-  name: 'Име',
-  email: 'Имейл адрес',
-  message: 'Съобщение',
-  submit: 'Изпрати',
-  submitting: 'Изпращане…',
-  cancel: 'Затвори',
-  success: 'Съобщението е изпратено. Ще ти отговорим скоро на посочения имейл.',
-  error: 'Неуспешно изпращане на съобщението. Моля, опитай отново.',
-  nameRequired: 'Моля, въведи име.',
-  emailRequired: 'Моля, въведи валиден имейл адрес.',
-  messageRequired: 'Моля, въведи съобщение.',
 };
 
 export const cookieConsent = {
@@ -293,6 +273,7 @@ export const funnelReviews = {
   average: (value: string) => `${value} / 5`,
   prevAria: 'Предишен отзив',
   nextAria: 'Следващ отзив',
+  goToAria: (position: number) => `Отзив ${position}`,
 };
 
 /**

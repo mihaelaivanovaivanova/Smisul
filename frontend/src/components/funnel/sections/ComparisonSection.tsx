@@ -64,14 +64,11 @@ function ComparisonValue({ value }: { value: string }) {
  * cell now carries its own value (✓ / ✕ / △ / free text) instead of a
  * row being uniformly ✓-for-Miswak / ✗-for-brush.
  *
- * Two renderings of the same `rows` data, one visible at a time via CSS
- * (matches the d-none/d-md-* pattern already used elsewhere on this
- * page):
- *  - md+: a real <table> — full semantics, scope="col"/"row".
- *  - below md: stacked cards, one per row, each value labeled with its
- *    own column name rather than relying on horizontal position. Avoids
- *    a cramped 3-column table (and any horizontal scroll) at 320-360px,
- *    per the explicit requirement.
+ * One <table> at every breakpoint — same photos, title-cell and
+ * highlight pill on mobile as on desktop. table-layout: fixed's
+ * percentage column widths (see funnel.css) already scale the whole
+ * thing down with the viewport, so nothing extra is needed to make it
+ * responsive.
  */
 export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice }: ComparisonSectionProps) {
   const rows = Array.isArray(content?.rows) ? content.rows : [];
@@ -82,11 +79,9 @@ export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice 
   }
 
   return (
-    <section className="section funnel-hero-tone funnel-divided-section funnel-comparison" id="comparison">
+    <section className="section funnel-hero-tone funnel-comparison" id="comparison">
       <div className="container">
-        <h2 className="funnel-comparison__title mb-4 text-center d-md-none">{content.title}</h2>
-
-        <div className="funnel-comparison__wrap d-none d-md-block">
+        <div className="funnel-comparison__wrap">
           {/* Decorative — the actual highlight is the .funnel-comparison__miswak-col
               cells below (real content, real semantics). This is purely the
               rounded pill that pops out above/below the table, matching the
@@ -103,22 +98,27 @@ export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice 
                 </th>
                 <th scope="col" className="funnel-comparison__miswak-col">
                   <span className="funnel-comparison__col-head">
-                    <img src="/funnel/v2/compare-miswak.webp" alt="" width={635} height={320} loading="lazy" decoding="async" />
-                    <span>{content.miswak_label}</span>
+                    <img
+                      src="/funnel/v2/compare-miswak.webp"
+                      alt={content.miswak_label}
+                      width={635}
+                      height={320}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </span>
                 </th>
                 <th scope="col">
                   <span className="funnel-comparison__col-head">
                     <img
                       src="/funnel/v2/compare-toothbrush.webp"
-                      alt=""
+                      alt={content.brush_label}
                       width={1137}
                       height={320}
                       loading="lazy"
                       decoding="async"
                       className="funnel-comparison__toothbrush-img"
                     />
-                    <span>{content.brush_label}</span>
                   </span>
                 </th>
               </tr>
@@ -137,24 +137,6 @@ export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice 
               ))}
             </tbody>
           </table>
-        </div>
-
-        <div className="funnel-comparison__cards d-md-none">
-          {rows.map((row) => (
-            <div className="funnel-comparison__card" key={row.label}>
-              <p className="funnel-comparison__card-label">{row.label}</p>
-              <div className="funnel-comparison__card-values">
-                <div className="funnel-comparison__card-value">
-                  <span className="funnel-comparison__card-value-name">{content.miswak_label}</span>
-                  <ComparisonValue value={row.miswak_value} />
-                </div>
-                <div className="funnel-comparison__card-value">
-                  <span className="funnel-comparison__card-value-name">{content.brush_label}</span>
-                  <ComparisonValue value={row.brush_value} />
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
 
         <div className="text-center mt-5">

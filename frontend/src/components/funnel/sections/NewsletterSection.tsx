@@ -10,7 +10,7 @@ import { renderWithBrandWordmark } from '../../../utils/renderWithBrandWordmark'
  */
 export default function NewsletterSection() {
   return (
-    <section className="section section-tint funnel-divided-section funnel-lead" id="newsletter">
+    <section className="section section-tint funnel-lead" id="newsletter">
       <div className="container">
         <div className="funnel-lead__inner text-center">
           <h2 className="section-title">{funnelLead.title}</h2>

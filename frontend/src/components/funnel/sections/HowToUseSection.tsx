@@ -108,7 +108,7 @@ export default function HowToUseSection({ videos, pdfUrl, ctaPrimaryLabel, fromP
   );
 
   return (
-    <section className="section funnel-hero-tone funnel-divided-section" id="how-to-use">
+    <section className="section funnel-hero-tone" id="how-to-use">
       <div className="container">
         <h2 className="section-title mb-2 text-center">{funnelHowToUse.title}</h2>
         <p className="funnel-howtouse__subtitle section-lead lead text-center mb-4">{funnelHowToUse.subtitle}</p>

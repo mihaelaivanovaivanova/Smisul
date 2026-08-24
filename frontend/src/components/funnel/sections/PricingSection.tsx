@@ -48,7 +48,7 @@ export default function PricingSection({
 }: PricingSectionProps) {
   return (
     <section
-      className="section funnel-hero-tone funnel-divided-section funnel-final-cta funnel-checkout funnel-checkout--early"
+      className="section funnel-hero-tone funnel-final-cta funnel-checkout funnel-checkout--early"
       id={id}
     >
       <div className="container">

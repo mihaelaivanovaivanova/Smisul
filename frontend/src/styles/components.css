@@ -74,6 +74,12 @@
   }
 }
 
+@media (max-width: 767.98px) {
+  .top-announcement-bar__track {
+    animation-direction: reverse;
+  }
+}
+
 /* ---- Navbar ---- */
 
 /*
@@ -289,7 +295,6 @@
     radial-gradient(ellipse 60% 80% at 85% 0%, rgba(168, 80, 47, 0.12), transparent 60%),
     radial-gradient(ellipse 70% 90% at 10% 100%, rgba(36, 54, 44, 0.1), transparent 60%),
     var(--color-sand);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .hero__content {

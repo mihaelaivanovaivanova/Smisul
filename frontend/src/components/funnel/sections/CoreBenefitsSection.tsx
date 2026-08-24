@@ -41,7 +41,7 @@ const FALLBACK_IMAGE = { file: '03-bag-pocket', focus: '50% 55%' };
  */
 export default function CoreBenefitsSection({ content }: CoreBenefitsSectionProps) {
   return (
-    <section className="section funnel-hero-tone funnel-divided-section" id="core-benefits">
+    <section className="section funnel-hero-tone" id="core-benefits">
       <div className="container">
         <h2 className="section-title mb-4 text-center">
           {content.title.replace('Miswak?', '')}

@@ -28,7 +28,7 @@ interface BrandStatementSectionProps {
 export default function BrandStatementSection({ content, productName }: BrandStatementSectionProps) {
   return (
     <section
-      className="section funnel-hero-tone funnel-divided-section funnel-final-cta funnel-checkout funnel-checkout--final"
+      className="section funnel-hero-tone funnel-final-cta funnel-checkout funnel-checkout--final"
       id="brand-statement"
     >
       <div className="container">

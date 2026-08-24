@@ -16,7 +16,7 @@ interface SkepticismHonestySectionProps {
  */
 export default function SkepticismHonestySection({ content }: SkepticismHonestySectionProps) {
   return (
-    <section className="funnel-awareness section funnel-divided-section funnel-divided-section--dark" id="skepticism-honesty">
+    <section className="funnel-awareness section" id="skepticism-honesty">
       <div className="container">
         {/* No align-items-center: the photo column must stretch to the
             row's full height so the leaves can bleed over the section's

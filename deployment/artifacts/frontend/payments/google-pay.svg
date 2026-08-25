@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 24.3.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!-- Rectangular-badge variant of the official G Pay acceptance mark: the
+     wordmark/G-logo artwork is untouched, only the surrounding pill
+     (stadium-shaped) container was swapped for a rounded rectangle to
+     match the other card badges (Apple Pay etc.) in this row. viewBox is
+     also cropped tight to that badge (the stock 0 0 1094 742 canvas has
+     ~170px of transparent padding on every side, which made this mark
+     render visibly smaller than Apple Pay's at the same `height` prop —
+     that badge's own viewBox has no such padding). Outline stroke-width
+     16 (was 32) — matches Apple Pay's own border-to-height ratio (~3.5%)
+     instead of reading roughly twice as thick. -->
+
 <svg version="1.1" id="G_Pay_Acceptance_Mark" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-	 x="0px" y="0px" viewBox="0 0 1094 742" enable-background="new 0 0 1094 742" xml:space="preserve">
-<path id="Base_1_" fill="#FFFFFF" d="M722.7,170h-352c-110,0-200,90-200,200l0,0c0,110,90,200,200,200h352c110,0,200-90,200-200l0,0
-	C922.7,260,832.7,170,722.7,170z"/>
-<path id="Outline" fill="#3C4043" d="M722.7,186.2c24.7,0,48.7,4.9,71.3,14.5c21.9,9.3,41.5,22.6,58.5,39.5
-	c16.9,16.9,30.2,36.6,39.5,58.5c9.6,22.6,14.5,46.6,14.5,71.3s-4.9,48.7-14.5,71.3c-9.3,21.9-22.6,41.5-39.5,58.5
-	c-16.9,16.9-36.6,30.2-58.5,39.5c-22.6,9.6-46.6,14.5-71.3,14.5h-352c-24.7,0-48.7-4.9-71.3-14.5c-21.9-9.3-41.5-22.6-58.5-39.5
-	c-16.9-16.9-30.2-36.6-39.5-58.5c-9.6-22.6-14.5-46.6-14.5-71.3s4.9-48.7,14.5-71.3c9.3-21.9,22.6-41.5,39.5-58.5
-	c16.9-16.9,36.6-30.2,58.5-39.5c22.6-9.6,46.6-14.5,71.3-14.5L722.7,186.2 M722.7,170h-352c-110,0-200,90-200,200l0,0
-	c0,110,90,200,200,200h352c110,0,200-90,200-200l0,0C922.7,260,832.7,170,722.7,170L722.7,170z"/>
+	 x="0px" y="0px" viewBox="150 150 800 450" enable-background="new 0 0 1094 742" xml:space="preserve">
+<rect id="Base_1_" x="170" y="170" width="752.7" height="400" rx="56" ry="56" fill="#FFFFFF"/>
+<rect id="Outline" x="170" y="170" width="752.7" height="400" rx="56" ry="56" fill="none" stroke="#3C4043" stroke-width="16"/>
 <g id="G_Pay_Lockup_1_">
 	<g id="Pay_Typeface_3_">
 		<path id="Letter_p_3_" fill="#3C4043" d="M529.3,384.2v60.5h-19.2V295.3H561c12.9,0,23.9,4.3,32.9,12.9

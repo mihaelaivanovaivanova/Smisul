@@ -19,11 +19,16 @@ class DatabaseSeeder extends Seeder
         $this->call(SettingsSeeder::class);
         $this->call(ContentBlockSeeder::class);
 
-        User::factory()->create([
+        // Seeders also run on staging hosts where Composer is installed with
+        // --no-dev, so Faker-backed model factories are not available.
+        $testCustomer = User::query()->firstOrNew(['email' => 'customer@example.com']);
+        $testCustomer->forceFill([
             'first_name' => 'Test',
             'last_name' => 'Customer',
-            'email' => 'customer@example.com',
-        ]);
+            'password' => 'password',
+            'email_verified_at' => now(),
+            'gdpr_consent_at' => now(),
+        ])->save();
 
         $this->call(CategorySeeder::class);
         $this->call(ProductSeeder::class);

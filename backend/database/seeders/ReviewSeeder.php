@@ -4,11 +4,14 @@ namespace Database\Seeders;
 
 use App\Enums\OrderStatus;
 use App\Enums\ReviewStatus;
+use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 /**
  * Demo customer reviews for the funnel product (Miswak) - the funnel
@@ -142,12 +145,19 @@ class ReviewSeeder extends Seeder
         $defaultVariant = $product->variants()->firstWhere('is_default', true);
 
         foreach (self::REVIEWS as $entry) {
-            $user = User::query()->firstWhere('email', $entry['email'])
-                ?? User::factory()->create([
+            $user = User::query()->firstWhere('email', $entry['email']);
+
+            if ($user === null) {
+                $user = (new User)->forceFill([
                     'first_name' => $entry['first_name'],
                     'last_name' => $entry['last_name'],
                     'email' => $entry['email'],
+                    'password' => Str::random(40),
+                    'email_verified_at' => now(),
+                    'gdpr_consent_at' => now(),
                 ]);
+                $user->save();
+            }
 
             $review = Review::query()
                 ->where('user_id', $user->id)
@@ -155,12 +165,40 @@ class ReviewSeeder extends Seeder
                 ->first();
 
             if ($review === null) {
-                $order = Order::factory()->forUser($user)->create([
-                    'status' => OrderStatus::Delivered,
-                    'customer_first_name' => $user->first_name,
-                    'customer_last_name' => $user->last_name,
-                    'customer_email' => $user->email,
-                ]);
+                // Keep hosted test seeding independent of Faker, which is a
+                // require-dev dependency and is intentionally absent after a
+                // production-style `composer install --no-dev` deployment.
+                $order = Order::query()->updateOrCreate(
+                    ['order_number' => 'SM-DEMO-'.Str::upper(substr(hash('sha256', $entry['email']), 0, 8))],
+                    [
+                        'user_id' => $user->id,
+                        'status' => OrderStatus::Delivered,
+                        'currency' => 'EUR',
+                        'customer_first_name' => $user->first_name,
+                        'customer_last_name' => $user->last_name,
+                        'customer_email' => $user->email,
+                        'customer_phone' => '+359000000000',
+                        'shipping_country' => 'Bulgaria',
+                        'shipping_city' => 'София',
+                        'shipping_postal_code' => '1000',
+                        'shipping_address_line' => 'Тестов адрес',
+                        'billing_same_as_shipping' => true,
+                        'billing_country' => 'Bulgaria',
+                        'billing_city' => 'София',
+                        'billing_postal_code' => '1000',
+                        'billing_address_line' => 'Тестов адрес',
+                        'shipping_carrier' => ShippingCarrier::BoxNow,
+                        'shipping_delivery_type' => ShippingDeliveryType::Locker,
+                        'shipping_office_id' => 'demo-locker',
+                        'shipping_office_name' => 'Тестов BOX NOW автомат',
+                        'shipping_method_label' => 'BOX NOW',
+                        'shipping_price' => 0,
+                        'subtotal' => 3.99,
+                        'discount_total' => 0,
+                        'tax_total' => 0,
+                        'grand_total' => 3.99,
+                    ],
+                );
 
                 $review = (new Review)->forceFill([
                     'user_id' => $user->id,

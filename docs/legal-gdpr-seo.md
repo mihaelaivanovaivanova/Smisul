@@ -10,9 +10,9 @@ former Returns Policy), Политика за доставка — now carries t
 merchant identity (`„ФИЛЧЕВ УЕБ“ ЕООД`, ЕИК 208699419, Varna address,
 contact@smisul.bg, +359 876 291 040) — not bracketed placeholders. As of
 2026-08-21 the content was reviewed pass-by-pass against the site's
-actual live behavior (COD scoped to BOX NOW only, the BOX NOW free-
-shipping launch promo through 2026-09-30, merchant-initiated order
-cancellation, refund-method fallback for cash-paid orders, locker
+actual live behavior (at the time: COD scoped to BOX NOW only, the BOX
+NOW free-shipping launch promo through 2026-09-30, merchant-initiated
+order cancellation, refund-method fallback for cash-paid orders, locker
 pickup-date semantics for withdrawal) and updated where it had drifted
 from what the code actually does. It is **not** a substitute for review
 by a licensed Bulgarian attorney — no clause here should be treated as
@@ -22,6 +22,15 @@ before launch since it changes several clauses if it flips) and the
 mandatory EUR/BGN dual-pricing window under the euro-introduction law
 (verify the actual adoption date against official sources; this doc
 assumes it's still within the dual-display period).
+
+**2026-08-28 update:** cash on delivery was removed as a payment method
+entirely (BOX NOW deliveries are card-only now, same as Speedy) —
+`LegalDocumentSeeder`'s §5 (Общи условия), the withdrawal document's
+refund section, and the shipping policy's §1 were all updated to drop
+every COD-specific clause (the BOX-NOW-portal payment description, the
+IBAN refund fallback, the "наложен платеж" delivery option). The locker
+pickup-date semantics for the withdrawal clock are unaffected — that's a
+delivery-timing rule, not a payment-method one.
 
 The same real merchant identity should also appear on `ContactPage.tsx`
 and the footer (`frontend/src/content/copy.ts`'s `contact` export /

@@ -21,8 +21,10 @@ use Illuminate\Support\Facades\Storage;
  * though the funnel landing page itself no longer shows a package grid -
  * see FunnelLandingPage.tsx), its 3 package-card overrides (kept for
  * potential reuse, unused by the current layout), and the funnel page's 10
- * editable copy sections. Funnel mode itself is seeded OFF; an admin turns
- * it on from /admin/funnel.
+ * editable copy sections. Funnel mode itself is seeded ON - the funnel
+ * landing page is the actual live "/" experience, so a fresh install
+ * should show it immediately rather than the plain HomePage; an admin can
+ * still turn it off from /admin/funnel.
  *
  * Idempotent throughout (updateOrCreate/firstOrCreate), matching every
  * other seeder in this codebase.
@@ -195,6 +197,10 @@ class FunnelSeeder extends Seeder
     {
         $variantIds = $product->variants()->pluck('id', 'sku');
 
+        // FunnelConfig::current() defaults a first-ever row to is_enabled
+        // true (see that method) - not forced here, so re-seeding content
+        // on an existing install never overwrites an admin's later choice
+        // to turn funnel mode off from /admin/funnel.
         $config = FunnelConfig::current();
         $config->update([
             'product_id' => $product->id,
@@ -476,17 +482,15 @@ class FunnelSeeder extends Seeder
                 'cta' => 'ПОРЪЧАЙ СВОЯ MISWAK',
                 // "Доставка 1-2 работни дни" matches the shipping methods'
                 // estimated delivery. Payment: card via iCard is the only
-                // integrated *gateway*, but PaymentService::availablePaymentMethods()
-                // also allows CashOnDelivery when the carrier is BoxNow —
-                // both "Сигурно плащане с карта" and "Наложен платеж" trace
-                // to that method, not just the card one. The 4th item
-                // ("100% гаранция за качество") was dropped for a while as
-                // a vague claim with no policy behind it, but is back by
-                // request.
+                // method now (PaymentMethod::active()) — the former
+                // "Наложен платеж" item was dropped along with cash on
+                // delivery itself (BOX NOW deliveries are card-only). The
+                // "100% гаранция за качество" item was dropped for a while
+                // as a vague claim with no policy behind it, but is back
+                // by request.
                 'trust_items' => [
                     ['icon' => 'truck', 'label' => 'Доставка 1-2 работни дни'],
                     ['icon' => 'card', 'label' => 'Сигурно плащане с карта'],
-                    ['icon' => 'cash', 'label' => 'Наложен платеж'],
                     ['icon' => 'check-badge', 'label' => "100%\nгаранция за качество"],
                     ['icon' => 'undo', 'label' => '30 дни право на връщане'],
                 ],

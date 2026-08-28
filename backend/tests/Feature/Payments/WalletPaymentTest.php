@@ -54,15 +54,13 @@ class WalletPaymentTest extends TestCase
     }
 
     /**
-     * No PaymentMethod is ever hidden outright — wallet brands are the one
-     * exception (never a separate checkout option, only rendered inside
-     * the iCard modal) — but cash on delivery still appears, just as
-     * `available: false`, so the frontend can show it greyed out with an
-     * explanation rather than hide it (see PaymentService::offerableMethods()
-     * vs availablePaymentMethods()).
+     * Card is the only PaymentMethod ever listed now — wallet brands are
+     * never a separate checkout option (only rendered inside the iCard
+     * modal), and cash on delivery was removed entirely (see
+     * PaymentMethod::active()), not just marked unavailable.
      */
     #[Test]
-    public function checkout_lists_card_and_a_disabled_cash_on_delivery_when_no_carrier_is_selected_yet(): void
+    public function checkout_lists_only_card(): void
     {
         config([
             'services.apple_pay.enabled' => true,
@@ -71,41 +69,21 @@ class WalletPaymentTest extends TestCase
             'services.icard.google_pay_enabled' => true,
         ]);
 
-        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk()->assertJsonCount(2, 'data');
+        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk()->assertJsonCount(1, 'data');
         $response->assertJsonFragment(['value' => 'card', 'available' => true]);
-        $response->assertJsonFragment(['value' => 'cash_on_delivery', 'available' => false]);
-    }
-
-    #[Test]
-    public function checkout_lists_a_disabled_cash_on_delivery_for_speedy(): void
-    {
-        $response = $this->getJson('/api/v1/checkout/payment-methods?carrier=speedy')->assertOk()->assertJsonCount(2, 'data');
-        $response->assertJsonFragment(['value' => 'card', 'available' => true]);
-        $response->assertJsonFragment(['value' => 'cash_on_delivery', 'available' => false]);
     }
 
     /**
-     * Cash on delivery only ever makes sense for BOX NOW here — its own
-     * courier collects the cash in person at hand-off (see
-     * PaymentService::availablePaymentMethods()).
+     * Cash on delivery is rejected for every carrier now, not just
+     * Speedy — it used to be accepted for BOX NOW specifically (its own
+     * courier collected cash in person at hand-off), but that option was
+     * removed entirely (see PaymentMethod::active()).
      */
     #[Test]
-    public function checkout_lists_card_and_an_enabled_cash_on_delivery_for_box_now(): void
-    {
-        $response = $this->getJson('/api/v1/checkout/payment-methods?carrier=box_now')->assertOk()->assertJsonCount(2, 'data');
-        $response->assertJsonFragment(['value' => 'card', 'available' => true]);
-        $response->assertJsonFragment(['value' => 'cash_on_delivery', 'available' => true]);
-    }
-
-    #[Test]
-    public function cash_on_delivery_is_rejected_for_a_speedy_order(): void
+    public function cash_on_delivery_is_rejected_regardless_of_carrier(): void
     {
         $this->placeOrder('cash_on_delivery')->assertUnprocessable()->assertJsonValidationErrors('payment_method');
-    }
 
-    #[Test]
-    public function cash_on_delivery_is_accepted_for_a_box_now_order(): void
-    {
         $response = $this->placeOrder('cash_on_delivery', [
             'shipping_carrier' => 'box_now',
             'shipping_delivery_type' => 'locker',
@@ -113,11 +91,8 @@ class WalletPaymentTest extends TestCase
             'shipping_office_name' => 'BOX NOW Mall of Sofia',
             'shipping_office_city' => 'Sofia',
             'shipping_office_address' => 'Mall of Sofia, bul. Alexander Malinov 1',
-        ])->assertCreated();
-
-        $response->assertJsonPath('payment.provider', 'cash_on_delivery');
-        $response->assertJsonPath('payment.payment_method', 'cash_on_delivery');
-        $response->assertJsonPath('data.status', 'awaiting_payment');
+        ]);
+        $response->assertUnprocessable()->assertJsonValidationErrors('payment_method');
     }
 
     #[Test]

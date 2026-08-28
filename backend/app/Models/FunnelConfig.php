@@ -33,9 +33,15 @@ class FunnelConfig extends Model
     /**
      * A single row governs the whole feature, so callers never need to
      * think about which row to load — this is the only entry point.
+     *
+     * Defaults a brand-new row (first call ever, e.g. right after a fresh
+     * install's migrations run) to enabled — the funnel landing page is
+     * the real "/" experience, not an opt-in extra. Only applies once:
+     * every later call finds the existing row and leaves is_enabled
+     * exactly as an admin last set it from /admin/funnel.
      */
     public static function current(): self
     {
-        return static::query()->firstOrCreate([], ['is_enabled' => false]);
+        return static::query()->firstOrCreate([], ['is_enabled' => true]);
     }
 }

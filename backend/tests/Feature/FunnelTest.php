@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Review;
 use Database\Seeders\FunnelSeeder;
+use Database\Seeders\ReviewSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
@@ -20,12 +21,14 @@ class FunnelTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function the_funnel_payload_is_publicly_readable_and_disabled_by_default(): void
+    public function the_funnel_payload_is_publicly_readable_and_enabled_by_default(): void
     {
         $response = $this->getJson('/api/v1/funnel');
 
         $response->assertOk();
-        $response->assertJsonPath('data.enabled', false);
+        // FunnelConfig::current() defaults a brand-new row to enabled -
+        // see that method's doc comment.
+        $response->assertJsonPath('data.enabled', true);
         $response->assertJsonPath('data.product_slug', null);
         $response->assertJsonPath('data.packages', []);
         $response->assertJsonStructure(['data' => ['content' => [
@@ -119,21 +122,29 @@ class FunnelTest extends TestCase
     }
 
     #[Test]
-    public function the_funnel_seeder_adds_three_visible_reviews_without_duplicates(): void
+    public function the_review_seeder_adds_ten_visible_reviews_without_duplicates(): void
     {
         Storage::fake('public');
 
+        // FunnelSeeder creates the 'miswak' product ReviewSeeder attaches
+        // to; each seeded twice to prove neither duplicates on a re-seed
+        // (matches how DatabaseSeeder/the production installer actually
+        // run them - see deployment/public_html/install.php).
         $this->seed(FunnelSeeder::class);
+        $this->seed(ReviewSeeder::class);
         $this->seed(FunnelSeeder::class);
+        $this->seed(ReviewSeeder::class);
 
         $product = Product::query()->where('slug', 'miswak')->firstOrFail();
 
-        $this->assertSame(3, Review::query()->where('product_id', $product->id)->approved()->count());
+        $this->assertSame(10, Review::query()->where('product_id', $product->id)->approved()->count());
         $this->getJson('/api/v1/products/miswak/reviews')
             ->assertOk()
-            ->assertJsonCount(3, 'data')
-            ->assertJsonPath('data.0.verified_purchase', false)
-            ->assertJsonPath('data.0.author_name', 'Демо к.');
+            ->assertJsonCount(10, 'data')
+            // Sorted newest-first by default - Иван Николов's review has
+            // the smallest days_ago in ReviewSeeder::REVIEWS.
+            ->assertJsonPath('data.0.verified_purchase', true)
+            ->assertJsonPath('data.0.author_name', 'Иван Н.');
     }
 
     private function purchasableVariant(bool $publish = true, int $stock = 10): ProductVariant

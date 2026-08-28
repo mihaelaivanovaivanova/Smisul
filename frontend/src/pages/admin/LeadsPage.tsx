@@ -16,6 +16,7 @@ import ConfirmModal from '../../components/admin/ConfirmModal';
  */
 export default function LeadsPage() {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<FunnelLead | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -23,8 +24,8 @@ export default function LeadsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useAsync(
-    () => fetchFunnelLeads(page),
-    [page, refreshKey],
+    () => fetchFunnelLeads(page, search),
+    [page, search, refreshKey],
     'Could not load leads.',
   );
 
@@ -68,11 +69,30 @@ export default function LeadsPage() {
           type="button"
           className="btn btn-outline-secondary"
           onClick={() => void handleExport()}
-          disabled={isExporting || !data || data.data.length === 0}
+          // Export always downloads the full list, not the current search's
+          // filtered results - only ties to isExporting/data readiness, not
+          // to data.data.length (a search with zero matches still leaves a
+          // full list to export).
+          disabled={isExporting || !data}
         >
           {isExporting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
           Export CSV
         </button>
+      </div>
+
+      <div className="row g-2 mb-3">
+        <div className="col-sm-5">
+          <input
+            type="search"
+            className="form-control"
+            placeholder="Search by email..."
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
       </div>
 
       {actionError && <div className="alert alert-danger">{actionError}</div>}
@@ -80,7 +100,10 @@ export default function LeadsPage() {
       {isLoading && <LoadingState message="Loading leads..." />}
       {!isLoading && error && <ErrorState message={error} />}
       {!isLoading && !error && data && data.data.length === 0 && (
-        <EmptyState title="No leads yet" message="Emails captured by the funnel landing page will appear here." />
+        <EmptyState
+          title={search ? 'No matching leads' : 'No leads yet'}
+          message={search ? `No emails match "${search}".` : 'Emails captured by the funnel landing page will appear here.'}
+        />
       )}
 
       {!isLoading && !error && data && data.data.length > 0 && (

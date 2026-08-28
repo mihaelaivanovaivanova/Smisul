@@ -240,15 +240,15 @@
   flex: 0 1 11rem;
 }
 
-/* Mobile: a fixed 3-column grid instead of flex-wrap's natural wrap —
-   at this width flex-wrap only fits 2 of the 11rem items per row, which
-   strands the 5th item alone on its own third row. 3 columns (3+2) always
-   lands the 5 items on 2 rows; flex-basis above is a no-op once the
-   parent is grid, so this doesn't need its own width override. */
+/* Mobile: a fixed 2-column grid instead of flex-wrap's natural wrap — this
+   row has 4 items (cash on delivery's item was removed), so 2 columns
+   lands a clean 2+2 instead of leaving wrapping to chance; flex-basis
+   above is a no-op once the parent is grid, so this doesn't need its own
+   width override. */
 @media (max-width: 767.98px) {
   .funnel-trust-row.funnel-final-cta__trust {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-4) var(--space-2);
   }
 }

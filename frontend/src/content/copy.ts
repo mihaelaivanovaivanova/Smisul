@@ -495,27 +495,18 @@ export const checkout = {
   // чл. 49, ал. 2 ЗЗП: бутонът, с който се подава поръчката, трябва
   // недвусмислено да указва задължението за плащане.
   placeOrder: 'Поръчай със задължение за плащане',
-  placingOrder: 'Изпращане на поръчката…',
 
   paymentStep: {
     title: 'Плащане',
-    description: '',
-    descriptionWithCashOnDelivery:
-      'При доставка с BOX NOW можеш да платиш и с наложен платеж - с банкова карта чрез платежния портал на BOX NOW, точно преди да изтеглиш пратката от автомата. Плащането с карта тук се обработва от iCard направо на тази страница и никога не съхраняваме данните на картата ти.',
     walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
     methodLabel: 'Начин на плащане',
     methodsLoading: 'Зареждане на начините на плащане…',
     methodsLoadError: 'Неуспешно зареждане на начините на плащане - ще продължим с плащане с карта.',
     methods: {
-      cash_on_delivery: 'Наложен платеж',
       card: 'Плащане с карта',
     } as Record<string, string>,
     methodHints: {
-      cash_on_delivery: 'Плащаш на куриера при получаване на поръчката.',
       card: 'Ще се отвори защитеният платежен прозорец на iCard.',
-    } as Record<string, string>,
-    methodUnavailableNotes: {
-      cash_on_delivery: 'Наличен само при доставка с BOX NOW.',
     } as Record<string, string>,
     payButton: 'Плати',
     payButtonWithMethod: (methodLabel: string) => `Плати с ${methodLabel}`,

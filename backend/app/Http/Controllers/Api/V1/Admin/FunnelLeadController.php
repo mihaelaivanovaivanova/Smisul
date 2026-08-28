@@ -19,13 +19,23 @@ class FunnelLeadController extends Controller
 {
     public function __construct(private readonly AdminActionLogger $actionLogger) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', FunnelLead::class);
 
+        // Substring match, not exact — an admin acting on an "Отпиши ме"
+        // reply usually has the whole address to hand anyway, but partial
+        // typing (or checking "did we already have anyone @thatdomain")
+        // should still work. No dedicated search index needed at this
+        // table's size (a marketing lead list, not customer accounts).
+        $email = trim((string) $request->query('email', ''));
+
         // Newest first; id rather than created_at so same-second signups
         // still order deterministically.
-        $leads = FunnelLead::query()->orderByDesc('id')->paginate(25);
+        $leads = FunnelLead::query()
+            ->when($email !== '', fn ($query) => $query->where('email', 'like', '%'.$email.'%'))
+            ->orderByDesc('id')
+            ->paginate(25);
 
         return response()->json([
             'data' => $leads->items(),

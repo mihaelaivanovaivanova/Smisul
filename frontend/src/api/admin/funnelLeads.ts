@@ -2,8 +2,10 @@ import { apiClient } from '../client';
 import type { FunnelLead } from '../../types/admin';
 import type { PaginatedResponse } from '../../types/product';
 
-export async function fetchFunnelLeads(page = 1): Promise<PaginatedResponse<FunnelLead>> {
-  const { data } = await apiClient.get<PaginatedResponse<FunnelLead>>('/admin/funnel/leads', { params: { page } });
+export async function fetchFunnelLeads(page = 1, email = ''): Promise<PaginatedResponse<FunnelLead>> {
+  const { data } = await apiClient.get<PaginatedResponse<FunnelLead>>('/admin/funnel/leads', {
+    params: { page, email: email || undefined },
+  });
   return data;
 }
 

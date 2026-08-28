@@ -2,21 +2,36 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Currency;
 use App\Enums\OrderStatus;
 use App\Enums\ReviewStatus;
+use App\Enums\Role;
+use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 /**
  * Demo customer reviews for the funnel product (Miswak) - the funnel
  * landing page's social-proof blocks (hero star rating + testimonials)
- * read from the real reviews API, so development needs real approved
- * rows behind them. Every author is a demo account on @example.com and
- * each review hangs off its own delivered demo order, satisfying the
- * schema's one-review-per-product-per-order constraint.
+ * read from the real reviews API, so a fresh install needs real approved
+ * rows behind them, in production as well as local dev - see
+ * deployment/public_html/install.php's seeder list. Every author is a
+ * demo account on @example.com and each review hangs off its own
+ * delivered demo order, satisfying the schema's one-review-per-product-
+ * per-order constraint.
+ *
+ * Builds the backing User/Order rows directly (no ::factory()) rather
+ * than the more typical factory-based approach: fakerphp/faker is a
+ * require-dev-only package, and the production installer runs
+ * `composer install --no-dev` - a factory-based seeder would fatal with
+ * a missing Faker\Generator class the moment it ran there. Every field
+ * value below is fixed/deterministic instead of random for the same
+ * reason (no fake() calls anywhere in this class).
  *
  * Idempotent: authors are matched by email and reviews by (user, product)
  * - re-running updates the text/rating in place instead of duplicating.
@@ -142,12 +157,7 @@ class ReviewSeeder extends Seeder
         $defaultVariant = $product->variants()->firstWhere('is_default', true);
 
         foreach (self::REVIEWS as $entry) {
-            $user = User::query()->firstWhere('email', $entry['email'])
-                ?? User::factory()->create([
-                    'first_name' => $entry['first_name'],
-                    'last_name' => $entry['last_name'],
-                    'email' => $entry['email'],
-                ]);
+            $user = User::query()->firstWhere('email', $entry['email']) ?? $this->createDemoUser($entry);
 
             $review = Review::query()
                 ->where('user_id', $user->id)
@@ -155,12 +165,7 @@ class ReviewSeeder extends Seeder
                 ->first();
 
             if ($review === null) {
-                $order = Order::factory()->forUser($user)->create([
-                    'status' => OrderStatus::Delivered,
-                    'customer_first_name' => $user->first_name,
-                    'customer_last_name' => $user->last_name,
-                    'customer_email' => $user->email,
-                ]);
+                $order = $this->createDemoOrder($user);
 
                 $review = (new Review)->forceFill([
                     'user_id' => $user->id,
@@ -180,5 +185,66 @@ class ReviewSeeder extends Seeder
                 'created_at' => now()->subDays($entry['days_ago']),
             ])->save();
         }
+    }
+
+    /**
+     * @param  array{first_name: string, last_name: string, email: string}  $entry
+     */
+    private function createDemoUser(array $entry): User
+    {
+        $user = User::create([
+            'first_name' => $entry['first_name'],
+            'last_name' => $entry['last_name'],
+            'email' => $entry['email'],
+            'phone' => null,
+            // Never meant to be logged into - random and discarded, not a
+            // shared/guessable default.
+            'password' => Str::random(32),
+            'newsletter_subscription' => false,
+            'marketing_consent' => false,
+            'gdpr_consent_at' => now(),
+        ]);
+
+        $user->forceFill([
+            'role' => Role::Customer,
+            'email_verified_at' => now(),
+        ])->save();
+
+        return $user;
+    }
+
+    private function createDemoOrder(User $user): Order
+    {
+        // A single fixed demo shipping address - never shown to a real
+        // customer, only used to satisfy the order's own NOT NULL
+        // columns and the review's one-review-per-order constraint.
+        return Order::create([
+            'order_number' => 'DEMO-'.now()->format('ymd').'-'.Str::upper(Str::random(6)),
+            'user_id' => $user->id,
+            'guest_access_token' => null,
+            'status' => OrderStatus::Delivered,
+            'currency' => Currency::EUR->value,
+            'customer_first_name' => $user->first_name,
+            'customer_last_name' => $user->last_name,
+            'customer_email' => $user->email,
+            'customer_phone' => '+359000000000',
+            'shipping_country' => 'Bulgaria',
+            'shipping_city' => 'София',
+            'shipping_postal_code' => '1000',
+            'shipping_address_line' => 'demo',
+            'billing_same_as_shipping' => true,
+            'billing_country' => 'Bulgaria',
+            'billing_city' => 'София',
+            'billing_postal_code' => '1000',
+            'billing_address_line' => 'demo',
+            'shipping_carrier' => ShippingCarrier::BoxNow,
+            'shipping_delivery_type' => ShippingDeliveryType::Locker,
+            'shipping_method_label' => ShippingCarrier::BoxNow->label(),
+            'shipping_price' => 0,
+            'subtotal' => 17.49,
+            'discount_total' => 0,
+            'tax_total' => 0,
+            'grand_total' => 17.49,
+        ]);
     }
 }

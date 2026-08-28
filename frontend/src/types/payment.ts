@@ -8,12 +8,22 @@ export type PaymentStatus =
   | 'expired'
   | 'refunded';
 
-export type PaymentMethodValue = 'cash_on_delivery' | 'card';
+export type PaymentMethodValue = 'card';
+
+/**
+ * Payment.payment_method reflects whatever an order/payment was actually
+ * placed with historically, which can include methods no longer
+ * selectable at checkout (see PaymentMethodValue) — cash on delivery was
+ * removed as a live option, but existing payments still carry it (see the
+ * backend's PaymentMethod::CashOnDelivery doc comment for why the value
+ * itself is never deleted, only stopped from being newly selectable).
+ */
+export type HistoricalPaymentMethodValue = PaymentMethodValue | 'cash_on_delivery';
 
 export interface PaymentMethodOption {
   value: PaymentMethodValue;
   label: string;
-  /** false when this method is listed but not currently selectable (e.g. cash on delivery for a non-BOX-NOW carrier) — show it greyed out, not hidden. */
+  /** Always true today — every method the backend returns is enabled (see PaymentService::availablePaymentMethods). Kept as a field rather than dropped in case a future method is ever listed disabled. */
   available: boolean;
 }
 
@@ -27,7 +37,7 @@ export interface Payment {
   id: number;
   order_id: number;
   provider: string;
-  payment_method: PaymentMethodValue;
+  payment_method: HistoricalPaymentMethodValue;
   status: PaymentStatus;
   amount: number;
   currency: string;

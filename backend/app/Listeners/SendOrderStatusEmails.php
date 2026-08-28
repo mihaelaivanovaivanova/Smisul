@@ -46,9 +46,10 @@ class SendOrderStatusEmails
         // whether the sale needs documenting. It's the same document
         // either way; customer_company/customer_vat_number just render
         // blank when the customer never provided them. Sending it here (at
-        // delivery, when the sale is actually realized) rather than at
-        // order placement matters most for BOX NOW наложен платеж orders,
-        // where no payment has even occurred yet at placement time.
+        // delivery, when the sale is actually realized under чл. 6, ал. 1
+        // ЗСч) rather than at order placement or payment — an order that's
+        // paid but not yet delivered can still be cancelled/returned, so
+        // the sale isn't final until then.
         if ($event->to === OrderStatus::Delivered) {
             Mail::to($order->customer_email)->send(new OrderInvoiceMail($order));
         }

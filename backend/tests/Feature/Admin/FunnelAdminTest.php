@@ -42,7 +42,9 @@ class FunnelAdminTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure(['data' => ['is_enabled', 'product_id', 'packages', 'content']]);
-        $response->assertJsonPath('data.is_enabled', false);
+        // FunnelConfig::current() defaults a brand-new row to enabled -
+        // see that method's doc comment.
+        $response->assertJsonPath('data.is_enabled', true);
     }
 
     #[Test]

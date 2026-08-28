@@ -52,6 +52,11 @@ class SitemapTest extends TestCase
     #[Test]
     public function it_omits_search_when_funnel_mode_is_enabled(): void
     {
+        // Explicit, not relying on FunnelConfig::current()'s own default
+        // (which is itself enabled - see that method's doc comment) - this
+        // test is about the omit-on-enable behavior, not the default.
+        FunnelConfig::current()->update(['is_enabled' => false]);
+
         $before = $this->get('/sitemap.xml');
         $this->assertStringContainsString('/search', $before->getContent());
 

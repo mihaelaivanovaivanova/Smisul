@@ -6,12 +6,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Wraps an array{method: PaymentMethod, available: bool} — `available`
- * reflects the current shipping carrier (see
- * PaymentService::availablePaymentMethods()); checkout still lists every
- * offerable method (see PaymentService::offerableMethods()) even when
- * unavailable, so the frontend can render cash on delivery greyed out with
- * an explanation instead of hiding it outright when Speedy is selected.
+ * Wraps an array{method: PaymentMethod, available: bool} — every method
+ * PaymentService::availablePaymentMethods() returns is enabled, so
+ * `available` is always true today. Kept as a field (not collapsed to a
+ * plain value list) so a future disabled-but-listed method doesn't need a
+ * response-shape change.
  */
 class PaymentMethodResource extends JsonResource
 {

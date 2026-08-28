@@ -387,33 +387,24 @@ export default function CheckoutPage() {
         shipping_office_address: selectedOffice?.address,
         legal_document_ids: acceptedLegalDocumentIds,
         payment_method: selectedPaymentMethod,
-        stored_payment_method_id: selectedPaymentMethod === 'card' ? storedPaymentMethodId ?? undefined : undefined,
+        stored_payment_method_id: storedPaymentMethodId ?? undefined,
       });
 
       await refreshCart();
-
-      if (selectedPaymentMethod === 'cash_on_delivery') {
-        navigate(`/order-confirmation/${order.id}`, { state: { guestAccessToken } });
-        return;
-      }
 
       setActivePayment({ orderId: order.id, guestAccessToken, payment });
       setIsSubmitting(false);
     } catch (error) {
       setErrors(getValidationErrors(error));
 
-      if (selectedPaymentMethod === 'card') {
-        // The real reason (e.g. "iCard API request failed: configuration
-        // incomplete: mid, originator...") is too technical/internal to show
-        // a customer, but swallowing it entirely makes a misconfigured
-        // gateway undiagnosable from the browser — log it so it's at least
-        // visible in devtools without needing server log access.
-        // eslint-disable-next-line no-console
-        console.error('iCard payment could not be started:', getErrorMessage(error, 'unknown error'));
-        setSubmitError('Плащането не беше стартирано. Моля, опитайте отново.');
-      } else {
-        setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
-      }
+      // The real reason (e.g. "iCard API request failed: configuration
+      // incomplete: mid, originator...") is too technical/internal to show
+      // a customer, but swallowing it entirely makes a misconfigured
+      // gateway undiagnosable from the browser — log it so it's at least
+      // visible in devtools without needing server log access.
+      // eslint-disable-next-line no-console
+      console.error('iCard payment could not be started:', getErrorMessage(error, 'unknown error'));
+      setSubmitError('Плащането не беше стартирано. Моля, опитайте отново.');
 
       setIsSubmitting(false);
     }
@@ -453,7 +444,7 @@ export default function CheckoutPage() {
         activePayment.orderId,
         activePayment.guestAccessToken,
         selectedPaymentMethod,
-        selectedPaymentMethod === 'card' ? storedPaymentMethodId : null,
+        storedPaymentMethodId,
       );
       setActivePayment({ ...activePayment, payment });
     } catch (error) {
@@ -634,9 +625,7 @@ export default function CheckoutPage() {
                         disabled={isSubmitting}
                       >
                         {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-                        {isSubmitting
-                          ? (selectedPaymentMethod === 'card' ? 'Подготвяме защитено плащане...' : checkoutCopy.placingOrder)
-                          : (selectedPaymentMethod === 'card' ? 'Плати с карта' : 'Завърши поръчката')}
+                        {isSubmitting ? 'Подготвяме защитено плащане...' : 'Плати с карта'}
                       </button>
                     )}
                   </div>

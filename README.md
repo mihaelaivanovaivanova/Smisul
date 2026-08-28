@@ -283,9 +283,11 @@ customer can pick today", so it can never resurface as a live option.
   against their Partner API: OAuth2 client-credentials auth,
   `GET destinations` for lockers (fetched unfiltered, filtered client-side
   by the frontend's city/office pickers), `POST delivery-requests` for
-  shipment creation, `GET parcels` for tracking. `paymentMode` is `"cod"`
-  (with the real `amountToBeCollected`) only when the order's payment is
-  cash on delivery; `"prepaid"` otherwise.
+  shipment creation, `GET parcels` for tracking. `paymentMode` is
+  `"prepaid"` for every order now — cash on delivery was removed (see
+  Payments below); the `"cod"` branch (with the real `amountToBeCollected`)
+  only still fires for a historical order whose payment was placed before
+  the removal.
 - **Speedy** (`SpeedyShippingProvider`) is a real Web API integration
   verified against their sandbox — `calculate` (quote), `location/office`
   (offices, filtered to exclude automated machine entries), `shipment`
@@ -299,9 +301,13 @@ customer can pick today", so it can never resurface as a live option.
 
 ## Payments
 
-Card (iCard hosted modal) everywhere; cash on delivery for BOX NOW orders
-only — BOX NOW's own courier collects cash in person at hand-off, which
-Speedy's flow has no equivalent for.
+Card (iCard hosted modal) is the only payment method — cash on delivery
+(previously offered for BOX NOW orders only) was removed entirely.
+`PaymentMethod::CashOnDelivery` stays in the enum purely so historical
+`payments` rows placed while it was still offered still cast and display
+correctly (`PaymentMethod::active()`, not `::cases()`, is what every
+checkout/validation path uses to mean "methods a customer can pick
+today" — same pattern as `ShippingCarrier::active()` for Econt).
 
 | Method | Path | Auth | Purpose |
 |--------|------|:---:|---------|
@@ -321,11 +327,9 @@ Notes on the design:
   user's ownership or a `?token=` matching the order's
   `guest_access_token`, compared with `hash_equals()`
   (`PaymentController::authorizeAccess()`, mirrors `OrderController`).
-- **Only one real gateway integration**: `ICardPaymentGateway` (card). Cash
-  on delivery bypasses the gateway abstraction entirely inside
-  `PaymentService::initiate()` — it creates a `Payment` row
-  (`provider = cash_on_delivery`, a synthetic UUID reference) and moves the
-  order straight to `awaiting_payment`, no external call.
+- **Only one real gateway integration**: `ICardPaymentGateway` (card) — the
+  only method `PaymentMethod::active()` returns, so `PaymentService::initiate()`
+  always goes through it now.
 - **Every retry mints a fresh attempt** (new `transaction_reference`)
   rather than reusing a prior non-final `Payment` row — iCard itself
   rejects a resubmitted MID+OrderID, so an order-level idempotency
@@ -798,8 +802,8 @@ npm run build
 ## Project status
 
 See `CHANGELOG.md` for the full history. The full storefront is live: auth,
-product catalog, cart, checkout (Speedy + BOX NOW shipping, card + BOX-NOW-only
-cash on delivery), orders, shipment tracking, reviews, favorites, a
+product catalog, cart, checkout (Speedy + BOX NOW shipping, card-only
+payment), orders, shipment tracking, reviews, favorites, a
 funnel/landing-page mode, and a full admin panel covering catalog,
 orders, customers, settings, payments, shipping, content, legal documents,
 media, logs, and funnel management.

@@ -14,7 +14,13 @@
             <td align="center">
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #fffdf9;">
 
-                    {{-- Header: logo + order number, same on every lifecycle email --}}
+                    {{-- Header: logo + a right-side slot, same on every
+                         lifecycle email. The order-lifecycle emails never
+                         define a header_right section, so they keep getting
+                         the order-number display below unchanged; a
+                         non-order email (e.g. the funnel welcome email) can
+                         either leave the slot blank or define its own
+                         header_right section with a short label. --}}
                     <tr>
                         <td style="padding: 20px 24px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -23,8 +29,12 @@
                                         <img src="{{ $assetUrl }}/mail/smisul-logo.png" alt="Smisul" height="48" style="display: block; height: 48px; width: auto;">
                                     </td>
                                     <td align="right" style="vertical-align: middle; color: #71695c; font-size: 13px;">
-                                        Поръчка<br>
-                                        <strong style="color: #24362c; font-size: 15px;">#{{ $order->order_number }}</strong>
+                                        @hasSection('header_right')
+                                            @yield('header_right')
+                                        @elseif (isset($order))
+                                            Поръчка<br>
+                                            <strong style="color: #24362c; font-size: 15px;">#{{ $order->order_number }}</strong>
+                                        @endif
                                     </td>
                                 </tr>
                             </table>

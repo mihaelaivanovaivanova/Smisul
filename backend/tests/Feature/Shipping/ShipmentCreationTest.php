@@ -126,13 +126,18 @@ class ShipmentCreationTest extends TestCase
     }
 
     /**
-     * Confirmed against BOX NOW's guide v1.69 (section 4.4/4.8): "cod" is
-     * the real paymentMode value, and amountToBeCollected must carry the
-     * amount their courier actually collects — not the "0.00" every
-     * prepaid shipment sends.
+     * Cash on delivery can no longer be newly selected (see
+     * PaymentMethod::active()), but this covers a historical order placed
+     * before it was removed — its Payment row still carries
+     * payment_method = cash_on_delivery (the enum case is kept exactly
+     * for this), and an admin creating its shipment must still send
+     * BOX NOW the right paymentMode. Confirmed against BOX NOW's guide
+     * v1.69 (section 4.4/4.8): "cod" is the real paymentMode value, and
+     * amountToBeCollected must carry the amount their courier actually
+     * collects — not the "0.00" every prepaid shipment sends.
      */
     #[Test]
-    public function creating_a_box_now_shipment_sends_cod_and_the_real_amount_to_collect_for_a_cash_on_delivery_order(): void
+    public function creating_a_box_now_shipment_sends_cod_and_the_real_amount_to_collect_for_a_historical_cash_on_delivery_order(): void
     {
         Http::fake([
             'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),

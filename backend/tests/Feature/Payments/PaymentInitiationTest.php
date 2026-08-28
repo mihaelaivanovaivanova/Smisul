@@ -157,12 +157,15 @@ class PaymentInitiationTest extends TestCase
 
     /**
      * Retrying with a different payment_method (see initiate()'s own
-     * docblock) is still gated by the order's own carrier — cash on
-     * delivery must not become reachable here just because it bypasses
-     * PlaceOrderRequest's validation (see PaymentService::assertMethodEnabled()).
+     * docblock) must not let cash on delivery become reachable just
+     * because it bypasses PlaceOrderRequest's validation (see
+     * PaymentService::assertMethodEnabled()) — rejected for every
+     * carrier now, not just Speedy (it used to be accepted for BOX NOW
+     * specifically; that option was removed entirely, see
+     * PaymentMethod::active()).
      */
     #[Test]
-    public function retrying_with_cash_on_delivery_is_rejected_for_a_speedy_order(): void
+    public function retrying_with_cash_on_delivery_is_rejected_regardless_of_carrier(): void
     {
         $placed = $this->placeOrder();
         $orderId = $placed->json('data.id');
@@ -171,16 +174,12 @@ class PaymentInitiationTest extends TestCase
         $this->postJson("/api/v1/payments/{$orderId}/initiate?token={$token}", ['payment_method' => 'cash_on_delivery'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('payment_method');
-    }
 
-    #[Test]
-    public function retrying_with_cash_on_delivery_succeeds_for_a_box_now_order(): void
-    {
         $variant = $this->purchasableVariant();
         $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
         $guestToken = $addToCart->json('meta.guest_token');
 
-        $placed = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/checkout/orders', [
+        $boxNowOrder = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/checkout/orders', [
             'customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => '+359888123456'],
             'address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
             'shipping_carrier' => 'box_now',
@@ -191,13 +190,11 @@ class PaymentInitiationTest extends TestCase
             'shipping_office_address' => 'Mall of Sofia, bul. Alexander Malinov 1',
             'legal_document_ids' => $this->acceptAllCurrentLegalDocuments(),
         ])->assertCreated();
-        $orderId = $placed->json('data.id');
-        $token = $placed->json('meta.guest_access_token');
+        $boxNowOrderId = $boxNowOrder->json('data.id');
+        $boxNowToken = $boxNowOrder->json('meta.guest_access_token');
 
-        $response = $this->postJson("/api/v1/payments/{$orderId}/initiate?token={$token}", ['payment_method' => 'cash_on_delivery']);
-
-        $response->assertOk();
-        $response->assertJsonPath('data.provider', 'cash_on_delivery');
-        $response->assertJsonPath('data.payment_method', 'cash_on_delivery');
+        $this->postJson("/api/v1/payments/{$boxNowOrderId}/initiate?token={$boxNowToken}", ['payment_method' => 'cash_on_delivery'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('payment_method');
     }
 }

@@ -121,7 +121,6 @@ export default function Footer() {
               <Icon name="amex" />
               <Icon name="apple-pay" />
               <Icon name="google-pay" />
-              <Icon name="hand-coins" />
             </span>
           </span>
         </div>

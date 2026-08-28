@@ -45,6 +45,20 @@ class FunnelLeadAdminTest extends TestCase
     }
 
     #[Test]
+    public function an_administrator_can_search_leads_by_email_substring(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        FunnelLead::create(['email' => 'ada@example.com']);
+        FunnelLead::create(['email' => 'grace@example.com']);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/funnel/leads?email=ada');
+
+        $response->assertOk();
+        $response->assertJsonPath('meta.total', 1);
+        $response->assertJsonPath('data.0.email', 'ada@example.com');
+    }
+
+    #[Test]
     public function an_administrator_can_export_leads_as_csv(): void
     {
         $admin = User::factory()->administrator()->create();

@@ -4,8 +4,14 @@ namespace Tests\Feature\Checkout;
 
 use App\Enums\Currency;
 use App\Enums\LegalDocumentType;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentProvider;
+use App\Enums\ShippingCarrier;
+use App\Enums\ShippingDeliveryType;
 use App\Mail\OrderConfirmationMail;
 use App\Models\LegalDocument;
+use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,30 +73,36 @@ class OrderConfirmationEmailTest extends TestCase
         });
     }
 
+    /**
+     * Cash on delivery can no longer be newly selected at checkout (see
+     * PaymentMethod::active()), so this builds a historical order/payment
+     * directly via factories — payment_method = cash_on_delivery, the
+     * enum case kept exactly so an order like this one still renders
+     * correctly — and renders the Mailable directly rather than going
+     * through the checkout endpoint.
+     */
     #[Test]
-    public function a_cash_on_delivery_order_confirmation_email_says_so(): void
+    public function a_historical_cash_on_delivery_order_confirmation_email_says_so(): void
     {
-        Mail::fake();
-
-        $this->placeOrder([
-            'shipping_carrier' => 'box_now',
-            'shipping_delivery_type' => 'locker',
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::BoxNow,
+            'shipping_delivery_type' => ShippingDeliveryType::Locker,
             'shipping_office_id' => 'locker-1',
             'shipping_office_name' => 'BOX NOW Mall of Sofia',
-            'shipping_office_city' => 'Sofia',
-            'shipping_office_address' => 'Mall of Sofia, bul. Alexander Malinov 1',
-            'payment_method' => 'cash_on_delivery',
-        ])->assertCreated();
+            'shipping_city' => 'Sofia',
+        ]);
+        Payment::factory()->for($order)->create([
+            'payment_method' => PaymentMethod::CashOnDelivery,
+            'provider' => PaymentProvider::CashOnDelivery,
+        ]);
 
-        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) {
-            $rendered = $mail->render();
+        $rendered = (new OrderConfirmationMail($order))->render();
 
-            // Not "в брой на куриера" — BOX NOW is an unmanned locker
-            // network, so cash-on-delivery there is actually a card charge
-            // through BOX NOW's own payment portal at pickup, not cash
-            // handed to a courier.
-            return str_contains($rendered, 'Плащаш с банкова карта чрез BOX NOW')
-                && ! str_contains($rendered, 'Обработваме плащането с карта');
-        });
+        // Not "в брой на куриера" — BOX NOW is an unmanned locker
+        // network, so cash-on-delivery there was actually a card charge
+        // through BOX NOW's own payment portal at pickup, not cash
+        // handed to a courier.
+        $this->assertStringContainsString('Плащаш с банкова карта чрез BOX NOW', $rendered);
+        $this->assertStringNotContainsString('Обработваме плащането с карта', $rendered);
     }
 }

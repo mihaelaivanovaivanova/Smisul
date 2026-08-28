@@ -274,16 +274,22 @@ try {
     /** @var Illuminate\Contracts\Console\Kernel $kernel */
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
+    // Deliberately not DatabaseSeeder wholesale, and NOT ProductSeeder /
+    // PromotionSeeder specifically: those two create 7 unrelated dev
+    // fixture products (fake names, auto-generated SVG placeholder
+    // images) plus demo promotions on them - fine for local dev, wrong
+    // for a real storefront's first boot. FunnelSeeder must run before
+    // ReviewSeeder - the reviews attach to the 'miswak' product it
+    // creates.
     $commands = [
         ['migrate', ['--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\AdminSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\SettingsSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\ContentBlockSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\CategorySeeder::class, '--force' => true]],
-        ['db:seed', ['--class' => Database\Seeders\ProductSeeder::class, '--force' => true]],
-        ['db:seed', ['--class' => Database\Seeders\PromotionSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\LegalDocumentSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\FunnelSeeder::class, '--force' => true]],
+        ['db:seed', ['--class' => Database\Seeders\ReviewSeeder::class, '--force' => true]],
         ['config:cache', []],
     ];
     foreach ($commands as [$command, $arguments]) {

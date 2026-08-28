@@ -7,7 +7,6 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
-use App\Enums\ShippingCarrier;
 use App\Exceptions\Payment\InvalidPaymentMethodException;
 use App\Exceptions\Payment\InvalidWebhookSignatureException;
 use App\Models\Order;
@@ -20,7 +19,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -58,7 +56,7 @@ class PaymentService
      */
     public function initiate(Order $order, PaymentMethod $method = PaymentMethod::Card, ?int $storedPaymentMethodId = null): Payment
     {
-        $this->assertMethodEnabled($method, $order->shipping_carrier);
+        $this->assertMethodEnabled($method);
 
         return DB::transaction(function () use ($order, $method, $storedPaymentMethodId) {
             $storedMethod = null;
@@ -75,40 +73,14 @@ class PaymentService
 
             $payment = Payment::create([
                 'order_id' => $order->id,
-                'provider' => $method === PaymentMethod::CashOnDelivery
-                    ? PaymentProvider::CashOnDelivery
-                    : $this->gateway->provider(),
-                'gateway_environment' => $method === PaymentMethod::CashOnDelivery
-                    ? null
-                    : $this->gateway->environment(),
+                'provider' => $this->gateway->provider(),
+                'gateway_environment' => $this->gateway->environment(),
                 'payment_method' => $method,
                 'status' => PaymentStatus::Pending,
                 'amount' => $order->grand_total,
                 'currency' => $order->currency,
-                'transaction_reference' => $method === PaymentMethod::CashOnDelivery
-                    ? (string) Str::uuid()
-                    : $this->icardOrderId($order->order_number),
+                'transaction_reference' => $this->icardOrderId($order->order_number),
             ]);
-
-            if ($method === PaymentMethod::CashOnDelivery) {
-                $payment->transactions()->create([
-                    'type' => 'cash_on_delivery_created',
-                    'payment_method' => $method,
-                    'status' => PaymentStatus::Pending,
-                    'raw_payload' => null,
-                ]);
-
-                if ($order->status === OrderStatus::Pending) {
-                    $this->orderStatus->transitionTo(
-                        $order,
-                        OrderStatus::AwaitingPayment,
-                        changedBy: null,
-                        note: 'Cash on delivery selected',
-                    );
-                }
-
-                return $payment->fresh();
-            }
 
             $session = $storedMethod !== null
                 ? $this->gateway->createStoredCardSession($payment, $storedMethod)
@@ -143,46 +115,20 @@ class PaymentService
     }
 
     /**
-     * The methods a payment can actually be *placed with* right now — one
-     * hosted iCard method everywhere, plus cash on delivery, but only for
-     * BOX NOW orders. BOX NOW's own courier collects cash in person at
-     * hand-off, which Speedy's flow here has no equivalent for; re-check
-     * this the moment Speedy (or another carrier) gains a real COD
-     * capability instead of just widening the condition.
+     * The methods a payment can actually be placed with right now — one
+     * hosted iCard method, everywhere, regardless of carrier. Cash on
+     * delivery used to widen this for BOX NOW orders; see
+     * PaymentMethod::active() for why it's gone.
      *
-     * $carrier is nullable so a caller with no order/carrier context yet
-     * (e.g. before checkout has a shipping selection) still gets a safe,
-     * card-only default rather than an error.
-     *
-     * This is the single source of truth PlaceOrderRequest's validation and
-     * PaymentController's enabled-methods check both read from. Checkout's
-     * method list (CheckoutController::paymentMethods()) also reads from
-     * this, but combined with offerableMethods() below — it still *shows*
-     * cash on delivery for a non-BOX-NOW carrier (greyed out, with an
-     * explanation), rather than hiding it, so don't reuse this method alone
-     * anywhere the UI needs to render every option.
+     * This is the single source of truth PlaceOrderRequest's validation,
+     * PaymentController's enabled-methods check, and checkout's method list
+     * (CheckoutController::paymentMethods()) all read from.
      *
      * @return list<PaymentMethod>
      */
-    public function availablePaymentMethods(?ShippingCarrier $carrier = null): array
+    public function availablePaymentMethods(): array
     {
-        return $carrier === ShippingCarrier::BoxNow
-            ? [PaymentMethod::Card, PaymentMethod::CashOnDelivery]
-            : [PaymentMethod::Card];
-    }
-
-    /**
-     * Every payment method ever worth showing at checkout, regardless of
-     * whether the current carrier actually allows it — see
-     * availablePaymentMethods() for that. Wallets (Apple Pay/Google Pay)
-     * are deliberately excluded: they're never a separate checkout option,
-     * only rendered inside the iCard modal.
-     *
-     * @return list<PaymentMethod>
-     */
-    public function offerableMethods(): array
-    {
-        return [PaymentMethod::Card, PaymentMethod::CashOnDelivery];
+        return PaymentMethod::active();
     }
 
     /**
@@ -191,9 +137,9 @@ class PaymentService
      * method any future caller could reach directly with a method that
      * was never checked against current config.
      */
-    private function assertMethodEnabled(PaymentMethod $method, ?ShippingCarrier $carrier): void
+    private function assertMethodEnabled(PaymentMethod $method): void
     {
-        if (! in_array($method, $this->availablePaymentMethods($carrier), strict: true)) {
+        if (! in_array($method, $this->availablePaymentMethods(), strict: true)) {
             throw InvalidPaymentMethodException::disabled($method->value);
         }
     }

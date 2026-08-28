@@ -16,10 +16,9 @@ interface PaymentStepProps {
   onSelectStoredPaymentMethod: (id: number | null) => void;
 }
 
-// Card-only fallback for the rare case the fetch itself fails — cash on
-// delivery is only ever selectable for BOX NOW (see
-// PaymentService::availablePaymentMethods() on the backend, the actual
-// source of truth this list only mirrors), so it's never a safe guess here.
+// Fallback for the rare case the fetch itself fails — card is the only
+// method there is (see PaymentService::availablePaymentMethods() on the
+// backend, the actual source of truth this list only mirrors).
 const fallbackMethods: PaymentMethodOption[] = [{ value: 'card', label: 'Плащане с карта', available: true }];
 
 const cardTrustMarks = ['Visa', 'Mastercard', 'Amex', 'Borica'];
@@ -41,7 +40,7 @@ export default function PaymentStep({
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
-    fetchPaymentMethods(shippingMethod?.carrier)
+    fetchPaymentMethods()
       .then((result) => { if (isMounted) setMethods(result); })
       .catch(() => {
         if (isMounted) {
@@ -52,7 +51,7 @@ export default function PaymentStep({
       .finally(() => { if (isMounted) setIsLoading(false); });
 
     return () => { isMounted = false; };
-  }, [shippingMethod?.carrier]);
+  }, []);
 
   useEffect(() => {
     fetchStoredPaymentMethods().then(setStoredMethods).catch(() => setStoredMethods([]));
@@ -63,13 +62,9 @@ export default function PaymentStep({
     if (methods && !selected?.available) onSelectMethod('card');
   }, [methods, onSelectMethod, selectedMethod]);
 
-  const hasCashOnDelivery = methods?.some((method) => method.value === 'cash_on_delivery' && method.available) ?? false;
-  const description = hasCashOnDelivery ? checkoutCopy.paymentStep.descriptionWithCashOnDelivery : checkoutCopy.paymentStep.description;
-
   return (
     <div>
       <h2 className="h6 mb-3">{checkoutCopy.paymentStep.title}</h2>
-      {description && <p className="text-muted">{description}</p>}
 
       <div className="payment-panel mb-3">
         <div className="small text-muted mb-3">{checkoutCopy.paymentStep.methodLabel}</div>
@@ -97,11 +92,7 @@ export default function PaymentStep({
                     <span className="payment-option__label d-block">
                       {checkoutCopy.paymentStep.methods[method.value] ?? method.label}
                     </span>
-                    <span className="payment-option__hint d-block">
-                      {method.available
-                        ? checkoutCopy.paymentStep.methodHints[method.value]
-                        : checkoutCopy.paymentStep.methodUnavailableNotes[method.value]}
-                    </span>
+                    <span className="payment-option__hint d-block">{checkoutCopy.paymentStep.methodHints[method.value]}</span>
                     {method.value === 'card' && (
                       <>
                         <span className="payment-option__secure-copy d-block">

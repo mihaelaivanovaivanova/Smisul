@@ -47,12 +47,15 @@ use Throwable;
  *    parcel off at a locker in person, and "any-apm" is BOX NOW's own
  *    documented origin locationId for exactly that flow (see the
  *    BOX_NOW_ORIGIN_LOCATION_ID config default below). paymentMode is
- *    "prepaid" for every order except cash-on-delivery ones (only ever
- *    possible for this carrier — see PaymentService::availablePaymentMethods()),
- *    which send "cod" plus the real amountToBeCollected — confirmed
- *    against guide v1.69, section 4.4/4.8 (valid values: prepaid, cod;
+ *    "prepaid" for every order created today — cash on delivery was
+ *    removed as a payment method entirely (see PaymentMethod::active()).
+ *    createShipment() still checks for a payment_method of
+ *    cash_on_delivery and would send "cod" plus the real
+ *    amountToBeCollected if it found one — confirmed against guide
+ *    v1.69, section 4.4/4.8 (valid values: prepaid, cod;
  *    amountToBeCollected must be a number in (0, 5000) whenever cod is
- *    used).
+ *    used) — but that path is only still reachable for a historical
+ *    order whose payment was placed before the removal.
  *  - Quote: BOX NOW's guide has no live pricing endpoint at all — the flat
  *    rate in baseRate() IS the real (contractual) price, not a guessed
  *    fallback, so quote() never makes a network call.
@@ -177,9 +180,10 @@ class BoxNowShippingProvider implements ShippingProviderInterface
             'weight' => 1,
         ])->all();
 
-        // Cash on delivery only ever reaches this provider (see
-        // PaymentService::availablePaymentMethods()) — every other order,
-        // including every Speedy one, is prepaid with nothing to collect.
+        // Cash on delivery is no longer a selectable payment method (see
+        // PaymentMethod::active()) — this only ever matches a historical
+        // order's payment now. Every order placed today, on every
+        // carrier, is prepaid with nothing to collect.
         $isCashOnDelivery = $order->payments()->where('payment_method', PaymentMethod::CashOnDelivery)->exists();
 
         try {

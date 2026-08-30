@@ -43,6 +43,8 @@ export interface ProductVariant {
   prices: Price[];
   inventory: Inventory | null;
   product?: ProductSummary;
+  /** Present (possibly empty) only where the backend eager-loads it — currently just the product detail endpoint. Empty/absent means "no pack-size-specific photo", not "no photo at all" — see getGalleryImagesForVariant(). */
+  media?: Media[];
 }
 
 export interface Seo {

@@ -25,6 +25,11 @@ class ProductVariantResource extends JsonResource
             'status' => $this->status->value,
             'prices' => PriceResource::collection($this->whenLoaded('prices')),
             'inventory' => new InventoryResource($this->whenLoaded('inventory')),
+            // Empty for most variants today (only a pack size with its own
+            // real product photo gets one) — the frontend gallery falls
+            // back to the product's own media when this is empty, see
+            // getGalleryImagesForVariant() in productCatalog.ts.
+            'media' => MediaResource::collection($this->whenLoaded('media')),
             'product' => $this->whenLoaded('product', fn () => [
                 'id' => $this->product->id,
                 'name' => $this->product->name,

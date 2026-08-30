@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\VariantStatus;
+use App\Models\Concerns\HasMedia;
+use App\Models\Contracts\IsMediable;
 use Database\Factories\ProductVariantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,10 +16,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property VariantStatus $status
  */
-class ProductVariant extends Model
+class ProductVariant extends Model implements IsMediable
 {
     /** @use HasFactory<ProductVariantFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasMedia, SoftDeletes;
 
     protected $fillable = [
         'product_id',

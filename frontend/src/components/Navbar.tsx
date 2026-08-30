@@ -17,7 +17,7 @@ import { favorites as favoritesCopy, nav, orders as ordersCopy, reviews as revie
  */
 export default function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const { funnelModeEnabled } = useSettings();
+  const { funnelModeEnabled, isLoading: isSettingsLoading } = useSettings();
   const isAdmin = user?.role === 'administrator';
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,7 +127,12 @@ export default function Navbar() {
           )}
         </div>
 
-        {!funnelModeEnabled && (
+        {/* Gated on isSettingsLoading too, not just funnelModeEnabled — that
+            flag defaults to false until the settings fetch resolves (see
+            SettingsContext.tsx), so without this the search bar would
+            flash visible on every reload/funnel-mode site before flipping
+            back off once the real value comes in. */}
+        {!isSettingsLoading && !funnelModeEnabled && (
           <form className="navbar-search order-3 order-md-2 d-flex mx-md-4" role="search" onSubmit={handleSearchSubmit}>
             <input
               type="search"

@@ -189,7 +189,7 @@ export const profile = {
 export const product = {
   loading: 'Зареждане на продукт…',
   descriptionTitle: 'Описание',
-  packageLabel: 'Разфасовка',
+  packageLabel: 'Пакети',
   videosTitle: 'Видео',
   downloadsTitle: 'Документи за изтегляне',
   downloadFallbackLabel: 'Изтегли PDF',

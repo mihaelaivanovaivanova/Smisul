@@ -68,10 +68,11 @@ class GuestCheckoutTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/shipping-methods');
 
         $response->assertOk();
-        // Speedy (office + address) + BOX NOW (locker only) — see
-        // ShippingProviderInterface::supportedDeliveryTypes().
-        $response->assertJsonCount(3, 'data');
+        // Speedy (office + locker automat + address) + BOX NOW (locker
+        // only) — see ShippingProviderInterface::supportedDeliveryTypes().
+        $response->assertJsonCount(4, 'data');
         $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'office']);
+        $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'locker']);
         $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'address']);
         $response->assertJsonFragment(['carrier' => 'box_now', 'delivery_type' => 'locker']);
     }

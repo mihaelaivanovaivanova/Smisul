@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CartItem } from '../../types/cart';
-import { formatPrice } from '../../services/productCatalog';
+import { formatPrice, getVariantImage } from '../../services/productCatalog';
 import { cart as cartCopy } from '../../content/copy';
 import { getErrorMessage } from '../../api/errors';
 import { useCart } from '../../hooks/useCart';
@@ -18,7 +18,7 @@ export default function CartItemRow({ item }: CartItemRowProps) {
 
   const variant = item.product_variant;
   const product = variant.product;
-  const image = product?.primary_image;
+  const image = getVariantImage(variant);
 
   async function handleQuantityChange(quantity: number): Promise<void> {
     setIsPending(true);

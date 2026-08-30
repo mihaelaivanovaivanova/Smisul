@@ -43,6 +43,10 @@ use Throwable;
  * `serviceId` 505 is confirmed valid for this account (returns real prices
  * and creates real test shipments) — no longer a placeholder guess.
  * Independent of BoxNowShippingProvider by design — no shared base class.
+ *
+ * Three delivery types now: staffed office, automated machine (APT — both
+ * come back from the same location/office lookup, distinguished by the
+ * office's own `type` field; see offices() below), and home address.
  */
 class SpeedyShippingProvider implements ShippingProviderInterface
 {
@@ -57,7 +61,7 @@ class SpeedyShippingProvider implements ShippingProviderInterface
 
     public function supportedDeliveryTypes(): array
     {
-        return [ShippingDeliveryType::Office, ShippingDeliveryType::Address];
+        return [ShippingDeliveryType::Office, ShippingDeliveryType::Locker, ShippingDeliveryType::Address];
     }
 
     public function baseRate(ShippingDeliveryType $deliveryType): ShippingQuoteData
@@ -134,14 +138,18 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             }
 
             return collect($response->json('offices'))
-                // Speedy's location/office list mixes staffed offices in
-                // with APT entries (automated parcel terminals/machines) —
-                // the checkout office picker only wants staffed offices.
-                ->filter(fn (array $office) => ($office['type'] ?? 'OFFICE') === 'OFFICE')
                 ->map(fn (array $office) => new ShippingOfficeData(
                     id: (string) $office['id'],
                     carrier: $this->carrier(),
-                    type: ShippingDeliveryType::Office,
+                    // Speedy's location/office list mixes staffed offices
+                    // in with APT entries (automated parcel terminals/
+                    // machines) in one flat response, distinguished by this
+                    // `type` field ("OFFICE" vs "APT") — confirmed live
+                    // against the sandbox. Both are real pickup points now
+                    // (see supportedDeliveryTypes()), listed as two
+                    // separate checkout options ("Speedy" vs "Speedy
+                    // (автомат)" — see ShippingService::label()).
+                    type: ($office['type'] ?? 'OFFICE') === 'APT' ? ShippingDeliveryType::Locker : ShippingDeliveryType::Office,
                     name: (string) $office['name'],
                     // The office's own site name (e.g. "СОФИЯ"), not the
                     // $city filter — the two used to always match because
@@ -173,9 +181,13 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             'phone1' => ['number' => $order->customer_phone],
         ];
 
-        // Office and address recipients are mutually exclusive per Speedy's
-        // real API (address is forbidden when pickupOfficeId is set).
-        if ($deliveryType === ShippingDeliveryType::Office && $officeId !== null) {
+        // Office/APT and address recipients are mutually exclusive per
+        // Speedy's real API (address is forbidden when pickupOfficeId is
+        // set) — pickupOfficeId is the same field for both a staffed
+        // office and an automated machine, since Speedy's own
+        // location/office list carries both under one id space (see
+        // offices() above).
+        if ($deliveryType->requiresOfficeSelection() && $officeId !== null) {
             $recipient['pickupOfficeId'] = (int) $officeId;
         } else {
             [$streetName, $streetNo] = $this->splitStreetAndNumber($order->shipping_address_line);

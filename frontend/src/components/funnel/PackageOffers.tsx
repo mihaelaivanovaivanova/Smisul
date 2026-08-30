@@ -3,6 +3,7 @@ import AddToCartButton from '../product/AddToCartButton';
 import { formatPrice } from '../../services/productCatalog';
 import { trackFunnelAddToCart } from '../../services/analytics';
 import { funnelOffer, stock as stockCopy } from '../../content/copy';
+import { computeSavingsPercent } from '../../services/funnelOffers';
 import type { PackageOffer } from '../../services/funnelOffers';
 
 /**
@@ -23,23 +24,19 @@ const packageImages: Record<number, string> = {
 export default function PackageOffers({ offers, showImages = false }: { offers: PackageOffer[]; showImages?: boolean }) {
   const navigate = useNavigate();
   const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
-  // The single-stick price is itself a live, real price from this same
-  // offers list (not hardcoded) — every bundle's savings badge is
-  // computed against it, matching ai/context/14_Offer_and_Pricing.md's
-  // own "Saving vs. single price" methodology. No fabricated compare-at
-  // anchors: a previous version used Price.compare_at_amount for this,
-  // but those values had no documented basis anywhere in the project —
-  // removed at the data level (see FunnelSeeder.php), not just hidden
-  // here.
-  const singleStickPrice = offers.find(({ variant }) => variant.pack_size === 1)?.price.amount;
 
   return (
     <div className="funnel-packages">
       {offers.map(({ pkg, variant, price }, index) => {
-        const savingsPercent =
-          singleStickPrice && variant.pack_size > 1
-            ? Math.round((1 - price.amount / variant.pack_size / singleStickPrice) * 100)
-            : null;
+        // The single-stick price is itself a live, real price from this
+        // same offers list (not hardcoded) — every bundle's savings badge
+        // is computed against it, matching ai/context/14_Offer_and_Pricing.md's
+        // own "Saving vs. single price" methodology. No fabricated
+        // compare-at anchors: a previous version used
+        // Price.compare_at_amount for this, but those values had no
+        // documented basis anywhere in the project — removed at the data
+        // level (see FunnelSeeder.php), not just hidden here.
+        const savingsPercent = computeSavingsPercent(offers, variant, price);
         const hasImage = showImages && Boolean(packageImages[variant.pack_size]);
 
         return (

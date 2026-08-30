@@ -8,7 +8,7 @@ export function ProductVideos({ videos }: { videos: Media[] }) {
 
   return (
     <div className="mb-4">
-      <h2 className="h5">{productCopy.videosTitle}</h2>
+      <h2 className="section-title">{productCopy.videosTitle}</h2>
       <div className="row row-cols-1 row-cols-md-2 g-3">
         {videos.map((video) => (
           <div className="col" key={video.id}>
@@ -29,7 +29,7 @@ export function ProductDownloads({ downloads }: { downloads: Media[] }) {
 
   return (
     <div className="mb-4">
-      <h2 className="h5">{productCopy.downloadsTitle}</h2>
+      <h2 className="section-title">{productCopy.downloadsTitle}</h2>
       <ul className="list-unstyled d-flex flex-column gap-2 mb-0">
         {downloads.map((file) => (
           <li key={file.id}>

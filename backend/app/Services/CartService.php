@@ -47,6 +47,7 @@ class CartService
      */
     public const EAGER_LOAD = [
         'items.productVariant.product.primaryMedia',
+        'items.productVariant.media',
         'items.productVariant.prices',
         'items.productVariant.inventory',
     ];

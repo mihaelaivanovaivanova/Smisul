@@ -55,12 +55,12 @@ function sortMedia(media: Media[]): Media[] {
 }
 
 /**
- * Image media for a product's gallery, primary image first. Media with no
+ * Image media from a raw media array, primary image first. Media with no
  * mime_type on record (older/seed data predating that field) is treated as
  * an image rather than hidden, so existing catalog entries still render.
  */
-export function getGalleryImages(product: Product): Media[] {
-  const images = sortMedia(product.media.filter((media) => media.mime_type?.startsWith('image/') ?? true));
+function imagesFromMedia(media: Media[]): Media[] {
+  const images = sortMedia(media.filter((item) => item.mime_type?.startsWith('image/') ?? true));
   const primaryIndex = images.findIndex((image) => image.is_primary);
 
   if (primaryIndex <= 0) {
@@ -71,9 +71,37 @@ export function getGalleryImages(product: Product): Media[] {
   return [primary, ...images];
 }
 
+/** A product's own gallery images, primary image first. */
+export function getGalleryImages(product: Product): Media[] {
+  return imagesFromMedia(product.media);
+}
+
+/**
+ * The gallery to show for a specific selected pack size: that variant's own
+ * photo(s) if it has any (e.g. a real packaging shot per pack count — see
+ * FunnelSeeder's per-variant seedVariantImage calls), otherwise the
+ * product's own gallery as a fallback for pack sizes without a dedicated
+ * photo yet.
+ */
+export function getGalleryImagesForVariant(product: Product, variant: ProductVariant | null | undefined): Media[] {
+  const variantImages = variant?.media ? imagesFromMedia(variant.media) : [];
+  return variantImages.length > 0 ? variantImages : getGalleryImages(product);
+}
+
 /** The primary product image, or the first gallery image as a fallback. */
 export function getPrimaryImage(product: Product): Media | undefined {
   return getGalleryImages(product)[0];
+}
+
+/**
+ * The photo to show for a variant referenced outside a full Product context
+ * (cart lines, mini-cart, favorites) — its own pack-size photo if it has
+ * one, otherwise the parent product's primary image (product.primary_image
+ * on the slim ProductSummary these contexts nest under `variant.product`).
+ */
+export function getVariantImage(variant: ProductVariant): Media | undefined {
+  const variantImages = variant.media ? imagesFromMedia(variant.media) : [];
+  return variantImages[0] ?? variant.product?.primary_image ?? undefined;
 }
 
 export function getVideos(product: Product): Media[] {

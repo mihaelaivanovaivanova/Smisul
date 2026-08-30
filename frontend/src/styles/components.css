@@ -450,6 +450,7 @@
 
 .gallery__main {
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) !important;
   box-shadow: var(--shadow-sm);
 }
 
@@ -506,6 +507,149 @@
   font-size: 0.65rem;
   font-weight: 700;
   flex-shrink: 0;
+}
+
+/* ---- Product detail page ---- */
+
+/* Same terracotta buy-button color as the funnel landing page's CTAs
+   (.funnel-page .btn-primary in funnel.css) — this is the one "buy"
+   action on the product page, so it gets the same treatment rather than
+   the forest green .btn-primary used for neutral/form actions elsewhere
+   in the storefront. Scoped to this wrapper (not a blanket .btn-primary
+   override) so it doesn't bleed into unrelated buttons. */
+.product-detail__add-to-cart .btn-primary {
+  background-color: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+}
+
+.product-detail__add-to-cart .btn-primary:hover,
+.product-detail__add-to-cart .btn-primary:focus {
+  background-color: #8f4427;
+  border-color: #8f4427;
+}
+
+/* Bootstrap's h3 utility (the size ProductPage.tsx used to reach for)
+   reads small next to a --fs-lg price line right underneath it — this
+   sits between h2 and h3 on the token scale instead, distinct branded
+   weight/color already comes from base.css's bare `h1` selector. */
+.product-detail__title {
+  font-size: var(--fs-2xl);
+  line-height: 1.15;
+}
+
+/* The delivery/returns assurance line under the buy button — same
+   icon-tile + trust-list pattern HomePage's own trust section uses,
+   just tighter (smaller tiles, row layout) to read as a compact aside
+   rather than a full trust block competing with the buy box above it. */
+.product-detail__assurance {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.product-detail__assurance .icon-tile {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.product-detail__assurance li {
+  flex: 0 0 auto;
+}
+
+.product-description__paragraph {
+  margin-bottom: var(--space-4);
+  color: var(--color-charcoal);
+  line-height: 1.7;
+}
+
+.product-description__label {
+  margin-bottom: var(--space-1);
+  font-weight: 700;
+  color: var(--color-forest-dark);
+}
+
+/* Pulls the label's own paragraph in tight underneath it (both are
+   separate <p> blocks — see ProductDescription.tsx) rather than reading
+   as two evenly-spaced paragraphs with no visual relationship. */
+.product-description__label + .product-description__paragraph {
+  margin-top: calc(var(--space-1) * -1);
+}
+
+/* Pack-size picker — a fixed 2-column grid (2x2 for the current 4 pack
+   sizes) instead of flex-wrap's content-dependent wrapping, so the pills
+   line up in even rows regardless of label length. */
+.product-variant-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.product-variant-grid .variant-picker__option {
+  width: 100%;
+}
+
+/* The badge/price/discount/per-unit/tagline info for whichever pack is
+   currently selected (PackageOfferSummary.tsx) — replaces PriceBlock
+   entirely for a variant with a funnel package configured, badge first,
+   then price+discount together, then per-unit, then the one-line
+   tagline. Reuses the funnel package card's own badge/save/per-unit look
+   (see .funnel-package-card__* in funnel.css) so the two surfaces read
+   as the same feature. */
+.product-package-summary {
+  margin: var(--space-4) 0;
+}
+
+.product-package-summary__badge {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-forest);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-cream);
+  color: var(--color-forest);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.product-package-summary__price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.product-package-summary__price {
+  font-family: var(--font-heading);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-forest-dark);
+  white-space: nowrap;
+}
+
+.product-package-summary__save {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-terracotta);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.product-package-summary__per-unit {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+}
+
+.product-package-summary__value {
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
 }
 
 /* ---- Loading / error / empty states ---- */

@@ -68,7 +68,11 @@ interface OfficePickerProps {
  * unfiltered-by-city office list for the carrier — city options are derived
  * from the data itself, so there's no separate "no offices in this city"
  * state to handle; every listed city is guaranteed to have at least one
- * office.
+ * office. The incoming `offices` prop is per-carrier, not per-delivery-type
+ * (Speedy's own list mixes staffed offices and automated machines — see
+ * SpeedyShippingProvider::offices() on the backend), so this filters to
+ * `deliveryType` first; a carrier with only one non-address delivery type
+ * (BOX NOW) just gets a no-op filter.
  */
 function OfficePicker({
   idPrefix,
@@ -80,7 +84,12 @@ function OfficePicker({
   onSelectOffice,
   officeIdError,
 }: OfficePickerProps) {
-  const selectedOffice = offices?.find((office) => office.id === selectedOfficeId) ?? null;
+  const relevantOffices = useMemo(
+    () => (offices ?? []).filter((office) => office.type === deliveryType),
+    [offices, deliveryType],
+  );
+
+  const selectedOffice = relevantOffices.find((office) => office.id === selectedOfficeId) ?? null;
   const [city, setCity] = useState(selectedOffice?.city ?? '');
 
   // Keeps the city dropdown in sync if the selection changes from outside
@@ -89,25 +98,24 @@ function OfficePicker({
   useEffect(() => {
     setCity(selectedOffice?.city ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOfficeId, offices]);
+  }, [selectedOfficeId, relevantOffices]);
 
   // Case-insensitive de-dup (keeping whichever casing is seen first) — real
   // carrier data isn't perfectly consistent (e.g. BOX NOW's own destination
   // list has both "Нови хан" and "Нови Хан"), and without this the same
   // city would appear twice under two different-looking entries.
   const cities = useMemo(() => {
-    if (!offices) return [];
     const seen = new Map<string, string>();
-    for (const office of offices) {
+    for (const office of relevantOffices) {
       if (!office.city || seen.has(office.city.toLowerCase())) continue;
       seen.set(office.city.toLowerCase(), office.city);
     }
     return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'bg'));
-  }, [offices]);
+  }, [relevantOffices]);
 
   const officesInCity = useMemo(
-    () => (offices ?? []).filter((office) => office.city.toLowerCase() === city.toLowerCase()),
-    [offices, city],
+    () => relevantOffices.filter((office) => office.city.toLowerCase() === city.toLowerCase()),
+    [relevantOffices, city],
   );
 
   const cityOptions = useMemo(() => cities.map((cityOption) => ({ value: cityOption, label: cityOption })), [cities]);
@@ -129,7 +137,7 @@ function OfficePicker({
     return <ErrorState message={officesError} />;
   }
 
-  if (!offices || offices.length === 0) {
+  if (relevantOffices.length === 0) {
     return <div className="text-muted small">{checkoutCopy.delivery.officeEmpty}</div>;
   }
 

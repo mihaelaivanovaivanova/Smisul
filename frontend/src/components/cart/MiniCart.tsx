@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../../hooks/useCart';
-import { formatPrice } from '../../services/productCatalog';
+import { formatPrice, getVariantImage } from '../../services/productCatalog';
 import { cart as cartCopy } from '../../content/copy';
 import CartBadge from './CartBadge';
 
@@ -32,7 +32,7 @@ export default function MiniCart() {
           <>
             <ul className="list-unstyled mb-3" style={{ maxHeight: 280, overflowY: 'auto' }}>
               {items.map((item) => {
-                const image = item.product_variant.product?.primary_image;
+                const image = getVariantImage(item.product_variant);
 
                 return (
                   <li key={item.id} className="d-flex align-items-center justify-content-between gap-2 mb-2 small">

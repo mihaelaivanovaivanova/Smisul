@@ -127,6 +127,31 @@ class CheckoutShippingSelectionTest extends TestCase
     }
 
     #[Test]
+    public function speedy_with_a_locker_automat_selection_succeeds(): void
+    {
+        $guestToken = $this->addToCartAndGetToken();
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson(
+            '/api/v1/checkout/orders',
+            $this->basePayload([
+                'shipping_carrier' => 'speedy',
+                'shipping_delivery_type' => 'locker',
+                'shipping_office_id' => 'apt-9',
+                'shipping_office_name' => 'Speedy Machine Sofia Mall',
+                'shipping_office_city' => 'Sofia',
+                'shipping_office_address' => 'bul. Cherni Vrah 100',
+                'billing_same_as_shipping' => false,
+                'billing_address' => ['country' => 'Bulgaria', 'city' => 'Sofia', 'postal_code' => '1000', 'address_line' => 'ul. Vitosha 1'],
+            ]),
+        );
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.shipping.carrier', 'speedy');
+        $response->assertJsonPath('data.shipping.delivery_type', 'locker');
+        $response->assertJsonPath('data.shipping.office_id', 'apt-9');
+    }
+
+    #[Test]
     public function box_now_only_accepts_locker_delivery(): void
     {
         $guestToken = $this->addToCartAndGetToken();

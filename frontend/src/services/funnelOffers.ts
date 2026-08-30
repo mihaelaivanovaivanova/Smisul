@@ -25,3 +25,18 @@ export function resolvePackageOffers(product: Product, packages: FunnelPackage[]
     return variant && price ? [{ pkg, variant, price }] : [];
   });
 }
+
+/**
+ * The real, non-fabricated savings badge every package card shows (funnel
+ * PackageOffers.tsx and the product page's VariantPicker.tsx both use
+ * this) — computed against the live 1-pack price from the same offers
+ * list, not a hardcoded/compare-at anchor. See PackageOffers.tsx's own
+ * comment for why compare_at_amount was rejected as the source for this.
+ */
+export function computeSavingsPercent(offers: PackageOffer[], variant: ProductVariant, price: Price): number | null {
+  const singleStickPrice = offers.find(({ variant: candidate }) => candidate.pack_size === 1)?.price.amount;
+
+  return singleStickPrice && variant.pack_size > 1
+    ? Math.round((1 - price.amount / variant.pack_size / singleStickPrice) * 100)
+    : null;
+}

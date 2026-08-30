@@ -136,11 +136,14 @@ class ShippingOfficeLookupTest extends TestCase
      * Speedy's real location/office response mixes staffed offices in with
      * APT entries (automated parcel terminals/machines) in the same flat
      * list, distinguished by a `type` field ("OFFICE" vs "APT") — confirmed
-     * live against the sandbox. The checkout office picker must only offer
-     * staffed offices.
+     * live against the sandbox. Both are real pickup points now (see
+     * SpeedyShippingProvider::supportedDeliveryTypes()) — an APT maps to
+     * ShippingDeliveryType::Locker so the checkout office picker can offer
+     * it as the separate "Speedy (автомат)" option, distinct from a
+     * staffed office.
      */
     #[Test]
-    public function speedy_apt_machines_are_excluded(): void
+    public function speedy_apt_machines_are_listed_as_lockers(): void
     {
         Http::fake([
             'api.speedy.bg/*' => Http::response([
@@ -164,8 +167,9 @@ class ShippingOfficeLookupTest extends TestCase
         $response = $this->getJson('/api/v1/checkout/shipping-offices?carrier=speedy&city=Sofia');
 
         $response->assertOk();
-        $response->assertJsonCount(1, 'data');
-        $response->assertJsonFragment(['id' => 'SP1', 'name' => 'Speedy Office Sofia']);
+        $response->assertJsonCount(2, 'data');
+        $response->assertJsonFragment(['id' => 'SP1', 'name' => 'Speedy Office Sofia', 'type' => 'office']);
+        $response->assertJsonFragment(['id' => 'SP2', 'name' => 'Speedy Machine Sofia Mall', 'type' => 'locker']);
     }
 
     #[Test]

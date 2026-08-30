@@ -42,12 +42,12 @@ class ShippingProviderAbstractionTest extends TestCase
     }
 
     #[Test]
-    public function speedy_supports_office_and_address_delivery(): void
+    public function speedy_supports_office_locker_and_address_delivery(): void
     {
         $speedy = $this->app->make(SpeedyShippingProvider::class);
 
         $this->assertEqualsCanonicalizing(
-            [ShippingDeliveryType::Office, ShippingDeliveryType::Address],
+            [ShippingDeliveryType::Office, ShippingDeliveryType::Locker, ShippingDeliveryType::Address],
             $speedy->supportedDeliveryTypes(),
         );
     }
@@ -57,9 +57,9 @@ class ShippingProviderAbstractionTest extends TestCase
     {
         $methods = $this->app->make(ShippingService::class)->availableMethods();
 
-        $this->assertCount(3, $methods);
+        $this->assertCount(4, $methods);
         $this->assertCount(1, array_filter($methods, fn ($m) => $m->carrier === ShippingCarrier::BoxNow));
-        $this->assertCount(2, array_filter($methods, fn ($m) => $m->carrier === ShippingCarrier::Speedy));
+        $this->assertCount(3, array_filter($methods, fn ($m) => $m->carrier === ShippingCarrier::Speedy));
     }
 
     #[Test]
@@ -81,5 +81,25 @@ class ShippingProviderAbstractionTest extends TestCase
 
         // BOX NOW has no "address" (home delivery) option.
         $this->assertNull($service->find('box_now', 'address'));
+    }
+
+    /**
+     * Speedy's own automated-machine option needs a label distinct from
+     * its staffed-office one (both would otherwise just read "Speedy") —
+     * see ShippingService::label(). BOX NOW's bare "BOX NOW" label is
+     * unaffected — it has no other delivery type to disambiguate against.
+     */
+    #[Test]
+    public function speedy_locker_gets_a_distinct_label_from_speedy_office(): void
+    {
+        $service = $this->app->make(ShippingService::class);
+
+        $office = $service->find('speedy', 'office');
+        $locker = $service->find('speedy', 'locker');
+        $boxNowLocker = $service->find('box_now', 'locker');
+
+        $this->assertSame('Speedy', $office->label);
+        $this->assertSame('Speedy (автомат)', $locker->label);
+        $this->assertSame('BOX NOW', $boxNowLocker->label);
     }
 }

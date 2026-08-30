@@ -16,7 +16,7 @@ export default function VariantPicker({ variants, selectedId, onSelect }: Varian
   return (
     <div className="mb-3">
       <span className="form-label d-block">{productCopy.packageLabel}</span>
-      <div className="d-flex flex-wrap gap-2">
+      <div className="product-variant-grid">
         {variants.map((variant) => {
           const price = getVariantPrice(variant);
           const isActive = variant.id === selectedId;

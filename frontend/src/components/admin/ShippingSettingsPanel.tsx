@@ -272,7 +272,7 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
             </div>
           )}
           <div className="col-md-4">
-            <label className="form-label">Price to box (EUR)</label>
+            <label className="form-label">Price to locker/automat (EUR)</label>
             <input
               className="form-control"
               type="number"

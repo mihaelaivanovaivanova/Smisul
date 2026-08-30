@@ -260,8 +260,9 @@ Notes on the design:
 ## Shipping
 
 Two independent carrier integrations behind one interface
-(`ShippingProviderInterface` → `ShippingService`) — **Speedy** (office or
-home delivery) and **BOX NOW** (locker only). Econt was integrated earlier
+(`ShippingProviderInterface` → `ShippingService`) — **Speedy** (staffed
+office, automated machine, or home delivery) and **BOX NOW** (locker
+only). Econt was integrated earlier
 and later removed entirely — its `ShippingCarrier::Econt` enum case is kept
 only so historical orders/shipments already placed with it still cast and
 display correctly; `ShippingCarrier::active()` (not `::cases()`) is what
@@ -290,9 +291,12 @@ customer can pick today", so it can never resurface as a live option.
   the removal.
 - **Speedy** (`SpeedyShippingProvider`) is a real Web API integration
   verified against their sandbox — `calculate` (quote), `location/office`
-  (offices, filtered to exclude automated machine entries), `shipment`
-  (creation, requires splitting a free-text address line into street name +
-  number), `track`.
+  (a single lookup returns both staffed offices and APT/automated-machine
+  entries, distinguished by the office's own `type` field and mapped to
+  `ShippingDeliveryType::Office`/`Locker` respectively — both are real
+  checkout options, shown as separate "Speedy" / "Speedy (автомат)" rows;
+  see `ShippingService::label()`), `shipment` (creation, requires splitting
+  a free-text address line into street name + number), `track`.
 - Every shipment creation/tracking call is admin-triggered, not automatic —
   placing an order does not create a carrier shipment by itself.
 - Shipment tracking is read via `GET /api/v1/orders/{order}/shipment` (see

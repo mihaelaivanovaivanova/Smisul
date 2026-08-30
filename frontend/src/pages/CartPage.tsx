@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { getErrorMessage } from '../api/errors';
-import Breadcrumbs from '../components/Breadcrumbs';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
 import Seo from '../components/Seo';
 import CartItemRow from '../components/cart/CartItemRow';
 import CartTotalsSummary from '../components/cart/CartTotalsSummary';
-import { breadcrumbLabels, cart as cartCopy } from '../content/copy';
+import { cart as cartCopy } from '../content/copy';
 
 export default function CartPage() {
   const { cart, isLoading, error, clear } = useCart();
@@ -32,8 +31,7 @@ export default function CartPage() {
   return (
     <div className="container py-4">
       <Seo title={cartCopy.seoTitle} description={cartCopy.seoDescription} />
-      <Breadcrumbs items={[{ label: breadcrumbLabels.home, to: '/' }, { label: cartCopy.title }]} />
-      <h1 className="mb-4 mt-3">{cartCopy.title}</h1>
+      <h1 className="mb-4">{cartCopy.title}</h1>
 
       {isLoading && <LoadingState message={cartCopy.loading} />}
       {!isLoading && error && <ErrorState message={error} />}

@@ -77,7 +77,7 @@ export default function ReviewsSection({ productSlug, writePrompt }: ReviewsSect
 
   return (
     <div>
-      <h2 className="h5 mb-3">{reviewsCopy.title}</h2>
+      <h2 className="section-title">{reviewsCopy.title}</h2>
 
       {summaryError && <ErrorState message={summaryError} />}
       {summary && (

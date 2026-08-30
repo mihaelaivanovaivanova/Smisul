@@ -10,6 +10,7 @@ use App\Models\ContentBlock;
 use App\Models\FunnelConfig;
 use App\Models\Media;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\PriceService;
 use App\Services\ProductVariantService;
 use Illuminate\Database\Seeder;
@@ -47,18 +48,21 @@ class FunnelSeeder extends Seeder
                 'name' => 'Miswak',
                 'short_description' => 'Естествена четка за зъби от Salvadora persica - без паста, без вода, без пластмаса.',
                 'description' => <<<'TEXT'
-                Miswak е 100% натурална четка за зъби, направена от корена на Salvadora persica - растение, използвано от векове за ежедневна устна хигиена.
+                Твоите зъби не спират да имат нужда от грижа само защото в момента не си вкъщи. Miswak е естествената алтернатива на четката за зъби - направена от корена на растението Salvadora persica, което хора по света използват за устна хигиена от хилядолетия, много преди изобщо да се появи пластмасовата четка.
 
-                Без пластмасова дръжка, без паста и без нужда от вода. Просто обели върха, сдъвчи леко, докато влакната се разделят като естествена четчица, и почисти.
+                Без пластмасова дръжка, която ще лежи в природата стотици години. Без паста. Без нужда дори от глътка вода. Просто обели върха, сдъвчи леко, докато влакната се разделят в естествена четина, и почисти - където и да си: в колата, в офиса, след обяд, на път.
+
+                Защо ще го обикнеш:
+                Естествените съединения в Salvadora persica - силика, танини и сапонини - подпомагат почистването с всяко движение. Един Miswak стига за седмици напред: отрязваш износения връх и продължаваш със същата пръчица, без нов консуматив всеки месец. И тъй като е изцяло растителен, се връща обратно в природата, вместо да остане в нея с векове.
 
                 Съставки:
-                Естествени растителни влакна от Salvadora persica, съдържащи силика, танини, сапонини и минерални компоненти.
+                Естествени растителни влакна от корена на Salvadora persica, съдържащи силика, танини, сапонини и минерални компоненти. Без добавки, без изкуствени вещества.
 
                 Как да използвате:
-                Обели около 1 см от единия край, сдъвчи внимателно, докато влакната се разделят, и използвай с нежни движения върху зъбите и венците за 2-3 минути.
+                Обели около 1 см от единия край, сдъвчи внимателно, докато влакната се разделят във фина четина, и почисти зъбите и венците с нежни кръгови движения за 2-3 минути. Изплакни устата, когато приключиш.
 
                 Съхранение:
-                Съхранявайте на сухо и чисто място. Когато върхът се износи, изрежете го и подгответе нов.
+                Дръж на сухо и чисто място между употреби. Когато върхът се износи, отрежи го и оголи следващия сантиметър, за да подготвиш нов.
                 TEXT,
                 'status' => ProductStatus::Published,
                 'published_at' => now(),
@@ -91,6 +95,21 @@ class FunnelSeeder extends Seeder
             ));
 
             $variant->inventory()->update(['quantity_on_hand' => $definition['stock']]);
+
+            // Per-pack-size gallery photo (real product packaging shots,
+            // one per pack count) — by request, so switching "Разфасовка"
+            // on the product page swaps the gallery to match. Only set for
+            // pack sizes with a real photo on hand; variants without a
+            // 'gallery_image' key here just fall back to the product's own
+            // gallery (see getGalleryImagesForVariant() on the frontend).
+            if (isset($definition['gallery_image'])) {
+                $this->seedVariantImage(
+                    $variant,
+                    $definition['gallery_image'],
+                    "products/variants/{$definition['sku']}.jpg",
+                    "Miswak - опаковка {$definition['pack_size']} бр.",
+                );
+            }
         }
 
         $product->seo()->updateOrCreate([], [
@@ -104,11 +123,14 @@ class FunnelSeeder extends Seeder
         $this->seedImage($product, 'hero-miswak-hand.webp', 'products/miswak-hero-hand.webp', 'Ръка, която държи Miswak', 0, true);
         $this->seedImage($product, 'miswak-closeup.jpg', 'products/miswak-closeup.jpg', 'Близък план на подготвен връх на Miswak', 1, false);
         $this->seedImage($product, 'miswak-bundle.webp', 'products/miswak-bundle.webp', 'Miswak натурални пръчици', 2, false);
+        // The real retail package photo (gift-pack bundle) — added alongside
+        // the staged lifestyle/studio shots above, not replacing them.
+        $this->seedImage($product, 'miswak-package-real.jpg', 'products/miswak-package-real.jpg', 'Miswak в оригиналната опаковка', 3, false);
         // Powers HowToUseSection's optional demo clip (frontend/src/components/
         // funnel/sections/HowToUseSection.tsx) - the video isn't mounted/
         // requested until the visitor clicks the poster's play button, so
         // this ~44MB file is never loaded automatically.
-        $this->seedVideo($product, 'miswak-how-to-use.mp4', 'products/miswak-how-to-use.mp4', 'Демонстрация как се използва Miswak', 3);
+        $this->seedVideo($product, 'miswak-how-to-use.mp4', 'products/miswak-how-to-use.mp4', 'Демонстрация как се използва Miswak', 4);
 
         return $product;
     }
@@ -134,10 +156,10 @@ class FunnelSeeder extends Seeder
     private function variantDefinitions(): array
     {
         return [
-            ['sku' => 'MISWAK-1', 'name' => '1 бр.', 'pack_size' => 1, 'amount' => 3.99, 'stock' => 200],
-            ['sku' => 'MISWAK-3', 'name' => '3 бр.', 'pack_size' => 3, 'amount' => 10.99, 'stock' => 200],
-            ['sku' => 'MISWAK-5', 'name' => '5 бр.', 'pack_size' => 5, 'is_default' => true, 'amount' => 17.49, 'stock' => 200],
-            ['sku' => 'MISWAK-10', 'name' => '10 бр.', 'pack_size' => 10, 'amount' => 32.99, 'stock' => 200],
+            ['sku' => 'MISWAK-1', 'name' => '1 бр.', 'pack_size' => 1, 'amount' => 3.99, 'stock' => 200, 'gallery_image' => 'miswak-pack-1.jpg'],
+            ['sku' => 'MISWAK-3', 'name' => '3 бр.', 'pack_size' => 3, 'amount' => 10.99, 'stock' => 200, 'gallery_image' => 'miswak-pack-3.jpg'],
+            ['sku' => 'MISWAK-5', 'name' => '5 бр.', 'pack_size' => 5, 'is_default' => true, 'amount' => 17.49, 'stock' => 200, 'gallery_image' => 'miswak-pack-5.jpg'],
+            ['sku' => 'MISWAK-10', 'name' => '10 бр.', 'pack_size' => 10, 'amount' => 32.99, 'stock' => 200, 'gallery_image' => 'miswak-pack-10.jpg'],
         ];
     }
 
@@ -158,6 +180,34 @@ class FunnelSeeder extends Seeder
                 'alt_text' => $altText,
                 'sort_order' => $sortOrder,
                 'is_primary' => $isPrimary,
+            ],
+        );
+    }
+
+    /**
+     * Same as seedImage() above but attaches to a ProductVariant instead of
+     * the Product - a single, sort_order-0 photo per variant is enough
+     * (there's no per-variant gallery/thumbnail strip, just the one photo
+     * the product page swaps to on pack-size selection), so isPrimary isn't
+     * a parameter here.
+     */
+    private function seedVariantImage(ProductVariant $variant, string $sourceFilename, string $path, string $altText): void
+    {
+        $sourcePath = __DIR__."/assets/funnel/{$sourceFilename}";
+        $contents = file_get_contents($sourcePath);
+
+        Storage::disk('public')->put($path, $contents);
+
+        Media::updateOrCreate(
+            ['mediable_type' => ProductVariant::class, 'mediable_id' => $variant->id, 'path' => $path],
+            [
+                'disk' => 'public',
+                'filename' => basename($path),
+                'mime_type' => 'image/jpeg',
+                'size' => Storage::disk('public')->size($path),
+                'alt_text' => $altText,
+                'sort_order' => 0,
+                'is_primary' => true,
             ],
         );
     }
@@ -255,7 +305,7 @@ class FunnelSeeder extends Seeder
             // line above it instead of being the headline itself.
             'funnel.hero' => [
                 'eyebrow' => '100% ЕСТЕСТВЕНА ГРИЖА. КЪДЕТО И ДА СИ.',
-                'title' => 'Когато ти се иска да си измиеш зъбите, но няма как.',
+                'title' => 'Не ти ли писна зъбите ти да са чисти... АМА САМО ПОНЯКОГА?',
                 'body' => 'Miswak е естествена пръчица от Salvadora persica за почистване на зъбите, която можеш да използваш без паста и без мивка - след кафе, в офиса, в колата или когато си на път.',
                 'cta_primary' => 'ВЗЕМИ MISWAK',
                 'cta_secondary' => 'НАУЧИ ПОВЕЧЕ',

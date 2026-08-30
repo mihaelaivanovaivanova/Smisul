@@ -194,10 +194,19 @@ class ShippingService
         return $this->providers[$carrier] ?? throw new InvalidArgumentException("Unknown shipping carrier [{$carrier}].");
     }
 
+    /**
+     * Bare carrier name by default (e.g. "BOX NOW", or "Speedy" for its
+     * office pickup) — a suffix is only added where a carrier offers more
+     * than one delivery type that would otherwise share the same label.
+     * BOX NOW never needs one (locker is its only type); Speedy does, now
+     * that it offers both a staffed office and an automated machine
+     * alongside home delivery.
+     */
     private function label(ShippingCarrier $carrier, ShippingDeliveryType $deliveryType): string
     {
         return match (true) {
             $deliveryType === ShippingDeliveryType::Address => "{$carrier->label()} (до адрес)",
+            $deliveryType === ShippingDeliveryType::Locker && $carrier === ShippingCarrier::Speedy => "{$carrier->label()} (автомат)",
             default => $carrier->label(),
         };
     }

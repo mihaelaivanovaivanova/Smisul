@@ -130,6 +130,18 @@
   }
 }
 
+/* The title's punchline clause ("АМА САМО ПОНЯКОГА?" — see HeroSection.tsx's
+   renderHeroTitle()) is styled as a static accent, no animation. */
+.funnel-hero__title-crash-wrap {
+  display: inline-block;
+}
+
+.funnel-hero__title-emphasis {
+  display: inline-block;
+  color: var(--color-terracotta);
+  font-weight: 800;
+}
+
 /* Stacked "label + from-price" button treatment, first built for the
    Hero CTA and reused as-is by every other standalone buy button on the
    page (Comparison's) that doesn't already show price nearby some other
@@ -308,6 +320,19 @@
   flex-wrap: nowrap;
   justify-content: center;
   gap: var(--space-4);
+}
+
+@media (min-width: 992px) {
+  /* Nudged left of dead-center, by request — shifts the centered group
+     without abandoning centering (an outer padding-right narrows the
+     box justify-content:center centers within, rather than switching to
+     flex-start, which would fully left-align it against the rest of the
+     column's own centered elements — CTA button, benefits line). Desktop
+     only, where the row sits directly under the (now height-matched)
+     hero photo rather than full-width like on mobile. */
+  .funnel-hero .funnel-trust-row {
+    padding-right: 2rem;
+  }
 }
 
 .funnel-hero .funnel-trust-item {

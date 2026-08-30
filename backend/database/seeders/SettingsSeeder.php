@@ -34,9 +34,9 @@ class SettingsSeeder extends Seeder
             ['key' => 'general.same_day_dispatch_cutoff', 'group' => 'general', 'type' => 'string', 'label' => 'Same-day dispatch cutoff (HH:MM, empty = off)', 'value' => '14:00'],
             // Social profiles for the footer - icons render only for the
             // ones that are filled in.
-            ['key' => 'general.social_instagram', 'group' => 'general', 'type' => 'string', 'label' => 'Instagram URL', 'value' => null],
-            ['key' => 'general.social_facebook', 'group' => 'general', 'type' => 'string', 'label' => 'Facebook URL', 'value' => null],
-            ['key' => 'general.social_tiktok', 'group' => 'general', 'type' => 'string', 'label' => 'TikTok URL', 'value' => null],
+            ['key' => 'general.social_instagram', 'group' => 'general', 'type' => 'string', 'label' => 'Instagram URL', 'value' => 'https://www.instagram.com/smisulbg/'],
+            ['key' => 'general.social_facebook', 'group' => 'general', 'type' => 'string', 'label' => 'Facebook URL', 'value' => 'https://www.facebook.com/profile.php?id=61592064470767'],
+            ['key' => 'general.social_tiktok', 'group' => 'general', 'type' => 'string', 'label' => 'TikTok URL', 'value' => 'https://www.tiktok.com/@smisul.bg?_r=1&_t=ZN-99FwnvYu3tu'],
             // Box Now marketing chrome (TopAnnouncementBar.tsx / BoxNowBadge.tsx)
             // — rendered generically here (group "general", so the admin save
             // endpoint accepts them) but the admin UI surfaces them inside the

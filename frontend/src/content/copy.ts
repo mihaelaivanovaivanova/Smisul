@@ -43,11 +43,11 @@ export const nav = {
 };
 
 export const footer = {
+  contactsHeading: 'Контакти',
   legalHeading: 'Правна информация',
   cookieSettings: 'Настройки на бисквитките',
   /** Legal merchant identity block - shown only once the admin fills the settings. */
   merchantHeading: 'Данни за търговеца',
-  companyLabel: 'Фирма',
   managerLabel: 'Управител',
   companyIdLabel: 'ЕИК',
 };
@@ -263,7 +263,7 @@ export const funnelUseCases = {
     { icon: 'car' as IconName, title: 'В движение', body: 'От работа тръгваш директно към вечеря, среща или събитие.' },
     { icon: 'plane' as IconName, title: 'На път', body: 'Летище, хотел, къмпинг, фестивал или просто дълъг ден навън.' },
   ],
-  closing: 'Винаги, когато ти потрябва бляскава усмивка, Мисвак идва на помощ!',
+  closing: 'Винаги, когато ти потрябва бляскава усмивка, Miswak идва на помощ!',
   cta: 'ВИЖ КАК РАБОТИ ↓',
 };
 

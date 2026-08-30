@@ -37,18 +37,40 @@ export default function Footer() {
 
   return (
     <footer className="footer-dark mt-auto py-4">
-      <div className="container d-flex flex-column gap-3">
-        {/* Brand · legal links · socials — one row, legal + socials
-            bottom-aligned with the logo on md+ (align-items-end); centered
-            and stacked on narrow screens where there's no "bottom" to
-            align to. */}
-        <div className="d-flex flex-column flex-md-row justify-content-center justify-content-md-start align-items-center align-items-md-end gap-3 gap-md-5">
+      <div className="container d-flex flex-column gap-4">
+        {/* Brand. */}
+        <div className="d-flex justify-content-center justify-content-md-start">
           <Logo tagline light />
+        </div>
 
-          <div className="d-flex flex-column align-items-center align-items-md-end gap-2 mt-md-3">
+        {/* Contacts (left) · legal documents (right). */}
+        <div className="row gy-4">
+          {hasMerchantInfo && publicSettings && (
+            <div className="col-12 col-md-6 text-center text-md-start">
+              <h2 className="h6 text-uppercase small fw-bold mb-3">{footer.contactsHeading}</h2>
+              <div className="d-flex flex-column gap-2 small text-muted">
+                {(publicSettings.company_name_en || publicSettings.company_name) && (
+                  <span>{[publicSettings.company_name_en, publicSettings.company_name].filter(Boolean).join(' / ')}</span>
+                )}
+                {publicSettings.company_id && (
+                  <span>
+                    {footer.companyIdLabel}: {publicSettings.company_id}
+                  </span>
+                )}
+                {publicSettings.store_email && (
+                  <a className="text-decoration-none text-muted" href={`mailto:${publicSettings.store_email}`}>
+                    {publicSettings.store_email}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="col-12 col-md-6 text-center text-md-end">
+            <h2 className="h6 text-uppercase small fw-bold mb-3">{footer.legalHeading}</h2>
             <nav
               aria-label={footer.legalHeading}
-              className="d-flex flex-column flex-md-row flex-md-wrap align-items-center justify-content-center justify-content-md-end column-gap-4 row-gap-3 row-gap-md-1"
+              className="d-flex flex-column align-items-center align-items-md-end gap-2"
             >
               {legalDocuments?.map((document) => (
                 <Link key={document.slug} className="text-decoration-none text-muted small" to={`/legal/${document.slug}`}>
@@ -63,7 +85,13 @@ export default function Footer() {
                 {footer.cookieSettings}
               </button>
             </nav>
+          </div>
+        </div>
 
+        {/* Socials (left) · payment marks (right) — same row, so the two
+            icon groups sit vertically aligned with each other. */}
+        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+          {socials.length > 0 ? (
             <span className="d-inline-flex align-items-center gap-2">
               {socials.map((social) => (
                 <a
@@ -78,36 +106,9 @@ export default function Footer() {
                 </a>
               ))}
             </span>
-          </div>
-        </div>
-
-        {/* Merchant identity — one muted line, only when configured. */}
-        {hasMerchantInfo && publicSettings && (
-          <p className="d-flex flex-wrap justify-content-center justify-content-md-start column-gap-4 row-gap-1 small text-muted mb-0">
-            {(publicSettings.company_name_en || publicSettings.company_name) && (
-              <span>
-                {footer.companyLabel}:{' '}
-                {[publicSettings.company_name_en, publicSettings.company_name].filter(Boolean).join(' / ')}
-              </span>
-            )}
-            {publicSettings.company_id && (
-              <span>
-                {footer.companyIdLabel}: {publicSettings.company_id}
-              </span>
-            )}
-            {publicSettings.store_email && (
-              <a className="text-decoration-none text-muted" href={`mailto:${publicSettings.store_email}`}>
-                {publicSettings.store_email}
-              </a>
-            )}
-          </p>
-        )}
-
-        {/* Copyright · payment marks. */}
-        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
-          <span className="text-muted small">
-            &copy; {year} {siteName}. Всички права запазени.
-          </span>
+          ) : (
+            <span />
+          )}
           <span className="footer-payment-info text-center text-sm-end">
             {/* Monochrome simple-icons marks (Icon.tsx), not the real payment
                 logos + grayscale-filter treatment DeliveryPaymentReturnsSection.tsx
@@ -124,6 +125,11 @@ export default function Footer() {
             </span>
           </span>
         </div>
+
+        {/* Copyright. */}
+        <span className="text-muted small text-center text-md-start">
+          &copy; {year} {siteName}
+        </span>
       </div>
     </footer>
   );

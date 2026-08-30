@@ -33,6 +33,16 @@ enum LegalDocumentType: string
     case RightOfWithdrawal = 'right_of_withdrawal';
     case ShippingPolicy = 'shipping_policy';
 
+    /**
+     * Legacy values kept readable for historical consent/order records.
+     * They are no longer publishable/current policy categories: cookie
+     * disclosures belong to PrivacyPolicy and returns/complaints belong to
+     * RightOfWithdrawal. A data migration retires any legacy rows that were
+     * still marked current before this compatibility support was added.
+     */
+    case LegacyCookiePolicy = 'cookie_policy';
+    case LegacyReturnsPolicy = 'returns_policy';
+
     public function label(): string
     {
         return match ($this) {
@@ -40,6 +50,8 @@ enum LegalDocumentType: string
             self::PrivacyPolicy => 'Privacy Policy',
             self::RightOfWithdrawal => 'Right of Withdrawal, Returns & Complaints',
             self::ShippingPolicy => 'Shipping Policy',
+            self::LegacyCookiePolicy => 'Cookie Policy (legacy)',
+            self::LegacyReturnsPolicy => 'Returns Policy (legacy)',
         };
     }
 
@@ -57,6 +69,8 @@ enum LegalDocumentType: string
             self::PrivacyPolicy => 'privacy-policy',
             self::RightOfWithdrawal => 'right-of-withdrawal',
             self::ShippingPolicy => 'shipping-policy',
+            self::LegacyCookiePolicy => 'cookie-policy',
+            self::LegacyReturnsPolicy => 'returns-policy',
         };
     }
 

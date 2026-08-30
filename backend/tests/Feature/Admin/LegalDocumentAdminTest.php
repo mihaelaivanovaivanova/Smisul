@@ -34,11 +34,20 @@ class LegalDocumentAdminTest extends TestCase
         LegalDocument::factory()->create(['type' => LegalDocumentType::TermsOfService]);
         LegalDocument::factory()->create(['type' => LegalDocumentType::PrivacyPolicy]);
         LegalDocument::factory()->create(['type' => LegalDocumentType::ShippingPolicy]);
+        LegalDocument::factory()->create([
+            'type' => LegalDocumentType::LegacyCookiePolicy,
+            'is_current' => false,
+        ]);
 
         $response = $this->actingAs($admin)->getJson('/api/v1/admin/legal-documents');
 
         $response->assertOk();
-        $response->assertJsonCount(3, 'data');
+        $response->assertJsonCount(4, 'data');
+        $response->assertJsonFragment([
+            'type' => 'cookie_policy',
+            'type_label' => 'Cookie Policy (legacy)',
+            'is_current' => false,
+        ]);
     }
 
     #[Test]
@@ -78,5 +87,17 @@ class LegalDocumentAdminTest extends TestCase
             'version' => '1.0',
             'title' => 'Privacy Policy',
         ])->assertUnprocessable();
+    }
+
+    #[Test]
+    public function an_administrator_cannot_publish_a_new_legacy_document_type(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/legal-documents', [
+            'type' => 'cookie_policy',
+            'version' => '2.0',
+            'title' => 'Legacy Cookie Policy',
+        ])->assertUnprocessable()->assertJsonValidationErrors('type');
     }
 }

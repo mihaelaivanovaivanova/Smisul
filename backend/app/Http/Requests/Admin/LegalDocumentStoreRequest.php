@@ -6,7 +6,6 @@ use App\Enums\LegalDocumentType;
 use App\Models\LegalDocument;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class LegalDocumentStoreRequest extends FormRequest
 {
@@ -21,7 +20,14 @@ class LegalDocumentStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', new Enum(LegalDocumentType::class)],
+            // Legacy cookie/returns rows remain readable for audit history,
+            // but new versions may only use the four active policy types.
+            'type' => ['required', Rule::in([
+                LegalDocumentType::TermsOfService->value,
+                LegalDocumentType::PrivacyPolicy->value,
+                LegalDocumentType::RightOfWithdrawal->value,
+                LegalDocumentType::ShippingPolicy->value,
+            ])],
             'version' => [
                 'required', 'string', 'max:32',
                 Rule::unique('legal_documents')->where('type', $this->input('type')),

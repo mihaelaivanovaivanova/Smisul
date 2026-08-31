@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardContr
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
 use App\Http\Controllers\Api\V1\Admin\FunnelLeadController as AdminFunnelLeadController;
 use App\Http\Controllers\Api\V1\Admin\ICardConfigurationController as AdminICardConfigurationController;
-use App\Http\Controllers\Api\V1\Admin\ShippingProviderConfigurationController as AdminShippingProviderConfigurationController;
 use App\Http\Controllers\Api\V1\Admin\LegalDocumentController as AdminLegalDocumentController;
 use App\Http\Controllers\Api\V1\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
@@ -20,6 +19,7 @@ use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVa
 use App\Http\Controllers\Api\V1\Admin\PromotionController as AdminPromotionController;
 use App\Http\Controllers\Api\V1\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\V1\Admin\ShippingProviderConfigurationController as AdminShippingProviderConfigurationController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationNotificationController;
@@ -282,6 +282,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
+        Route::post('/orders/{order}/shipment', [AdminOrderController::class, 'createShipment'])->name('orders.shipment.create');
+        Route::get('/orders/{order}/shipment/label', [AdminOrderController::class, 'shipmentLabel'])->name('orders.shipment.label');
 
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.show');
 

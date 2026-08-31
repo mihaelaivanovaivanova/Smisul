@@ -147,11 +147,17 @@ return [
             'client_secret' => env('BOX_NOW_CLIENT_SECRET'),
             // This storefront has no BOX NOW-registered warehouse — orders
             // are fulfilled by dropping the parcel off at a locker in
-            // person, and "any-apm" is BOX NOW's own documented origin
-            // locationId for exactly that flow (see their partner API
-            // guide, section 4.4). Override via .env if a real warehouse
-            // location is registered with BOX NOW later.
-            'origin_location_id' => env('BOX_NOW_ORIGIN_LOCATION_ID', 'any-apm'),
+            // person. "any-apm" is the LOCATION TYPE for that flow, not a
+            // valid locationId itself - the API requires a real numeric
+            // id (confirmed against the live GET /origins response: "2"
+            // is this account's own any-apm wildcard origin. A previous
+            // version of this config used the literal string "any-apm" as
+            // the id, which fails BOX NOW's schema (P400: "locationId must
+            // match format integer") - verified by placing a real order
+            // end-to-end and inspecting the rejection). Override via .env
+            // if a real warehouse location is registered with BOX NOW
+            // later, or if this account's any-apm id ever changes.
+            'origin_location_id' => env('BOX_NOW_ORIGIN_LOCATION_ID', '2'),
             // Launch promo: BOX NOW delivery is free through this date (see
             // BoxNowShippingProvider::isFreeShippingPromoActive()). Extend
             // by overriding the env var — no code change needed.

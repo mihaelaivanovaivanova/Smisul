@@ -44,9 +44,13 @@ use Throwable;
  *    requirement) but unused.
  *  - Shipment creation: POST delivery-requests. This storefront has no
  *    registered BOX NOW warehouse — orders are fulfilled by dropping the
- *    parcel off at a locker in person, and "any-apm" is BOX NOW's own
- *    documented origin locationId for exactly that flow (see the
- *    BOX_NOW_ORIGIN_LOCATION_ID config default below). paymentMode is
+ *    parcel off at a locker in person, using BOX NOW's own "any-apm"
+ *    wildcard origin for that flow. any-apm is a location TYPE, not a
+ *    usable locationId itself - the real numeric id (this account's is
+ *    "2") comes from GET /origins and is what BOX_NOW_ORIGIN_LOCATION_ID
+ *    actually holds (see config/services.php's own comment - confirmed by
+ *    placing a real order and inspecting BOX NOW's P400 rejection of the
+ *    literal string "any-apm"). paymentMode is
  *    "prepaid" for every order created today — cash on delivery was
  *    removed as a payment method entirely (see PaymentMethod::active()).
  *    createShipment() still checks for a payment_method of
@@ -56,12 +60,20 @@ use Throwable;
  *    amountToBeCollected must be a number in (0, 5000) whenever cod is
  *    used) — but that path is only still reachable for a historical
  *    order whose payment was placed before the removal.
+ *  - allowReturn is always sent as false, per the guide's explicit
+ *    instruction ("Винаги трябва да бъде false") — not a default, a hard
+ *    requirement. items[].compartmentSize (2/medium) is always sent too:
+ *    the Partner API spec (partner_api_1.72.yaml) marks it required
+ *    whenever origin is any-apm, which is this store's only origin.
  *  - Quote: BOX NOW's guide has no live pricing endpoint at all — the flat
  *    rate in baseRate() IS the real (contractual) price, not a guessed
  *    fallback, so quote() never makes a network call.
  *  - Tracking: GET parcels?parcelId={id}; state vocabulary matches the
  *    guide's section 4.5 (new/in-transit/in-depot/final-destination/
  *    delivered/returned/cancelled/wait-for-load/...).
+ *  - Label: GET parcels/{id}/label.pdf, an authenticated binary fetch —
+ *    see fetchLabel(). Called on demand by an admin action
+ *    (Admin\OrderController::shipmentLabel), not stored at creation time.
  *
  * BOX NOW is locker-only (no office or home delivery) — the only provider
  * whose supportedDeliveryTypes() is a single entry. Independent of
@@ -178,6 +190,12 @@ class BoxNowShippingProvider implements ShippingProviderInterface
             // guide's own documented fallback ("Ако не знаете теглото на
             // пратката, моля подайте стойност 1").
             'weight' => 1,
+            // Required whenever origin is any-apm (this store's only
+            // origin, see origin_location_id below) — confirmed against
+            // partner_api_1.72.yaml's DeliveryRequest.items.compartmentSize
+            // ("Required only for apm/any-apm origin"). 2/medium is the
+            // guide's own recommended default size.
+            'compartmentSize' => 2,
         ])->all();
 
         // Cash on delivery is no longer a selectable payment method (see
@@ -192,12 +210,15 @@ class BoxNowShippingProvider implements ShippingProviderInterface
                 'paymentMode' => $isCashOnDelivery ? 'cod' : 'prepaid',
                 'invoiceValue' => (string) $order->grand_total,
                 'amountToBeCollected' => $isCashOnDelivery ? (string) $order->grand_total : '0.00',
-                'allowReturn' => true,
+                // Must always be false — the integration guide is explicit
+                // ("allowReturn: Винаги трябва да бъде false"), not a
+                // default we're free to override.
+                'allowReturn' => false,
                 'origin' => [
                     'contactNumber' => $this->originContactNumber(),
                     'contactEmail' => (string) ($this->storeSettings->get('general.store_email') ?? ''),
                     'contactName' => (string) ($this->storeSettings->get('general.store_name') ?? ''),
-                    'locationId' => (string) config('services.shipping.box_now.origin_location_id', 'any-apm'),
+                    'locationId' => (string) config('services.shipping.box_now.origin_location_id', '2'),
                 ],
                 'destination' => [
                     'contactNumber' => $order->customer_phone,
@@ -259,6 +280,28 @@ class BoxNowShippingProvider implements ShippingProviderInterface
             events: $events,
             estimatedDeliveryAt: null, // not returned by this endpoint.
         );
+    }
+
+    /**
+     * GET parcels/{id}/label.pdf — confirmed against partner_api_1.72.yaml's
+     * /api/v1/parcels/{id}/label.{type} (200 -> application/pdf, binary).
+     * $trackingNumber here is the parcel id we stored from createShipment()
+     * (parcels.0.id in its response), which is exactly the {id} this
+     * endpoint expects.
+     */
+    public function fetchLabel(string $trackingNumber): string
+    {
+        try {
+            $response = $this->client()->get("parcels/{$trackingNumber}/label.pdf");
+        } catch (ConnectionException $exception) {
+            throw ShippingProviderException::requestFailed('box_now', 'fetchLabel', $exception->getMessage());
+        }
+
+        if (! $response->successful()) {
+            throw ShippingProviderException::requestFailed('box_now', 'fetchLabel', (string) $response->status());
+        }
+
+        return $response->body();
     }
 
     /** BOX NOW's own state vocabulary — see the guide's section 4.5. */

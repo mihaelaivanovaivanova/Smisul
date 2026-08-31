@@ -28,6 +28,12 @@ export async function updateOrderStatus(id: number, status: string, note?: strin
   return data.data;
 }
 
+/** Manual fallback for the automatic on-payment shipment creation (see the backend listener) - retries a failed attempt or dispatches a historical order. */
+export async function createOrderShipment(id: number): Promise<AdminOrder> {
+  const { data } = await apiClient.post<{ data: AdminOrder }>(`/admin/orders/${id}/shipment`);
+  return data.data;
+}
+
 export async function reversePayment(paymentId: number): Promise<Payment> {
   const { data } = await apiClient.post<{ data: Payment }>(`/admin/payments/${paymentId}/reverse`);
   return data.data;

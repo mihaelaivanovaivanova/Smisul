@@ -56,4 +56,14 @@ interface ShippingProviderInterface
     public function createShipment(Order $order, ShippingDeliveryType $deliveryType, ?string $officeId): ShipmentData;
 
     public function track(string $trackingNumber): TrackingData;
+
+    /**
+     * Raw bytes of the shipment's printable dispatch label (PDF). Neither
+     * carrier returns a plain fetchable label_url from createShipment() —
+     * both require an authenticated request at download time — so this is
+     * the seam an admin action calls on demand instead. Throws
+     * ShippingProviderException if the carrier's label endpoint fails, or
+     * isn't implemented yet for that carrier.
+     */
+    public function fetchLabel(string $trackingNumber): string;
 }

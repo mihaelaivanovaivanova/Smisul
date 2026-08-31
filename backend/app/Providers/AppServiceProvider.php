@@ -10,6 +10,10 @@ use App\Events\Order\OrderStatusChanged;
 use App\Events\Review\ReviewApproved;
 use App\Events\Review\ReviewRejected;
 use App\Events\Review\ReviewReplied;
+use App\Listeners\CreateShipmentOnOrderPaid;
+use App\Listeners\LogFailedLogin;
+use App\Listeners\LogLogout;
+use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\NotifyAccountHoldersOfLegalDocumentUpdate;
 use App\Listeners\NotifyFavoritesOfBackInStock;
 use App\Listeners\NotifyFavoritesOfPriceDrop;
@@ -18,8 +22,9 @@ use App\Listeners\SendOrderStatusEmails;
 use App\Listeners\SendReviewApprovedNotification;
 use App\Listeners\SendReviewRejectedNotification;
 use App\Listeners\SendReviewReplyNotification;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -52,12 +57,24 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureAuthNotificationUrls();
 
-        // Laravel 11+ no longer ships a default EventServiceProvider, so the
-        // framework's own "send verification email on registration" listener
-        // has to be wired up explicitly.
-        Event::listen(Registered::class, SendEmailVerificationNotification::class);
+        // Event discovery is off entirely (see bootstrap/app.php's
+        // withEvents(discover: false) — it was silently double-registering
+        // every listener below, since each one also matches its
+        // convention), so every listener in this app, including these
+        // three auth-audit ones that used to rely on discovery alone, is
+        // now bound here and only here. Registered::class ->
+        // SendEmailVerificationNotification is deliberately NOT listed
+        // here despite being a framework listener too — Laravel's own
+        // AppEventServiceProvider::configureEmailVerification() always
+        // registers it regardless of app-level config, so adding it here
+        // as well (as this file previously did) double-sent the
+        // verification email on every registration.
+        Event::listen(Login::class, LogSuccessfulLogin::class);
+        Event::listen(Failed::class, LogFailedLogin::class);
+        Event::listen(Logout::class, LogLogout::class);
         Event::listen(OrderPlaced::class, SendOrderPlacedNotifications::class);
         Event::listen(OrderStatusChanged::class, SendOrderStatusEmails::class);
+        Event::listen(OrderStatusChanged::class, CreateShipmentOnOrderPaid::class);
         Event::listen(ProductPriceDropped::class, NotifyFavoritesOfPriceDrop::class);
         Event::listen(ProductBackInStock::class, NotifyFavoritesOfBackInStock::class);
         Event::listen(ReviewApproved::class, SendReviewApprovedNotification::class);

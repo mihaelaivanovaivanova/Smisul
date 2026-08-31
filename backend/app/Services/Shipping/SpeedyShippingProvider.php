@@ -262,6 +262,23 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
+     * Not implemented — unlike quote/offices/createShipment/track, Speedy's
+     * real printLabel operation was never exercised against the sandbox, so
+     * there's no confirmed request/response shape to build against (see
+     * this class's own docblock on why every other method here is verified,
+     * not guessed). Throws rather than fabricating an endpoint that might
+     * not match Speedy's actual API.
+     */
+    public function fetchLabel(string $trackingNumber): string
+    {
+        throw ShippingProviderException::requestFailed(
+            'speedy',
+            'fetchLabel',
+            'not implemented - Speedy\'s label/printLabel endpoint has not been confirmed against their real API yet.',
+        );
+    }
+
+    /**
      * Maps Speedy's real Track And Trace operation codes (Appendix 1 of
      * their API docs) onto our shared ShipmentStatus vocabulary.
      */

@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
+import { apiBaseUrl } from '../../api/client';
+import { createOrderShipment, fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -21,6 +22,21 @@ export default function OrderDetailPage() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [operationPaymentId, setOperationPaymentId] = useState<number | null>(null);
   const [refundAmounts, setRefundAmounts] = useState<Record<number, number>>({});
+  const [isCreatingShipment, setIsCreatingShipment] = useState(false);
+  const [shipmentError, setShipmentError] = useState<string | null>(null);
+
+  async function handleCreateShipment() {
+    setIsCreatingShipment(true);
+    setShipmentError(null);
+    try {
+      await createOrderShipment(id);
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setShipmentError(getErrorMessage(err, 'Could not create the shipment.'));
+    } finally {
+      setIsCreatingShipment(false);
+    }
+  }
 
   async function handlePaymentOperation(paymentId: number, operation: 'reverse' | 'refund') {
     setOperationPaymentId(paymentId);
@@ -241,22 +257,53 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          {order.shipment && (
-            <div className="card mb-4">
-              <div className="card-header">Shipment</div>
-              <div className="card-body">
-                <p className="mb-1">
-                  <strong>Carrier:</strong> {order.shipment.carrier} ({order.shipment.delivery_type})
-                </p>
-                <p className="mb-1">
-                  <strong>Tracking #:</strong> {order.shipment.tracking_number ?? '—'}
-                </p>
-                <p className="mb-0">
-                  <strong>Status:</strong> <StatusBadge status={order.shipment.status} />
-                </p>
-              </div>
+          <div className="card mb-4">
+            <div className="card-header">Shipment</div>
+            <div className="card-body">
+              {shipmentError && <div className="alert alert-danger py-2 mb-3">{shipmentError}</div>}
+              {order.shipment ? (
+                <>
+                  <p className="mb-1">
+                    <strong>Carrier:</strong> {order.shipment.carrier} ({order.shipment.delivery_type})
+                  </p>
+                  <p className="mb-1">
+                    <strong>Tracking #:</strong> {order.shipment.tracking_number ?? '-'}
+                  </p>
+                  <p className="mb-3">
+                    <strong>Status:</strong> <StatusBadge status={order.shipment.status} />
+                  </p>
+                  {order.shipment.carrier === 'box_now' ? (
+                    // rel="noopener" only, not "noreferrer" - the backend's
+                    // Sanctum session auth needs the Referer header to
+                    // recognize this as a request from the trusted
+                    // frontend origin (see SANCTUM_STATEFUL_DOMAINS);
+                    // stripping it entirely made every click look
+                    // unauthenticated, redirecting to login instead of
+                    // downloading. noopener alone still prevents the new
+                    // tab from reaching back into window.opener.
+                    <a
+                      className="btn btn-outline-secondary btn-sm"
+                      href={`${apiBaseUrl}/admin/orders/${order.id}/shipment/label`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Download label
+                    </a>
+                  ) : (
+                    <span className="small text-muted">Label download isn't available for this carrier yet.</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-muted mb-3">No shipment has been requested from the carrier for this order yet.</p>
+                  <button type="button" className="btn btn-primary btn-sm" disabled={isCreatingShipment} onClick={() => void handleCreateShipment()}>
+                    {isCreatingShipment && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                    Create shipment
+                  </button>
+                </>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         <div className="col-lg-4">

@@ -11,14 +11,18 @@ use App\Http\Resources\Admin\OrderResource;
 use App\Models\Order;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
+use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
+use RuntimeException;
 
 class OrderController extends Controller
 {
     public function __construct(
         private readonly OrderService $orders,
         private readonly OrderStatusService $orderStatus,
+        private readonly ShippingService $shipping,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -56,5 +60,46 @@ class OrderController extends Controller
     public function statistics(): JsonResponse
     {
         return response()->json(['data' => $this->orders->statistics()]);
+    }
+
+    /**
+     * Manual fallback for CreateShipmentOnOrderPaid (which already runs
+     * automatically on payment confirmation): retries a failed automatic
+     * attempt, or dispatches a historical order placed before that listener
+     * existed. A 422 with the real carrier-failure reason, not a generic
+     * 500 — an admin retrying this needs to see *why* it failed (bad
+     * address, locker unavailable, carrier outage, ...), not just that it
+     * did.
+     */
+    public function createShipment(Order $order): OrderResource|JsonResponse
+    {
+        try {
+            $this->shipping->createShipment($order);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return new OrderResource($order->fresh()->load(OrderService::ADMIN_EAGER_LOAD));
+    }
+
+    /**
+     * Streams the dispatch label PDF straight from the carrier — fetched
+     * fresh on every request (see ShippingService::fetchLabel()), never
+     * cached on our side.
+     */
+    public function shipmentLabel(Order $order): Response|JsonResponse
+    {
+        $shipment = $order->shipment;
+        abort_if($shipment === null, 404, 'This order has no shipment yet.');
+
+        try {
+            $pdf = $this->shipping->fetchLabel($shipment);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response($pdf, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', "inline; filename=\"{$order->order_number}-label.pdf\"");
     }
 }

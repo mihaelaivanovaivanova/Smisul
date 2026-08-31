@@ -100,10 +100,12 @@ class ShippingService
 
     /**
      * Requests a real shipment from the carrier the order's checkout
-     * selection points at, and persists the result. Not called
-     * automatically anywhere in this sprint (see the sprint's "prepare
-     * backend support" scope) — a future admin action is the intended
-     * caller.
+     * selection points at, and persists the result. Called automatically
+     * by Listeners\CreateShipmentOnOrderPaid the moment an order reaches
+     * OrderStatus::Paid, and also exposed as a manual admin action
+     * (Admin\OrderController::createShipment) for retrying a failed
+     * automatic attempt or dispatching a historical order placed before
+     * this existed.
      */
     public function createShipment(Order $order): Shipment
     {
@@ -163,6 +165,20 @@ class ShippingService
         }
 
         return $tracking;
+    }
+
+    /**
+     * Raw PDF bytes of the shipment's dispatch label — fetched fresh from
+     * the carrier on every call (see ShippingProviderInterface::fetchLabel()
+     * on why neither carrier's label is a storable static URL).
+     */
+    public function fetchLabel(Shipment $shipment): string
+    {
+        if ($shipment->tracking_number === null) {
+            throw new RuntimeException("Shipment {$shipment->id} has no tracking number yet.");
+        }
+
+        return $this->providerFor($shipment->carrier->value)->fetchLabel($shipment->tracking_number);
     }
 
     /**

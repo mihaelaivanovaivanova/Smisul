@@ -9,6 +9,7 @@ use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Exceptions\Shipping\ShippingProviderException;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,6 +111,7 @@ class ShipmentCreationTest extends TestCase
             'shipping_office_id' => 'locker-42',
             'shipping_office_name' => 'BOX NOW Sofia Mall',
         ]);
+        OrderItem::factory()->for($order)->create();
 
         $shipment = $this->app->make(ShippingService::class)->createShipment($order);
 
@@ -121,7 +123,15 @@ class ShipmentCreationTest extends TestCase
                 && $request['orderNumber'] === $order->order_number
                 && $request['paymentMode'] === 'prepaid'
                 && $request['destination']['locationId'] === 'locker-42'
-                && $request['origin']['locationId'] === 'any-apm';
+                // '2' is this account's real numeric any-apm wildcard
+                // origin id (confirmed via GET /origins) - the literal
+                // string "any-apm" fails BOX NOW's schema (P400).
+                && $request['origin']['locationId'] === '2'
+                // Confirmed against the guide ("allowReturn: Винаги трябва
+                // да бъде false") and partner_api_1.72.yaml
+                // (items.compartmentSize required for any-apm origin).
+                && $request['allowReturn'] === false
+                && $request['items'][0]['compartmentSize'] === 2;
         });
     }
 

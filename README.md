@@ -81,8 +81,8 @@ php artisan migrate --seed
 ```
 
 This creates the administrator account from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
-above, plus one demo customer (`customer@example.com`, password `password`,
-from `UserFactory`'s default). Administrator accounts can **only** be
+above, plus one deterministic demo customer (`customer@example.com`, password
+`password`). Administrator accounts can **only** be
 created this way — public registration always creates a `customer`.
 
 This also seeds the full development product catalog — see

@@ -11,6 +11,25 @@ $artifactRoot = Join-Path $repositoryRoot "deployment/artifacts/frontend"
 $npmCache = Join-Path $repositoryRoot "tmp/npm-cache"
 $previousNpmCache = $env:npm_config_cache
 
+function Assert-FrontendArtifact([string] $root) {
+    if (-not (Test-Path -LiteralPath (Join-Path $root "index.html"))) {
+        throw "The frontend artifact does not contain index.html: $root"
+    }
+
+    $assetsRoot = Join-Path $root "assets"
+    $javascriptFiles = @(Get-ChildItem -LiteralPath $assetsRoot -Filter "*.js" -File)
+    if ($javascriptFiles.Count -eq 0) {
+        throw "The frontend artifact does not contain a JavaScript bundle: $root"
+    }
+
+    foreach ($javascriptFile in $javascriptFiles) {
+        $javascript = [System.IO.File]::ReadAllText($javascriptFile.FullName)
+        if ($javascript -match '[A-Za-z]:[/\\][^"''``]*[/\\]api') {
+            throw "The frontend bundle contains a Windows filesystem API URL: $($javascriptFile.Name)"
+        }
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $npmCache | Out-Null
 
 Push-Location $frontendRoot
@@ -40,6 +59,9 @@ finally {
     Pop-Location
 }
 
+# Validate dist before replacing the last known-good committed artifact.
+Assert-FrontendArtifact $distRoot
+
 $expectedArtifactRoot = Join-Path $repositoryRoot "deployment/artifacts/frontend"
 if ([System.IO.Path]::GetFullPath($artifactRoot) -ne [System.IO.Path]::GetFullPath($expectedArtifactRoot)) {
     throw "Refusing to replace an unexpected artifact path: $artifactRoot"
@@ -51,9 +73,6 @@ if (Test-Path -LiteralPath $artifactRoot) {
 
 New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
 Copy-Item -Path (Join-Path $distRoot "*") -Destination $artifactRoot -Recurse -Force
-
-if (-not (Test-Path -LiteralPath (Join-Path $artifactRoot "index.html"))) {
-    throw "The cPanel artifact does not contain index.html."
-}
+Assert-FrontendArtifact $artifactRoot
 
 Write-Host "cPanel frontend artifact is ready: $artifactRoot"

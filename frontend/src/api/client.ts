@@ -1,6 +1,20 @@
 import axios from 'axios';
 
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+function resolveApiUrl(configuredUrl: string | undefined): string {
+  const isHttpUrl = configuredUrl ? /^https?:\/\//i.test(configuredUrl) : false;
+  const isRootRelativeUrl = configuredUrl ? /^\/(?!\/)/.test(configuredUrl) : false;
+
+  // Git Bash on Windows can path-convert a value such as `/api` into
+  // `C:/Program Files/Git/api` before Vite sees it. Never bake a local
+  // filesystem path into the browser bundle: production is same-origin.
+  if (configuredUrl && (isHttpUrl || isRootRelativeUrl)) {
+    return configuredUrl.replace(/\/$/, '');
+  }
+
+  return import.meta.env.PROD ? '/api' : 'http://localhost:8000/api';
+}
+
+const apiUrl = resolveApiUrl(import.meta.env.VITE_API_URL);
 
 // The backend's root domain, e.g. http://localhost:8000, derived from
 // VITE_API_URL (http://localhost:8000/api) — needed because Sanctum's

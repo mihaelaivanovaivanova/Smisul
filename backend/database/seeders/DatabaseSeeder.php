@@ -19,21 +19,17 @@ class DatabaseSeeder extends Seeder
         $this->call(SettingsSeeder::class);
         $this->call(ContentBlockSeeder::class);
 
-        // Guarded, not a blind factory create - every other seeder here is
-        // safe to re-run (updateOrCreate/firstOrCreate, per each one's own
-        // doc comment); this demo customer needs the same guarantee or a
-        // plain `db:seed` re-run (no migrate:fresh first) fatals on the
-        // email's unique constraint. Plain existence check rather than
-        // firstOrCreate($attributes, $values): $values would win the
-        // array_merge on create, so raw()'s own fake email in $values
-        // would silently replace the real customer@example.com.
-        if (! User::query()->where('email', 'customer@example.com')->exists()) {
-            User::factory()->create([
-                'first_name' => 'Test',
-                'last_name' => 'Customer',
-                'email' => 'customer@example.com',
-            ]);
-        }
+        // Hosted installs use Composer --no-dev, so Faker-backed factories
+        // are unavailable there. Keep the full development seeder runnable
+        // in that environment too, while remaining safe to re-run.
+        $testCustomer = User::query()->firstOrNew(['email' => 'customer@example.com']);
+        $testCustomer->forceFill([
+            'first_name' => 'Test',
+            'last_name' => 'Customer',
+            'password' => 'password',
+            'email_verified_at' => now(),
+            'gdpr_consent_at' => now(),
+        ])->save();
 
         $this->call(CategorySeeder::class);
         $this->call(ProductSeeder::class);

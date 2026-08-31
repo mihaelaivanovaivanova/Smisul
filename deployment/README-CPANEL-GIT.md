@@ -66,6 +66,37 @@ branch-а, инсталира production Composer пакетите, създав
 `backend`, копира файловете и при вече инсталиран сайт изпълнява чакащите
 Laravel migrations.
 
+`.cpanel.yml` трябва да остане в основната директория на Git repository-то.
+Не го местете и не го качвайте ръчно в `smisul.bg/root`. cPanel го прочита
+автоматично при **Deploy HEAD Commit**.
+
+## Изцяло чиста повторна инсталация
+
+Deployment скриптът умишлено запазва `.env`, `install-config.php`, storage и
+installation lock-а при нормални обновявания. Затова изтриване само на
+публичните файлове не превръща съществуващ сайт в чиста инсталация.
+
+Ако няма данни за запазване, най-безопасният clean-install поток е:
+
+1. Преименувайте текущата `/home/CPANEL_USER/smisul.bg` директория като
+   резервно копие, например `smisul.bg.backup`, вместо да изтривате отделни
+   файлове на сляпо.
+2. Създайте отново празните директории `smisul.bg/root` и
+   `smisul.bg/backend`; document root на домейна остава
+   `/home/CPANEL_USER/smisul.bg/root`.
+3. Създайте нова празна MySQL база и потребител в cPanel и дайте **ALL
+   PRIVILEGES** на потребителя за тази база. Не използвайте база с останали
+   таблици от прекъсната инсталация.
+4. В Git Version Control натиснете **Update from Remote**, проверете branch
+   `NewFunnelLayout`, след това **Deploy HEAD Commit**. Deployment-ът ще
+   постави `install.php` само защото новият backend все още няма `.env`.
+5. Копирайте `backend/install-config.example.php` като
+   `backend/install-config.php`, попълнете го и отворете `/install.php`.
+
+Не добавяйте `migrate:fresh`, изтриване на база или изтриване на storage в
+`.cpanel.yml`: файлът се изпълнява при всеки бъдещ deploy и такава команда би
+унищожила работещия сайт.
+
 ## Първа инсталация
 
 След първия deployment:

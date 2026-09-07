@@ -18,6 +18,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -25,11 +26,11 @@ use Throwable;
 /**
  * Speedy integration against their real Web API, verified end-to-end
  * against the sandbox with live test credentials (account 1996549) —
- * quote, office lookup, shipment creation, and tracking have all returned
- * real data, not just documented-but-unverified shapes. Credentials are
- * embedded as `userName`/`password` fields in every request body, not an
- * HTTP auth header, and every endpoint requires them, including office
- * lookups.
+ * quote, office lookup, shipment creation, label printing, and tracking
+ * have all returned real data, not just documented-but-unverified shapes.
+ * Credentials are embedded as `userName`/`password` fields in every request
+ * body, not an HTTP auth header, and every endpoint requires them,
+ * including office lookups.
  *
  * Two endpoints, two different field shapes for the same concepts —
  * confirmed by trial against the real API, not guessed:
@@ -202,8 +203,13 @@ class SpeedyShippingProvider implements ShippingProviderInterface
 
         try {
             $response = $this->client()->post('shipment', $this->withCredentials([
+                'sender' => [
+                    'clientId' => $this->ownClientId(),
+                    'dropoff' => true,
+                    'dropoffOfficeId' => (int) $this->settings->credentialsFor('speedy')['dropoff_office_id'],
+                ],
                 'recipient' => $recipient,
-                'service' => ['serviceId' => self::SERVICE_ID],
+                'service' => ['serviceId' => self::SERVICE_ID, 'pickupDate' => $this->nextPickupDate()->toDateString()],
                 'content' => [
                     'parcelsCount' => 1,
                     'totalWeight' => 1.0,
@@ -220,7 +226,14 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         $trackingNumber = $response->json('id') ?? $response->json('parcels.0.parcelId');
 
         if (! $response->successful() || $trackingNumber === null) {
-            throw ShippingProviderException::requestFailed('speedy', 'createShipment', (string) $response->status());
+            // Speedy returns HTTP 200 even for a business-logic rejection
+            // (e.g. no courier scheduled to collect from the sender address
+            // today) — the real reason lives in the response body's `error`
+            // object, not the HTTP status, so surface that when present
+            // rather than the useless "request failed: 200".
+            $reason = $response->json('error.message') ?? (string) $response->status();
+
+            throw ShippingProviderException::requestFailed('speedy', 'createShipment', (string) $reason);
         }
 
         return new ShipmentData(
@@ -262,20 +275,53 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
-     * Not implemented — unlike quote/offices/createShipment/track, Speedy's
-     * real printLabel operation was never exercised against the sandbox, so
-     * there's no confirmed request/response shape to build against (see
-     * this class's own docblock on why every other method here is verified,
-     * not guessed). Throws rather than fabricating an endpoint that might
-     * not match Speedy's actual API.
+     * `POST print` per Speedy's real published schema (ParcelToPrint takes
+     * a ShipmentParcelRef, not a bare string id: `parcels[].parcelId.id`) —
+     * confirmed live against the sandbox: a real A6 PDF label came back for
+     * a real test shipment's tracking number, byte-identical in shape to
+     * BOX NOW's own label response (raw PDF body, not a wrapped/base64
+     * response like `print/extended` returns).
      */
     public function fetchLabel(string $trackingNumber): string
     {
-        throw ShippingProviderException::requestFailed(
-            'speedy',
-            'fetchLabel',
-            'not implemented - Speedy\'s label/printLabel endpoint has not been confirmed against their real API yet.',
-        );
+        try {
+            $response = $this->client()->post('print', $this->withCredentials([
+                'paperSize' => 'A6',
+                'parcels' => [['parcelId' => ['id' => $trackingNumber]]],
+            ]));
+        } catch (ConnectionException $exception) {
+            throw ShippingProviderException::requestFailed('speedy', 'fetchLabel', $exception->getMessage());
+        }
+
+        if (! $response->successful()) {
+            $reason = $response->json('error.message') ?? (string) $response->status();
+
+            throw ShippingProviderException::requestFailed('speedy', 'fetchLabel', (string) $reason);
+        }
+
+        return $response->body();
+    }
+
+    /**
+     * Leaving `service.pickupDate` unset defaults it to "today" on Speedy's
+     * side, which their real API rejects outright once the account's
+     * same-day courier collection cutoff has passed for the sender address
+     * ("courier-not-working-office-collection-possible") — reproduced live:
+     * an identical request succeeds immediately once a future date is sent
+     * instead. Since order payment (and therefore automatic shipment
+     * creation, see CreateShipmentOnOrderPaid) can happen at any hour,
+     * always requesting the next working day sidesteps that cutoff entirely
+     * rather than depending on what time of day checkout happens to occur.
+     */
+    private function nextPickupDate(): CarbonImmutable
+    {
+        $date = CarbonImmutable::tomorrow();
+
+        while ($date->isWeekend()) {
+            $date = $date->addDay();
+        }
+
+        return $date;
     }
 
     /**
@@ -338,6 +384,37 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         } catch (Throwable) {
             return '1-2 работни дни';
         }
+    }
+
+    /**
+     * The account's own registered `clientId` (its identity on file with
+     * Speedy — confirmed live: our production account resolves to the
+     * real registered business, our sandbox account to Speedy's own
+     * "EPS/API TESTERS" placeholder) — required by `sender.dropoff`
+     * shipments so the printed label shows that real sender identity
+     * instead of a hand-typed one, and so Speedy accepts this account as
+     * a valid payer for the courier service. `POST client` per Speedy's
+     * real schema (`GetOwnClientIdResponse`). Cached per credentials set,
+     * since it never changes for a given account and every shipment
+     * creation would otherwise cost an extra round trip.
+     */
+    private function ownClientId(): int
+    {
+        $credentials = $this->settings->credentialsFor('speedy');
+
+        return (int) Cache::remember(
+            'speedy.own_client_id.'.md5((string) ($credentials['username'] ?? '')),
+            now()->addDay(),
+            function () {
+                $response = $this->client()->post('client', $this->withCredentials([]));
+
+                if (! $response->successful() || $response->json('clientId') === null) {
+                    throw ShippingProviderException::requestFailed('speedy', 'ownClientId', (string) ($response->json('error.message') ?? $response->status()));
+                }
+
+                return $response->json('clientId');
+            },
+        );
     }
 
     /**

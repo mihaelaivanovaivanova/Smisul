@@ -25,7 +25,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_shipment_persists_a_tracking_number_and_status_event(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-123'])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-123', 'clientId' => 12345])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -73,7 +73,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function a_shipment_cannot_be_created_twice_for_the_same_order(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1'])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1', 'clientId' => 12345])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -187,7 +187,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_speedy_shipment_splits_the_address_line_into_street_and_number(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1'])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1', 'clientId' => 12345])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -201,7 +201,7 @@ class ShipmentCreationTest extends TestCase
         $this->assertSame('SPEEDY-TEST-1', $shipment->tracking_number);
 
         Http::assertSent(function ($request) {
-            return str_contains($request->url(), 'api.speedy.bg')
+            return str_ends_with($request->url(), '/shipment')
                 && $request['recipient']['address']['streetName'] === 'ul. Vitosha'
                 && $request['recipient']['address']['streetNo'] === '25A'
                 && $request['service']['serviceId'] === 505;
@@ -211,7 +211,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_speedy_shipment_falls_back_to_a_placeholder_number_when_the_address_has_none(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-2'])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-2', 'clientId' => 12345])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -223,7 +223,8 @@ class ShipmentCreationTest extends TestCase
         $this->app->make(ShippingService::class)->createShipment($order);
 
         Http::assertSent(function ($request) {
-            return $request['recipient']['address']['streetName'] === 'ul. Vitosha'
+            return str_ends_with($request->url(), '/shipment')
+                && $request['recipient']['address']['streetName'] === 'ul. Vitosha'
                 && $request['recipient']['address']['streetNo'] === '0';
         });
     }

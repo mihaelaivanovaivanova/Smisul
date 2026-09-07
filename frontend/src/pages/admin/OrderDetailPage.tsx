@@ -272,7 +272,7 @@ export default function OrderDetailPage() {
                   <p className="mb-3">
                     <strong>Status:</strong> <StatusBadge status={order.shipment.status} />
                   </p>
-                  {order.shipment.carrier === 'box_now' ? (
+                  {order.shipment.carrier === 'box_now' || order.shipment.carrier === 'speedy' ? (
                     // rel="noopener" only, not "noreferrer" - the backend's
                     // Sanctum session auth needs the Referer header to
                     // recognize this as a request from the trusted

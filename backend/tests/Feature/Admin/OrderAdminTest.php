@@ -234,15 +234,42 @@ class OrderAdminTest extends TestCase
     }
 
     #[Test]
-    public function downloading_a_label_for_an_unimplemented_carrier_returns_a_clear_error(): void
+    public function an_administrator_can_download_a_speedy_shipment_label(): void
     {
+        Http::fake([
+            'api.speedy.bg/v1/print' => Http::response('%PDF-1.4 fake speedy label bytes', 200, ['Content-Type' => 'application/pdf']),
+        ]);
+
         $admin = User::factory()->administrator()->create();
         $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
-        Shipment::factory()->for($order)->created()->create(['carrier' => ShippingCarrier::Speedy]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'tracking_number' => '63733054388',
+        ]);
+
+        $response = $this->actingAs($admin)->get("/api/v1/admin/orders/{$order->id}/shipment/label");
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('fake speedy label bytes', $response->getContent());
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.speedy.bg/v1/print'
+            && $request['parcels'][0]['parcelId']['id'] === '63733054388');
+    }
+
+    #[Test]
+    public function a_speedy_label_request_that_the_carrier_rejects_returns_a_clear_error(): void
+    {
+        Http::fake([
+            'api.speedy.bg/v1/print' => Http::response(['error' => ['message' => 'Parcel not found']], 404),
+        ]);
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
+        Shipment::factory()->for($order)->created()->create(['carrier' => ShippingCarrier::Speedy, 'tracking_number' => 'missing']);
 
         $response = $this->actingAs($admin)->get("/api/v1/admin/orders/{$order->id}/shipment/label");
 
         $response->assertStatus(422);
-        $response->assertJsonFragment(['message' => "speedy fetchLabel request failed: not implemented - Speedy's label/printLabel endpoint has not been confirmed against their real API yet."]);
+        $response->assertJsonFragment(['message' => 'speedy fetchLabel request failed: Parcel not found']);
     }
 }

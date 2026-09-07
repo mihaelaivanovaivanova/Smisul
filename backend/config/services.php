@@ -140,6 +140,13 @@ return [
             'base_url' => env('SPEEDY_BASE_URL', 'https://api.speedy.bg/v1/'),
             'username' => env('SPEEDY_USERNAME'),
             'password' => env('SPEEDY_PASSWORD'),
+            // This storefront has no courier pickup arrangement with Speedy
+            // (see SpeedyShippingProvider::createShipment()'s own comment) -
+            // parcels are hand-delivered to this specific real office
+            // instead. Confirmed against the live sandbox: Speedy's
+            // `sender.dropoff` shipment flow requires a concrete
+            // `dropoffOfficeId`, not just a city/address.
+            'dropoff_office_id' => env('SPEEDY_DROPOFF_OFFICE_ID', '345'),
         ],
         'box_now' => [
             'base_url' => env('BOX_NOW_BASE_URL', 'https://api-production.boxnow.bg/api/v1/'),

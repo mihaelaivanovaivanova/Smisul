@@ -5,7 +5,7 @@ import { notFound } from '../content/copy';
 export default function NotFoundPage() {
   return (
     <div className="container py-5 text-center">
-      <Seo title={notFound.seoTitle} description={notFound.seoDescription} />
+      <Seo title={notFound.seoTitle} description={notFound.seoDescription} noindex />
       <h1 className="display-5 mb-3">{notFound.title}</h1>
       <p className="lead mb-4">{notFound.lead}</p>
       <Link to="/" className="btn btn-primary">

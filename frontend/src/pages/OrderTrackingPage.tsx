@@ -67,7 +67,7 @@ export default function OrderTrackingPage() {
 
   return (
     <div className="container py-4">
-      <Seo title={trackingCopy.seoTitle} />
+      <Seo title={trackingCopy.seoTitle} noindex />
       <h1 className="h3 mb-4">{trackingCopy.title}</h1>
 
       {isLoading && <LoadingState message={trackingCopy.loading} />}

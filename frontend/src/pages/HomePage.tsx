@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchProduct, fetchProducts } from '../api/products';
 import { fetchHomepageContent } from '../api/content';
+import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
 import {
   getActivePromotion,
@@ -20,6 +21,7 @@ import Seo from '../components/Seo';
 import Icon from '../components/icons/Icon';
 import { organizationJsonLd, websiteJsonLd } from '../services/structuredData';
 import { homeSectionEyebrows, product as productCopy, seo, states } from '../content/copy';
+import logoMark from '../assets/logo/smisul-logo-full.svg';
 import type { Product, ProductVariant } from '../types/product';
 
 /** The admin's chosen product (by slug, resolved server-side), falling back to the newest published one when none is set. */
@@ -51,6 +53,11 @@ export default function HomePage() {
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
+  const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
+  const sameAs = [publicSettings?.social_instagram, publicSettings?.social_facebook, publicSettings?.social_tiktok].filter(
+    (url): url is string => Boolean(url),
+  );
+
   const variants = featuredProduct ? sortVariantsByPackSize(featuredProduct.variants) : [];
   const defaultVariant = featuredProduct ? getDefaultVariant(featuredProduct) : undefined;
   const activeVariant = selectedVariant ?? defaultVariant ?? variants[0];
@@ -70,7 +77,11 @@ export default function HomePage() {
 
   return (
     <div>
-      <Seo title={seo.homeTitle} description={seo.homeDescription} jsonLd={[organizationJsonLd(), websiteJsonLd()]} />
+      <Seo
+        title={seo.homeTitle}
+        description={seo.homeDescription}
+        jsonLd={[organizationJsonLd({ logo: `${window.location.origin}${logoMark}`, sameAs }), websiteJsonLd()]}
+      />
 
       {/* ---- Hero ---- */}
       <section className="hero section">

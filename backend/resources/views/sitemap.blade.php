@@ -3,6 +3,9 @@
 @foreach ($entries as $entry)
     <url>
         <loc>{{ $entry['loc'] }}</loc>
+        @isset($entry['lastmod'])
+        <lastmod>{{ $entry['lastmod'] }}</lastmod>
+        @endisset
         <changefreq>{{ $entry['changefreq'] }}</changefreq>
         <priority>{{ $entry['priority'] }}</priority>
     </url>

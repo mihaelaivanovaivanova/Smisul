@@ -11,6 +11,17 @@ interface SeoProps {
   ogImage?: string | null;
   ogType?: string;
   /**
+   * Keeps this page out of search results while still letting it be
+   * crawled (unlike blocking it in robots.txt, which would hide this very
+   * tag from Google and risk the URL being indexed anyway with no
+   * description - see Google's own guidance on noindex vs. disallow).
+   * Use on pages that are real, linkable, and must render normally but
+   * were never meant to rank: order confirmation/tracking, the SPA's
+   * client-routed 404 (which - since there's no server-side routing - has
+   * no way to return a real HTTP 404 status on its own).
+   */
+  noindex?: boolean;
+  /**
    * One or more JSON-serializable schema.org objects; each is rendered as
    * its own <script type="application/ld+json"> (e.g. a page's Product
    * schema alongside its BreadcrumbList schema).
@@ -28,6 +39,10 @@ function upsertMeta(attribute: 'name' | 'property', key: string, content: string
   }
 
   element.setAttribute('content', content);
+}
+
+function removeMeta(attribute: 'name' | 'property', key: string): void {
+  document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${key}"]`)?.remove();
 }
 
 function upsertLink(rel: string, href: string): void {
@@ -55,7 +70,7 @@ const JSON_LD_ELEMENT_ID_PREFIX = 'seo-json-ld';
  * report's "Known limitations" section for the full caveat and the
  * SSR/prerendering path that would be needed to close that gap.
  */
-export default function Seo({ title, description, canonicalPath, ogImage, ogType = 'website', jsonLd }: SeoProps) {
+export default function Seo({ title, description, canonicalPath, ogImage, ogType = 'website', jsonLd, noindex = false }: SeoProps) {
   const jsonLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
   const jsonLdString = jsonLdList.length > 0 ? JSON.stringify(jsonLdList) : null;
 
@@ -68,6 +83,16 @@ export default function Seo({ title, description, canonicalPath, ogImage, ogType
 
   useEffect(() => {
     document.title = effectiveTitle;
+
+    // This SPA reuses one document across client-side navigations, so a
+    // noindex tag left by a previous page must be explicitly cleared here
+    // rather than assumed gone - otherwise navigating from, say, order
+    // confirmation to the homepage would silently carry it along.
+    if (noindex) {
+      upsertMeta('name', 'robots', 'noindex, follow');
+    } else {
+      removeMeta('name', 'robots');
+    }
 
     if (effectiveDescription) {
       upsertMeta('name', 'description', effectiveDescription);
@@ -107,7 +132,7 @@ export default function Seo({ title, description, canonicalPath, ogImage, ogType
       script.textContent = JSON.stringify(entry);
       document.head.appendChild(script);
     });
-  }, [effectiveTitle, effectiveDescription, canonicalPath, effectiveOgImage, ogType, jsonLdString]);
+  }, [effectiveTitle, effectiveDescription, canonicalPath, effectiveOgImage, ogType, jsonLdString, noindex]);
 
   return null;
 }

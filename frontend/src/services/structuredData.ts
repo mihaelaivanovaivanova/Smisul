@@ -19,13 +19,21 @@ export function buildBreadcrumbJsonLd(items: BreadcrumbItem[]): Record<string, u
   };
 }
 
-/** Site-wide Organization schema — meant for the homepage only, not every page. */
-export function organizationJsonLd(): Record<string, unknown> {
+/**
+ * Site-wide Organization schema — meant for the homepage only, not every
+ * page. `logo`/`sameAs` are optional since they depend on data (a bundled
+ * asset URL, the admin's configured social links) the caller already has
+ * on hand rather than something this pure function can fetch itself —
+ * omit either and Google simply skips that field, no Knowledge Panel harm.
+ */
+export function organizationJsonLd(options?: { logo?: string; sameAs?: string[] }): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: siteName,
     url: window.location.origin,
+    ...(options?.logo ? { logo: options.logo } : {}),
+    ...(options?.sameAs && options.sameAs.length > 0 ? { sameAs: options.sameAs } : {}),
   };
 }
 

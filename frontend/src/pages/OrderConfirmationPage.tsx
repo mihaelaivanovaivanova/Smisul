@@ -81,7 +81,7 @@ export default function OrderConfirmationPage() {
 
   return (
     <div className="container py-4">
-      <Seo title={checkoutCopy.confirmation.seoTitle} />
+      <Seo title={checkoutCopy.confirmation.seoTitle} noindex />
 
       {isLoading && <LoadingState message={checkoutCopy.confirmation.loading} />}
       {!isLoading && error && <ErrorState message={error} />}

@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\FunnelConfig;
 use App\Models\LegalDocument;
 use App\Models\Product;
+use Illuminate\Support\Collection;
 
 /**
  * Builds the sitemap.xml entry list. URLs point at the FRONTEND's domain
@@ -18,7 +19,7 @@ use App\Models\Product;
 class SitemapService
 {
     /**
-     * @return list<array{loc: string, changefreq: string, priority: string}>
+     * @return list<array{loc: string, changefreq: string, priority: string, lastmod?: string}>
      */
     public function entries(): array
     {
@@ -35,16 +36,36 @@ class SitemapService
             $entries[] = ['loc' => $baseUrl.'/search', 'changefreq' => 'daily', 'priority' => '0.6'];
         }
 
-        foreach ($this->categorySlugs() as $slug) {
-            $entries[] = ['loc' => "{$baseUrl}/categories/{$slug}", 'changefreq' => 'weekly', 'priority' => '0.8'];
+        // lastmod is only added where there's a real "last changed"
+        // timestamp behind it (updated_at / published_at) - the static
+        // entries above (/, /search) and /about below have no such signal,
+        // and stamping them with now() on every sitemap request would be a
+        // fake freshness signal, not a real one.
+        foreach ($this->categories() as $category) {
+            $entries[] = [
+                'loc' => "{$baseUrl}/categories/{$category->slug}",
+                'changefreq' => 'weekly',
+                'priority' => '0.8',
+                'lastmod' => $category->updated_at->toAtomString(),
+            ];
         }
 
-        foreach ($this->productSlugs() as $slug) {
-            $entries[] = ['loc' => "{$baseUrl}/products/{$slug}", 'changefreq' => 'weekly', 'priority' => '0.9'];
+        foreach ($this->products() as $product) {
+            $entries[] = [
+                'loc' => "{$baseUrl}/products/{$product->slug}",
+                'changefreq' => 'weekly',
+                'priority' => '0.9',
+                'lastmod' => $product->updated_at->toAtomString(),
+            ];
         }
 
-        foreach ($this->legalDocumentSlugs() as $slug) {
-            $entries[] = ['loc' => "{$baseUrl}/legal/{$slug}", 'changefreq' => 'monthly', 'priority' => '0.3'];
+        foreach ($this->legalDocuments() as $document) {
+            $entries[] = [
+                'loc' => "{$baseUrl}/legal/{$document->type->slug()}",
+                'changefreq' => 'monthly',
+                'priority' => '0.3',
+                'lastmod' => $document->published_at->toAtomString(),
+            ];
         }
 
         $entries[] = ['loc' => $baseUrl.'/about', 'changefreq' => 'monthly', 'priority' => '0.4'];
@@ -53,19 +74,19 @@ class SitemapService
     }
 
     /**
-     * @return list<string>
+     * @return Collection<int, Category>
      */
-    private function categorySlugs(): array
+    private function categories(): Collection
     {
-        return Category::query()->where('is_active', true)->pluck('slug')->all();
+        return Category::query()->where('is_active', true)->get(['slug', 'updated_at']);
     }
 
     /**
-     * @return list<string>
+     * @return Collection<int, Product>
      */
-    private function productSlugs(): array
+    private function products(): Collection
     {
-        return Product::query()->where('status', ProductStatus::Published)->pluck('slug')->all();
+        return Product::query()->where('status', ProductStatus::Published)->get(['slug', 'updated_at']);
     }
 
     /**
@@ -73,14 +94,10 @@ class SitemapService
      * type with nothing to show would put a 404 in the sitemap, which
      * search engines specifically dislike.
      *
-     * @return list<string>
+     * @return Collection<int, LegalDocument>
      */
-    private function legalDocumentSlugs(): array
+    private function legalDocuments(): Collection
     {
-        return LegalDocument::query()
-            ->where('is_current', true)
-            ->get()
-            ->map(fn (LegalDocument $document) => $document->type->slug())
-            ->all();
+        return LegalDocument::query()->where('is_current', true)->get(['type', 'published_at']);
     }
 }

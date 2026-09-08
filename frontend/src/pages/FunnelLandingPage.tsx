@@ -15,6 +15,8 @@ import StickyDesktopBuyBar from '../components/funnel/StickyDesktopBuyBar';
 import BoxNowBadge from '../components/funnel/BoxNowBadge';
 import { resolvePackageOffers } from '../services/funnelOffers';
 import Seo from '../components/Seo';
+import { organizationJsonLd, websiteJsonLd } from '../services/structuredData';
+import logoMark from '../assets/logo/smisul-logo-full.svg';
 import HeroSection from '../components/funnel/sections/HeroSection';
 import UseCasesSection from '../components/funnel/sections/UseCasesSection';
 import WhatIsMiswakSection from '../components/funnel/sections/WhatIsMiswakSection';
@@ -107,6 +109,9 @@ export default function FunnelLandingPage() {
   // social proof: a failed fetch just hides the dispatch promise line.
   const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
   const dispatchCutoff = publicSettings?.same_day_dispatch_cutoff ?? null;
+  const sameAs = [publicSettings?.social_instagram, publicSettings?.social_facebook, publicSettings?.social_tiktok].filter(
+    (url): url is string => Boolean(url),
+  );
 
   // Navbar's section-anchor nav links here as "/#core-benefits" etc. — the
   // browser only auto-scrolls to a fragment on a real page load, not an
@@ -411,7 +416,16 @@ export default function FunnelLandingPage() {
         title={seo.funnelTitle}
         description={seo.funnelDescription}
         ogImage="/funnel/v2/og-image.jpg"
-        jsonLd={faqJsonLd ? [productJsonLd, faqJsonLd] : productJsonLd}
+        jsonLd={[
+          // This page is what actually renders at "/" while funnel mode is
+          // on (see App.tsx) - the site-wide Organization/WebSite schema
+          // belongs here for exactly that reason, not just on HomePage.tsx
+          // (which only renders once funnel mode is switched off).
+          organizationJsonLd({ logo: `${window.location.origin}${logoMark}`, sameAs }),
+          websiteJsonLd(),
+          productJsonLd,
+          ...(faqJsonLd ? [faqJsonLd] : []),
+        ]}
       />
 
       {/* 1 Header -> Navbar.tsx, rendered by PublicLayout */}

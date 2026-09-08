@@ -10,6 +10,7 @@ use App\Events\Order\OrderStatusChanged;
 use App\Events\Review\ReviewApproved;
 use App\Events\Review\ReviewRejected;
 use App\Events\Review\ReviewReplied;
+use App\Listeners\CancelShipmentOnOrderCancelled;
 use App\Listeners\CreateShipmentOnOrderPaid;
 use App\Listeners\LogFailedLogin;
 use App\Listeners\LogLogout;
@@ -75,6 +76,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(OrderPlaced::class, SendOrderPlacedNotifications::class);
         Event::listen(OrderStatusChanged::class, SendOrderStatusEmails::class);
         Event::listen(OrderStatusChanged::class, CreateShipmentOnOrderPaid::class);
+        Event::listen(OrderStatusChanged::class, CancelShipmentOnOrderCancelled::class);
         Event::listen(ProductPriceDropped::class, NotifyFavoritesOfPriceDrop::class);
         Event::listen(ProductBackInStock::class, NotifyFavoritesOfBackInStock::class);
         Event::listen(ReviewApproved::class, SendReviewApprovedNotification::class);

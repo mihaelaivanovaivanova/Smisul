@@ -102,4 +102,24 @@ class OrderController extends Controller
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', "inline; filename=\"{$order->order_number}-label.pdf\"");
     }
+
+    /**
+     * Cancels the order's shipment with the carrier — a real cancellation
+     * request, not just a local status flip (see
+     * ShippingService::cancelShipment()). Same 422-with-message shape as
+     * createShipment() above for the same reason.
+     */
+    public function cancelShipment(Order $order): OrderResource|JsonResponse
+    {
+        $shipment = $order->shipment;
+        abort_if($shipment === null, 404, 'This order has no shipment yet.');
+
+        try {
+            $this->shipping->cancelShipment($shipment);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return new OrderResource($order->fresh()->load(OrderService::ADMIN_EAGER_LOAD));
+    }
 }

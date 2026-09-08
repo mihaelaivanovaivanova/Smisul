@@ -66,4 +66,12 @@ interface ShippingProviderInterface
      * isn't implemented yet for that carrier.
      */
     public function fetchLabel(string $trackingNumber): string;
+
+    /**
+     * Cancels a shipment with the carrier. Throws ShippingProviderException
+     * if the carrier rejects the cancellation (e.g. the parcel is already
+     * in transit or delivered) — callers should treat that as a real
+     * business outcome to surface, not swallow.
+     */
+    public function cancelShipment(string $trackingNumber): void;
 }

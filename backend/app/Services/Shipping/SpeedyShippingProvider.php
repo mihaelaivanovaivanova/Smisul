@@ -315,6 +315,30 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
+     * `POST shipment/cancel` per Speedy's real schema
+     * (`CancelShipmentRequest`: `shipmentId` + optional `comment`) —
+     * confirmed live: cancelling a real test shipment returned an empty
+     * `{}` body, which the docs describe as success (an `error` object is
+     * the only other possible response shape).
+     */
+    public function cancelShipment(string $trackingNumber): void
+    {
+        try {
+            $response = $this->client()->post('shipment/cancel', $this->withCredentials([
+                'shipmentId' => $trackingNumber,
+            ]));
+        } catch (ConnectionException $exception) {
+            throw ShippingProviderException::requestFailed('speedy', 'cancelShipment', $exception->getMessage());
+        }
+
+        if (! $response->successful() || $response->json('error') !== null) {
+            $reason = $response->json('error.message') ?? (string) $response->status();
+
+            throw ShippingProviderException::requestFailed('speedy', 'cancelShipment', (string) $reason);
+        }
+    }
+
+    /**
      * Leaving `service.pickupDate` unset defaults it to "today" on Speedy's
      * side, which their real API rejects outright once the account's
      * same-day courier collection cutoff has passed for the sender address

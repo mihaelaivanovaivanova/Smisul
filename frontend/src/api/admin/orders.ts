@@ -34,6 +34,12 @@ export async function createOrderShipment(id: number): Promise<AdminOrder> {
   return data.data;
 }
 
+/** Sends a real cancellation request to the carrier - mirrors the automatic on-order-cancelled trigger for manual use. */
+export async function cancelOrderShipment(id: number): Promise<AdminOrder> {
+  const { data } = await apiClient.post<{ data: AdminOrder }>(`/admin/orders/${id}/shipment/cancel`);
+  return data.data;
+}
+
 export async function reversePayment(paymentId: number): Promise<Payment> {
   const { data } = await apiClient.post<{ data: Payment }>(`/admin/payments/${paymentId}/reverse`);
   return data.data;

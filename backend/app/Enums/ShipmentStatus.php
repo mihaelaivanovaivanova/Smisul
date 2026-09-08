@@ -19,11 +19,12 @@ enum ShipmentStatus: string
     case Delivered = 'delivered';
     case Returned = 'returned';
     case Failed = 'failed';
+    case Cancelled = 'cancelled';
 
     public function isFinal(): bool
     {
         return match ($this) {
-            self::Delivered, self::Returned, self::Failed => true,
+            self::Delivered, self::Returned, self::Failed, self::Cancelled => true,
             default => false,
         };
     }
@@ -40,6 +41,7 @@ enum ShipmentStatus: string
             self::Delivered => 'Доставена',
             self::Returned => 'Върната',
             self::Failed => 'Неуспешна доставка',
+            self::Cancelled => 'Анулирана',
         };
     }
 }

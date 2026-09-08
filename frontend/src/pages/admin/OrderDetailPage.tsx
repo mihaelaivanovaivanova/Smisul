@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiBaseUrl } from '../../api/client';
-import { createOrderShipment, fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
+import { cancelOrderShipment, createOrderShipment, fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -9,6 +9,10 @@ import ErrorState from '../../components/ErrorState';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { formatPrice } from '../../services/productCatalog';
 import { ORDER_STATUSES } from '../../constants/orderStatus';
+
+// Mirrors ShipmentStatus::isFinal() on the backend - cancelling any of
+// these would just get rejected by the carrier, so the button never shows.
+const SHIPMENT_FINAL_STATUSES = ['delivered', 'returned', 'failed', 'cancelled'];
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -23,6 +27,7 @@ export default function OrderDetailPage() {
   const [operationPaymentId, setOperationPaymentId] = useState<number | null>(null);
   const [refundAmounts, setRefundAmounts] = useState<Record<number, number>>({});
   const [isCreatingShipment, setIsCreatingShipment] = useState(false);
+  const [isCancellingShipment, setIsCancellingShipment] = useState(false);
   const [shipmentError, setShipmentError] = useState<string | null>(null);
 
   async function handleCreateShipment() {
@@ -35,6 +40,22 @@ export default function OrderDetailPage() {
       setShipmentError(getErrorMessage(err, 'Could not create the shipment.'));
     } finally {
       setIsCreatingShipment(false);
+    }
+  }
+
+  async function handleCancelShipment() {
+    if (!window.confirm('Cancel this shipment with the carrier? This sends a real cancellation request.')) {
+      return;
+    }
+    setIsCancellingShipment(true);
+    setShipmentError(null);
+    try {
+      await cancelOrderShipment(id);
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setShipmentError(getErrorMessage(err, 'Could not cancel the shipment.'));
+    } finally {
+      setIsCancellingShipment(false);
     }
   }
 
@@ -272,26 +293,39 @@ export default function OrderDetailPage() {
                   <p className="mb-3">
                     <strong>Status:</strong> <StatusBadge status={order.shipment.status} />
                   </p>
-                  {order.shipment.carrier === 'box_now' || order.shipment.carrier === 'speedy' ? (
-                    // rel="noopener" only, not "noreferrer" - the backend's
-                    // Sanctum session auth needs the Referer header to
-                    // recognize this as a request from the trusted
-                    // frontend origin (see SANCTUM_STATEFUL_DOMAINS);
-                    // stripping it entirely made every click look
-                    // unauthenticated, redirecting to login instead of
-                    // downloading. noopener alone still prevents the new
-                    // tab from reaching back into window.opener.
-                    <a
-                      className="btn btn-outline-secondary btn-sm"
-                      href={`${apiBaseUrl}/admin/orders/${order.id}/shipment/label`}
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Download label
-                    </a>
-                  ) : (
-                    <span className="small text-muted">Label download isn't available for this carrier yet.</span>
-                  )}
+                  <div className="d-flex gap-2 align-items-center flex-wrap">
+                    {order.shipment.carrier === 'box_now' || order.shipment.carrier === 'speedy' ? (
+                      // rel="noopener" only, not "noreferrer" - the backend's
+                      // Sanctum session auth needs the Referer header to
+                      // recognize this as a request from the trusted
+                      // frontend origin (see SANCTUM_STATEFUL_DOMAINS);
+                      // stripping it entirely made every click look
+                      // unauthenticated, redirecting to login instead of
+                      // downloading. noopener alone still prevents the new
+                      // tab from reaching back into window.opener.
+                      <a
+                        className="btn btn-outline-secondary btn-sm"
+                        href={`${apiBaseUrl}/admin/orders/${order.id}/shipment/label`}
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        Download label
+                      </a>
+                    ) : (
+                      <span className="small text-muted">Label download isn't available for this carrier yet.</span>
+                    )}
+                    {!SHIPMENT_FINAL_STATUSES.includes(order.shipment.status) && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-sm"
+                        disabled={isCancellingShipment}
+                        onClick={() => void handleCancelShipment()}
+                      >
+                        {isCancellingShipment && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                        Cancel shipment
+                      </button>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\OrderStatus;
+use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Models\Order;
@@ -271,5 +272,71 @@ class OrderAdminTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonFragment(['message' => 'speedy fetchLabel request failed: Parcel not found']);
+    }
+
+    #[Test]
+    public function an_administrator_can_cancel_a_box_now_shipment(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/parcels/BN-CANCEL-ADMIN:cancel' => Http::response([], 200),
+        ]);
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'tracking_number' => 'BN-CANCEL-ADMIN',
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/cancel");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.shipment.status', 'cancelled');
+    }
+
+    #[Test]
+    public function cancelling_a_shipment_the_carrier_rejects_returns_a_clear_error(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/parcels/BN-CANCEL-REJECT:cancel' => Http::response(['code' => 'not-cancellable'], 403),
+        ]);
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'tracking_number' => 'BN-CANCEL-REJECT',
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/cancel");
+
+        $response->assertStatus(422);
+        $this->assertSame(ShipmentStatus::Accepted, $order->shipment->fresh()->status);
+    }
+
+    #[Test]
+    public function cancelling_a_shipment_for_an_order_with_no_shipment_is_not_found(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create();
+
+        $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/cancel")
+            ->assertNotFound();
+    }
+
+    #[Test]
+    public function cancelling_an_already_cancelled_shipment_is_rejected(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'status' => ShipmentStatus::Cancelled,
+        ]);
+
+        $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/cancel")
+            ->assertStatus(422);
     }
 }

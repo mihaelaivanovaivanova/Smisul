@@ -182,6 +182,27 @@ class ShippingService
     }
 
     /**
+     * Cancels the shipment with the carrier and records the resulting
+     * status. Refuses a shipment that's already in a final state (already
+     * cancelled, delivered, etc.) rather than sending a doomed request the
+     * carrier would just reject anyway.
+     */
+    public function cancelShipment(Shipment $shipment): Shipment
+    {
+        if ($shipment->tracking_number === null) {
+            throw new RuntimeException("Shipment {$shipment->id} has no tracking number yet.");
+        }
+
+        if ($shipment->status->isFinal()) {
+            throw new RuntimeException("Shipment {$shipment->id} is already {$shipment->status->value} and cannot be cancelled.");
+        }
+
+        $this->providerFor($shipment->carrier->value)->cancelShipment($shipment->tracking_number);
+
+        return $this->recordStatusUpdate($shipment, ShipmentStatus::Cancelled, 'Cancelled by admin.', now());
+    }
+
+    /**
      * Manually records a status transition — the seam a future admin
      * action (or a webhook, if a carrier ever offers one) would call
      * directly instead of polling track().

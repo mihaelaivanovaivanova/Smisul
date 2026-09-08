@@ -74,6 +74,8 @@ use Throwable;
  *  - Label: GET parcels/{id}/label.pdf, an authenticated binary fetch —
  *    see fetchLabel(). Called on demand by an admin action
  *    (Admin\OrderController::shipmentLabel), not stored at creation time.
+ *  - Cancel: POST parcels/{id}:cancel (guide section 7.5.2) — a
+ *    colon-suffixed action, not a REST DELETE; no request body.
  *
  * BOX NOW is locker-only (no office or home delivery) — the only provider
  * whose supportedDeliveryTypes() is a single entry. Independent of
@@ -302,6 +304,25 @@ class BoxNowShippingProvider implements ShippingProviderInterface
         }
 
         return $response->body();
+    }
+
+    /**
+     * `POST parcels/{id}:cancel` — a Google-API-style colon-suffixed action,
+     * not a REST DELETE, confirmed against the official guide's section
+     * 7.5.2 (no request body; 200 on success, 403 if the parcel is no
+     * longer in a cancellable state, 404 if the id doesn't exist).
+     */
+    public function cancelShipment(string $trackingNumber): void
+    {
+        try {
+            $response = $this->client()->post("parcels/{$trackingNumber}:cancel");
+        } catch (ConnectionException $exception) {
+            throw ShippingProviderException::requestFailed('box_now', 'cancelShipment', $exception->getMessage());
+        }
+
+        if (! $response->successful()) {
+            throw ShippingProviderException::requestFailed('box_now', 'cancelShipment', (string) $response->status());
+        }
     }
 
     /** BOX NOW's own state vocabulary — see the guide's section 4.5. */

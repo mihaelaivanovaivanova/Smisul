@@ -201,12 +201,24 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             ];
         }
 
+        $ownClient = $this->ownClient();
+
         try {
             $response = $this->client()->post('shipment', $this->withCredentials([
                 'sender' => [
-                    'clientId' => $this->ownClientId(),
+                    'clientId' => $ownClient['clientId'],
                     'dropoff' => true,
                     'dropoffOfficeId' => (int) $this->settings->credentialsFor('speedy')['dropoff_office_id'],
+                    // Speedy prints this account's own registered
+                    // contactName (a person's name - the account holder,
+                    // per Speedy's own client registration) on every label
+                    // by default when only clientId is given. Overridden
+                    // with the same registered *company* name instead, so
+                    // the sender reads as the business, not a person -
+                    // confirmed live that a blank/whitespace override is
+                    // silently ignored and falls back to the registered
+                    // value, but a real string does take effect.
+                    'contactName' => $ownClient['clientName'],
                 ],
                 'recipient' => $recipient,
                 'service' => ['serviceId' => self::SERVICE_ID, 'pickupDate' => $this->nextPickupDate()->toDateString()],
@@ -387,32 +399,49 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
-     * The account's own registered `clientId` (its identity on file with
-     * Speedy — confirmed live: our production account resolves to the
-     * real registered business, our sandbox account to Speedy's own
-     * "EPS/API TESTERS" placeholder) — required by `sender.dropoff`
+     * The account's own registered identity on file with Speedy —
+     * confirmed live: our production account resolves to the real
+     * registered business, our sandbox account to Speedy's own "EPS/API
+     * TESTERS" placeholder. `clientId` is required by `sender.dropoff`
      * shipments so the printed label shows that real sender identity
      * instead of a hand-typed one, and so Speedy accepts this account as
-     * a valid payer for the courier service. `POST client` per Speedy's
-     * real schema (`GetOwnClientIdResponse`). Cached per credentials set,
-     * since it never changes for a given account and every shipment
-     * creation would otherwise cost an extra round trip.
+     * a valid payer for the courier service; `clientName` is pulled
+     * alongside it purely to override the registered `contactName` (see
+     * createShipment()'s own comment on why). Two real endpoints per
+     * Speedy's schema - `POST client` (`GetOwnClientIdResponse`) for the
+     * id, then `POST client/{id}` (`Client`) for the name. Cached
+     * together per credentials set, since neither changes for a given
+     * account and every shipment creation would otherwise cost two extra
+     * round trips.
+     *
+     * @return array{clientId: int, clientName: string}
      */
-    private function ownClientId(): int
+    private function ownClient(): array
     {
         $credentials = $this->settings->credentialsFor('speedy');
 
-        return (int) Cache::remember(
-            'speedy.own_client_id.'.md5((string) ($credentials['username'] ?? '')),
+        return Cache::remember(
+            'speedy.own_client.'.md5((string) ($credentials['username'] ?? '')),
             now()->addDay(),
             function () {
-                $response = $this->client()->post('client', $this->withCredentials([]));
+                $idResponse = $this->client()->post('client', $this->withCredentials([]));
 
-                if (! $response->successful() || $response->json('clientId') === null) {
-                    throw ShippingProviderException::requestFailed('speedy', 'ownClientId', (string) ($response->json('error.message') ?? $response->status()));
+                if (! $idResponse->successful() || $idResponse->json('clientId') === null) {
+                    throw ShippingProviderException::requestFailed('speedy', 'ownClient', (string) ($idResponse->json('error.message') ?? $idResponse->status()));
                 }
 
-                return $response->json('clientId');
+                $clientId = $idResponse->json('clientId');
+
+                $detailResponse = $this->client()->post("client/{$clientId}", $this->withCredentials([]));
+
+                if (! $detailResponse->successful() || $detailResponse->json('client.clientName') === null) {
+                    throw ShippingProviderException::requestFailed('speedy', 'ownClient', (string) ($detailResponse->json('error.message') ?? $detailResponse->status()));
+                }
+
+                return [
+                    'clientId' => (int) $clientId,
+                    'clientName' => (string) $detailResponse->json('client.clientName'),
+                ];
             },
         );
     }

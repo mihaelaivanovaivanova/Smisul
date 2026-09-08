@@ -25,7 +25,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_shipment_persists_a_tracking_number_and_status_event(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-123', 'clientId' => 12345])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-123', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -73,7 +73,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function a_shipment_cannot_be_created_twice_for_the_same_order(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1', 'clientId' => 12345])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -187,7 +187,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_speedy_shipment_splits_the_address_line_into_street_and_number(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1', 'clientId' => 12345])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,
@@ -211,7 +211,7 @@ class ShipmentCreationTest extends TestCase
     #[Test]
     public function creating_a_speedy_shipment_falls_back_to_a_placeholder_number_when_the_address_has_none(): void
     {
-        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-2', 'clientId' => 12345])]);
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-TEST-2', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
 
         $order = Order::factory()->create([
             'shipping_carrier' => ShippingCarrier::Speedy,

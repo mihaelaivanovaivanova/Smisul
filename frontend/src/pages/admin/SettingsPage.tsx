@@ -27,7 +27,15 @@ const LEGAL_TYPES = ['terms_of_service', 'privacy_policy', 'right_of_withdrawal'
 /** Rendered inside the Shipping tab's Box Now card instead (see ShippingSettingsPanel.tsx's BoxNowMarketingFields) — filtered out of the generic General list so they don't show up twice. */
 const BOX_NOW_MARKETING_KEYS = new Set(['general.box_now_banner_enabled', 'general.box_now_badge_enabled', 'general.box_now_banner_message']);
 
+/** Google's approximate display limits - past these, search results truncate the text with an ellipsis. */
+const SEO_LENGTH_HINTS: Record<string, number> = {
+  'seo.default_meta_title': 60,
+  'seo.default_meta_description': 160,
+};
+
 function SettingField({ item, value, onChange }: { item: SettingItem; value: string | number | boolean; onChange: (value: string | number | boolean) => void }) {
+  const recommendedMaxLength = SEO_LENGTH_HINTS[item.key];
+
   if (item.type === 'boolean') {
     return (
       <div className="form-check form-switch mb-3">
@@ -57,6 +65,11 @@ function SettingField({ item, value, onChange }: { item: SettingItem; value: str
         value={value === null ? '' : String(value)}
         onChange={(event) => onChange(item.type === 'integer' ? Number(event.target.value) : event.target.value)}
       />
+      {recommendedMaxLength !== undefined && (
+        <div className={`form-text ${String(value).length > recommendedMaxLength ? 'text-danger' : ''}`}>
+          {String(value).length} / {recommendedMaxLength} characters - Google truncates search results past this length.
+        </div>
+      )}
     </div>
   );
 }

@@ -18,6 +18,10 @@ export interface PublicSettings {
   box_now_banner_enabled: boolean;
   box_now_badge_enabled: boolean;
   box_now_banner_message: string | null;
+  /** Fallback used by <Seo> whenever a page doesn't set its own title/description/OG image. */
+  default_meta_title: string | null;
+  default_meta_description: string | null;
+  default_og_image: string | null;
 }
 
 /** Public, unauthenticated — fetched once by the footer. */

@@ -49,9 +49,14 @@ class SettingsSeeder extends Seeder
             ['key' => 'email.from_name', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" name', 'value' => 'Smisul'],
             ['key' => 'email.from_address', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" address', 'value' => null],
 
-            ['key' => 'seo.default_meta_title', 'group' => 'seo', 'type' => 'string', 'label' => 'Default meta title', 'value' => null],
-            ['key' => 'seo.default_meta_description', 'group' => 'seo', 'type' => 'string', 'label' => 'Default meta description', 'value' => null],
-            ['key' => 'seo.default_og_image', 'group' => 'seo', 'type' => 'string', 'label' => 'Default social share image URL', 'value' => null],
+            // Fallback used by the frontend's <Seo> component whenever a
+            // page doesn't set its own title/description/OG image - mirrors
+            // the homepage's own copy (see frontend/src/content/copy.ts's
+            // homeTitle/homeDescription) so a page that forgets to
+            // customize these still shows real brand copy, not an empty tag.
+            ['key' => 'seo.default_meta_title', 'group' => 'seo', 'type' => 'string', 'label' => 'Default meta title', 'value' => 'Smisul - естествени продукти с ясен смисъл'],
+            ['key' => 'seo.default_meta_description', 'group' => 'seo', 'type' => 'string', 'label' => 'Default meta description', 'value' => 'Открий Smisul: естествени продукти с ясен произход, семпъл състав и грижа във всеки детайл.'],
+            ['key' => 'seo.default_og_image', 'group' => 'seo', 'type' => 'string', 'label' => 'Default social share image URL', 'value' => rtrim((string) config('app.frontend_url'), '/').'/funnel/miswak-closeup.jpg'],
 
             ['key' => 'media.max_upload_size_mb', 'group' => 'media', 'type' => 'integer', 'label' => 'Max upload size (MB)', 'value' => '10'],
 

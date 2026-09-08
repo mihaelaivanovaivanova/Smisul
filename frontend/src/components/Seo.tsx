@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
+import { fetchPublicSettings } from '../api/settings';
+import { useAsync } from '../hooks/useAsync';
 
 interface SeoProps {
-  title: string;
+  /** Falls back to the admin-configured "Default meta title" setting when omitted. */
+  title?: string;
   description?: string | null;
   /** Path (e.g. "/products/foo") used to build the canonical/og:url. Defaults to the current path. */
   canonicalPath?: string;
@@ -56,33 +59,40 @@ export default function Seo({ title, description, canonicalPath, ogImage, ogType
   const jsonLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
   const jsonLdString = jsonLdList.length > 0 ? JSON.stringify(jsonLdList) : null;
 
-  useEffect(() => {
-    document.title = title;
+  // Admin-configured fallback (Settings -> SEO) for any page that doesn't
+  // set its own title/description/OG image - see SettingService::publicSettings().
+  const { data: defaults } = useAsync(fetchPublicSettings, [], '');
+  const effectiveTitle = title ?? defaults?.default_meta_title ?? 'Smisul';
+  const effectiveDescription = description ?? defaults?.default_meta_description ?? null;
+  const effectiveOgImage = ogImage ?? defaults?.default_og_image ?? null;
 
-    if (description) {
-      upsertMeta('name', 'description', description);
+  useEffect(() => {
+    document.title = effectiveTitle;
+
+    if (effectiveDescription) {
+      upsertMeta('name', 'description', effectiveDescription);
     }
 
     const canonicalUrl = `${window.location.origin}${canonicalPath ?? window.location.pathname}`;
     upsertLink('canonical', canonicalUrl);
 
-    upsertMeta('property', 'og:title', title);
-    if (description) {
-      upsertMeta('property', 'og:description', description);
+    upsertMeta('property', 'og:title', effectiveTitle);
+    if (effectiveDescription) {
+      upsertMeta('property', 'og:description', effectiveDescription);
     }
     upsertMeta('property', 'og:type', ogType);
     upsertMeta('property', 'og:url', canonicalUrl);
-    if (ogImage) {
-      upsertMeta('property', 'og:image', ogImage);
+    if (effectiveOgImage) {
+      upsertMeta('property', 'og:image', effectiveOgImage);
     }
 
-    upsertMeta('name', 'twitter:card', ogImage ? 'summary_large_image' : 'summary');
-    upsertMeta('name', 'twitter:title', title);
-    if (description) {
-      upsertMeta('name', 'twitter:description', description);
+    upsertMeta('name', 'twitter:card', effectiveOgImage ? 'summary_large_image' : 'summary');
+    upsertMeta('name', 'twitter:title', effectiveTitle);
+    if (effectiveDescription) {
+      upsertMeta('name', 'twitter:description', effectiveDescription);
     }
-    if (ogImage) {
-      upsertMeta('name', 'twitter:image', ogImage);
+    if (effectiveOgImage) {
+      upsertMeta('name', 'twitter:image', effectiveOgImage);
     }
 
     const parsedJsonLd: Record<string, unknown>[] = jsonLdString ? JSON.parse(jsonLdString) : [];
@@ -97,7 +107,7 @@ export default function Seo({ title, description, canonicalPath, ogImage, ogType
       script.textContent = JSON.stringify(entry);
       document.head.appendChild(script);
     });
-  }, [title, description, canonicalPath, ogImage, ogType, jsonLdString]);
+  }, [effectiveTitle, effectiveDescription, canonicalPath, effectiveOgImage, ogType, jsonLdString]);
 
   return null;
 }

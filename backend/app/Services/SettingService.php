@@ -101,6 +101,13 @@ class SettingService
             'general.box_now_banner_enabled' => 'box_now_banner_enabled',
             'general.box_now_badge_enabled' => 'box_now_badge_enabled',
             'general.box_now_banner_message' => 'box_now_banner_message',
+            // Site-wide fallback used by the frontend's <Seo> component
+            // whenever a page doesn't set its own title/description/OG
+            // image (see Seo.tsx) - previously configurable here but never
+            // actually read by anything.
+            'seo.default_meta_title' => 'default_meta_title',
+            'seo.default_meta_description' => 'default_meta_description',
+            'seo.default_og_image' => 'default_og_image',
         ];
 
         $settings = Setting::query()->whereIn('key', array_keys($keys))->get()->keyBy('key');

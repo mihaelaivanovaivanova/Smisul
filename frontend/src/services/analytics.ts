@@ -2,7 +2,7 @@ import type { CookieCategoryChoices } from '../types/consent';
 
 /**
  * Ad/analytics pixel layer. Nothing loads by default: each tag needs both
- * its env-configured ID (VITE_META_PIXEL_ID / VITE_GA4_MEASUREMENT_ID) and
+ * its configured ID (VITE_META_PIXEL_ID / VITE_GA4_MEASUREMENT_ID) and
  * the visitor's matching cookie-consent category — Meta Pixel is an ad
  * tool, so it rides on `marketing`; GA4 rides on `analytics`. Scripts are
  * injected only after consent (see AnalyticsLoader), never before; a
@@ -21,7 +21,8 @@ declare global {
   }
 }
 
-const META_PIXEL_ID: string = import.meta.env.VITE_META_PIXEL_ID ?? '';
+// The public site uses this pixel by default; an explicit empty env value disables it.
+const META_PIXEL_ID: string = import.meta.env.VITE_META_PIXEL_ID ?? '1544622693621669';
 const GA4_MEASUREMENT_ID: string = import.meta.env.VITE_GA4_MEASUREMENT_ID ?? '';
 
 let metaPixelLoaded = false;
@@ -35,10 +36,14 @@ function loadMetaPixel(): void {
 
   // Meta's own bootstrap, minus the IIFE wrapper: define a queuing fbq
   // stub immediately, then load the real script over it.
-  const fbq: ((...args: unknown[]) => void) & { queue?: unknown[]; push?: unknown; loaded?: boolean; version?: string } = (
+  const fbq: ((...args: unknown[]) => void) & { callMethod?: (...args: unknown[]) => void; queue?: unknown[]; push?: unknown; loaded?: boolean; version?: string } = (
     ...args: unknown[]
   ) => {
-    (fbq.queue as unknown[]).push(args);
+    if (fbq.callMethod) {
+      fbq.callMethod.apply(fbq, args);
+    } else {
+      (fbq.queue as unknown[]).push(args);
+    }
   };
   fbq.queue = [];
   fbq.push = fbq;

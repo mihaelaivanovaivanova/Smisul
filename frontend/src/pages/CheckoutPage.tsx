@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
@@ -53,6 +53,16 @@ export default function CheckoutPage() {
   const { user } = useAuth();
 
   const [step, setStep] = useState(0);
+
+  useLayoutEffect(() => {
+    // The Next/Back button remains near the bottom while the step content
+    // above it is replaced. On mobile, browser scroll anchoring otherwise
+    // keeps that button visible and opens the new step at its bottom.
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [step]);
 
   // InitiateCheckout: once per checkout visit, as soon as the cart total
   // is known (cart is null while it loads, so the truthiness gate also

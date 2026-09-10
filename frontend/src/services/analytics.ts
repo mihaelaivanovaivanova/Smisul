@@ -2,12 +2,12 @@ import type { CookieCategoryChoices } from '../types/consent';
 
 /**
  * Ad/analytics pixel layer. Nothing loads by default: each tag needs both
- * its configured ID (VITE_META_PIXEL_ID / VITE_GA4_MEASUREMENT_ID) and
- * the visitor's matching cookie-consent category — Meta Pixel is an ad
- * tool, so it rides on `marketing`; GA4 rides on `analytics`. Scripts are
- * injected only after consent (see AnalyticsLoader), never before; a
- * mid-session revocation stops applying on the next full page load, which
- * is the standard load-after-consent model.
+ * its configured ID/tag and the visitor's matching cookie-consent category
+ * — Meta Pixel is an ad tool, so it rides on `marketing`; GA4 and
+ * Contentsquare ride on `analytics`. Scripts are injected only after
+ * consent (see AnalyticsLoader), never before; a mid-session revocation
+ * stops applying on the next full page load, which is the standard
+ * load-after-consent model.
  *
  * Every track* helper is a safe no-op while its tag isn't loaded, so call
  * sites never need to know whether a pixel is configured.
@@ -24,9 +24,11 @@ declare global {
 // The public site uses this pixel by default; an explicit empty env value disables it.
 const META_PIXEL_ID: string = import.meta.env.VITE_META_PIXEL_ID ?? '1544622693621669';
 const GA4_MEASUREMENT_ID: string = import.meta.env.VITE_GA4_MEASUREMENT_ID ?? '';
+const CONTENTSQUARE_TAG_URL = 'https://t.contentsquare.net/uxa/1a19422d4cd35.js';
 
 let metaPixelLoaded = false;
 let ga4Loaded = false;
+let contentsquareLoaded = false;
 
 function loadMetaPixel(): void {
   if (metaPixelLoaded || !META_PIXEL_ID) {
@@ -85,6 +87,18 @@ function loadGa4(): void {
   window.gtag('config', GA4_MEASUREMENT_ID);
 }
 
+function loadContentsquare(): void {
+  if (contentsquareLoaded) {
+    return;
+  }
+  contentsquareLoaded = true;
+
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = CONTENTSQUARE_TAG_URL;
+  document.head.appendChild(script);
+}
+
 /** Idempotent — call whenever consent choices change (see AnalyticsLoader). */
 export function initAnalytics(choices: CookieCategoryChoices | null): void {
   if (!choices) {
@@ -95,6 +109,7 @@ export function initAnalytics(choices: CookieCategoryChoices | null): void {
   }
   if (choices.analytics) {
     loadGa4();
+    loadContentsquare();
   }
 }
 

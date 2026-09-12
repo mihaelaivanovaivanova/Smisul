@@ -38,14 +38,13 @@ class SendOrderPlacedNotifications
             ]);
         }
 
-        $adminAddress = config('mail.admin_address');
-
-        if ($adminAddress !== null) {
+        foreach (array_unique(config('mail.order_notification_addresses', [])) as $adminAddress) {
             try {
                 Mail::to($adminAddress)->send(new AdminOrderNotificationMail($order));
             } catch (Throwable $exception) {
                 Log::error('Could not send the admin new-order notification email.', [
                     'order_number' => $order->order_number,
+                    'recipient' => $adminAddress,
                     'exception' => $exception::class,
                     'message' => $exception->getMessage(),
                 ]);

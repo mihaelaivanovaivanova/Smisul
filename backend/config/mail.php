@@ -128,6 +128,11 @@ return [
 
     'admin_address' => env('ADMIN_EMAIL'),
 
+    'order_notification_addresses' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('ORDER_NOTIFICATION_EMAILS', 'admin@smisul.bg,filchevweb@gmail.com,mihaela.ivanova.ivanova@gmail.com')),
+    ))),
+
     /*
     |--------------------------------------------------------------------------
     | Contact Form Address

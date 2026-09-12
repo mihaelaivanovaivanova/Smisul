@@ -26,7 +26,7 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="left" style="vertical-align: middle;">
-                                        <img src="{{ $assetUrl }}/mail/smisul-logo.png" alt="Smisul" height="48" style="display: block; height: 48px; width: auto;">
+                                        <img src="{{ $message->embed(public_path('mail/smisul-logo.png')) }}" alt="Смисъл" width="200" style="display: block; width: 200px; max-width: 100%; height: auto;">
                                     </td>
                                     <td align="right" style="vertical-align: middle; color: #71695c; font-size: 13px;">
                                         @hasSection('header_right')

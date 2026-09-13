@@ -1,12 +1,24 @@
 import { apiClient } from '../client';
 import type { Category } from '../../types/product';
 
+export interface CategorySeoPayload {
+  meta_title?: string | null;
+  meta_description?: string | null;
+  meta_keywords?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image_path?: string | null;
+  canonical_url?: string | null;
+}
+
 export interface CategoryPayload {
   parent_id?: number | null;
   name: string;
   description?: string | null;
   is_active?: boolean;
   sort_order?: number;
+  /** Omitting this key entirely (not sending empty strings) leaves any existing SEO data untouched - see CategoryService::syncSeo(). */
+  seo?: CategorySeoPayload;
 }
 
 export async function fetchAdminCategories(): Promise<Category[]> {

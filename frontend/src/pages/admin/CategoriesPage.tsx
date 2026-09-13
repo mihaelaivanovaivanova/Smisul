@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createCategory, deleteCategory, fetchAdminCategories, updateCategory } from '../../api/admin/categories';
-import type { CategoryPayload } from '../../api/admin/categories';
+import type { CategoryPayload, CategorySeoPayload } from '../../api/admin/categories';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage, getValidationErrors } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -12,7 +12,59 @@ import FieldError from '../../components/FieldError';
 import { flattenCategories } from '../../services/categoryTree';
 import type { Category } from '../../types/product';
 
-const EMPTY_FORM: CategoryPayload = { name: '', description: '', is_active: true, sort_order: 0, parent_id: null };
+const EMPTY_SEO: Required<NonNullable<CategoryPayload['seo']>> = {
+  meta_title: '',
+  meta_description: '',
+  meta_keywords: '',
+  og_title: '',
+  og_description: '',
+  og_image_path: '',
+  canonical_url: '',
+};
+
+const EMPTY_FORM: CategoryPayload = { name: '', description: '', is_active: true, sort_order: 0, parent_id: null, seo: EMPTY_SEO };
+
+/** Google's approximate display limits - past these, search results truncate the text with an ellipsis. */
+const SEO_LENGTH_HINTS: Record<string, number> = { meta_title: 60, meta_description: 160 };
+
+function SeoField({
+  id,
+  label,
+  fieldKey,
+  value,
+  multiline = false,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  fieldKey: keyof CategorySeoPayload;
+  value: string;
+  multiline?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const recommendedMaxLength = SEO_LENGTH_HINTS[fieldKey];
+  const Field = multiline ? 'textarea' : 'input';
+
+  return (
+    <div>
+      <label className="form-label" htmlFor={id}>
+        {label}
+      </label>
+      <Field
+        id={id}
+        className="form-control"
+        {...(multiline ? { rows: 2 } : { type: 'text' })}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {recommendedMaxLength !== undefined && (
+        <div className={`form-text ${value.length > recommendedMaxLength ? 'text-danger' : ''}`}>
+          {value.length} / {recommendedMaxLength} characters - Google truncates search results past this length.
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CategoriesPage() {
   const [reloadKey, setReloadKey] = useState(0);
@@ -46,6 +98,15 @@ export default function CategoriesPage() {
       is_active: category.is_active,
       sort_order: category.sort_order,
       parent_id: category.parent_id,
+      seo: {
+        meta_title: category.seo?.meta_title ?? '',
+        meta_description: category.seo?.meta_description ?? '',
+        meta_keywords: category.seo?.meta_keywords ?? '',
+        og_title: category.seo?.og_title ?? '',
+        og_description: category.seo?.og_description ?? '',
+        og_image_path: category.seo?.og_image_url ?? '',
+        canonical_url: category.seo?.canonical_url ?? '',
+      },
     });
     setFormErrors({});
     setFormError(null);
@@ -220,6 +281,38 @@ export default function CategoriesPage() {
             </div>
           </div>
         </div>
+
+        <hr />
+        <h2 className="h6">SEO</h2>
+        <SeoField
+          id="category-seo-meta-title"
+          label="Meta title"
+          fieldKey="meta_title"
+          value={form.seo?.meta_title ?? ''}
+          onChange={(value) => setForm({ ...form, seo: { ...form.seo, meta_title: value } })}
+        />
+        <SeoField
+          id="category-seo-meta-description"
+          label="Meta description"
+          fieldKey="meta_description"
+          value={form.seo?.meta_description ?? ''}
+          multiline
+          onChange={(value) => setForm({ ...form, seo: { ...form.seo, meta_description: value } })}
+        />
+        <SeoField
+          id="category-seo-og-image"
+          label="Social share image URL"
+          fieldKey="og_image_path"
+          value={form.seo?.og_image_path ?? ''}
+          onChange={(value) => setForm({ ...form, seo: { ...form.seo, og_image_path: value } })}
+        />
+        <SeoField
+          id="category-seo-canonical-url"
+          label="Canonical URL"
+          fieldKey="canonical_url"
+          value={form.seo?.canonical_url ?? ''}
+          onChange={(value) => setForm({ ...form, seo: { ...form.seo, canonical_url: value } })}
+        />
       </FormModal>
 
       <ConfirmModal

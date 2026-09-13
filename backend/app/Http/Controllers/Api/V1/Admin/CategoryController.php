@@ -31,12 +31,12 @@ class CategoryController extends Controller
 
         $this->actionLogger->log($request->user(), 'category.created', $category);
 
-        return (new CategoryResource($category))->response()->setStatusCode(201);
+        return (new CategoryResource($category->load('seo')))->response()->setStatusCode(201);
     }
 
     public function show(Category $category): CategoryResource
     {
-        return new CategoryResource($category->load('children'));
+        return new CategoryResource($category->load(['children', 'seo']));
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
@@ -45,7 +45,7 @@ class CategoryController extends Controller
 
         $this->actionLogger->log($request->user(), 'category.updated', $category);
 
-        return new CategoryResource($category);
+        return new CategoryResource($category->load('seo'));
     }
 
     public function destroy(Category $category): Response

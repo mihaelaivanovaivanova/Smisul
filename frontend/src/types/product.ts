@@ -66,6 +66,7 @@ export interface Category {
   is_active: boolean;
   sort_order: number;
   children: Category[];
+  seo: Seo | null;
 }
 
 export interface Product {

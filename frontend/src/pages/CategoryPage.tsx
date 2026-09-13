@@ -36,13 +36,16 @@ export default function CategoryPage() {
 
   const breadcrumbItems = [{ label: breadcrumbLabels.home, to: '/' }, { label: category.name }];
 
+  // Admin-configured SEO copy (Admin -> Categories -> Edit -> SEO section)
+  // takes priority over the computed defaults - mirrors ProductPage's own
+  // precedence for the same fields.
+  const seoTitle = category.seo?.meta_title ?? `${category.name}${seo.categoryTitleSuffix}`;
+  const seoDescription = category.seo?.meta_description ?? category.description ?? seo.categoryDescriptionFallback;
+  const ogImage = category.seo?.og_image_url ?? null;
+
   return (
     <div className="container py-4">
-      <Seo
-        title={`${category.name}${seo.categoryTitleSuffix}`}
-        description={category.description ?? seo.categoryDescriptionFallback}
-        jsonLd={buildBreadcrumbJsonLd(breadcrumbItems)}
-      />
+      <Seo title={seoTitle} description={seoDescription} ogImage={ogImage} jsonLd={buildBreadcrumbJsonLd(breadcrumbItems)} />
       <Breadcrumbs items={breadcrumbItems} />
       <h1 className="mb-2 mt-3">{category.name}</h1>
       {category.description && <p className="text-muted">{category.description}</p>}

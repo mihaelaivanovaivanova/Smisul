@@ -32,12 +32,34 @@ class CategoryService
 
     public function create(CategoryData $data): Category
     {
-        return $this->categories->create($this->attributesFrom($data));
+        $category = $this->categories->create($this->attributesFrom($data));
+
+        $this->syncSeo($category, $data);
+
+        return $category;
     }
 
     public function update(Category $category, CategoryData $data): Category
     {
-        return $this->categories->update($category, $this->attributesFrom($data));
+        $category = $this->categories->update($category, $this->attributesFrom($data));
+
+        $this->syncSeo($category, $data);
+
+        return $category;
+    }
+
+    /**
+     * Only touches the seo row when the request actually sent a `seo` key
+     * — omitting it (e.g. every other field the admin UI already edits)
+     * must never silently wipe out previously-saved SEO copy.
+     */
+    private function syncSeo(Category $category, CategoryData $data): void
+    {
+        if ($data->seo === null) {
+            return;
+        }
+
+        $category->seo()->updateOrCreate([], $data->seo);
     }
 
     public function delete(Category $category): void

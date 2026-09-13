@@ -213,4 +213,15 @@ class ProductAdminTest extends TestCase
             ->postJson('/api/v1/admin/products', ['name' => 'Nope'])
             ->assertForbidden();
     }
+
+    #[Test]
+    public function a_product_with_no_seo_row_yet_returns_null_seo(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+
+        $this->actingAs($admin)->getJson("/api/v1/admin/products/{$product->id}")
+            ->assertOk()
+            ->assertJsonPath('data.seo', null);
+    }
 }

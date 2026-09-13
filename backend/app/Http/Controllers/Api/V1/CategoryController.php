@@ -27,7 +27,7 @@ class CategoryController extends Controller
     {
         $category = $this->categories->findBySlug($slug, activeOnly: true);
 
-        return new CategoryResource($category->load('children'));
+        return new CategoryResource($category->load(['children', 'seo']));
     }
 
     public function products(string $slug, ProductIndexRequest $request)

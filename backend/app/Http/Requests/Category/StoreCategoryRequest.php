@@ -23,6 +23,14 @@ class StoreCategoryRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'seo' => ['sometimes', 'array'],
+            'seo.meta_title' => ['nullable', 'string', 'max:255'],
+            'seo.meta_description' => ['nullable', 'string', 'max:500'],
+            'seo.meta_keywords' => ['nullable', 'string', 'max:255'],
+            'seo.og_title' => ['nullable', 'string', 'max:255'],
+            'seo.og_description' => ['nullable', 'string', 'max:500'],
+            'seo.og_image_path' => ['nullable', 'string', 'max:2048'],
+            'seo.canonical_url' => ['nullable', 'string', 'max:2048'],
         ];
     }
 }

@@ -25,6 +25,14 @@ class CategoryResource extends JsonResource
             'is_active' => $this->is_active,
             'sort_order' => $this->sort_order,
             'children' => self::collection($this->whenLoaded('children')),
+            // Unlike every seeded product, no category has a seo row yet
+            // (see CategoryService::syncSeo()) - the naive whenLoaded('seo')
+            // pattern ProductResource uses would try to read properties off
+            // a loaded-but-null relation here, logging a PHP warning on
+            // every single category fetch. when() only evaluates the
+            // closure once the relation is actually loaded, and the
+            // closure itself checks for null before wrapping it.
+            'seo' => $this->when($this->relationLoaded('seo'), fn () => $this->seo ? new SeoResource($this->seo) : null),
         ];
     }
 }

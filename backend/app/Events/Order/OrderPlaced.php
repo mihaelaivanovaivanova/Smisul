@@ -8,11 +8,14 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Dispatched once an order is fully persisted (items, legal acceptances,
- * inventory already committed). SendOrderPlacedNotifications is the only
- * listener today (customer confirmation + admin notification); kept as an
- * event rather than inline calls in OrderService so future listeners
- * (analytics, fulfillment webhooks) can be added without touching order
- * placement itself.
+ * inventory already committed). No listener today - the customer
+ * confirmation + admin notification emails that used to fire here now wait
+ * for OrderStatusChanged's Paid transition instead (see
+ * SendOrderStatusEmails's docblock: a card payment can still fail or be
+ * abandoned after placement, so "order" emails shouldn't go out before the
+ * order is actually paid for). Kept as an event rather than removed
+ * entirely so a future listener (analytics, abandoned-order follow-up) can
+ * be added without touching order placement itself.
  */
 class OrderPlaced implements ShouldDispatchAfterCommit
 {

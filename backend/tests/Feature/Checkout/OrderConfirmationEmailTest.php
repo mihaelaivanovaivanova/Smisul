@@ -15,6 +15,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\OrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
@@ -58,12 +59,13 @@ class OrderConfirmationEmailTest extends TestCase
     }
 
     #[Test]
-    public function placing_an_order_notifies_the_customer_and_each_store_recipient_with_an_embedded_logo(): void
+    public function a_paid_order_notifies_the_customer_and_each_store_recipient_with_an_embedded_logo(): void
     {
         $mailer = app('mail.manager');
         Mail::fake();
 
-        $this->placeOrder()->assertCreated();
+        $response = $this->placeOrder()->assertCreated();
+        app(OrderService::class)->confirmPayment(Order::findOrFail($response->json('data.id')));
 
         Mail::assertSent(OrderConfirmationMail::class, 1);
         Mail::assertSent(AdminOrderNotificationMail::class, 3);
@@ -90,17 +92,18 @@ class OrderConfirmationEmailTest extends TestCase
     }
 
     #[Test]
-    public function a_card_order_confirmation_email_does_not_mention_the_stale_payment_placeholder(): void
+    public function a_paid_card_order_confirmation_email_says_payment_is_confirmed(): void
     {
         Mail::fake();
 
-        $this->placeOrder()->assertCreated();
+        $response = $this->placeOrder()->assertCreated();
+        app(OrderService::class)->confirmPayment(Order::findOrFail($response->json('data.id')));
 
         Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) {
             $rendered = $mail->render();
 
             return $mail->hasTo('ivan@example.com')
-                && str_contains($rendered, 'Обработваме плащането с карта')
+                && str_contains($rendered, 'Плащането с карта е потвърдено')
                 && ! str_contains($rendered, 'следваща стъпка')
                 && ! str_contains($rendered, 'BOX NOW');
         });

@@ -6,8 +6,8 @@ use App\Enums\Currency;
 use App\Enums\LegalDocumentType;
 use App\Enums\OrderStatus;
 use App\Enums\VariantStatus;
-use App\Events\Order\OrderPlaced;
-use App\Listeners\SendOrderPlacedNotifications;
+use App\Events\Order\OrderStatusChanged;
+use App\Listeners\SendOrderStatusEmails;
 use App\Models\LegalDocument;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -26,11 +26,12 @@ use Tests\TestCase;
  * already happened and is real, even if the customer's own confirmation
  * email failed to send. Found directly: a local mail server outage during
  * manual testing silently rolled back an admin's "mark as cancelled"
- * action with no error surfaced, and separately turned a real, successful
- * order placement into a 500 response. See SendOrderPlacedNotifications
- * and SendOrderStatusEmails - both now log and swallow mail failures
- * rather than letting them propagate, mirroring
- * Listeners\CreateShipmentOnOrderPaid's own established pattern.
+ * action with no error surfaced. See SendOrderStatusEmails - it logs and
+ * swallows mail failures rather than letting them propagate, mirroring
+ * Listeners\CreateShipmentOnOrderPaid's own established pattern. The
+ * customer confirmation + admin notification emails fire on the order's
+ * Paid transition (not at placement) - see SendOrderStatusEmails's own
+ * docblock for why.
  */
 class OrderNotificationResilienceTest extends TestCase
 {
@@ -60,7 +61,7 @@ class OrderNotificationResilienceTest extends TestCase
     #[Test]
     public function a_failed_admin_recipient_does_not_block_the_remaining_recipients(): void
     {
-        $order = Order::factory()->create(['customer_email' => 'customer@example.com']);
+        $order = Order::factory()->create(['customer_email' => 'customer@example.com', 'status' => OrderStatus::AwaitingPayment]);
         config(['mail.order_notification_addresses' => [
             'admin@smisul.bg', 'filchevweb@gmail.com', 'mihaela.ivanova.ivanova@gmail.com',
         ]]);
@@ -82,14 +83,13 @@ class OrderNotificationResilienceTest extends TestCase
         Mail::shouldReceive('to')->once()->with('filchevweb@gmail.com')->andReturn($successfulDelivery);
         Mail::shouldReceive('to')->once()->with('mihaela.ivanova.ivanova@gmail.com')->andReturn($successfulDelivery);
 
-        app(SendOrderPlacedNotifications::class)->handle(new OrderPlaced($order));
+        app(SendOrderStatusEmails::class)->handle(new OrderStatusChanged($order, OrderStatus::AwaitingPayment, OrderStatus::Paid));
     }
 
     #[Test]
-    public function placing_an_order_succeeds_even_when_the_confirmation_email_fails_to_send(): void
+    public function placing_an_order_does_not_send_any_email_until_payment_is_confirmed(): void
     {
-        Mail::shouldReceive('to')->andReturnSelf();
-        Mail::shouldReceive('send')->andThrow(new RuntimeException('Connection could not be established with host "127.0.0.1:1025"'));
+        Mail::fake();
 
         $variant = $this->purchasableVariant();
         $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
@@ -112,8 +112,25 @@ class OrderNotificationResilienceTest extends TestCase
         $response->assertCreated();
         // awaiting_payment, not pending: placeOrder() also initiates the
         // card payment in the same request, which advances the status one
-        // step further than the order's initial creation state.
+        // step further than the order's initial creation state. Still no
+        // Paid transition here, so no email should have been attempted.
         $this->assertDatabaseHas('orders', ['id' => $response->json('data.id'), 'status' => OrderStatus::AwaitingPayment->value]);
+        Mail::assertNothingSent();
+    }
+
+    #[Test]
+    public function a_paid_transition_persists_even_when_its_confirmation_email_fails_to_send(): void
+    {
+        Mail::shouldReceive('to')->andReturnSelf();
+        Mail::shouldReceive('send')->andThrow(new RuntimeException('Connection could not be established with host "127.0.0.1:1025"'));
+
+        $order = Order::factory()->create(['status' => OrderStatus::AwaitingPayment]);
+        OrderItem::factory()->for($order)->create();
+
+        $updated = $this->app->make(OrderStatusService::class)->transitionTo($order, OrderStatus::Paid, changedBy: null);
+
+        $this->assertSame(OrderStatus::Paid, $updated->status);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => OrderStatus::Paid->value]);
     }
 
     #[Test]

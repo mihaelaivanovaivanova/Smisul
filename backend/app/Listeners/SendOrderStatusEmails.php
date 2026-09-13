@@ -4,7 +4,9 @@ namespace App\Listeners;
 
 use App\Enums\OrderStatus;
 use App\Events\Order\OrderStatusChanged;
+use App\Mail\AdminOrderNotificationMail;
 use App\Mail\OrderCancelledMail;
+use App\Mail\OrderConfirmationMail;
 use App\Mail\OrderDeliveredMail;
 use App\Mail\OrderInvoiceMail;
 use Illuminate\Contracts\Mail\Mailable;
@@ -13,14 +15,17 @@ use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
- * Only the transitions a customer actually cares about trigger an email -
- * e.g. Paid -> Processing (internal fulfillment progress) sends nothing.
- * Paid and Shipped are deliberately silent too: the placement confirmation
- * already covers "we got your order" and a tracking link, so a second
- * "confirmed"/"shipped" email was judged redundant noise. "Order created"
- * isn't handled here at all; that's OrderPlaced's own listener
- * (SendOrderPlacedNotifications), fired at placement rather than on a
- * status change.
+ * Only the transitions a customer (or the store) actually cares about
+ * trigger an email - e.g. Paid -> Processing (internal fulfillment
+ * progress) sends nothing. Shipped is deliberately silent: the Paid email
+ * already covers "we got your order", and a dedicated shipped/tracking
+ * email isn't built yet. "Order created" (Pending) is deliberately silent
+ * too - a card payment can still fail or be abandoned after that point, so
+ * the customer- and admin-facing "order" emails wait for Paid, the first
+ * point an order is actually real money. Since every live payment method is
+ * card-only through iCard (see PaymentMethod::active()), every order that
+ * will ever be fulfilled passes through this transition - there's no
+ * checkout path that reaches Processing/Shipped/Delivered without it.
  *
  * Dispatched from inside OrderStatusService::transitionTo()'s own
  * DB::transaction() (see CreateShipmentOnOrderPaid's docblock for the same
@@ -35,6 +40,16 @@ class SendOrderStatusEmails
     public function handle(OrderStatusChanged $event): void
     {
         $order = $event->order;
+
+        if ($event->to === OrderStatus::Paid) {
+            $this->send($order->customer_email, new OrderConfirmationMail($order), $order->order_number);
+
+            foreach (array_unique(config('mail.order_notification_addresses', [])) as $adminAddress) {
+                $this->send($adminAddress, new AdminOrderNotificationMail($order), $order->order_number);
+            }
+
+            return;
+        }
 
         $mailable = match ($event->to) {
             OrderStatus::Cancelled => new OrderCancelledMail($order),

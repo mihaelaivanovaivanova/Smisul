@@ -24,11 +24,11 @@ class OrderConfirmationMail extends Mailable
 
     public function __construct(public readonly Order $order)
     {
-        // OrderPlaced (which triggers this mail) implements
-        // ShouldDispatchAfterCommit, so by the time this runs the payment
-        // CheckoutController::placeOrder() initiates in the same
-        // transaction already exists — safe to load and describe it here
-        // instead of the old "payment comes in a later step" placeholder.
+        // Triggered by the order's Paid transition (see
+        // SendOrderStatusEmails), so by the time this runs the payment is
+        // already confirmed and persisted — safe to load and describe it
+        // here instead of the old "payment comes in a later step"
+        // placeholder.
         //
         // items.productVariant.product.primaryMedia is for the product
         // thumbnails in the item list — deliberately tolerant of a missing

@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
+import { useLayoutEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import PublicLayout from './components/layout/PublicLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
@@ -44,11 +45,27 @@ import ComplaintsPage from './pages/admin/ComplaintsPage';
 import FunnelPage from './pages/admin/FunnelPage';
 import LeadsPage from './pages/admin/LeadsPage';
 
+function ScrollToTop() {
+  const { pathname, search, hash } = useLocation();
+
+  useLayoutEffect(() => {
+    // Hash links intentionally manage their own target position (for
+    // example the FAQ links on the funnel landing page).
+    if (!hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }, [pathname, search, hash]);
+
+  return null;
+}
+
 export default function App() {
   const { funnelModeEnabled } = useSettings();
 
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={funnelModeEnabled ? <FunnelLandingPage /> : <HomePage />} />
         <Route path="/products/:slug" element={<ProductPage />} />
@@ -102,6 +119,7 @@ export default function App() {
           <Route path="logs" element={<LogsPage />} />
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }

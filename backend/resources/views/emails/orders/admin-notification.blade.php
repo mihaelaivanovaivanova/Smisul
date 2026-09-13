@@ -1,28 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>New order {{ $order->order_number }}</title>
-</head>
-<body style="font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto;">
-    <h1 style="font-size: 20px;">New order: {{ $order->order_number }}</h1>
+@extends('emails.layout')
+
+@section('title', 'Нова поръчка '.$order->order_number)
+
+@section('content')
+<tr><td style="padding: 24px;">
+    <h1 style="font-size: 20px;">Нова поръчка: {{ $order->order_number }}</h1>
 
     <p>
-        Customer: {{ $order->customerFullName() }} &lt;{{ $order->customer_email }}&gt;<br>
-        Phone: {{ $order->customer_phone }}<br>
+        Клиент: {{ $order->customerFullName() }} &lt;{{ $order->customer_email }}&gt;<br>
+        Телефон: {{ $order->customer_phone }}<br>
         @if ($order->customer_company)
-            Company: {{ $order->customer_company }} (VAT: {{ $order->customer_vat_number ?? 'n/a' }})<br>
+            Фирма: {{ $order->customer_company }} (ДДС номер: {{ $order->customer_vat_number ?? 'няма' }})<br>
         @endif
-        Type: {{ $order->isGuestOrder() ? 'Guest checkout' : 'Registered customer' }}
+        Тип: {{ $order->isGuestOrder() ? 'Гост' : 'Регистриран клиент' }}
     </p>
 
     <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin: 16px 0;">
         <thead>
             <tr style="border-bottom: 1px solid #ddd; text-align: left;">
                 <th>SKU</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Line total</th>
+                <th>Продукт</th>
+                <th>Брой</th>
+                <th>Сума</th>
             </tr>
         </thead>
         <tbody>
@@ -37,16 +36,16 @@
         </tbody>
     </table>
 
-    <p><strong>Grand total: {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }}</strong></p>
+    <p><strong>Общо: {{ number_format((float) $order->grand_total, 2) }} {{ $order->currency }}</strong></p>
 
     <p>
-        Shipping: {{ $order->shipping_method_label }}<br>
+        Доставка: {{ $order->shipping_method_label }}<br>
         {{ $order->shipping_address_line }}{{ $order->shipping_apartment ? ', '.$order->shipping_apartment : '' }},
         {{ $order->shipping_city }} {{ $order->shipping_postal_code }}, {{ $order->shipping_country }}
     </p>
 
     @if ($order->delivery_notes)
-        <p>Delivery notes: {{ $order->delivery_notes }}</p>
+        <p>Бележки за доставка: {{ $order->delivery_notes }}</p>
     @endif
-</body>
-</html>
+</td></tr>
+@endsection

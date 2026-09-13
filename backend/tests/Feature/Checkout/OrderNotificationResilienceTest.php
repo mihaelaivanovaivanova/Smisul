@@ -6,6 +6,8 @@ use App\Enums\Currency;
 use App\Enums\LegalDocumentType;
 use App\Enums\OrderStatus;
 use App\Enums\VariantStatus;
+use App\Events\Order\OrderPlaced;
+use App\Listeners\SendOrderPlacedNotifications;
 use App\Models\LegalDocument;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -53,6 +55,34 @@ class OrderNotificationResilienceTest extends TestCase
             ->map(fn (LegalDocumentType $type) => LegalDocument::factory()->create(['type' => $type, 'version' => '1.0'])->id)
             ->values()
             ->all();
+    }
+
+    #[Test]
+    public function a_failed_admin_recipient_does_not_block_the_remaining_recipients(): void
+    {
+        $order = Order::factory()->create(['customer_email' => 'customer@example.com']);
+        config(['mail.order_notification_addresses' => [
+            'admin@smisul.bg', 'filchevweb@gmail.com', 'mihaela.ivanova.ivanova@gmail.com',
+        ]]);
+
+        $successfulDelivery = new class
+        {
+            public function send($mail): void {}
+        };
+        $failedDelivery = new class
+        {
+            public function send($mail): void
+            {
+                throw new RuntimeException('Recipient rejected');
+            }
+        };
+
+        Mail::shouldReceive('to')->once()->with('customer@example.com')->andReturn($successfulDelivery);
+        Mail::shouldReceive('to')->once()->with('admin@smisul.bg')->andReturn($failedDelivery);
+        Mail::shouldReceive('to')->once()->with('filchevweb@gmail.com')->andReturn($successfulDelivery);
+        Mail::shouldReceive('to')->once()->with('mihaela.ivanova.ivanova@gmail.com')->andReturn($successfulDelivery);
+
+        app(SendOrderPlacedNotifications::class)->handle(new OrderPlaced($order));
     }
 
     #[Test]

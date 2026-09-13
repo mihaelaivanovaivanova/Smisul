@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
+use App\Mail\AdminOrderNotificationMail;
 use App\Mail\OrderConfirmationMail;
 use App\Models\LegalDocument;
 use App\Models\Order;
@@ -54,6 +55,38 @@ class OrderConfirmationEmailTest extends TestCase
                 'shipping_delivery_type' => 'address',
                 'legal_document_ids' => $this->legalDocuments(),
             ], $overrides));
+    }
+
+    #[Test]
+    public function placing_an_order_notifies_the_customer_and_each_store_recipient_with_an_embedded_logo(): void
+    {
+        $mailer = app('mail.manager');
+        Mail::fake();
+
+        $this->placeOrder()->assertCreated();
+
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertSent(AdminOrderNotificationMail::class, 3);
+
+        foreach (['admin@smisul.bg', 'filchevweb@gmail.com', 'mihaela.ivanova.ivanova@gmail.com'] as $recipient) {
+            Mail::assertSent(AdminOrderNotificationMail::class, function (AdminOrderNotificationMail $mail) use ($recipient) {
+                return $mail->hasTo($recipient)
+                    && count($mail->to) === 1
+                    && str_contains($mail->render(), $mail->order->order_number);
+            });
+        }
+
+        // Use the array transport to inspect the real MIME message without sending email.
+        Mail::swap($mailer);
+        $order = Order::latest('id')->firstOrFail();
+        foreach ([new OrderConfirmationMail($order), new AdminOrderNotificationMail($order)] as $mail) {
+            $sent = Mail::mailer('array')->to('test@example.com')->send($mail);
+            $message = $sent->getSymfonySentMessage()->getOriginalMessage();
+            $this->assertStringContainsString($order->order_number, $message->getSubject());
+            $this->assertStringContainsString('cid:', $message->getHtmlBody());
+            $this->assertCount(1, $message->getAttachments());
+            $this->assertSame('image/png', $message->getAttachments()[0]->getMediaType().'/'.$message->getAttachments()[0]->getMediaSubtype());
+        }
     }
 
     #[Test]

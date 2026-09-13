@@ -6,6 +6,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- Without these, Gmail's mobile app applies its own automatic
+         dark-mode color/contrast processing to this email (it renders fine
+         as-is on desktop Gmail, which doesn't do this) - that processing is
+         what was causing overlapping/duplicated text on Android/iOS Gmail.
+         This tells every major client (Gmail, Outlook, Apple Mail) the
+         email already has a deliberate light color scheme and shouldn't be
+         reprocessed. --}}
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
     <title>@yield('title')</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1e8d8; font-family: -apple-system, Arial, sans-serif; color: #2b2822;">

@@ -2,6 +2,8 @@
 <html lang="bg">
 <head>
     <meta charset="utf-8">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
     <title>Запитване от сайта от {{ $name }}</title>
 </head>
 <body style="font-family: -apple-system, Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto;">

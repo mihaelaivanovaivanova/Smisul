@@ -40,6 +40,11 @@ export async function cancelOrderShipment(id: number): Promise<AdminOrder> {
   return data.data;
 }
 
+/** Permanently deletes the order (cancelling its shipment with the carrier first, if one exists). Rejected with a 422 if a complaint is on file for this order. */
+export async function deleteOrder(id: number): Promise<void> {
+  await apiClient.delete(`/admin/orders/${id}`);
+}
+
 export async function reversePayment(paymentId: number): Promise<Payment> {
   const { data } = await apiClient.post<{ data: Payment }>(`/admin/payments/${paymentId}/reverse`);
   return data.data;

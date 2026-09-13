@@ -9,13 +9,16 @@ use App\Http\Requests\Admin\OrderIndexRequest;
 use App\Http\Requests\Admin\UpdateOrderStatusRequest;
 use App\Http\Resources\Admin\OrderResource;
 use App\Models\Order;
+use App\Services\AdminActionLogger;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 class OrderController extends Controller
 {
@@ -23,6 +26,7 @@ class OrderController extends Controller
         private readonly OrderService $orders,
         private readonly OrderStatusService $orderStatus,
         private readonly ShippingService $shipping,
+        private readonly AdminActionLogger $actionLogger,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -35,6 +39,42 @@ class OrderController extends Controller
     public function show(Order $order): OrderResource
     {
         return new OrderResource($order->load(OrderService::ADMIN_EAGER_LOAD));
+    }
+
+    /**
+     * A permanent hard delete (see OrderService::delete()'s own docblock
+     * for the cascade/complaint details) — cancels any non-final shipment
+     * with the carrier first on a best-effort basis, mirroring
+     * CancelShipmentOnOrderCancelled: a carrier-side failure must never
+     * block an admin's already-made delete decision, only get logged for
+     * them to finish manually.
+     */
+    public function destroy(Order $order): Response|JsonResponse
+    {
+        $shipment = $order->shipment;
+        if ($shipment !== null && ! $shipment->status->isFinal()) {
+            try {
+                $this->shipping->cancelShipment($shipment);
+            } catch (Throwable $exception) {
+                Log::error('Automatic shipment cancellation failed before order was deleted.', [
+                    'order_number' => $order->order_number,
+                    'carrier' => $order->shipping_carrier->value,
+                    'tracking_number' => $shipment->tracking_number,
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        $this->actionLogger->log(request()->user(), 'order.deleted', $order, ['order_number' => $order->order_number]);
+
+        try {
+            $this->orders->delete($order);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->noContent();
     }
 
     /**

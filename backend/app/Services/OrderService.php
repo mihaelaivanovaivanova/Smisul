@@ -16,8 +16,11 @@ use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 /**
  * Orchestrates order placement: re-validates the cart exactly as it stands
@@ -292,6 +295,53 @@ class OrderService
             }
 
             return $this->orderStatus->transitionTo($order, OrderStatus::Cancelled, $cancelledBy, $note);
+        });
+    }
+
+    /**
+     * A permanent hard delete, not a status change — Order has no
+     * SoftDeletes. items, payments, status histories, legal acceptances,
+     * and reviews all cascade-delete via their own FK (see the orders
+     * migrations); the shipment row does too, but its carrier-side
+     * cancellation is the caller's job (Api\V1\Admin\OrderController),
+     * since that's a network call that doesn't belong inside this
+     * transaction. complaints.order_id is the one FK that's
+     * restrictOnDelete rather than cascade — a complaint is itself a
+     * legal record (ЗЗП чл. 128, ал. 4) that must outlive the order it
+     * was filed against, so deleting an order with one on file is
+     * refused with a clear message instead of a raw DB constraint error.
+     *
+     * Same stock-reservation release as cancel() for a still-held
+     * (Pending/AwaitingPayment) order — otherwise deleting it before
+     * confirmPayment() ever ran would leak that reservation forever, since
+     * nothing else releases it once the order row is gone.
+     */
+    public function delete(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
+
+            if (in_array($order->status, [OrderStatus::Pending, OrderStatus::AwaitingPayment], strict: true)) {
+                foreach ($order->items as $item) {
+                    $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
+
+                    if ($inventory !== null) {
+                        $this->inventory->release($inventory, $item->quantity);
+                    }
+                }
+            }
+
+            try {
+                $order->delete();
+            } catch (Throwable $exception) {
+                if ($exception instanceof QueryException
+                    && ($exception->errorInfo[1] ?? null) === 1451
+                    && str_contains($exception->getMessage(), 'complaints')) {
+                    throw new RuntimeException("Order {$order->order_number} has a complaint on file and cannot be deleted.");
+                }
+
+                throw $exception;
+            }
         });
     }
 

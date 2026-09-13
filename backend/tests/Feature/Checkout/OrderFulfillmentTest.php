@@ -108,6 +108,35 @@ class OrderFulfillmentTest extends TestCase
     }
 
     #[Test]
+    public function deleting_a_pending_order_releases_held_stock_without_decrementing_it(): void
+    {
+        $variant = $this->purchasableVariant(10);
+        $order = $this->placePendingOrder($variant, 3);
+
+        app(OrderService::class)->delete($order);
+
+        $variant->inventory->refresh();
+        $this->assertSame(10, $variant->inventory->quantity_on_hand);
+        $this->assertSame(0, $variant->inventory->quantity_reserved);
+        $this->assertNull(Order::find($order->id));
+    }
+
+    #[Test]
+    public function deleting_a_paid_order_does_not_touch_its_already_committed_stock(): void
+    {
+        $variant = $this->purchasableVariant(10);
+        $order = $this->placePendingOrder($variant, 3);
+        app(OrderService::class)->confirmPayment($order);
+
+        app(OrderService::class)->delete($order->fresh());
+
+        $variant->inventory->refresh();
+        $this->assertSame(7, $variant->inventory->quantity_on_hand);
+        $this->assertSame(0, $variant->inventory->quantity_reserved);
+        $this->assertNull(Order::find($order->id));
+    }
+
+    #[Test]
     public function confirming_payment_twice_is_rejected(): void
     {
         $variant = $this->purchasableVariant(10);

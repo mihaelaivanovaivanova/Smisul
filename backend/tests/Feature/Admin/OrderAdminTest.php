@@ -6,8 +6,10 @@ use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
+use App\Models\Complaint;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Shipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -338,5 +340,105 @@ class OrderAdminTest extends TestCase
 
         $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/cancel")
             ->assertStatus(422);
+    }
+
+    #[Test]
+    public function a_customer_cannot_delete_an_order(): void
+    {
+        $customer = User::factory()->create();
+        $order = Order::factory()->create();
+
+        $this->actingAs($customer)->deleteJson("/api/v1/admin/orders/{$order->id}")->assertForbidden();
+        $this->assertNotNull(Order::find($order->id));
+    }
+
+    #[Test]
+    public function an_administrator_can_delete_an_order_and_its_owned_records(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create();
+        $item = OrderItem::factory()->for($order)->create();
+        $payment = Payment::factory()->for($order)->create();
+
+        $this->actingAs($admin)->deleteJson("/api/v1/admin/orders/{$order->id}")
+            ->assertNoContent();
+
+        $this->assertNull(Order::find($order->id));
+        $this->assertDatabaseMissing('order_items', ['id' => $item->id]);
+        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+    }
+
+    #[Test]
+    public function deleting_an_order_cancels_its_non_final_shipment_with_the_carrier_first(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/parcels/BN-DELETE-1:cancel' => Http::response([], 200),
+        ]);
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'tracking_number' => 'BN-DELETE-1',
+        ]);
+
+        $this->actingAs($admin)->deleteJson("/api/v1/admin/orders/{$order->id}")
+            ->assertNoContent();
+
+        $this->assertNull(Order::find($order->id));
+        Http::assertSent(fn ($request) => str_contains((string) $request->url(), 'BN-DELETE-1:cancel'));
+    }
+
+    #[Test]
+    public function deleting_an_order_with_an_already_final_shipment_does_not_call_the_carrier(): void
+    {
+        Http::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'status' => ShipmentStatus::Delivered,
+        ]);
+
+        $this->actingAs($admin)->deleteJson("/api/v1/admin/orders/{$order->id}")
+            ->assertNoContent();
+
+        Http::assertNothingSent();
+    }
+
+    #[Test]
+    public function a_failed_carrier_cancellation_does_not_prevent_the_order_from_being_deleted(): void
+    {
+        Http::fake([
+            'api-production.boxnow.bg/api/v1/auth-sessions' => Http::response(['access_token' => 'test-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            'api-production.boxnow.bg/api/v1/parcels/BN-DELETE-FAIL:cancel' => Http::response(['code' => 'not-cancellable'], 403),
+        ]);
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'tracking_number' => 'BN-DELETE-FAIL',
+        ]);
+
+        $this->actingAs($admin)->deleteJson("/api/v1/admin/orders/{$order->id}")
+            ->assertNoContent();
+
+        $this->assertNull(Order::find($order->id));
+    }
+
+    #[Test]
+    public function deleting_an_order_with_a_complaint_on_file_is_rejected(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create();
+        Complaint::factory()->for($order)->create();
+
+        $response = $this->actingAs($admin)->deleteJson("/api/v1/admin/orders/{$order->id}");
+
+        $response->assertStatus(422);
+        $this->assertNotNull(Order::find($order->id));
     }
 }

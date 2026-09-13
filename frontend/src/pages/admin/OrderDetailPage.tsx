@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { apiBaseUrl } from '../../api/client';
-import { cancelOrderShipment, createOrderShipment, fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
+import { cancelOrderShipment, createOrderShipment, deleteOrder, fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -14,9 +14,16 @@ import { ORDER_STATUSES } from '../../constants/orderStatus';
 // these would just get rejected by the carrier, so the button never shows.
 const SHIPMENT_FINAL_STATUSES = ['delivered', 'returned', 'failed', 'cancelled'];
 
+// Orders at Paid or beyond represent a real, invoiced sale (see
+// OrderService::delete()'s docblock on the backend) - deletion is still
+// allowed at any status, but the confirmation prompt warns harder here
+// since it's permanently destroying that record, not just an abandoned cart.
+const FINANCIALLY_COMMITTED_STATUSES = ['paid', 'processing', 'packed', 'shipped', 'delivered', 'completed', 'refunded'];
+
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const id = Number(orderId);
+  const navigate = useNavigate();
   const [reloadKey, setReloadKey] = useState(0);
   const { data: order, isLoading, error } = useAsync(() => fetchAdminOrder(id), [id, reloadKey], 'Could not load the order.');
 
@@ -29,6 +36,8 @@ export default function OrderDetailPage() {
   const [isCreatingShipment, setIsCreatingShipment] = useState(false);
   const [isCancellingShipment, setIsCancellingShipment] = useState(false);
   const [shipmentError, setShipmentError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleCreateShipment() {
     setIsCreatingShipment(true);
@@ -70,6 +79,28 @@ export default function OrderDetailPage() {
       setUpdateError(getErrorMessage(err, `Could not ${operation} the payment.`));
     } finally {
       setOperationPaymentId(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!order) return;
+
+    const warning = FINANCIALLY_COMMITTED_STATUSES.includes(order.status)
+      ? `This order is already ${order.status.replace(/_/g, ' ')} — deleting it permanently destroys that sale record, including any invoice issued for it. `
+      : '';
+    const shipmentNote = order.shipment && !SHIPMENT_FINAL_STATUSES.includes(order.shipment.status) ? ' and cancel its shipment with the carrier' : '';
+    if (!window.confirm(`${warning}Permanently delete order ${order.order_number}? This cannot be undone${shipmentNote}.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteOrder(id);
+      navigate('/admin/orders');
+    } catch (err) {
+      setDeleteError(getErrorMessage(err, 'Could not delete the order.'));
+      setIsDeleting(false);
     }
   }
 
@@ -390,6 +421,21 @@ export default function OrderDetailPage() {
               >
                 {isUpdating && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
                 Update status
+              </button>
+            </div>
+          </div>
+
+          <div className="card mb-4 border-danger">
+            <div className="card-header text-danger">Delete order</div>
+            <div className="card-body d-flex flex-column gap-2">
+              {deleteError && <div className="alert alert-danger py-2 mb-0">{deleteError}</div>}
+              <p className="small text-muted mb-0">
+                Permanently deletes this order and its items, payments, and history. If a shipment was created and isn't in a final
+                state yet, it's cancelled with the carrier first. This cannot be undone.
+              </p>
+              <button type="button" className="btn btn-outline-danger" disabled={isDeleting} onClick={() => void handleDelete()}>
+                {isDeleting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                Delete order
               </button>
             </div>
           </div>

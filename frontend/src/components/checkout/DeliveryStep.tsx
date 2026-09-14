@@ -14,6 +14,9 @@ import type {
   ShippingMethod,
   ShippingOffice,
 } from '../../types/checkout';
+import type { PaymentMethodValue } from '../../types/payment';
+
+const PAYMENT_METHODS: PaymentMethodValue[] = ['card', 'cash_on_delivery'];
 
 /** Each carrier's own real logo (see frontend/public/shipping/), sourced from their official sites. */
 const CARRIER_LOGOS: Record<ShippingCarrier, { src: string; alt: string }> = {
@@ -45,6 +48,10 @@ interface DeliveryStepProps {
   officesError: string | null;
   selectedOfficeId: string | null;
   onSelectOffice: (office: ShippingOffice | null) => void;
+  selectedPaymentMethod: PaymentMethodValue;
+  onSelectPaymentMethod: (method: PaymentMethodValue) => void;
+  /** The cash-on-delivery surcharge (see PaymentMethod::fee() on the backend) — marked next to that option's label, 0 hides the mark. */
+  cashOnDeliveryFee: number;
   errors: Record<string, string>;
 }
 
@@ -306,6 +313,9 @@ export default function DeliveryStep({
   officesError,
   selectedOfficeId,
   onSelectOffice,
+  selectedPaymentMethod,
+  onSelectPaymentMethod,
+  cashOnDeliveryFee,
   errors,
 }: DeliveryStepProps) {
   const isAddressDelivery = selectedMethod?.delivery_type === 'address';
@@ -313,6 +323,34 @@ export default function DeliveryStep({
 
   return (
     <div>
+      <h2 className="h6 mb-3">{checkoutCopy.paymentStep.title}</h2>
+
+      <div className="payment-panel mb-4">
+        <div className="small text-muted mb-3">{checkoutCopy.paymentStep.methodLabel}</div>
+        <div className="d-flex flex-column gap-2">
+          {PAYMENT_METHODS.map((value) => (
+            <label key={value} className={`payment-option ${selectedPaymentMethod === value ? 'is-selected' : ''}`}>
+              <input
+                type="radio"
+                name="payment_method"
+                className="form-check-input mt-0"
+                checked={selectedPaymentMethod === value}
+                onChange={() => onSelectPaymentMethod(value)}
+              />
+              <span className="flex-grow-1">
+                <span className="payment-option__label d-block">
+                  {checkoutCopy.paymentStep.methods[value]}
+                  {value === 'cash_on_delivery' && cashOnDeliveryFee > 0 && (
+                    <span className="text-muted fw-normal"> (+{formatPrice(cashOnDeliveryFee)})</span>
+                  )}
+                </span>
+                <span className="payment-option__hint d-block">{checkoutCopy.paymentStep.methodHints[value]}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <h2 className="h6 mb-3">{checkoutCopy.delivery.title}</h2>
 
       {isLoadingShippingMethods && <LoadingState message={checkoutCopy.delivery.loading} />}
@@ -323,15 +361,24 @@ export default function DeliveryStep({
           {shippingMethods.map((method) => {
             const isSelected = selectedMethod !== null && methodKey(selectedMethod) === methodKey(method);
             const logo = CARRIER_LOGOS[method.carrier];
+            // Cash on delivery only works with Speedy - see the payment
+            // method panel above and CheckoutPage's auto-switch effect,
+            // which moves the selection off BOX NOW the moment this
+            // becomes true so the two choices can never end up mismatched.
+            const isDisabled = selectedPaymentMethod === 'cash_on_delivery' && method.carrier === 'box_now';
 
             return (
-              <div key={methodKey(method)} className={`shipping-option-wrapper ${isSelected ? 'is-selected' : ''}`}>
+              <div
+                key={methodKey(method)}
+                className={`shipping-option-wrapper ${isSelected ? 'is-selected' : ''} ${isDisabled ? 'is-disabled' : ''}`}
+              >
                 <label className="shipping-option">
                   <input
                     type="radio"
                     name="shipping_method"
                     className="form-check-input mt-0"
                     checked={isSelected}
+                    disabled={isDisabled}
                     onChange={() => onSelectMethod(method)}
                   />
                   <span className="shipping-carrier-logo">
@@ -339,10 +386,14 @@ export default function DeliveryStep({
                   </span>
                   <span className="flex-grow-1">
                     <span className="shipping-option__label d-block">{method.label}</span>
-                    <span className="shipping-option__hint d-block">{method.description}</span>
                     <span className="shipping-option__hint d-block">
-                      {checkoutCopy.delivery.estimatedDeliveryPrefix} {method.estimated_delivery}
+                      {isDisabled ? checkoutCopy.delivery.unavailableWithCashOnDelivery : method.description}
                     </span>
+                    {!isDisabled && (
+                      <span className="shipping-option__hint d-block">
+                        {checkoutCopy.delivery.estimatedDeliveryPrefix} {method.estimated_delivery}
+                      </span>
+                    )}
                   </span>
                   <span className="fw-semibold">{formatPrice(method.price, method.currency as 'EUR')}</span>
                 </label>

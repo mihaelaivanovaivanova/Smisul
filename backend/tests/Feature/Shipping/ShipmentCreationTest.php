@@ -179,6 +179,74 @@ class ShipmentCreationTest extends TestCase
     }
 
     /**
+     * Speedy's real `service.additionalServices.cod` shape (confirmed live
+     * against the sandbox, complete with the real `codPremium` surcharge
+     * Speedy's own price breakdown adds for it) — amount is the order's
+     * grand_total (already includes shipping, see OrderService::placeOrder()),
+     * with includeShippingPrice false so Speedy doesn't add its own
+     * delivery fee on top of that.
+     */
+    #[Test]
+    public function creating_a_speedy_shipment_sends_cod_for_a_cash_on_delivery_order(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-COD-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'currency' => 'EUR',
+            'grand_total' => 27.98,
+        ]);
+        Payment::factory()->for($order)->create([
+            'payment_method' => PaymentMethod::CashOnDelivery,
+            'provider' => PaymentProvider::CashOnDelivery,
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            if (! str_ends_with($request->url(), '/shipment')) {
+                return false;
+            }
+
+            $cod = $request['service']['additionalServices']['cod'];
+            $receiptItem = $cod['fiscalReceiptItems'][0];
+
+            return $cod['amount'] === 27.98
+                && $cod['currencyCode'] === 'EUR'
+                && $cod['processingType'] === 'CASH'
+                && $cod['includeShippingPrice'] === false
+                // Cyrillic "А", not Latin "A" — Speedy rejects the Latin
+                // one outright (confirmed live), and this Company isn't
+                // ДДС-registered, so it's always the 0% group.
+                && $receiptItem['vatGroup'] === 'А'
+                && $receiptItem['amount'] === 27.98
+                && $receiptItem['amountWithVat'] === 27.98;
+        });
+    }
+
+    #[Test]
+    public function creating_a_speedy_shipment_for_a_prepaid_order_sends_no_cod(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-PREPAID-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+        ]);
+        Payment::factory()->for($order)->create(['payment_method' => PaymentMethod::Card]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            return str_ends_with($request->url(), '/shipment')
+                && ! array_key_exists('additionalServices', $request['service']);
+        });
+    }
+
+    /**
      * Speedy's real API (confirmed against the sandbox with live test
      * credentials) requires a non-empty recipient.address.streetNo — a
      * single free-text address line has to be split into street name +

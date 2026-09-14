@@ -5,16 +5,17 @@ namespace App\Http\Controllers\Api\V1\Checkout;
 use App\DataTransferObjects\Checkout\PlaceOrderData;
 use App\DataTransferObjects\Shipping\ShippingQuoteRequestData;
 use App\Enums\PaymentMethod;
+use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Requests\Checkout\ShippingQuoteRequest;
 use App\Http\Resources\Checkout\LegalDocumentResource;
 use App\Http\Resources\Checkout\PaymentMethodResource;
+use App\Http\Resources\Checkout\SettlementResource;
 use App\Http\Resources\Checkout\ShippingMethodResource;
 use App\Http\Resources\Checkout\ShippingOfficeResource;
 use App\Http\Resources\Checkout\ShippingQuoteResource;
-use App\Http\Resources\Checkout\SettlementResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Cart;
@@ -27,8 +28,8 @@ use App\Services\ShippingMethodService;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
@@ -106,19 +107,24 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Every currently-enabled method (see
-     * PaymentService::availablePaymentMethods()) — card only, regardless of
-     * carrier, now that cash on delivery is gone. `available` in the
-     * response shape is always true today, but kept rather than collapsed
-     * to a plain list of values: PaymentMethodResource's shape is shared
-     * with anything else that might reintroduce a disabled-but-listed
-     * method later.
+     * Every offerable method is always listed (see
+     * PaymentService::offerableMethods()) — cash on delivery included even
+     * for a non-Speedy carrier, marked `available: false` so the frontend
+     * can show it greyed out with an explanation instead of hiding it.
+     * carrier is optional — called with none yet before the delivery step
+     * has a selection, which still needs a safe (card-only-available)
+     * response.
      */
-    public function paymentMethods(): JsonResponse
+    public function paymentMethods(Request $request): JsonResponse
     {
-        $methods = collect($this->payments->availablePaymentMethods())->map(fn ($method) => [
+        $request->validate(['carrier' => ['nullable', 'string']]);
+
+        $carrier = ShippingCarrier::tryFrom((string) $request->string('carrier'));
+        $enabledMethods = $this->payments->availablePaymentMethods($carrier);
+
+        $methods = collect($this->payments->offerableMethods())->map(fn ($method) => [
             'method' => $method,
-            'available' => true,
+            'available' => in_array($method, $enabledMethods, true),
         ]);
 
         return PaymentMethodResource::collection($methods)->response();
@@ -139,6 +145,7 @@ class CheckoutController extends Controller
                 $paymentMethod,
                 $request->filled('stored_payment_method_id') ? (int) $request->validated('stored_payment_method_id') : null,
             );
+
             return [$order, $payment];
         });
 

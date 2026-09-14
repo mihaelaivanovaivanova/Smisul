@@ -103,6 +103,16 @@ return [
     |
     */
 
+    'payments' => [
+        // Surcharge for choosing cash on delivery (Speedy only - see
+        // PaymentMethod::fee()/PaymentService::availablePaymentMethods()).
+        // Covers the real cost this store bears for it (Speedy's own
+        // codPremium fee on top of the base delivery price, plus handling
+        // a cash sale) - env-configurable rather than hardcoded so
+        // changing it later is a deploy config change, not a code change.
+        'cash_on_delivery_fee' => (float) env('CASH_ON_DELIVERY_FEE', 0.50),
+    ],
+
     'apple_pay' => [
         'enabled' => (bool) env('APPLE_PAY_ENABLED', false),
 

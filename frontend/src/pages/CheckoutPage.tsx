@@ -4,7 +4,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
-import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments, fetchSettlements } from '../api/checkout';
+import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments, fetchSettlements, fetchPaymentMethods } from '../api/checkout';
 import { initiatePayment, recordPaymentReturn } from '../api/payment';
 import { trackBeginCheckout } from '../services/analytics';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
@@ -129,6 +129,13 @@ export default function CheckoutPage() {
     checkoutCopy.legal.loadError,
   );
 
+  // Only the fee actually varies here — availability is handled entirely
+  // client-side now (see DeliveryStep's own carrier-disabling logic), and
+  // the fee itself doesn't depend on carrier, so this is fetched once with
+  // no carrier param rather than re-fetched as the carrier changes.
+  const { data: paymentMethods } = useAsync(() => fetchPaymentMethods(), [], '');
+  const cashOnDeliveryFee = paymentMethods?.find((method) => method.value === 'cash_on_delivery')?.fee ?? 0;
+
   // BOX NOW is the default shipping method — pre-selected as soon as the
   // catalog loads, but only ever once: this must not clobber a method the
   // customer has since deliberately picked (including switching away from
@@ -210,6 +217,36 @@ export default function CheckoutPage() {
     setSelectedMethod(method);
     setSelectedOffice(null);
   }
+
+  // Cash on delivery only works with Speedy (its courier collects in
+  // person at hand-off — BOX NOW's locker network has no one to collect
+  // from) — see PaymentService::availablePaymentMethods() on the backend.
+  // Switching to it while BOX NOW is the current selection must not leave
+  // an invalid combination sitting there silently; falls back to whichever
+  // Speedy method is first in the list (there's always at least one, since
+  // BOX NOW being selectable at all means the catalog loaded).
+  useEffect(() => {
+    if (selectedPaymentMethod !== 'cash_on_delivery' || selectedMethod?.carrier !== 'box_now') return;
+
+    const speedyMethod = shippingMethods?.find((method) => method.carrier === 'speedy');
+    if (speedyMethod) handleSelectMethod(speedyMethod);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPaymentMethod, selectedMethod, shippingMethods]);
+
+  // BOX NOW is the default carrier (see the free-shipping promo) — picking
+  // card back up re-defaults to it, same as first landing on this step.
+  // Deliberately keyed only on selectedPaymentMethod (not selectedMethod
+  // too, unlike the effect above): this should fire once when the
+  // customer switches TO card, not fight them every time they manually
+  // pick Speedy afterward while still paying by card - card+Speedy is a
+  // perfectly valid combination, just not the default one.
+  useEffect(() => {
+    if (selectedPaymentMethod !== 'card') return;
+
+    const boxNowMethod = shippingMethods?.find((method) => method.carrier === 'box_now');
+    if (boxNowMethod) handleSelectMethod(boxNowMethod);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPaymentMethod, shippingMethods]);
 
   // Billing address only exists to support an invoice, so it's collected at
   // all only when the customer opted into one on the customer-info step —
@@ -397,24 +434,33 @@ export default function CheckoutPage() {
         shipping_office_address: selectedOffice?.address,
         legal_document_ids: acceptedLegalDocumentIds,
         payment_method: selectedPaymentMethod,
-        stored_payment_method_id: storedPaymentMethodId ?? undefined,
+        stored_payment_method_id: selectedPaymentMethod === 'card' ? storedPaymentMethodId ?? undefined : undefined,
       });
 
       await refreshCart();
+
+      if (selectedPaymentMethod === 'cash_on_delivery') {
+        navigate(`/order-confirmation/${order.id}`, { state: { guestAccessToken } });
+        return;
+      }
 
       setActivePayment({ orderId: order.id, guestAccessToken, payment });
       setIsSubmitting(false);
     } catch (error) {
       setErrors(getValidationErrors(error));
 
-      // The real reason (e.g. "iCard API request failed: configuration
-      // incomplete: mid, originator...") is too technical/internal to show
-      // a customer, but swallowing it entirely makes a misconfigured
-      // gateway undiagnosable from the browser — log it so it's at least
-      // visible in devtools without needing server log access.
-      // eslint-disable-next-line no-console
-      console.error('iCard payment could not be started:', getErrorMessage(error, 'unknown error'));
-      setSubmitError('Плащането не беше стартирано. Моля, опитайте отново.');
+      if (selectedPaymentMethod === 'card') {
+        // The real reason (e.g. "iCard API request failed: configuration
+        // incomplete: mid, originator...") is too technical/internal to show
+        // a customer, but swallowing it entirely makes a misconfigured
+        // gateway undiagnosable from the browser — log it so it's at least
+        // visible in devtools without needing server log access.
+        // eslint-disable-next-line no-console
+        console.error('iCard payment could not be started:', getErrorMessage(error, 'unknown error'));
+        setSubmitError('Плащането не беше стартирано. Моля, опитайте отново.');
+      } else {
+        setSubmitError(getErrorMessage(error, checkoutCopy.errors.placeOrderFailed));
+      }
 
       setIsSubmitting(false);
     }
@@ -454,7 +500,7 @@ export default function CheckoutPage() {
         activePayment.orderId,
         activePayment.guestAccessToken,
         selectedPaymentMethod,
-        storedPaymentMethodId,
+        selectedPaymentMethod === 'card' ? storedPaymentMethodId : null,
       );
       setActivePayment({ ...activePayment, payment });
     } catch (error) {
@@ -523,6 +569,9 @@ export default function CheckoutPage() {
                     officesError={officesError}
                     selectedOfficeId={selectedOffice?.id ?? null}
                     onSelectOffice={setSelectedOffice}
+                    selectedPaymentMethod={selectedPaymentMethod}
+                    onSelectPaymentMethod={setSelectedPaymentMethod}
+                    cashOnDeliveryFee={cashOnDeliveryFee}
                     errors={errors}
                   />
                 )}
@@ -550,7 +599,7 @@ export default function CheckoutPage() {
                     cart={cart}
                     shippingMethod={selectedShippingMethod}
                     selectedMethod={selectedPaymentMethod}
-                    onSelectMethod={setSelectedPaymentMethod}
+                    cashOnDeliveryFee={cashOnDeliveryFee}
                     storedPaymentMethodId={storedPaymentMethodId}
                     onSelectStoredPaymentMethod={setStoredPaymentMethodId}
                   />
@@ -635,7 +684,9 @@ export default function CheckoutPage() {
                         disabled={isSubmitting}
                       >
                         {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />}
-                        {isSubmitting ? 'Подготвяме защитено плащане...' : 'Плати с карта'}
+                        {isSubmitting
+                          ? (selectedPaymentMethod === 'card' ? 'Подготвяме защитено плащане...' : checkoutCopy.placingOrder)
+                          : (selectedPaymentMethod === 'card' ? 'Плати с карта' : 'Завърши поръчката')}
                       </button>
                     )}
                   </div>
@@ -645,7 +696,11 @@ export default function CheckoutPage() {
           </div>
 
           <div className="col-12 col-lg-4">
-            <CheckoutSummary cart={cart} shippingMethod={selectedShippingMethod} />
+            <CheckoutSummary
+              cart={cart}
+              shippingMethod={selectedShippingMethod}
+              codFee={selectedPaymentMethod === 'cash_on_delivery' ? cashOnDeliveryFee : 0}
+            />
           </div>
         </div>
       )}

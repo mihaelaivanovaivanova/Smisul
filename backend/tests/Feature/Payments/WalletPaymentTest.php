@@ -54,13 +54,16 @@ class WalletPaymentTest extends TestCase
     }
 
     /**
-     * Card is the only PaymentMethod ever listed now — wallet brands are
-     * never a separate checkout option (only rendered inside the iCard
-     * modal), and cash on delivery was removed entirely (see
-     * PaymentMethod::active()), not just marked unavailable.
+     * Wallet brands are never a separate checkout option (only rendered
+     * inside the iCard modal) — card and cash on delivery are the only
+     * two PaymentMethodResource ever lists (see
+     * PaymentService::offerableMethods()), regardless of wallet config.
+     * No carrier query param here, so cash on delivery is listed but
+     * unavailable — see checkout_lists_cash_on_delivery_as_available_for_speedy
+     * for the Speedy case.
      */
     #[Test]
-    public function checkout_lists_only_card(): void
+    public function checkout_lists_card_and_cash_on_delivery(): void
     {
         config([
             'services.apple_pay.enabled' => true,
@@ -69,20 +72,29 @@ class WalletPaymentTest extends TestCase
             'services.icard.google_pay_enabled' => true,
         ]);
 
-        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk()->assertJsonCount(1, 'data');
-        $response->assertJsonFragment(['value' => 'card', 'available' => true]);
+        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk()->assertJsonCount(2, 'data');
+        $response->assertJsonFragment(['value' => 'card', 'available' => true, 'fee' => 0.0]);
+        $response->assertJsonFragment(['value' => 'cash_on_delivery', 'available' => false, 'fee' => 0.5]);
+    }
+
+    #[Test]
+    public function checkout_lists_cash_on_delivery_as_available_for_speedy(): void
+    {
+        $response = $this->getJson('/api/v1/checkout/payment-methods?carrier=speedy')->assertOk();
+
+        $response->assertJsonFragment(['value' => 'cash_on_delivery', 'available' => true]);
     }
 
     /**
-     * Cash on delivery is rejected for every carrier now, not just
-     * Speedy — it used to be accepted for BOX NOW specifically (its own
-     * courier collected cash in person at hand-off), but that option was
-     * removed entirely (see PaymentMethod::active()).
+     * Cash on delivery is only ever accepted for Speedy — its own courier
+     * collects cash (or a card payment) in person at hand-off. BOX NOW's
+     * locker network has no equivalent (nobody meets the customer), so it
+     * stays rejected there.
      */
     #[Test]
-    public function cash_on_delivery_is_rejected_regardless_of_carrier(): void
+    public function cash_on_delivery_is_accepted_for_speedy_and_rejected_for_box_now(): void
     {
-        $this->placeOrder('cash_on_delivery')->assertUnprocessable()->assertJsonValidationErrors('payment_method');
+        $this->placeOrder('cash_on_delivery')->assertCreated();
 
         $response = $this->placeOrder('cash_on_delivery', [
             'shipping_carrier' => 'box_now',
@@ -93,6 +105,50 @@ class WalletPaymentTest extends TestCase
             'shipping_office_address' => 'Mall of Sofia, bul. Alexander Malinov 1',
         ]);
         $response->assertUnprocessable()->assertJsonValidationErrors('payment_method');
+    }
+
+    /**
+     * The 0.50 surcharge (see PaymentMethod::fee()) lands on the order
+     * itself, not just the payment - grand_total goes up by exactly that
+     * much, and cod_fee shows it as its own real line item rather than
+     * silently inflating shipping_total.
+     */
+    #[Test]
+    public function cash_on_delivery_adds_its_fee_to_the_order_total(): void
+    {
+        $cardOrder = $this->placeOrder('card')->assertCreated();
+        $codOrder = $this->placeOrder('cash_on_delivery')->assertCreated();
+
+        $this->assertEquals(0.0, $cardOrder->json('data.totals.cod_fee'));
+        $this->assertEquals(0.5, $codOrder->json('data.totals.cod_fee'));
+        $this->assertEquals(
+            round($cardOrder->json('data.totals.grand_total') + 0.5, 2),
+            $codOrder->json('data.totals.grand_total'),
+        );
+    }
+
+    /**
+     * Retrying with a different method (see PaymentService::initiate()'s
+     * own docblock) must reconcile the fee to match - switching back to
+     * card after cash on delivery removes the surcharge again rather than
+     * leaving it double-applied or stuck on an order that's no longer
+     * paying that way.
+     */
+    #[Test]
+    public function switching_from_cash_on_delivery_back_to_card_on_retry_removes_the_fee(): void
+    {
+        $placed = $this->placeOrder('cash_on_delivery')->assertCreated();
+        $orderId = $placed->json('data.id');
+        $token = $placed->json('meta.guest_access_token');
+        $this->assertEquals(0.5, $placed->json('data.totals.cod_fee'));
+
+        $originalGrandTotal = $placed->json('data.totals.grand_total');
+
+        $this->postJson("/api/v1/payments/{$orderId}/initiate?token={$token}", ['payment_method' => 'card'])->assertOk();
+
+        $order = $this->getJson("/api/v1/orders/{$orderId}?token={$token}")->assertOk();
+        $this->assertEquals(0.0, $order->json('data.totals.cod_fee'));
+        $this->assertEquals(round($originalGrandTotal - 0.5, 2), $order->json('data.totals.grand_total'));
     }
 
     #[Test]

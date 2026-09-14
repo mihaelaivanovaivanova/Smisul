@@ -157,23 +157,22 @@ class PaymentInitiationTest extends TestCase
 
     /**
      * Retrying with a different payment_method (see initiate()'s own
-     * docblock) must not let cash on delivery become reachable just
-     * because it bypasses PlaceOrderRequest's validation (see
-     * PaymentService::assertMethodEnabled()) — rejected for every
-     * carrier now, not just Speedy (it used to be accepted for BOX NOW
-     * specifically; that option was removed entirely, see
-     * PaymentMethod::active()).
+     * docblock) can reach cash on delivery for a Speedy order — same as
+     * placing the order with it selected up front — but must not let it
+     * become reachable for a carrier it isn't enabled for just because
+     * retry bypasses PlaceOrderRequest's own validation (see
+     * PaymentService::assertMethodEnabled(), which re-checks it here too).
      */
     #[Test]
-    public function retrying_with_cash_on_delivery_is_rejected_regardless_of_carrier(): void
+    public function retrying_with_cash_on_delivery_is_accepted_for_speedy_and_rejected_for_box_now(): void
     {
         $placed = $this->placeOrder();
         $orderId = $placed->json('data.id');
         $token = $placed->json('meta.guest_access_token');
 
         $this->postJson("/api/v1/payments/{$orderId}/initiate?token={$token}", ['payment_method' => 'cash_on_delivery'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('payment_method');
+            ->assertOk()
+            ->assertJsonPath('data.payment_method', 'cash_on_delivery');
 
         $variant = $this->purchasableVariant();
         $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);

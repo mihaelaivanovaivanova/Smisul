@@ -8,23 +8,15 @@ export type PaymentStatus =
   | 'expired'
   | 'refunded';
 
-export type PaymentMethodValue = 'card';
-
-/**
- * Payment.payment_method reflects whatever an order/payment was actually
- * placed with historically, which can include methods no longer
- * selectable at checkout (see PaymentMethodValue) — cash on delivery was
- * removed as a live option, but existing payments still carry it (see the
- * backend's PaymentMethod::CashOnDelivery doc comment for why the value
- * itself is never deleted, only stopped from being newly selectable).
- */
-export type HistoricalPaymentMethodValue = PaymentMethodValue | 'cash_on_delivery';
+export type PaymentMethodValue = 'cash_on_delivery' | 'card';
 
 export interface PaymentMethodOption {
   value: PaymentMethodValue;
   label: string;
-  /** Always true today — every method the backend returns is enabled (see PaymentService::availablePaymentMethods). Kept as a field rather than dropped in case a future method is ever listed disabled. */
+  /** false when this method is listed but not currently selectable (e.g. cash on delivery for a non-Speedy carrier) — show it greyed out, not hidden. */
   available: boolean;
+  /** The surcharge for choosing this method (see PaymentMethod::fee() on the backend) — 0 for every method except cash on delivery. */
+  fee: number;
 }
 
 export interface PaymentModalSession {
@@ -37,7 +29,7 @@ export interface Payment {
   id: number;
   order_id: number;
   provider: string;
-  payment_method: HistoricalPaymentMethodValue;
+  payment_method: PaymentMethodValue;
   status: PaymentStatus;
   amount: number;
   currency: string;

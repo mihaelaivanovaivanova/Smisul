@@ -25,7 +25,7 @@ class PaymentController extends Controller
     {
         $this->authorizeAccess($request, $order);
 
-        $enabledMethods = array_map(fn ($method) => $method->value, $this->payments->availablePaymentMethods());
+        $enabledMethods = array_map(fn ($method) => $method->value, $this->payments->availablePaymentMethods($order->shipping_carrier));
         $request->validate([
             'payment_method' => ['sometimes', 'string', Rule::in($enabledMethods)],
             'stored_payment_method_id' => ['nullable', 'integer', 'exists:stored_payment_methods,id'],

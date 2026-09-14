@@ -9,6 +9,7 @@ use App\DataTransferObjects\Shipping\ShippingQuoteData;
 use App\DataTransferObjects\Shipping\ShippingQuoteRequestData;
 use App\DataTransferObjects\Shipping\TrackingData;
 use App\DataTransferObjects\Shipping\TrackingEventData;
+use App\Enums\PaymentMethod;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
@@ -44,6 +45,16 @@ use Throwable;
  * `serviceId` 505 is confirmed valid for this account (returns real prices
  * and creates real test shipments) — no longer a placeholder guess.
  * Independent of BoxNowShippingProvider by design — no shared base class.
+ *
+ * Cash on delivery: `service.additionalServices.cod` (amount, currencyCode,
+ * processingType, fiscalReceiptItems) — confirmed live with a real test
+ * shipment, complete with the `codPremium` surcharge Speedy adds to the
+ * price breakdown for it. The only carrier this store offers COD for (see
+ * PaymentService::availablePaymentMethods()) — BOX NOW's locker network
+ * has no courier meeting the customer in person to collect from.
+ * fiscalReceiptItems (the "касов бон" Speedy issues on our behalf for the
+ * cash sale) needs `vatGroup` as the Cyrillic letter "А" — the visually
+ * identical Latin "A" is rejected outright, confirmed by trial.
  *
  * Three delivery types now: staffed office, automated machine (APT — both
  * come back from the same location/office lookup, distinguished by the
@@ -203,6 +214,53 @@ class SpeedyShippingProvider implements ShippingProviderInterface
 
         $ownClient = $this->ownClient();
 
+        // Cash on delivery is only ever selectable for Speedy orders (see
+        // PaymentService::availablePaymentMethods()) — every other order
+        // is prepaid with nothing to collect.
+        $isCashOnDelivery = $order->payments()->where('payment_method', PaymentMethod::CashOnDelivery)->exists();
+
+        $service = ['serviceId' => self::SERVICE_ID, 'pickupDate' => $this->nextPickupDate()->toDateString()];
+
+        if ($isCashOnDelivery) {
+            $service['additionalServices'] = [
+                'cod' => [
+                    // grand_total already includes the shipping charge
+                    // (see OrderService::placeOrder()) - includeShippingPrice
+                    // false means Speedy collects exactly this amount and
+                    // doesn't add its own delivery fee on top, which would
+                    // overcharge the customer beyond the checkout total.
+                    'amount' => (float) $order->grand_total,
+                    'currencyCode' => $order->currency,
+                    // Both cash and a card payment at the door are allowed
+                    // (cardPaymentForbidden defaults to false) - confirmed
+                    // against the real schema (ShipmentCODAdditionalService).
+                    'processingType' => 'CASH',
+                    'includeShippingPrice' => false,
+                    // Speedy issues the fiscal receipt ("касов бон") for
+                    // any cash collection on our behalf - per Speedy's own
+                    // integration notice this is a legal requirement, not
+                    // an optional extra, whenever "с касов бон" applies (it
+                    // always does for a cash sale). One line covering the
+                    // whole order rather than itemizing per product - this
+                    // store has only ever had the one tax treatment, so
+                    // there's no real per-line VAT group to distinguish.
+                    // vatGroup "А" (Cyrillic, not Latin — confirmed live,
+                    // Latin "A" is rejected) is 0% VAT: this Company isn't
+                    // ДДС-registered (see LegalDocumentSeeder's "Плащане и
+                    // документ за продажбата" clause), so amount and
+                    // amountWithVat are always equal.
+                    'fiscalReceiptItems' => [
+                        [
+                            'description' => "Поръчка {$order->order_number}",
+                            'vatGroup' => 'А',
+                            'amount' => (float) $order->grand_total,
+                            'amountWithVat' => (float) $order->grand_total,
+                        ],
+                    ],
+                ],
+            ];
+        }
+
         try {
             $response = $this->client()->post('shipment', $this->withCredentials([
                 'sender' => [
@@ -221,7 +279,7 @@ class SpeedyShippingProvider implements ShippingProviderInterface
                     'contactName' => $ownClient['clientName'],
                 ],
                 'recipient' => $recipient,
-                'service' => ['serviceId' => self::SERVICE_ID, 'pickupDate' => $this->nextPickupDate()->toDateString()],
+                'service' => $service,
                 'content' => [
                     'parcelsCount' => 1,
                     'totalWeight' => 1.0,

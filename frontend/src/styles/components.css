@@ -831,6 +831,15 @@
   border-bottom-right-radius: 0;
 }
 
+.shipping-option-wrapper.is-disabled .shipping-option {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.shipping-option-wrapper.is-disabled .shipping-option:hover {
+  border-color: var(--color-border);
+}
+
 .shipping-carrier-logo {
   display: inline-flex;
   align-items: center;

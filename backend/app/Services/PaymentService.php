@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
+use App\Enums\ShippingCarrier;
 use App\Exceptions\Payment\InvalidPaymentMethodException;
 use App\Exceptions\Payment\InvalidWebhookSignatureException;
 use App\Models\Order;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -56,7 +58,7 @@ class PaymentService
      */
     public function initiate(Order $order, PaymentMethod $method = PaymentMethod::Card, ?int $storedPaymentMethodId = null): Payment
     {
-        $this->assertMethodEnabled($method);
+        $this->assertMethodEnabled($method, $order->shipping_carrier);
 
         return DB::transaction(function () use ($order, $method, $storedPaymentMethodId) {
             $storedMethod = null;
@@ -71,16 +73,61 @@ class PaymentService
                     ->firstOrFail();
             }
 
+            // Reconciled against the *current* method's fee, not just added
+            // once — a customer retrying with a different method (see this
+            // method's own docblock) must have any previously-applied
+            // cash-on-delivery surcharge removed if they switch back to
+            // card, and this must happen before the Payment row below is
+            // created so its own `amount` reflects the correct total too.
+            $fee = $method->fee();
+            if (bccomp((string) $order->cod_fee, (string) $fee, 2) !== 0) {
+                $order->update([
+                    'cod_fee' => $fee,
+                    'grand_total' => round((float) $order->grand_total - (float) $order->cod_fee + $fee, 2),
+                ]);
+                $order->refresh();
+            }
+
             $payment = Payment::create([
                 'order_id' => $order->id,
-                'provider' => $this->gateway->provider(),
-                'gateway_environment' => $this->gateway->environment(),
+                'provider' => $method === PaymentMethod::CashOnDelivery
+                    ? PaymentProvider::CashOnDelivery
+                    : $this->gateway->provider(),
+                'gateway_environment' => $method === PaymentMethod::CashOnDelivery
+                    ? null
+                    : $this->gateway->environment(),
                 'payment_method' => $method,
                 'status' => PaymentStatus::Pending,
                 'amount' => $order->grand_total,
                 'currency' => $order->currency,
-                'transaction_reference' => $this->icardOrderId($order->order_number),
+                'transaction_reference' => $method === PaymentMethod::CashOnDelivery
+                    ? (string) Str::uuid()
+                    : $this->icardOrderId($order->order_number),
             ]);
+
+            // Speedy's own courier collects the cash/card at hand-off — no
+            // gateway session to create, and nothing to charge right now.
+            // The order still needs to leave Pending (see the transition
+            // below), same as a card payment does once a session exists.
+            if ($method === PaymentMethod::CashOnDelivery) {
+                $payment->transactions()->create([
+                    'type' => 'cash_on_delivery_created',
+                    'payment_method' => $method,
+                    'status' => PaymentStatus::Pending,
+                    'raw_payload' => null,
+                ]);
+
+                if ($order->status === OrderStatus::Pending) {
+                    $this->orderStatus->transitionTo(
+                        $order,
+                        OrderStatus::AwaitingPayment,
+                        changedBy: null,
+                        note: 'Cash on delivery selected',
+                    );
+                }
+
+                return $payment->fresh();
+            }
 
             $session = $storedMethod !== null
                 ? $this->gateway->createStoredCardSession($payment, $storedMethod)
@@ -115,20 +162,47 @@ class PaymentService
     }
 
     /**
-     * The methods a payment can actually be placed with right now — one
-     * hosted iCard method, everywhere, regardless of carrier. Cash on
-     * delivery used to widen this for BOX NOW orders; see
-     * PaymentMethod::active() for why it's gone.
+     * The methods a payment can actually be *placed with* right now — one
+     * hosted iCard method everywhere, plus cash on delivery, but only for
+     * Speedy orders. Speedy's own courier collects cash (or a card
+     * payment) in person at hand-off, which no other carrier here has an
+     * equivalent for — BOX NOW is a locker network with nobody to collect
+     * from in person. Re-check this the moment another carrier gains a
+     * real COD capability instead of just widening the condition.
      *
-     * This is the single source of truth PlaceOrderRequest's validation,
-     * PaymentController's enabled-methods check, and checkout's method list
-     * (CheckoutController::paymentMethods()) all read from.
+     * $carrier is nullable so a caller with no order/carrier context yet
+     * (e.g. before checkout has a shipping selection) still gets a safe,
+     * card-only default rather than an error.
+     *
+     * This is the single source of truth PlaceOrderRequest's validation and
+     * PaymentController's enabled-methods check both read from. Checkout's
+     * method list (CheckoutController::paymentMethods()) also reads from
+     * this, but combined with offerableMethods() below — it still *shows*
+     * cash on delivery for a non-Speedy carrier (greyed out, with an
+     * explanation), rather than hiding it, so don't reuse this method alone
+     * anywhere the UI needs to render every option.
      *
      * @return list<PaymentMethod>
      */
-    public function availablePaymentMethods(): array
+    public function availablePaymentMethods(?ShippingCarrier $carrier = null): array
     {
-        return PaymentMethod::active();
+        return $carrier === ShippingCarrier::Speedy
+            ? [PaymentMethod::Card, PaymentMethod::CashOnDelivery]
+            : [PaymentMethod::Card];
+    }
+
+    /**
+     * Every payment method ever worth showing at checkout, regardless of
+     * whether the current carrier actually allows it — see
+     * availablePaymentMethods() for that. Wallets (Apple Pay/Google Pay)
+     * are deliberately excluded: they're never a separate checkout option,
+     * only rendered inside the iCard modal.
+     *
+     * @return list<PaymentMethod>
+     */
+    public function offerableMethods(): array
+    {
+        return [PaymentMethod::Card, PaymentMethod::CashOnDelivery];
     }
 
     /**
@@ -137,9 +211,9 @@ class PaymentService
      * method any future caller could reach directly with a method that
      * was never checked against current config.
      */
-    private function assertMethodEnabled(PaymentMethod $method): void
+    private function assertMethodEnabled(PaymentMethod $method, ?ShippingCarrier $carrier): void
     {
-        if (! in_array($method, $this->availablePaymentMethods(), strict: true)) {
+        if (! in_array($method, $this->availablePaymentMethods($carrier), strict: true)) {
             throw InvalidPaymentMethodException::disabled($method->value);
         }
     }

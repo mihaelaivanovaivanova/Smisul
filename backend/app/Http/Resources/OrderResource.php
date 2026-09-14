@@ -59,6 +59,12 @@ class OrderResource extends JsonResource
                 'subtotal' => (float) $this->subtotal,
                 'discount_total' => (float) $this->discount_total,
                 'shipping_total' => (float) $this->shipping_price,
+                // Reconciled onto the order the moment cash on delivery is
+                // actually chosen (see PaymentService::initiate()) - zero
+                // for every other order, already folded into grand_total
+                // below, but broken out here so it shows as its own real
+                // line item rather than silently inflating shipping_total.
+                'cod_fee' => (float) $this->cod_fee,
                 'tax_total' => (float) $this->tax_total,
                 'grand_total' => (float) $this->grand_total,
                 'currency' => $this->currency,

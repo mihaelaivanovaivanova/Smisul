@@ -532,15 +532,17 @@ class FunnelSeeder extends Seeder
                 'cta' => 'ПОРЪЧАЙ СВОЯ MISWAK',
                 // "Доставка 1-2 работни дни" matches the shipping methods'
                 // estimated delivery. Payment: card via iCard is the only
-                // method now (PaymentMethod::active()) — the former
-                // "Наложен платеж" item was dropped along with cash on
-                // delivery itself (BOX NOW deliveries are card-only). The
-                // "100% гаранция за качество" item was dropped for a while
-                // as a vague claim with no policy behind it, but is back
-                // by request.
+                // integrated *gateway*, but PaymentService::availablePaymentMethods()
+                // also allows CashOnDelivery when the carrier is Speedy —
+                // both "Сигурно плащане с карта" and "Наложен платеж" trace
+                // to that method, not just the card one. The "100%
+                // гаранция за качество" item was dropped for a while as a
+                // vague claim with no policy behind it, but is back by
+                // request.
                 'trust_items' => [
                     ['icon' => 'truck', 'label' => 'Доставка 1-2 работни дни'],
                     ['icon' => 'card', 'label' => 'Сигурно плащане с карта'],
+                    ['icon' => 'cash', 'label' => 'Наложен платеж'],
                     ['icon' => 'check-badge', 'label' => "100%\nгаранция за качество"],
                     ['icon' => 'undo', 'label' => '30 дни право на връщане'],
                 ],

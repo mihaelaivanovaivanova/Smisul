@@ -181,6 +181,14 @@ export default function OrderDetailPage() {
                     </td>
                     <td className="text-end">{formatPrice(order.totals.shipping_total)}</td>
                   </tr>
+                  {order.totals.cod_fee > 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-end fw-semibold">
+                        Cash on delivery fee
+                      </td>
+                      <td className="text-end">{formatPrice(order.totals.cod_fee)}</td>
+                    </tr>
+                  )}
                   <tr>
                     <td colSpan={4} className="text-end fw-bold">
                       Grand total

@@ -128,6 +128,8 @@ export interface OrderTotals {
   subtotal: number;
   discount_total: number;
   shipping_total: number;
+  /** Surcharge for choosing cash on delivery (see PaymentMethod::fee() on the backend) — 0 for every other order, already folded into grand_total. */
+  cod_fee: number;
   tax_total: number;
   grand_total: number;
   currency: string;

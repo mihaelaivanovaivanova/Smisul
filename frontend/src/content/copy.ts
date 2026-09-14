@@ -485,7 +485,11 @@ export const checkout = {
 
   steps: {
     customer: 'Данни за поръчката',
-    delivery: 'Доставка',
+    // Payment method is chosen here too now, above the carrier list (see
+    // DeliveryStep.tsx) - it determines which carriers are even
+    // selectable (cash on delivery only works with Speedy), so it has to
+    // come first on the same page, not after delivery is already picked.
+    delivery: 'Доставка и плащане',
     review: 'Преглед',
     payment: 'Плащане',
   },
@@ -495,19 +499,27 @@ export const checkout = {
   // чл. 49, ал. 2 ЗЗП: бутонът, с който се подава поръчката, трябва
   // недвусмислено да указва задължението за плащане.
   placeOrder: 'Поръчай със задължение за плащане',
+  placingOrder: 'Изпращане на поръчката…',
 
   paymentStep: {
     title: 'Плащане',
     walletsAccepted: 'Приемаме също Apple Pay и Google Pay.',
     methodLabel: 'Начин на плащане',
-    methodsLoading: 'Зареждане на начините на плащане…',
-    methodsLoadError: 'Неуспешно зареждане на начините на плащане - ще продължим с плащане с карта.',
     methods: {
+      cash_on_delivery: 'Наложен платеж',
       card: 'Плащане с карта',
     } as Record<string, string>,
+    // Speedy's own courier collects cash or a card payment in person at
+    // hand-off — a different mechanic than BOX NOW's old COD (its own
+    // in-app payment portal at locker pickup, no person involved).
     methodHints: {
+      cash_on_delivery: 'Плащаш в брой или с карта на куриера при получаване на поръчката.',
       card: 'Ще се отвори защитеният платежен прозорец на iCard.',
     } as Record<string, string>,
+    // See PaymentMethod::fee() on the backend — a real surcharge added to
+    // the order total, not just a UI label, so it has to be disclosed
+    // wherever the method itself is shown, not only in the running total.
+    cashOnDeliveryFeeNote: (feeLabel: string) => `Наложен платеж включва допълнителна такса от ${feeLabel}.`,
     payButton: 'Плати',
     payButtonWithMethod: (methodLabel: string) => `Плати с ${methodLabel}`,
     payingButton: 'Подготвяме защитено плащане...',
@@ -551,6 +563,7 @@ export const checkout = {
     loading: 'Зареждане на начините за доставка…',
     loadError: 'Неуспешно зареждане на начините за доставка.',
     estimatedDeliveryPrefix: 'Очаквана доставка:',
+    unavailableWithCashOnDelivery: 'Не е наличен с наложен платеж.',
     officeLabelByType: {
       office: 'Офис',
       locker: 'Автомат',

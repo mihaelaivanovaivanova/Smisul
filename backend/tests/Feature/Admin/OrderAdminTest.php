@@ -70,6 +70,28 @@ class OrderAdminTest extends TestCase
     }
 
     #[Test]
+    public function the_order_list_includes_items_and_the_shipments_tracking_number(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+        OrderItem::factory()->for($order)->create(['product_name' => 'Miswak', 'quantity' => 2]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::BoxNow,
+            'tracking_number' => 'BN-LIST-1',
+        ]);
+        $withoutShipment = Order::factory()->create();
+        OrderItem::factory()->for($withoutShipment)->create();
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?sort=oldest');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.items.0.product_name', 'Miswak');
+        $response->assertJsonPath('data.0.items.0.quantity', 2);
+        $response->assertJsonPath('data.0.shipment.tracking_number', 'BN-LIST-1');
+        $response->assertJsonPath('data.1.shipment', null);
+    }
+
+    #[Test]
     public function orders_can_be_filtered_by_status(): void
     {
         $admin = User::factory()->administrator()->create();

@@ -56,6 +56,8 @@ export default function AdminOrdersPage() {
                   <th>Customer</th>
                   <th>Status</th>
                   <th>Placed</th>
+                  <th>Items</th>
+                  <th>Tracking #</th>
                   <th className="text-end">Total</th>
                   <th></th>
                 </tr>
@@ -69,6 +71,10 @@ export default function AdminOrdersPage() {
                       <StatusBadge status={order.status} />
                     </td>
                     <td>{new Date(order.placed_at).toLocaleDateString('bg-BG')}</td>
+                    <td>
+                      {order.items.map((item) => `${item.product_name}${item.variant_name ? ` (${item.variant_name})` : ''} x${item.quantity}`).join(', ')}
+                    </td>
+                    <td>{order.shipment?.tracking_number ?? ''}</td>
                     <td className="text-end">{formatPrice(order.totals.grand_total)}</td>
                     <td className="text-end">
                       <Link className="btn btn-outline-secondary btn-sm" to={`/admin/orders/${order.id}`}>

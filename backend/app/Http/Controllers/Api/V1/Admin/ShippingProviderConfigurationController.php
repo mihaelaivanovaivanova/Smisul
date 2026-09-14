@@ -48,7 +48,12 @@ class ShippingProviderConfigurationController extends Controller
             'price_office' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
             'price_locker' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
             'price_address' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
+            'cod_fee' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
         ]);
+
+        if ($provider !== 'speedy') {
+            unset($values['cod_fee']);
+        }
 
         if ($provider === 'box_now') {
             unset($values['username'], $values['password']);

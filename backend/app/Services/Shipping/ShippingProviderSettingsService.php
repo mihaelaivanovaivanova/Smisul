@@ -33,7 +33,7 @@ class ShippingProviderSettingsService
 
     private const REQUIRED_COLUMNS = [
         'provider', 'enabled', 'base_url', 'username', 'password', 'client_id', 'client_secret',
-        'price_office', 'price_locker', 'price_address',
+        'price_office', 'price_locker', 'price_address', 'cod_fee',
     ];
 
     public function storageReady(): bool
@@ -131,6 +131,37 @@ class ShippingProviderSettingsService
     }
 
     /**
+     * Admin-configured override for the Speedy cash-on-delivery surcharge —
+     * same null-means-"use the hardcoded default" shape as priceFor(), but
+     * a single flat value rather than one per delivery type, since the fee
+     * doesn't vary by office/locker/address. Cash on delivery only exists
+     * for Speedy (see PaymentMethod's docblock), so this never reads any
+     * other provider's row. Returns null when there's no row or the column
+     * was left blank, so the caller falls back to
+     * config('services.payments.cash_on_delivery_fee') (see
+     * PaymentService::feeFor()).
+     */
+    public function codFee(): ?float
+    {
+        if (! $this->storageReady()) {
+            return null;
+        }
+
+        try {
+            $row = ShippingProviderSetting::query()->where('provider', ShippingCarrier::Speedy->value)->first();
+        } catch (Throwable $exception) {
+            Log::warning('Could not read the Speedy cash-on-delivery fee override; falling back to the hardcoded default.', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        return $row?->cod_fee;
+    }
+
+    /**
      * Lightweight status per provider (never decrypts secrets) — feeds the
      * general Settings response's provider badges.
      *
@@ -204,6 +235,7 @@ class ShippingProviderSettingsService
                 'price_office' => $row->price_office ?? null,
                 'price_locker' => $row->price_locker ?? null,
                 'price_address' => $row->price_address ?? null,
+                'cod_fee' => $row->cod_fee ?? null,
                 'configured' => $this->isConfigured($provider),
             ];
         }, self::PROVIDERS);

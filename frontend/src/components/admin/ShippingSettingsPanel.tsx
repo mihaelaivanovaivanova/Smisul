@@ -141,6 +141,7 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
   const [priceOffice, setPriceOffice] = useState(priceFieldState(provider.price_office));
   const [priceLocker, setPriceLocker] = useState(priceFieldState(provider.price_locker));
   const [priceAddress, setPriceAddress] = useState(priceFieldState(provider.price_address));
+  const [codFee, setCodFee] = useState(priceFieldState(provider.cod_fee));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +158,9 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
         price_locker: parsePriceField(priceLocker),
         price_address: parsePriceField(priceAddress),
       };
+      if (!isBoxNow) {
+        values.cod_fee = parsePriceField(codFee);
+      }
       if (isBoxNow) {
         if (clientId) values.client_id = clientId;
         if (clientSecret) values.client_secret = clientSecret;
@@ -297,6 +301,30 @@ function ProviderForm({ provider, onChanged }: { provider: ShippingProviderSetti
           )}
         </div>
 
+        {!isBoxNow && (
+          <>
+            <hr className="my-4" />
+            <h6>Cash on delivery</h6>
+            <p className="text-body-secondary small">
+              Surcharge added to an order's total when the customer pays cash (or card) to the courier at hand-off. Leave
+              blank to use the built-in default (0.50 EUR).
+            </p>
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="form-label">Cash on delivery fee (EUR)</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={codFee}
+                  onChange={(event) => setCodFee(event.target.value)}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
         <button className="btn btn-primary mt-4" type="button" onClick={() => void save()} disabled={saving}>
           {saving ? 'Saving…' : `Save ${provider.label}`}
         </button>
@@ -325,7 +353,7 @@ export default function ShippingSettingsPanel() {
       <div className="alert alert-info mb-0">Passwords and client secrets are encrypted in the database and never returned to the browser. Leave those fields blank to keep the current values.</div>
       {providers.map((provider) => (
         <ProviderForm
-          key={`${provider.provider}-${provider.username_configured}-${provider.password_configured}-${provider.client_id_configured}-${provider.client_secret_configured}-${provider.price_office}-${provider.price_locker}-${provider.price_address}`}
+          key={`${provider.provider}-${provider.username_configured}-${provider.password_configured}-${provider.client_id_configured}-${provider.client_secret_configured}-${provider.price_office}-${provider.price_locker}-${provider.price_address}-${provider.cod_fee}`}
           provider={provider}
           onChanged={setProviders}
         />

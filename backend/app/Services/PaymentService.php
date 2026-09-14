@@ -16,6 +16,7 @@ use App\Models\PaymentWebhookLog;
 use App\Models\StoredPaymentMethod;
 use App\Models\User;
 use App\Services\Payments\ICardConfigurationService;
+use App\Services\Shipping\ShippingProviderSettingsService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,24 @@ class PaymentService
         private readonly OrderService $orders,
         private readonly OrderStatusService $orderStatus,
         private readonly ICardConfigurationService $icardConfiguration,
+        private readonly ShippingProviderSettingsService $shippingSettings,
     ) {}
+
+    /**
+     * The fee actually charged for a method right now — an admin-configured
+     * override (see ShippingProviderSettingsService::codFee()) where one
+     * exists, else the method's own hardcoded/config default (see
+     * PaymentMethod::fee()). Same override-or-default shape as each
+     * shipping provider's baseRate() uses for delivery prices.
+     */
+    public function feeFor(PaymentMethod $method): float
+    {
+        if ($method === PaymentMethod::CashOnDelivery) {
+            return $this->shippingSettings->codFee() ?? $method->fee();
+        }
+
+        return $method->fee();
+    }
 
     /**
      * Always mints a fresh attempt (new transaction_reference, freshly
@@ -79,7 +97,7 @@ class PaymentService
             // cash-on-delivery surcharge removed if they switch back to
             // card, and this must happen before the Payment row below is
             // created so its own `amount` reflects the correct total too.
-            $fee = $method->fee();
+            $fee = $this->feeFor($method);
             if (bccomp((string) $order->cod_fee, (string) $fee, 2) !== 0) {
                 $order->update([
                     'cod_fee' => $fee,

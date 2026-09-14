@@ -46,6 +46,40 @@ class ShippingProviderSettingsTest extends TestCase
     }
 
     #[Test]
+    public function an_administrator_can_set_speedys_cash_on_delivery_fee(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $response = $this->actingAs($admin)->putJson('/api/v1/admin/shipping-settings/speedy', [
+            'enabled' => true,
+            'cod_fee' => 1.25,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonFragment(['provider' => 'speedy', 'cod_fee' => 1.25]);
+        $this->assertDatabaseHas('shipping_provider_settings', ['provider' => 'speedy', 'cod_fee' => 1.25]);
+    }
+
+    /**
+     * Cash on delivery only exists for Speedy (see PaymentMethod's
+     * docblock) — a cod_fee sent for box_now is silently dropped rather
+     * than stored, since there's no feature that would ever read it back.
+     */
+    #[Test]
+    public function a_cod_fee_sent_for_box_now_is_ignored(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $response = $this->actingAs($admin)->putJson('/api/v1/admin/shipping-settings/box_now', [
+            'enabled' => true,
+            'cod_fee' => 1.25,
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('shipping_provider_settings', ['provider' => 'box_now', 'cod_fee' => null]);
+    }
+
+    #[Test]
     public function an_administrator_can_set_box_nows_locker_price(): void
     {
         $admin = User::factory()->administrator()->create();

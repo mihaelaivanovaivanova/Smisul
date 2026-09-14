@@ -125,6 +125,7 @@ class CheckoutController extends Controller
         $methods = collect($this->payments->offerableMethods())->map(fn ($method) => [
             'method' => $method,
             'available' => in_array($method, $enabledMethods, true),
+            'fee' => $this->payments->feeFor($method),
         ]);
 
         return PaymentMethodResource::collection($methods)->response();

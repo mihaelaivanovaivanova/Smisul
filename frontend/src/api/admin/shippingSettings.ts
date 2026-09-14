@@ -12,6 +12,8 @@ export interface ShippingProviderSetting {
   price_office: number | null;
   price_locker: number | null;
   price_address: number | null;
+  /** Only meaningful for speedy — cash on delivery doesn't exist for box_now. */
+  cod_fee: number | null;
   configured: boolean;
 }
 
@@ -25,6 +27,7 @@ export interface ShippingProviderSettingUpdate {
   price_office: number | null;
   price_locker: number | null;
   price_address: number | null;
+  cod_fee?: number | null;
 }
 
 export async function fetchShippingProviderSettings(): Promise<ShippingProviderSetting[]> {

@@ -7,6 +7,7 @@ use App\Enums\LegalDocumentType;
 use App\Models\LegalDocument;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\ShippingProviderSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -149,6 +150,29 @@ class WalletPaymentTest extends TestCase
         $order = $this->getJson("/api/v1/orders/{$orderId}?token={$token}")->assertOk();
         $this->assertEquals(0.0, $order->json('data.totals.cod_fee'));
         $this->assertEquals(round($originalGrandTotal - 0.5, 2), $order->json('data.totals.grand_total'));
+    }
+
+    /**
+     * An admin-set cod_fee override (see
+     * ShippingProviderSettingsService::codFee()) is what checkout actually
+     * quotes and what the order is actually charged, not just what's
+     * stored — same guarantee ShippingProviderSettingsTest already checks
+     * for the delivery prices sitting right next to it in the same table.
+     */
+    #[Test]
+    public function an_admin_configured_cod_fee_overrides_the_hardcoded_default(): void
+    {
+        ShippingProviderSetting::query()->create([
+            'provider' => 'speedy',
+            'enabled' => true,
+            'cod_fee' => 1.25,
+        ]);
+
+        $response = $this->getJson('/api/v1/checkout/payment-methods')->assertOk();
+        $response->assertJsonFragment(['value' => 'cash_on_delivery', 'fee' => 1.25]);
+
+        $order = $this->placeOrder('cash_on_delivery')->assertCreated();
+        $this->assertEquals(1.25, $order->json('data.totals.cod_fee'));
     }
 
     #[Test]

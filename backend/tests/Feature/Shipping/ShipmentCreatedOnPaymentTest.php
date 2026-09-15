@@ -80,6 +80,34 @@ class ShipmentCreatedOnPaymentTest extends TestCase
         $this->assertNull($order->shipment, 'No shipment row should exist when the carrier rejected the request.');
     }
 
+    /**
+     * The cash-on-delivery equivalent of the box_now test above — Confirmed
+     * triggers the exact same automatic shipment request as Paid (see
+     * CreateShipmentOnOrderPaid), even though no money has actually changed
+     * hands yet. Speedy's own courier collects it at hand-off.
+     */
+    #[Test]
+    public function confirming_cash_on_delivery_automatically_creates_a_speedy_shipment(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-COD-AUTO-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Pending,
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Office,
+            'shipping_office_id' => 'office-7',
+            'shipping_office_name' => 'Speedy Test Office',
+        ]);
+        OrderItem::factory()->for($order)->create();
+
+        $this->app->make(OrderService::class)->confirmCashOnDelivery($order);
+
+        $order->refresh();
+        $this->assertSame(OrderStatus::Confirmed, $order->status);
+        $this->assertNotNull($order->shipment);
+        $this->assertSame('SPEEDY-COD-AUTO-1', $order->shipment->tracking_number);
+    }
+
     #[Test]
     public function a_non_payment_status_transition_does_not_trigger_shipment_creation(): void
     {

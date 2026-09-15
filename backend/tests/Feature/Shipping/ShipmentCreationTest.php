@@ -11,6 +11,7 @@ use App\Exceptions\Shipping\ShippingProviderException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Models\Shipment;
 use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -294,6 +295,47 @@ class ShipmentCreationTest extends TestCase
             return str_ends_with($request->url(), '/shipment')
                 && $request['recipient']['address']['streetName'] === 'ul. Vitosha'
                 && $request['recipient']['address']['streetNo'] === '0';
+        });
+    }
+
+    /**
+     * Speedy rejects `shipment/cancel` with fewer than 4 characters in
+     * `comment`, despite the schema marking it optional - confirmed live.
+     * Nothing upstream of SpeedyShippingProvider is guaranteed to supply a
+     * reason at all (the admin "Cancel shipment" prompt can be left
+     * blank/dismissed), so no reason must still produce a request Speedy
+     * accepts.
+     */
+    #[Test]
+    public function cancelling_a_speedy_shipment_with_no_reason_still_sends_a_valid_comment(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response([])]);
+
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create(['tracking_number' => 'SPEEDY-CANCEL-1']);
+
+        $this->app->make(ShippingService::class)->cancelShipment($shipment);
+
+        Http::assertSent(function ($request) {
+            return str_ends_with($request->url(), '/shipment/cancel')
+                && $request['shipmentId'] === 'SPEEDY-CANCEL-1'
+                && mb_strlen((string) $request['comment']) >= 4;
+        });
+    }
+
+    #[Test]
+    public function cancelling_a_speedy_shipment_forwards_a_real_reason_as_the_comment(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response([])]);
+
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create(['tracking_number' => 'SPEEDY-CANCEL-2']);
+
+        $this->app->make(ShippingService::class)->cancelShipment($shipment, 'Customer requested cancellation');
+
+        Http::assertSent(function ($request) {
+            return str_ends_with($request->url(), '/shipment/cancel')
+                && $request['comment'] === 'Customer requested cancellation';
         });
     }
 }

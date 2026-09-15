@@ -312,7 +312,8 @@ class BoxNowShippingProvider implements ShippingProviderInterface
      * 7.5.2 (no request body; 200 on success, 403 if the parcel is no
      * longer in a cancellable state, 404 if the id doesn't exist).
      */
-    public function cancelShipment(string $trackingNumber): void
+    /** $reason is ignored — BOX NOW's cancel endpoint takes no request body at all. */
+    public function cancelShipment(string $trackingNumber, ?string $reason = null): void
     {
         try {
             $response = $this->client()->post("parcels/{$trackingNumber}:cancel");

@@ -4,15 +4,10 @@ namespace Tests\Feature\Checkout;
 
 use App\Enums\Currency;
 use App\Enums\LegalDocumentType;
-use App\Enums\PaymentMethod;
-use App\Enums\PaymentProvider;
-use App\Enums\ShippingCarrier;
-use App\Enums\ShippingDeliveryType;
 use App\Mail\AdminOrderNotificationMail;
 use App\Mail\OrderConfirmationMail;
 use App\Models\LegalDocument;
 use App\Models\Order;
-use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\OrderService;
@@ -110,35 +105,31 @@ class OrderConfirmationEmailTest extends TestCase
     }
 
     /**
-     * Cash on delivery can no longer be newly selected at checkout (see
-     * PaymentMethod::active()), so this builds a historical order/payment
-     * directly via factories — payment_method = cash_on_delivery, the
-     * enum case kept exactly so an order like this one still renders
-     * correctly — and renders the Mailable directly rather than going
-     * through the checkout endpoint.
+     * Cash on delivery is live again, for Speedy orders only (see
+     * PaymentService::availablePaymentMethods()) — Speedy's own courier
+     * collects cash or a card payment in person at hand-off, unlike BOX
+     * NOW's old (removed) COD mechanic, which was actually a card charge
+     * through BOX NOW's own payment portal at pickup. Placing a COD order
+     * reaches OrderStatus::Confirmed synchronously within the same
+     * checkout request (see PaymentService::initiate()'s cash-on-delivery
+     * branch and OrderStatus's own docblock for why that's a separate case
+     * from Paid) — SendOrderStatusEmails treats it exactly like Paid, so
+     * this fires straight off placeOrder(), no separate confirmation step
+     * needed.
      */
     #[Test]
-    public function a_historical_cash_on_delivery_order_confirmation_email_says_so(): void
+    public function a_cash_on_delivery_order_confirmation_email_describes_paying_the_speedy_courier(): void
     {
-        $order = Order::factory()->create([
-            'shipping_carrier' => ShippingCarrier::BoxNow,
-            'shipping_delivery_type' => ShippingDeliveryType::Locker,
-            'shipping_office_id' => 'locker-1',
-            'shipping_office_name' => 'BOX NOW Mall of Sofia',
-            'shipping_city' => 'Sofia',
-        ]);
-        Payment::factory()->for($order)->create([
-            'payment_method' => PaymentMethod::CashOnDelivery,
-            'provider' => PaymentProvider::CashOnDelivery,
-        ]);
+        Mail::fake();
 
-        $rendered = (new OrderConfirmationMail($order))->render();
+        $this->placeOrder(['payment_method' => 'cash_on_delivery'])->assertCreated();
 
-        // Not "в брой на куриера" — BOX NOW is an unmanned locker
-        // network, so cash-on-delivery there was actually a card charge
-        // through BOX NOW's own payment portal at pickup, not cash
-        // handed to a courier.
-        $this->assertStringContainsString('Плащаш с банкова карта чрез BOX NOW', $rendered);
-        $this->assertStringNotContainsString('Обработваме плащането с карта', $rendered);
+        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) {
+            $rendered = $mail->render();
+
+            return $mail->hasTo('ivan@example.com')
+                && str_contains($rendered, 'Плащаш в брой или с карта директно на куриера на Спиди в момента на предаване на пратката')
+                && ! str_contains($rendered, 'Плащането с карта е потвърдено');
+        });
     }
 }

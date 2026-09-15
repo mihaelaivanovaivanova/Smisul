@@ -374,16 +374,30 @@ class SpeedyShippingProvider implements ShippingProviderInterface
 
     /**
      * `POST shipment/cancel` per Speedy's real schema
-     * (`CancelShipmentRequest`: `shipmentId` + optional `comment`) —
-     * confirmed live: cancelling a real test shipment returned an empty
-     * `{}` body, which the docs describe as success (an `error` object is
-     * the only other possible response shape).
+     * (`CancelShipmentRequest`: `shipmentId` + `comment`) — confirmed live:
+     * cancelling a real test shipment returned an empty `{}` body, which
+     * the docs describe as success (an `error` object is the only other
+     * possible response shape).
+     *
+     * `comment` turned out not to be truly optional despite the schema
+     * marking it so: Speedy's API rejects a call with fewer than 4
+     * characters in it. Nothing upstream of this method is guaranteed to
+     * supply a reason at all (the admin "Cancel shipment" button's prompt
+     * can be left blank/cancelled — see cancelOrderShipment() on the
+     * frontend), so this always pads out to a safe default rather than
+     * ever sending a too-short or empty comment.
      */
-    public function cancelShipment(string $trackingNumber): void
+    public function cancelShipment(string $trackingNumber, ?string $reason = null): void
     {
+        $comment = trim((string) $reason);
+        if (mb_strlen($comment) < 4) {
+            $comment = 'Order cancelled by store';
+        }
+
         try {
             $response = $this->client()->post('shipment/cancel', $this->withCredentials([
                 'shipmentId' => $trackingNumber,
+                'comment' => $comment,
             ]));
         } catch (ConnectionException $exception) {
             throw ShippingProviderException::requestFailed('speedy', 'cancelShipment', $exception->getMessage());

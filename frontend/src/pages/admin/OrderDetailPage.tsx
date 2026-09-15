@@ -18,7 +18,7 @@ const SHIPMENT_FINAL_STATUSES = ['delivered', 'returned', 'failed', 'cancelled']
 // OrderService::delete()'s docblock on the backend) - deletion is still
 // allowed at any status, but the confirmation prompt warns harder here
 // since it's permanently destroying that record, not just an abandoned cart.
-const FINANCIALLY_COMMITTED_STATUSES = ['paid', 'processing', 'packed', 'shipped', 'delivered', 'completed', 'refunded'];
+const FINANCIALLY_COMMITTED_STATUSES = ['paid', 'confirmed', 'processing', 'packed', 'shipped', 'delivered', 'completed', 'refunded'];
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -56,10 +56,11 @@ export default function OrderDetailPage() {
     if (!window.confirm('Cancel this shipment with the carrier? This sends a real cancellation request.')) {
       return;
     }
+    const reason = window.prompt('Reason for the carrier (optional):') ?? undefined;
     setIsCancellingShipment(true);
     setShipmentError(null);
     try {
-      await cancelOrderShipment(id);
+      await cancelOrderShipment(id, reason);
       setReloadKey((key) => key + 1);
     } catch (err) {
       setShipmentError(getErrorMessage(err, 'Could not cancel the shipment.'));

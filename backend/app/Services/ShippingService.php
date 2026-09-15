@@ -187,7 +187,7 @@ class ShippingService
      * cancelled, delivered, etc.) rather than sending a doomed request the
      * carrier would just reject anyway.
      */
-    public function cancelShipment(Shipment $shipment): Shipment
+    public function cancelShipment(Shipment $shipment, ?string $reason = null): Shipment
     {
         if ($shipment->tracking_number === null) {
             throw new RuntimeException("Shipment {$shipment->id} has no tracking number yet.");
@@ -197,9 +197,9 @@ class ShippingService
             throw new RuntimeException("Shipment {$shipment->id} is already {$shipment->status->value} and cannot be cancelled.");
         }
 
-        $this->providerFor($shipment->carrier->value)->cancelShipment($shipment->tracking_number);
+        $this->providerFor($shipment->carrier->value)->cancelShipment($shipment->tracking_number, $reason);
 
-        return $this->recordStatusUpdate($shipment, ShipmentStatus::Cancelled, 'Cancelled by admin.', now());
+        return $this->recordStatusUpdate($shipment, ShipmentStatus::Cancelled, $reason ?? 'Cancelled by admin.', now());
     }
 
     /**

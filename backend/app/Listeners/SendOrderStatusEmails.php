@@ -17,15 +17,19 @@ use Throwable;
 /**
  * Only the transitions a customer (or the store) actually cares about
  * trigger an email - e.g. Paid -> Processing (internal fulfillment
- * progress) sends nothing. Shipped is deliberately silent: the Paid email
- * already covers "we got your order", and a dedicated shipped/tracking
- * email isn't built yet. "Order created" (Pending) is deliberately silent
- * too - a card payment can still fail or be abandoned after that point, so
- * the customer- and admin-facing "order" emails wait for Paid, the first
- * point an order is actually real money. Since every live payment method is
- * card-only through iCard (see PaymentMethod::active()), every order that
- * will ever be fulfilled passes through this transition - there's no
- * checkout path that reaches Processing/Shipped/Delivered without it.
+ * progress) sends nothing. Shipped is deliberately silent: the Paid/
+ * Confirmed email already covers "we got your order", and a dedicated
+ * shipped/tracking email isn't built yet. "Order created" (Pending) is
+ * deliberately silent too - a card payment can still fail or be abandoned
+ * after that point, so the customer- and admin-facing "order" emails wait
+ * for Paid or Confirmed, the first point an order is either actually real
+ * money (Paid) or a firm cash-on-delivery commitment Speedy will collect at
+ * hand-off (Confirmed — see OrderStatus's own docblock for why they're
+ * separate cases treated identically here). Every checkout path reaches one
+ * of the two before Processing/Shipped/Delivered - card payments confirm to
+ * Paid, cash on delivery confirms to Confirmed (see
+ * PaymentService::initiate()) - so nothing is ever fulfilled without either
+ * having fired first.
  *
  * Dispatched from inside OrderStatusService::transitionTo()'s own
  * DB::transaction() (see CreateShipmentOnOrderPaid's docblock for the same
@@ -41,7 +45,7 @@ class SendOrderStatusEmails
     {
         $order = $event->order;
 
-        if ($event->to === OrderStatus::Paid) {
+        if (in_array($event->to, [OrderStatus::Paid, OrderStatus::Confirmed], true)) {
             $this->send($order->customer_email, new OrderConfirmationMail($order), $order->order_number);
 
             foreach (array_unique(config('mail.order_notification_addresses', [])) as $adminAddress) {

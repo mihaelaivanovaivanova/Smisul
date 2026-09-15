@@ -41,7 +41,7 @@ class CancelShipmentOnOrderCancelled
         }
 
         try {
-            $this->shipping->cancelShipment($shipment);
+            $this->shipping->cancelShipment($shipment, 'Order cancelled by store.');
         } catch (Throwable $exception) {
             Log::error('Automatic shipment cancellation failed after order was cancelled.', [
                 'order_number' => $order->order_number,

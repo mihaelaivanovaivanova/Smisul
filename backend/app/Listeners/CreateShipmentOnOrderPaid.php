@@ -10,20 +10,22 @@ use Throwable;
 
 /**
  * Requests a real shipment from the order's selected carrier (BOX NOW or
- * Speedy) the moment payment is confirmed, so nobody has to remember to
- * trigger it manually — see ShippingService::createShipment()'s own
- * docblock, which was built and tested well before anything called it
- * automatically ("a future admin action is the intended caller"); this
- * listener is that automatic caller, with Admin\OrderController::
- * createShipment() kept as the manual fallback for a failed attempt or a
- * historical order.
+ * Speedy) the moment the order is ready to fulfill — either a card payment
+ * was confirmed (Paid) or cash on delivery was chosen (Confirmed; see
+ * OrderStatus's own docblock for why those are separate cases that get
+ * identical treatment here) — so nobody has to remember to trigger it
+ * manually. See ShippingService::createShipment()'s own docblock, which was
+ * built and tested well before anything called it automatically ("a future
+ * admin action is the intended caller"); this listener is that automatic
+ * caller, with Admin\OrderController::createShipment() kept as the manual
+ * fallback for a failed attempt or a historical order.
  *
  * Deliberately swallows every failure. OrderStatusChanged is dispatched
  * synchronously from inside OrderStatusService::transitionTo()'s own
  * DB::transaction() (same as SendOrderStatusEmails), so a thrown exception
- * here would roll back the payment confirmation itself — a BOX NOW/Speedy
+ * here would roll back the order confirmation itself — a BOX NOW/Speedy
  * outage, a rejected address, or any other carrier-side failure must never
- * undo an already-confirmed payment. Failures are logged instead, for an
+ * undo an already-confirmed order. Failures are logged instead, for an
  * admin to retry manually from the order detail page.
  */
 class CreateShipmentOnOrderPaid
@@ -32,7 +34,7 @@ class CreateShipmentOnOrderPaid
 
     public function handle(OrderStatusChanged $event): void
     {
-        if ($event->to !== OrderStatus::Paid) {
+        if (! in_array($event->to, [OrderStatus::Paid, OrderStatus::Confirmed], true)) {
             return;
         }
 

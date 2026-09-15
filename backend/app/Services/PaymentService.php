@@ -124,9 +124,17 @@ class PaymentService
             ]);
 
             // Speedy's own courier collects the cash/card at hand-off — no
-            // gateway session to create, and nothing to charge right now.
-            // The order still needs to leave Pending (see the transition
-            // below), same as a card payment does once a session exists.
+            // gateway session to create, and nothing to charge right now, so
+            // there's no reason to wait: the order goes straight to
+            // Confirmed (see OrderService::confirmCashOnDelivery() and
+            // OrderStatus's own docblock for why that's a separate case
+            // from Paid) rather than sitting in AwaitingPayment for a
+            // payment that was never going to arrive through this app.
+            // Guarded the same way confirmPayment() effectively is — only
+            // when Confirmed is actually reachable from the order's current
+            // status, so retrying with a still-pending/awaiting order works,
+            // but an order already past that point (e.g. already Confirmed
+            // from an earlier COD attempt on the same order) isn't touched.
             if ($method === PaymentMethod::CashOnDelivery) {
                 $payment->transactions()->create([
                     'type' => 'cash_on_delivery_created',
@@ -135,13 +143,8 @@ class PaymentService
                     'raw_payload' => null,
                 ]);
 
-                if ($order->status === OrderStatus::Pending) {
-                    $this->orderStatus->transitionTo(
-                        $order,
-                        OrderStatus::AwaitingPayment,
-                        changedBy: null,
-                        note: 'Cash on delivery selected',
-                    );
+                if (in_array(OrderStatus::Confirmed, $this->orderStatus->allowedTransitions($order->status), strict: true)) {
+                    $this->orders->confirmCashOnDelivery($order, 'Cash on delivery selected');
                 }
 
                 return $payment->fresh();

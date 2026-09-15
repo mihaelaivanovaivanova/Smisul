@@ -68,10 +68,15 @@ interface ShippingProviderInterface
     public function fetchLabel(string $trackingNumber): string;
 
     /**
-     * Cancels a shipment with the carrier. Throws ShippingProviderException
-     * if the carrier rejects the cancellation (e.g. the parcel is already
-     * in transit or delivered) — callers should treat that as a real
-     * business outcome to surface, not swallow.
+     * Cancels a shipment with the carrier. $reason is a free-text note for
+     * the carrier's own records — Speedy requires at least 4 characters and
+     * rejects the call otherwise (see SpeedyShippingProvider::cancelShipment()
+     * for the padding/default that guarantees that regardless of what's
+     * passed in); BOX NOW's cancel endpoint takes no body at all, so its
+     * implementation ignores this parameter entirely. Throws
+     * ShippingProviderException if the carrier rejects the cancellation
+     * (e.g. the parcel is already in transit or delivered) — callers should
+     * treat that as a real business outcome to surface, not swallow.
      */
-    public function cancelShipment(string $trackingNumber): void;
+    public function cancelShipment(string $trackingNumber, ?string $reason = null): void;
 }

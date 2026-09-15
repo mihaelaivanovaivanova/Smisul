@@ -175,6 +175,27 @@ class WalletPaymentTest extends TestCase
         $this->assertEquals(1.25, $order->json('data.totals.cod_fee'));
     }
 
+    /**
+     * A COD order must not sit in awaiting_payment forever — no gateway
+     * webhook will ever arrive to move it forward, since there's no
+     * gateway session for it. It reaches Confirmed synchronously within
+     * the same checkout request instead (see PaymentService::initiate()'s
+     * cash-on-delivery branch and OrderStatus's own docblock for why that's
+     * a separate case from Paid), which is what actually lets the
+     * confirmation email and the real Speedy shipment request fire (see
+     * SendOrderStatusEmails/CreateShipmentOnOrderPaid) — a card order, by
+     * contrast, still stops at awaiting_payment until iCard confirms it.
+     */
+    #[Test]
+    public function a_cash_on_delivery_order_reaches_confirmed_immediately_while_a_card_order_stays_awaiting_payment(): void
+    {
+        $codOrder = $this->placeOrder('cash_on_delivery')->assertCreated();
+        $cardOrder = $this->placeOrder('card')->assertCreated();
+
+        $this->assertSame('confirmed', $codOrder->json('data.status'));
+        $this->assertSame('awaiting_payment', $cardOrder->json('data.status'));
+    }
+
     #[Test]
     public function card_still_creates_the_single_icard_modal_session(): void
     {

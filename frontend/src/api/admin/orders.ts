@@ -34,9 +34,15 @@ export async function createOrderShipment(id: number): Promise<AdminOrder> {
   return data.data;
 }
 
-/** Sends a real cancellation request to the carrier - mirrors the automatic on-order-cancelled trigger for manual use. */
-export async function cancelOrderShipment(id: number): Promise<AdminOrder> {
-  const { data } = await apiClient.post<{ data: AdminOrder }>(`/admin/orders/${id}/shipment/cancel`);
+/**
+ * Sends a real cancellation request to the carrier - mirrors the automatic
+ * on-order-cancelled trigger for manual use. `reason` is optional free text
+ * for the carrier's own records - the backend falls back to a safe default
+ * if it's left blank (Speedy rejects an empty/too-short one, see
+ * SpeedyShippingProvider::cancelShipment()).
+ */
+export async function cancelOrderShipment(id: number, reason?: string): Promise<AdminOrder> {
+  const { data } = await apiClient.post<{ data: AdminOrder }>(`/admin/orders/${id}/shipment/cancel`, { reason });
   return data.data;
 }
 

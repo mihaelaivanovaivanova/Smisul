@@ -14,6 +14,7 @@ use App\Services\OrderService;
 use App\Services\OrderStatusService;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -54,7 +55,7 @@ class OrderController extends Controller
         $shipment = $order->shipment;
         if ($shipment !== null && ! $shipment->status->isFinal()) {
             try {
-                $this->shipping->cancelShipment($shipment);
+                $this->shipping->cancelShipment($shipment, 'Order deleted by store.');
             } catch (Throwable $exception) {
                 Log::error('Automatic shipment cancellation failed before order was deleted.', [
                     'order_number' => $order->order_number,
@@ -147,15 +148,22 @@ class OrderController extends Controller
      * Cancels the order's shipment with the carrier — a real cancellation
      * request, not just a local status flip (see
      * ShippingService::cancelShipment()). Same 422-with-message shape as
-     * createShipment() above for the same reason.
+     * createShipment() above for the same reason. `reason` is optional
+     * free text for the carrier's own records (the frontend prompts for
+     * it, but leaving it blank is fine — ShippingService::cancelShipment()/
+     * SpeedyShippingProvider::cancelShipment() fall back to a safe default
+     * rather than ever sending a request Speedy would reject for being too
+     * short).
      */
-    public function cancelShipment(Order $order): OrderResource|JsonResponse
+    public function cancelShipment(Request $request, Order $order): OrderResource|JsonResponse
     {
         $shipment = $order->shipment;
         abort_if($shipment === null, 404, 'This order has no shipment yet.');
 
+        $reason = $request->validate(['reason' => ['nullable', 'string', 'max:500']])['reason'] ?? null;
+
         try {
-            $this->shipping->cancelShipment($shipment);
+            $this->shipping->cancelShipment($shipment, $reason);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }

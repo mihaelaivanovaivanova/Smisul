@@ -28,9 +28,10 @@ class OrderStatusService
      * @var array<string, list<OrderStatus>>
      */
     private const TRANSITIONS = [
-        OrderStatus::Pending->value => [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Cancelled, OrderStatus::Failed],
-        OrderStatus::AwaitingPayment->value => [OrderStatus::Paid, OrderStatus::Failed, OrderStatus::Cancelled],
+        OrderStatus::Pending->value => [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Confirmed, OrderStatus::Cancelled, OrderStatus::Failed],
+        OrderStatus::AwaitingPayment->value => [OrderStatus::Paid, OrderStatus::Confirmed, OrderStatus::Failed, OrderStatus::Cancelled],
         OrderStatus::Paid->value => [OrderStatus::Processing, OrderStatus::Refunded, OrderStatus::Cancelled],
+        OrderStatus::Confirmed->value => [OrderStatus::Processing, OrderStatus::Refunded, OrderStatus::Cancelled],
         OrderStatus::Processing->value => [OrderStatus::Packed, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Packed->value => [OrderStatus::Shipped, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Refunded],

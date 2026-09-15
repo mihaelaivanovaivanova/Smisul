@@ -91,4 +91,30 @@ class OrderStatusTransitionTest extends TestCase
         $this->assertSame(OrderStatus::Completed, $order->status);
         $this->assertDatabaseCount('order_status_histories', 6);
     }
+
+    /**
+     * Confirmed is the cash-on-delivery counterpart to Paid (see
+     * OrderStatus's own docblock) - same downstream fulfillment path, just
+     * reached without ever passing through a payment gateway.
+     */
+    #[Test]
+    public function the_cash_on_delivery_happy_path_workflow_is_walkable_end_to_end(): void
+    {
+        $service = app(OrderStatusService::class);
+        $order = Order::factory()->create(['status' => OrderStatus::Pending]);
+
+        foreach ([
+            OrderStatus::Confirmed,
+            OrderStatus::Processing,
+            OrderStatus::Packed,
+            OrderStatus::Shipped,
+            OrderStatus::Delivered,
+            OrderStatus::Completed,
+        ] as $status) {
+            $order = $service->transitionTo($order, $status, null);
+        }
+
+        $this->assertSame(OrderStatus::Completed, $order->status);
+        $this->assertDatabaseCount('order_status_histories', 6);
+    }
 }

@@ -33,14 +33,14 @@ use Throwable;
  * CartService::addItem/InventoryService::reserve) and stays exactly as-is
  * through placement — placing an order just stops that reservation from
  * being tied to a cart_item (which is deleted below) without releasing it,
- * holding the stock until the outcome is known. There are exactly two ways
- * out of that held state, both below: confirmPayment() turns the
- * reservation into a real decrement once payment succeeds, and cancel()
- * releases it if payment fails/expires or the order is otherwise cancelled
- * before being paid. Nothing in this sprint calls either automatically yet
- * (no payment gateway is integrated) — they exist as the seam a future
- * payment webhook/gateway callback wires up, and the admin status-update
- * endpoint can call cancel() directly today.
+ * holding the stock until the outcome is known. There are exactly three
+ * ways out of that held state, all below: confirmPayment() turns the
+ * reservation into a real decrement once a card payment actually succeeds
+ * (called from PaymentService::applyOrderTransition() on an iCard
+ * PaymentStatus::Paid), confirmCashOnDelivery() does the same the moment
+ * cash on delivery is chosen — no gateway confirmation to wait for there —
+ * and cancel() releases it if payment fails/expires or the order is
+ * otherwise cancelled before either of those ran.
  */
 class OrderService
 {
@@ -248,23 +248,45 @@ class OrderService
     /**
      * The payment-succeeded seam (see class docblock): converts every item's
      * held reservation into a real, permanent stock decrement and moves the
-     * order to Paid. No caller exists yet in this sprint — a future payment
-     * webhook/gateway callback is expected to invoke this.
+     * order to Paid — a payment gateway (iCard) actually captured a card
+     * payment. Called from PaymentService::applyOrderTransition() once an
+     * iCard webhook/status check reports PaymentStatus::Paid.
      */
     public function confirmPayment(Order $order, ?string $note = null): Order
     {
-        return DB::transaction(function () use ($order, $note) {
+        return $this->confirmAndFulfill($order, OrderStatus::Paid, $note ?? 'Payment confirmed');
+    }
+
+    /**
+     * The cash-on-delivery equivalent of confirmPayment() above — same
+     * stock commitment, same "start fulfilling this order" downstream
+     * effects (confirmation email, real courier shipment request — see
+     * CreateShipmentOnOrderPaid/SendOrderStatusEmails, both keyed on
+     * either Paid or Confirmed), but no money has actually changed hands:
+     * Speedy's courier collects it in person at hand-off. Called from
+     * PaymentService::initiate()'s cash-on-delivery branch, the moment the
+     * customer chooses that payment method — there's no gateway
+     * confirmation to wait for, so nothing should block fulfillment.
+     */
+    public function confirmCashOnDelivery(Order $order, ?string $note = null): Order
+    {
+        return $this->confirmAndFulfill($order, OrderStatus::Confirmed, $note ?? 'Cash on delivery confirmed');
+    }
+
+    private function confirmAndFulfill(Order $order, OrderStatus $to, string $note): Order
+    {
+        return DB::transaction(function () use ($order, $to, $note) {
             $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
 
-            if (! in_array(OrderStatus::Paid, $this->orderStatus->allowedTransitions($order->status), strict: true)) {
-                throw InvalidOrderStatusTransitionException::notAllowed($order->order_number, $order->status, OrderStatus::Paid);
+            if (! in_array($to, $this->orderStatus->allowedTransitions($order->status), strict: true)) {
+                throw InvalidOrderStatusTransitionException::notAllowed($order->order_number, $order->status, $to);
             }
 
             foreach ($order->items as $item) {
                 $this->fulfillReservation($item->productVariant, $item->quantity);
             }
 
-            return $this->orderStatus->transitionTo($order, OrderStatus::Paid, changedBy: null, note: $note ?? 'Payment confirmed');
+            return $this->orderStatus->transitionTo($order, $to, changedBy: null, note: $note);
         });
     }
 
@@ -280,10 +302,11 @@ class OrderService
         return DB::transaction(function () use ($order, $cancelledBy, $note) {
             $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
 
-            // Only a not-yet-paid order still holds a reservation to release —
-            // an order cancelled after payment (Paid or later) already had its
-            // stock permanently committed by confirmPayment() and needs a
-            // real restock/refund process instead, which is out of scope here.
+            // Only a not-yet-confirmed order still holds a reservation to
+            // release — an order cancelled after Paid or Confirmed already
+            // had its stock permanently committed by confirmPayment()/
+            // confirmCashOnDelivery() and needs a real restock/refund
+            // process instead, which is out of scope here.
             if (in_array($order->status, [OrderStatus::Pending, OrderStatus::AwaitingPayment], strict: true)) {
                 foreach ($order->items as $item) {
                     $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
@@ -403,6 +426,7 @@ class OrderService
 
         $revenueStatuses = [
             OrderStatus::Paid->value,
+            OrderStatus::Confirmed->value,
             OrderStatus::Processing->value,
             OrderStatus::Packed->value,
             OrderStatus::Shipped->value,

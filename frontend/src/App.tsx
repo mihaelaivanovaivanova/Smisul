@@ -70,6 +70,18 @@ export default function App() {
         <Route path="/" element={funnelModeEnabled ? <FunnelLandingPage /> : <HomePage />} />
         <Route path="/products/:slug" element={<ProductPage />} />
         <Route path="/categories/:slug" element={<CategoryPage />} />
+        {/* Ad-angle landing pages (e.g. "/miswak/whitening") — same page
+            component as "/", scoped to one commercial's angle via the
+            second URL segment. The first segment is the product's own
+            slug so a future second product line gets its own prefix for
+            free (see FunnelLandingPage's variant handling). Registered
+            unconditionally (not gated on funnelModeEnabled, unlike "/"'s
+            ternary above) — funnelModeEnabled starts false until the
+            settings fetch resolves, so gating the route itself would 404
+            every direct navigation/refresh for the instant before that
+            fetch completes. FunnelLandingPage handles the loading/disabled
+            states internally instead (see useFunnelLandingData). */}
+        <Route path="/:productSlug/:variantSlug" element={<FunnelLandingPage />} />
         <Route element={<FunnelSearchGuard />}>
           <Route path="/search" element={<SearchPage />} />
         </Route>

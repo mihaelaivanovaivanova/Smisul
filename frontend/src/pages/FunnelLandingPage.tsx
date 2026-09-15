@@ -4,7 +4,7 @@ import { fetchProduct } from '../api/products';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { fetchPublicSettings } from '../api/settings';
 import { useAsync } from '../hooks/useAsync';
-import { useSettings } from '../hooks/useSettings';
+import { useFunnelLandingData } from '../hooks/useFunnelLandingData';
 import { trackFunnelAddToCart, trackFunnelViewContent } from '../services/analytics';
 import { formatPrice, getPrimaryImage, getVariantPrice, getVideos } from '../services/productCatalog';
 import LoadingState from '../components/LoadingState';
@@ -31,6 +31,7 @@ import PricingSection from '../components/funnel/sections/PricingSection';
 import DeliveryPaymentReturnsSection from '../components/funnel/sections/DeliveryPaymentReturnsSection';
 import FaqSection from '../components/funnel/sections/FaqSection';
 import NewsletterSection from '../components/funnel/sections/NewsletterSection';
+import NotFoundPage from './NotFoundPage';
 import { funnelOffer, reviews as reviewsCopy, seo, states } from '../content/copy';
 
 /**
@@ -72,10 +73,30 @@ import { funnelOffer, reviews as reviewsCopy, seo, states } from '../content/cop
  * still placeholder-quality and expected to be swapped for real
  * photography later, per an explicit choice made when building this
  * page).
+ *
+ * This same component also renders every ad-angle variant (a different
+ * commercial's landing page — e.g. "whitening" vs. "fresh breath") at
+ * /{product-slug}/{variant-slug} (see App.tsx's route and
+ * useFunnelLandingData, which resolves either the base funnel from
+ * SettingsContext or one variant's own fetch). A variant overrides only
+ * the sections it needs to (typically hero/intro/why/science/awareness/
+ * comparison/final_cta) and falls back to the base funnel's content for
+ * everything else — see the backend's FunnelContentService.
  */
 
 export default function FunnelLandingPage() {
-  const { funnelProductSlug, funnelPackages, funnelContent, isLoading: settingsLoading } = useSettings();
+  const {
+    productSlug: funnelProductSlug,
+    packages: funnelPackages,
+    content: funnelContent,
+    isLoading: settingsLoading,
+    error: funnelDataError,
+    notFound: variantNotFound,
+    variantSlug,
+    metaTitle,
+    metaDescription,
+    canonicalPath,
+  } = useFunnelLandingData();
   const location = useLocation();
   const navigate = useNavigate();
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
@@ -211,9 +232,9 @@ export default function FunnelLandingPage() {
     const trackedPrice = trackedVariant ? getVariantPrice(trackedVariant) : undefined;
 
     if (trackedPrice) {
-      trackFunnelViewContent(product.name, trackedPrice.amount, trackedPrice.currency);
+      trackFunnelViewContent(product.name, trackedPrice.amount, trackedPrice.currency, variantSlug ?? undefined);
     }
-  }, [product]);
+  }, [product, variantSlug]);
 
   // Desktop sticky buy bar: a one-way reveal, not a toggle — once the hero
   // scrolls out of view (before that its own CTA is already on screen) the
@@ -317,8 +338,12 @@ export default function FunnelLandingPage() {
     return <LoadingState message={states.loadingDefault} />;
   }
 
-  if (error || !funnelContent || !product) {
-    return <ErrorState message={error ?? states.loadingDefault} />;
+  if (variantNotFound) {
+    return <NotFoundPage />;
+  }
+
+  if (funnelDataError || error || !funnelContent || !product) {
+    return <ErrorState message={funnelDataError ?? error ?? states.loadingDefault} />;
   }
 
   const { hero, intro, why, comparison, science, awareness, final_cta, faq } = funnelContent;
@@ -344,7 +369,7 @@ export default function FunnelLandingPage() {
 
   function handleFallbackAddToCart() {
     if (price) {
-      trackFunnelAddToCart(price.amount, price.currency);
+      trackFunnelAddToCart(price.amount, price.currency, variantSlug ?? undefined);
     }
     navigate('/cart');
   }
@@ -376,7 +401,7 @@ export default function FunnelLandingPage() {
         availability: product.variants.some((variant) => variant.inventory?.is_in_stock)
           ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',
-        url: `${window.location.origin}/`,
+        url: `${window.location.origin}${canonicalPath ?? '/'}`,
       },
     }),
     ...(reviewSummary && {
@@ -413,8 +438,9 @@ export default function FunnelLandingPage() {
     // body.has-funnel-buy-bar (see funnel.css), not page padding.
     <div className="funnel-page">
       <Seo
-        title={seo.funnelTitle}
-        description={seo.funnelDescription}
+        title={metaTitle ?? seo.funnelTitle}
+        description={metaDescription ?? seo.funnelDescription}
+        canonicalPath={canonicalPath ?? undefined}
         ogImage="/funnel/v2/og-image.jpg"
         jsonLd={[
           // This page is what actually renders at "/" while funnel mode is
@@ -445,6 +471,7 @@ export default function FunnelLandingPage() {
         onAdded={handleFallbackAddToCart}
         showSubtitle={false}
         showSalesNote={false}
+        variantSlug={variantSlug ?? undefined}
       />
       {/* 3 Use Cases */}
       <UseCasesSection />
@@ -471,6 +498,7 @@ export default function FunnelLandingPage() {
         fallbackCtaLabel={final_cta.cta}
         dispatchCutoff={dispatchCutoff}
         onAdded={handleFallbackAddToCart}
+        variantSlug={variantSlug ?? undefined}
       />
       {/* 16 Delivery / Payment / Returns */}
       <DeliveryPaymentReturnsSection trustItems={final_cta.trust_items} />

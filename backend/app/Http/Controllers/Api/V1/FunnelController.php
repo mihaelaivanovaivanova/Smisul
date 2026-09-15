@@ -14,9 +14,15 @@ class FunnelController extends Controller
      * Public, unauthenticated — the storefront reads this at boot to
      * decide whether to render the normal homepage or the funnel landing
      * page, and to hide search/Favorites accordingly.
+     *
+     * $variant is an ad-angle slug (e.g. "whitening") for a page rendered
+     * at /{product-slug}/{variant-slug} instead of "/" — omitted for the
+     * base funnel. An unknown or deactivated slug 404s via the
+     * ModelNotFoundException FunnelService throws, same as any other
+     * missing resource.
      */
-    public function show(): JsonResponse
+    public function show(?string $variant = null): JsonResponse
     {
-        return response()->json(['data' => $this->funnel->publicPayload()]);
+        return response()->json(['data' => $this->funnel->publicPayload($variant)]);
     }
 }

@@ -11,6 +11,8 @@ interface PricingSectionProps {
   fallbackCtaLabel: string;
   dispatchCutoff: string | null | undefined;
   onAdded: () => void;
+  /** The ad-angle this page rendered — threaded down to PackageOffers for AddToCart tracking (see PackageOffers). */
+  variantSlug?: string;
   /** Defaults to "pricing", the canonical anchor every CTA links to (#pricing). Override for a second, non-anchor placement (see FunnelLandingPage's early instance right after the Hero) so the two don't collide as duplicate DOM ids. */
   id?: string;
   /** Both default true. The early instance right after the Hero hides the subtitle and sales-note copy — by request, so it reads as a compact buy box rather than repeating the full pitch the numbered #pricing section below already makes. */
@@ -45,6 +47,7 @@ export default function PricingSection({
   id = 'pricing',
   showSubtitle = true,
   showSalesNote = true,
+  variantSlug,
 }: PricingSectionProps) {
   return (
     <section
@@ -64,7 +67,7 @@ export default function PricingSection({
         </div>
 
         {packageOffers.length > 0 ? (
-          <PackageOffers offers={packageOffers} showImages />
+          <PackageOffers offers={packageOffers} showImages variantSlug={variantSlug} />
         ) : (
           defaultVariant && (
             <div className="mb-3 d-flex justify-content-center">

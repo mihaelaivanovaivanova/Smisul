@@ -150,8 +150,10 @@ Route::prefix('v1')->group(function () {
 
     // Funnel mode: public, unauthenticated — the storefront reads this at
     // boot to decide whether to render the normal homepage or the funnel
-    // landing page (see FunnelService).
-    Route::get('/funnel', [FunnelController::class, 'show'])->name('funnel.show');
+    // landing page (see FunnelService). The optional {variant} is an
+    // ad-angle slug (e.g. "whitening") served at /{product-slug}/{variant}
+    // instead of "/" — an unknown/inactive slug 404s.
+    Route::get('/funnel/{variant?}', [FunnelController::class, 'show'])->name('funnel.show');
 
     // Funnel lead capture (the landing page's email opt-in block) — no
     // auth, throttled like the contact form.
@@ -341,6 +343,21 @@ Route::prefix('v1')->group(function () {
             ->name('funnel.content.update');
         Route::post('/funnel/faq-attachment', [AdminFunnelController::class, 'uploadFaqAttachment'])
             ->name('funnel.faq-attachment.upload');
+
+        // Funnel variants: additional ad-angle landing pages layered on top
+        // of the base funnel above (see FunnelVariant). Bound by slug, not
+        // id, since the admin UI and every log entry deal in slugs.
+        Route::get('/funnel/variants', [AdminFunnelController::class, 'variants'])->name('funnel.variants.index');
+        Route::post('/funnel/variants', [AdminFunnelController::class, 'storeVariant'])->name('funnel.variants.store');
+        Route::get('/funnel/variants/{variant:slug}', [AdminFunnelController::class, 'showVariant'])->name('funnel.variants.show');
+        Route::patch('/funnel/variants/{variant:slug}', [AdminFunnelController::class, 'updateVariant'])->name('funnel.variants.update');
+        Route::delete('/funnel/variants/{variant:slug}', [AdminFunnelController::class, 'destroyVariant'])->name('funnel.variants.destroy');
+        Route::put('/funnel/variants/{variant:slug}/content/{section}', [AdminFunnelController::class, 'updateVariantContent'])
+            ->where('section', implode('|', FunnelContentService::FUNNEL_SECTIONS))
+            ->name('funnel.variants.content.update');
+        Route::delete('/funnel/variants/{variant:slug}/content/{section}', [AdminFunnelController::class, 'resetVariantContent'])
+            ->where('section', implode('|', FunnelContentService::FUNNEL_SECTIONS))
+            ->name('funnel.variants.content.reset');
 
         // Leads captured by the funnel landing page's email opt-in.
         // /export is declared before /{lead} so it isn't swallowed by the

@@ -113,15 +113,20 @@ export function initAnalytics(choices: CookieCategoryChoices | null): void {
   }
 }
 
-/** Funnel landing page viewed with the product in hand. */
-export function trackFunnelViewContent(name: string, value: number, currency: string): void {
-  window.fbq?.('track', 'ViewContent', { content_name: name, value, currency });
-  window.gtag?.('event', 'view_item', { currency, value, items: [{ item_name: name }] });
+/**
+ * Funnel landing page viewed with the product in hand. `variantSlug` is the
+ * ad-angle this view landed on (e.g. "whitening") — omitted for the base
+ * funnel at "/" — tagged as content_category/item_category so Ads/GA4
+ * reporting can compare which commercial's angle actually converts.
+ */
+export function trackFunnelViewContent(name: string, value: number, currency: string, variantSlug?: string): void {
+  window.fbq?.('track', 'ViewContent', { content_name: name, content_category: variantSlug, value, currency });
+  window.gtag?.('event', 'view_item', { currency, value, items: [{ item_name: name, item_category: variantSlug }] });
 }
 
-export function trackFunnelAddToCart(value: number, currency: string): void {
-  window.fbq?.('track', 'AddToCart', { value, currency });
-  window.gtag?.('event', 'add_to_cart', { value, currency });
+export function trackFunnelAddToCart(value: number, currency: string, variantSlug?: string): void {
+  window.fbq?.('track', 'AddToCart', { content_category: variantSlug, value, currency });
+  window.gtag?.('event', 'add_to_cart', { value, currency, items: [{ item_category: variantSlug }] });
 }
 
 export function trackBeginCheckout(value: number, currency: string): void {

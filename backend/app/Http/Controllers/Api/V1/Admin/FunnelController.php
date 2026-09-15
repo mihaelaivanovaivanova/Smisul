@@ -7,11 +7,16 @@ use App\Http\Requests\Admin\FunnelContentUpdateRequest;
 use App\Http\Requests\Admin\FunnelFaqAttachmentUploadRequest;
 use App\Http\Requests\Admin\FunnelPackagesRequest;
 use App\Http\Requests\Admin\FunnelToggleRequest;
+use App\Http\Requests\Admin\FunnelVariantStoreRequest;
+use App\Http\Requests\Admin\FunnelVariantUpdateRequest;
 use App\Models\FunnelConfig;
+use App\Models\FunnelVariant;
 use App\Services\AdminActionLogger;
 use App\Services\FunnelContentService;
 use App\Services\FunnelService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 class FunnelController extends Controller
@@ -60,6 +65,83 @@ class FunnelController extends Controller
         $this->actionLogger->log($request->user(), "funnel.content.{$section}.updated");
 
         return response()->json(['data' => $content]);
+    }
+
+    /**
+     * @return JsonResponse
+     */
+    public function variants(): JsonResponse
+    {
+        $this->authorize('viewAny', FunnelConfig::class);
+
+        return response()->json(['data' => $this->funnel->listVariants()]);
+    }
+
+    public function showVariant(FunnelVariant $variant): JsonResponse
+    {
+        $this->authorize('viewAny', FunnelConfig::class);
+
+        return response()->json(['data' => $this->funnel->adminVariantPayload($variant)]);
+    }
+
+    public function storeVariant(FunnelVariantStoreRequest $request): JsonResponse
+    {
+        $variant = $this->funnel->createVariant(
+            $request->validated('slug'),
+            $request->validated('name'),
+            $request->validated('product_id'),
+            $request->validated('packages'),
+            $request->boolean('is_active', true),
+        );
+
+        $this->actionLogger->log($request->user(), 'funnel.variant.created', changes: ['slug' => $variant->slug]);
+
+        return response()->json(['data' => $this->funnel->adminVariantPayload($variant)], 201);
+    }
+
+    public function updateVariant(FunnelVariantUpdateRequest $request, FunnelVariant $variant): JsonResponse
+    {
+        $variant = $this->funnel->updateVariant($variant, $request->validated());
+
+        $this->actionLogger->log($request->user(), 'funnel.variant.updated', changes: ['slug' => $variant->slug]);
+
+        return response()->json(['data' => $this->funnel->adminVariantPayload($variant)]);
+    }
+
+    public function destroyVariant(Request $request, FunnelVariant $variant): Response
+    {
+        $this->authorize('update', FunnelConfig::class);
+
+        $slug = $variant->slug;
+        $this->funnel->deleteVariant($variant);
+
+        $this->actionLogger->log($request->user(), 'funnel.variant.deleted', changes: ['slug' => $slug]);
+
+        return response()->noContent();
+    }
+
+    public function updateVariantContent(FunnelContentUpdateRequest $request, FunnelVariant $variant, string $section): JsonResponse
+    {
+        $content = $this->content->updateSection($section, $request->validated(), $variant->slug);
+
+        $this->actionLogger->log($request->user(), "funnel.variant.content.{$section}.updated", changes: ['slug' => $variant->slug]);
+
+        return response()->json(['data' => $content]);
+    }
+
+    /**
+     * Removes this variant's override for one section, so it falls back to
+     * the base funnel's content again.
+     */
+    public function resetVariantContent(Request $request, FunnelVariant $variant, string $section): JsonResponse
+    {
+        $this->authorize('update', FunnelConfig::class);
+
+        $this->content->resetSection($section, $variant->slug);
+
+        $this->actionLogger->log($request->user(), "funnel.variant.content.{$section}.reset", changes: ['slug' => $variant->slug]);
+
+        return response()->json(['data' => $this->funnel->adminVariantPayload($variant)]);
     }
 
     /**

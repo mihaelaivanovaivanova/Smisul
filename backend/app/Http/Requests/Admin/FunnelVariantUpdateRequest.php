@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use App\Models\FunnelConfig;
+use App\Models\ProductVariant;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
+
+class FunnelVariantUpdateRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()->can('update', FunnelConfig::class);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            // No "slug" here — see FunnelVariantStoreRequest's doc comment
+            // on why it's immutable after creation.
+            'name' => ['required', 'string', 'max:255'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'packages' => ['nullable', 'array', 'size:4'],
+            'packages.*.variant_id' => ['required_with:packages', 'integer'],
+            'packages.*.badge' => ['required_with:packages', 'string', 'max:255'],
+            'packages.*.detail' => ['required_with:packages', 'string', 'max:255'],
+            'packages.*.value_label' => ['required_with:packages', 'string', 'max:255'],
+            'packages.*.button_text' => ['required_with:packages', 'string', 'max:255'],
+            'is_active' => ['sometimes', 'boolean'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $productId = $this->input('product_id');
+            $packages = $this->input('packages');
+
+            if (! is_array($packages)) {
+                return;
+            }
+
+            if ($productId === null) {
+                $validator->errors()->add('product_id', 'Pick a product before setting a package override, or clear the packages to inherit the base product too.');
+
+                return;
+            }
+
+            $variantIds = ProductVariant::query()->where('product_id', $productId)->pluck('id');
+
+            foreach ($packages as $index => $package) {
+                $variantId = $package['variant_id'] ?? null;
+
+                if ($variantId !== null && ! $variantIds->contains($variantId)) {
+                    $validator->errors()->add(
+                        "packages.{$index}.variant_id",
+                        'The selected variant does not belong to the chosen product.',
+                    );
+                }
+            }
+        });
+    }
+}

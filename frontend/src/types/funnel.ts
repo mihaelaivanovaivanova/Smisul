@@ -169,12 +169,17 @@ export interface FunnelPackage {
   button_text: string;
 }
 
-/** Public payload — served to every storefront visitor at boot. */
+/** Public payload — served to every storefront visitor at boot (base funnel) or per ad-angle variant (see fetchFunnel). */
 export interface FunnelPayload {
   enabled: boolean;
   product_slug: string | null;
   packages: FunnelPackage[];
   content: FunnelContent;
+  /** Which variant this payload resolved to — null for the base funnel at "/". */
+  variant_slug: string | null;
+  /** Falls back to the shared seo.funnelTitle/funnelDescription copy (see FunnelLandingPage) when null. */
+  meta_title: string | null;
+  meta_description: string | null;
 }
 
 /** Admin's own view — raw product_id instead of a resolved slug, so a stale pick is visible rather than silently dropped. */
@@ -183,4 +188,31 @@ export interface FunnelAdminPayload {
   product_id: number | null;
   packages: FunnelPackage[];
   content: FunnelContent;
+}
+
+/** One row of the admin's variant list (GET /admin/funnel/variants). */
+export interface FunnelVariantSummary {
+  id: number;
+  slug: string;
+  name: string;
+  is_active: boolean;
+}
+
+/** Admin's full view of a single variant, including which sections it actually overrides vs. inherits from the base funnel. */
+export interface FunnelVariantAdminPayload extends FunnelVariantSummary {
+  product_id: number | null;
+  packages: FunnelPackage[];
+  meta_title: string | null;
+  meta_description: string | null;
+  content: FunnelContent;
+  overridden_sections: FunnelSection[];
+}
+
+export interface FunnelVariantInput {
+  name: string;
+  product_id: number | null;
+  packages: FunnelPackage[] | null;
+  is_active: boolean;
+  meta_title: string | null;
+  meta_description: string | null;
 }

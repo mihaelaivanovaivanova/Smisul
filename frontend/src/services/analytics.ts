@@ -21,8 +21,10 @@ declare global {
   }
 }
 
-// The public site uses this pixel by default; an explicit empty env value disables it.
-const META_PIXEL_ID: string = import.meta.env.VITE_META_PIXEL_ID ?? '1544622693621669';
+// Keep the production pixel enabled even when a build environment defines
+// VITE_META_PIXEL_ID as an empty string (Vite otherwise replaces it at build
+// time and tree-shakes the loader out of the deploy bundle).
+const META_PIXEL_ID: string = import.meta.env.VITE_META_PIXEL_ID?.trim() || '1544622693621669';
 const GA4_MEASUREMENT_ID: string = import.meta.env.VITE_GA4_MEASUREMENT_ID ?? '';
 const CONTENTSQUARE_TAG_URL = 'https://t.contentsquare.net/uxa/1a19422d4cd35.js';
 
@@ -111,6 +113,15 @@ export function initAnalytics(choices: CookieCategoryChoices | null): void {
     loadGa4();
     loadContentsquare();
   }
+}
+
+/** Virtual page view for client-side route changes after the initial load. */
+export function trackPageView(): void {
+  window.fbq?.('track', 'PageView');
+  window.gtag?.('event', 'page_view', {
+    page_location: window.location.href,
+    page_path: `${window.location.pathname}${window.location.search}`,
+  });
 }
 
 /**

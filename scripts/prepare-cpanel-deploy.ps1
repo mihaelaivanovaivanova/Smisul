@@ -10,6 +10,9 @@ $distRoot = Join-Path $frontendRoot "dist"
 $artifactRoot = Join-Path $repositoryRoot "deployment/artifacts/frontend"
 $npmCache = Join-Path $repositoryRoot "tmp/npm-cache"
 $previousNpmCache = $env:npm_config_cache
+$previousViteApiUrl = $env:VITE_API_URL
+$previousMetaPixelId = $env:VITE_META_PIXEL_ID
+$metaPixelId = "1544622693621669"
 
 function Assert-FrontendArtifact([string] $root) {
     if (-not (Test-Path -LiteralPath (Join-Path $root "index.html"))) {
@@ -22,11 +25,19 @@ function Assert-FrontendArtifact([string] $root) {
         throw "The frontend artifact does not contain a JavaScript bundle: $root"
     }
 
+    $hasMetaPixel = $false
     foreach ($javascriptFile in $javascriptFiles) {
         $javascript = [System.IO.File]::ReadAllText($javascriptFile.FullName)
         if ($javascript -match '[A-Za-z]:[/\\][^"''``]*[/\\]api') {
             throw "The frontend bundle contains a Windows filesystem API URL: $($javascriptFile.Name)"
         }
+        if ($javascript.Contains($metaPixelId) -and $javascript.Contains("https://connect.facebook.net/en_US/fbevents.js")) {
+            $hasMetaPixel = $true
+        }
+    }
+
+    if (-not $hasMetaPixel) {
+        throw "The frontend artifact does not contain the configured Meta Pixel: $root"
     }
 }
 
@@ -43,13 +54,25 @@ try {
     }
 
     $env:VITE_API_URL = "/api"
+    $env:VITE_META_PIXEL_ID = $metaPixelId
     & npm.cmd run build
     if ($LASTEXITCODE -ne 0) {
         throw "npm run build failed with exit code $LASTEXITCODE."
     }
 }
 finally {
-    Remove-Item Env:VITE_API_URL -ErrorAction SilentlyContinue
+    if ($null -eq $previousViteApiUrl) {
+        Remove-Item Env:VITE_API_URL -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:VITE_API_URL = $previousViteApiUrl
+    }
+    if ($null -eq $previousMetaPixelId) {
+        Remove-Item Env:VITE_META_PIXEL_ID -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:VITE_META_PIXEL_ID = $previousMetaPixelId
+    }
     if ($null -eq $previousNpmCache) {
         Remove-Item Env:npm_config_cache -ErrorAction SilentlyContinue
     }

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useCookieConsent } from '../hooks/useCookieConsent';
-import { initAnalytics } from '../services/analytics';
+import { initAnalytics, trackPageView } from '../services/analytics';
 
 /**
  * Bridges cookie consent to the pixel layer: (re)runs the idempotent
@@ -11,10 +12,23 @@ import { initAnalytics } from '../services/analytics';
  */
 export default function AnalyticsLoader() {
   const { choices } = useCookieConsent();
+  const { pathname, search } = useLocation();
+  const previousPage = useRef(`${pathname}${search}`);
 
   useEffect(() => {
     initAnalytics(choices);
   }, [choices]);
+
+  useEffect(() => {
+    const currentPage = `${pathname}${search}`;
+
+    // loadMetaPixel sends the first PageView when consent initializes the
+    // tag. Only subsequent SPA navigations need an additional virtual view.
+    if (previousPage.current !== currentPage) {
+      previousPage.current = currentPage;
+      trackPageView();
+    }
+  }, [pathname, search]);
 
   return null;
 }

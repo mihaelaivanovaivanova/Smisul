@@ -11,26 +11,41 @@ interface WhatIsMiswakSectionProps {
  * substances the wood contains (benefits_title/benefits), a proper list
  * with the site's own check icon rather than raw "✓" text characters.
  *
- * Visual: a single static lifestyle photo (07-basket-800.webp, already
- * used by NaturalEcoSection) — replaces the earlier 3-step product-photo
- * sequence, which needed a still-missing "fibers close-up" asset.
+ * Visual: a single infographic (08-benefits-infographic.webp) labeling
+ * the same substances the checklist covers directly on the stick itself
+ * — kept at its own native portrait ratio (4:5) rather than cropped into
+ * a landscape box, since cropping would cut off the callout labels.
+ *
+ * Title/paragraph sit in their own full-width row above a second row
+ * (checklist left, image right) rather than both living in the left
+ * column next to the image — by request, so the header reads as common
+ * to the whole section instead of belonging to just the text side. On
+ * mobile this still stacks in the original title → text → list → image
+ * order, since Bootstrap's columns collapse to one below lg regardless
+ * of which row they're in.
  */
 export default function WhatIsMiswakSection({ content }: WhatIsMiswakSectionProps) {
   return (
     <section className="section funnel-hero-tone" id="what-is-miswak">
       <div className="container">
-        <div className="row g-5 align-items-center">
-          <div className="col-12 col-lg-6">
+        <div className="row">
+          <div className="col-12 text-center">
             <h2 className="section-title">{content.title}</h2>
             {content.paragraphs.map((paragraph, index) => (
-              <p className={`section-lead lead ${index > 0 ? 'funnel-mobile-optional' : ''}`} key={paragraph}>
+              <p
+                className={`section-lead lead funnel-intro__lead ${index > 0 ? 'funnel-mobile-optional' : ''}`}
+                key={paragraph}
+              >
                 {paragraph}
               </p>
             ))}
-
+          </div>
+        </div>
+        <div className="row g-5 align-items-center mt-2">
+          <div className="col-12 col-lg-6">
             {content.benefits.length > 0 && (
               <div className="funnel-intro-benefits">
-                <p className="funnel-intro-benefits__title">{content.benefits_title}</p>
+                {content.benefits_title && <p className="funnel-intro-benefits__title">{content.benefits_title}</p>}
                 <ul className="funnel-intro-benefits__list">
                   {content.benefits.map((benefit) => (
                     <li key={benefit.label}>
@@ -45,10 +60,12 @@ export default function WhatIsMiswakSection({ content }: WhatIsMiswakSectionProp
             )}
           </div>
           <div className="col-12 col-lg-6">
-            <div className="funnel-photo" style={{ aspectRatio: '4 / 3' }}>
+            <div className="funnel-photo funnel-intro__image" style={{ aspectRatio: '900 / 1125' }}>
               <img
-                src="/funnel/v2/07-basket-800.webp"
-                alt="Кошница с необработени клонки Miswak"
+                src="/funnel/v2/08-benefits-infographic.webp"
+                alt="Miswak пръчица с обозначени естествени съставки: влакна, силициев диоксид, калций и калий, флуориди, етерични масла, растителни антиоксиданти"
+                width={900}
+                height={1125}
                 loading="lazy"
                 decoding="async"
               />

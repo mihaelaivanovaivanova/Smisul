@@ -130,10 +130,14 @@
   }
 }
 
-/* The title's punchline clause ("АМА САМО ПОНЯКОГА?" — see HeroSection.tsx's
-   renderHeroTitle()) is styled as a static accent, no animation. */
+/* The title's punchline clause ("ИМА И ДРУГ НАЧИН!" — see HeroSection.tsx's
+   renderHeroTitle()) is styled as a static accent, no animation. Block +
+   centered by request — it already lands on its own line at every width
+   the H1 wraps at, so this centers that line without affecting the
+   left-aligned lines around it. */
 .funnel-hero__title-crash-wrap {
-  display: inline-block;
+  display: block;
+  text-align: center;
 }
 
 .funnel-hero__title-emphasis {
@@ -150,15 +154,18 @@
    keeps the same --fs-xs/600 weight the fine print used before, just
    recolored for contrast on the terracotta button. */
 .funnel-hero__cta {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: center;
   gap: 0.15em;
   line-height: 1.2;
+  padding-block: 1.1rem;
 }
 
 .funnel-hero__cta-main {
   display: block;
+  font-size: 1.25em;
 }
 
 .funnel-hero__cta-sub {
@@ -315,34 +322,28 @@
    small enough here that all 5 fit one line at every width from 576px
    up (matching the same fix already applied at <576px below) avoids
    the wrapping case entirely instead of trying to make it look right. */
+/* By request: the row fills the column's full width (the same width the
+   CTA button and benefits line above already span) instead of a small
+   centered cluster with leftover space on either side — each item grows
+   equally via flex instead of a fixed basis. */
 .funnel-hero .funnel-trust-row {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: center;
-  gap: var(--space-4);
-}
-
-@media (min-width: 992px) {
-  /* Nudged left of dead-center, by request — shifts the centered group
-     without abandoning centering (an outer padding-right narrows the
-     box justify-content:center centers within, rather than switching to
-     flex-start, which would fully left-align it against the rest of the
-     column's own centered elements — CTA button, benefits line). Desktop
-     only, where the row sits directly under the (now height-matched)
-     hero photo rather than full-width like on mobile. */
-  .funnel-hero .funnel-trust-row {
-    padding-right: 2rem;
-  }
+  gap: var(--space-3);
 }
 
 .funnel-hero .funnel-trust-item {
-  flex: 0 1 5rem;
+  flex: 1 1 0;
   padding-inline: 0;
 }
 
 .funnel-hero .funnel-trust-item__icon {
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  /* Only affects the non-photo icon (Icon.tsx's SVG is sized in em) — the
+     photo icons already scale via width/height: 100% on their <img>
+     regardless of font-size. */
+  font-size: 2rem;
 }
 
 .funnel-hero .funnel-trust-item__label {
@@ -370,6 +371,7 @@
   .funnel-hero .funnel-trust-item__icon {
     width: 1.75rem;
     height: 1.75rem;
+    font-size: 0.8rem;
   }
 
   .funnel-hero .funnel-trust-item__label {
@@ -425,17 +427,15 @@
   transform: scale(1.05);
 }
 
-/* The directional-fade photos (hero, awareness band, buy section) keep
-   their edge-bleed look: overflow is visible there, so a zoom would
-   spill outside the frame — they stay still. */
+/* The directional-fade photos (hero, buy section) keep their edge-bleed
+   look: overflow is visible there, so a zoom would spill outside the
+   frame — they stay still. */
 .funnel-hero__image img,
-.funnel-awareness__image img,
 .funnel-final-cta__image img {
   transition: none;
 }
 
 .funnel-hero__image:hover img,
-.funnel-awareness__image:hover img,
 .funnel-final-cta__image:hover img {
   transform: none;
 }
@@ -471,11 +471,67 @@
      Overrides .funnel-photo's card treatment (radius/shadow/hard clip).
      Must come after .funnel-photo in the cascade to win on equal
      specificity, since both classes are applied to the same element. */
+  position: relative;
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
   mask-image: linear-gradient(to right, transparent, #000 22%);
+}
+
+/* Diagonal band over the Hero photo — carries the old Skepticism/
+   Honesty section's hook (funnel.awareness: title + subtitle) in that
+   section's own dark-green/white treatment, now a tilted panel over the
+   image instead of a full band further down the page. The 36% right
+   offset keeps it clear of BoxNowBadge, a viewport-fixed sticker (see
+   BoxNowBadge.tsx) that sits over the photo's top-right corner. The
+   wrap spans the photo (independent of .funnel-hero__image's own
+   overflow:visible, needed for its left-edge fade) purely to clip the
+   panel's rotated corners to the photo's bounds. */
+.funnel-hero__ribbon-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* One unified layout at every width, by request — percentage-based
+   right/width (not a fixed rem offset) so the panel lands in the same
+   relative spot on the photo regardless of the photo's own rendered
+   size, from the smallest phone up through desktop. font-size scales
+   fluidly with the viewport (clamped between the mobile and desktop
+   sizes it was tuned at) rather than jumping at a breakpoint — title/
+   subtitle below are sized in em against it, so the whole panel (text
+   and padding alike) grows together as the screen does. */
+.funnel-hero__ribbon {
+  position: absolute;
+  top: 2%;
+  right: 36%;
+  width: 61%;
+  transform: rotate(-12deg);
+  transform-origin: top right;
+  background-color: var(--color-forest-dark);
+  color: #fff;
+  padding: 0.7em 1em;
+  font-size: clamp(0.7rem, 1.7vw, 1.35rem);
+  box-shadow: var(--shadow-md);
+}
+
+.funnel-hero__ribbon-title {
+  margin: 0 0 0.15em;
+  font-family: var(--font-heading);
+  font-size: 1.15em;
+  font-weight: 800;
+  white-space: pre-line;
+}
+
+.funnel-hero__ribbon-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-heading);
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 /* ---- Use-case cards (#use-cases) ---- */
@@ -492,24 +548,24 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Same circular-badge recipe as .funnel-step-card__number (HowToUseSection)
-   — a plain icon in place of that one's number, kept as its own class
-   since the two aren't the same semantic marker. */
-.funnel-usecase-card__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  margin-bottom: var(--space-2);
-  border-radius: 50%;
-  background-color: var(--color-forest);
-  color: #fff;
+/* Same image-container recipe as .funnel-package-card__image — a fixed
+   aspect-ratio box with overflow hidden, matching the 1100x259 source's
+   own native framing as-is (see UseCasesSection.tsx) — not cropped
+   further, by request, while the photos are still being finalized. */
+.funnel-usecase-card__image {
+  width: 100%;
+  aspect-ratio: 1100 / 259;
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background-color: var(--color-sand);
 }
 
-.funnel-usecase-card__icon svg {
-  width: 1.1rem;
-  height: 1.1rem;
+.funnel-usecase-card__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* .section-lead's own max-width (42rem) has no auto margins by default,
@@ -533,6 +589,25 @@
 }
 
 /* ---- What Is Miswak — natural-substances checklist ---- */
+
+/* Same fix as .funnel-usecases__closing above — .section-lead's own
+   max-width (42rem) has no auto margins by default, so text-align:center
+   alone only centers the text within that left-anchored box, not the box
+   itself. Center the box too so the paragraph reads centered under the
+   now-centered title above it. */
+.funnel-intro__lead {
+  margin-inline: auto;
+}
+
+/* Smaller than its column on desktop, by request — the infographic's own
+   text is already dense at full column width, and this reads better as a
+   contained visual next to the checklist rather than matching its size. */
+@media (min-width: 992px) {
+  .funnel-intro__image {
+    max-width: 75%;
+    margin-inline: auto;
+  }
+}
 
 .funnel-intro-benefits {
   margin-top: var(--space-4);
@@ -957,73 +1032,6 @@
 .funnel-step-item__label {
   font-size: var(--fs-xs);
   font-weight: 700;
-}
-
-/* ---- Dark awareness band ---- */
-
-.funnel-awareness {
-  background-color: var(--color-forest-dark);
-  color: #fff;
-}
-
-.funnel-awareness h2 {
-  color: #fff;
-  white-space: pre-line;
-}
-
-/* Strong but not oversized: heading-family + bold at --fs-lg sits
-   between the H2 title and the regular body copy, so the "sounded
-   strange to us too" line reads as a real second beat, not filler. */
-.funnel-awareness__subtitle {
-  margin-bottom: var(--space-3);
-  color: rgba(255, 255, 255, 0.92);
-  font-family: var(--font-heading);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-}
-
-.funnel-page .funnel-awareness p,
-.funnel-page .funnel-awareness .lead,
-.funnel-page .funnel-awareness .section-lead {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-/* Fades into the dark band's own background on both the left and right
-   edges, so the photo blends in rather than having a hard-clipped
-   rectangular edge. The column now sits first (left) in the mirrored
-   layout, so the extra width bleeds toward the section's left edge
-   (negative margin-left) instead of the right — the right edge stays
-   anchored where the column naturally ends, next to the text. Overrides
-   .funnel-photo's card treatment (radius/shadow/hard clip) — must come
-   after .funnel-photo in the cascade to win on equal specificity, since
-   both classes are applied to the same element. */
-.funnel-awareness__image {
-  border-radius: 0;
-  box-shadow: none;
-  overflow: visible;
-  width: 178%;
-  margin-left: -78%;
-  /* Spans the section's full height, bleeding over its vertical padding
-     (the column stretches to the row height — see the awareness row's
-     missing align-items-center in FunnelLandingPage) so the leaves run
-     edge to edge instead of being cropped top and bottom. */
-  height: calc(100% + 2 * var(--space-7));
-  margin-block: calc(-1 * var(--space-7));
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
-}
-
-/* Desktop only: the row height (and with it, the whole band) was being
-   driven by this image's own tall portrait crop stretching to fill the
-   row — a fixed wide aspect ratio keeps the band shallow regardless of
-   viewport width, instead of scaling with it. Height now comes from
-   aspect-ratio (not the row), so the bleed is a plain fixed offset. */
-@media (min-width: 992px) {
-  .funnel-awareness__image {
-    height: auto;
-    aspect-ratio: 21 / 9;
-    margin-block: calc(-1 * var(--space-4));
-  }
 }
 
 /* ---- Assurance microcopy (payment/delivery facts near CTAs) ---- */
@@ -1761,13 +1769,50 @@
   }
 }
 
+/* The undiscounted "was" price — what this many sticks would cost at
+   the live 1-pack rate (see computeOriginalPrice), struck through and
+   muted so the real price above it stays the visual anchor. */
+.funnel-package-card__price-original {
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+/* Holds just the price + its discount badge, kept separate from
+   .funnel-package-card__price-row's own flex layout so the badge (see
+   below) can be pinned to this element's corner without pulling the
+   price itself off-center within the card. */
+.funnel-package-card__price-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Both the discount badge and the struck-through original price live
+   here, pinned outside the price's own box to its right — the price
+   stays the one truly centered element in the card, this group reads
+   as a side note next to it. */
+.funnel-package-card__price-extra {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  margin-left: 0.4rem;
+}
+
 .funnel-package-card__save {
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-1);
   border-radius: var(--radius-pill);
   background-color: var(--color-terracotta);
   color: #fff;
-  font-size: var(--fs-xs);
+  font-size: 0.65rem;
   font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .funnel-package-card__per-unit {

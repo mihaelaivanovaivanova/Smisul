@@ -4,7 +4,7 @@ import { funnelAssurance, funnelOffer } from '../../../content/copy';
 import Icon from '../../icons/Icon';
 import { TrustIcon } from '../FunnelIcons';
 import DispatchPromise from '../DispatchPromise';
-import type { FunnelHeroContent } from '../../../types/funnel';
+import type { FunnelAwarenessContent, FunnelHeroContent } from '../../../types/funnel';
 import type { Price } from '../../../types/product';
 
 interface HeroSectionProps {
@@ -14,20 +14,20 @@ interface HeroSectionProps {
   fromPrice: Price | null | undefined;
   /** Same-day dispatch cutoff (Settings → General) — see DispatchPromise.tsx; renders nothing outside the window. */
   dispatchCutoff: string | null | undefined;
+  /** funnel.awareness — the old Skepticism/Honesty section's hook (title + subtitle only, by request; body is unused here), now a diagonal band across the Hero photo instead of a full section further down the page. */
+  ribbon: FunnelAwarenessContent;
 }
 
 /**
- * "АМА САМО ПОНЯКОГА?" is the title's punchline clause — by request, it
- * crash-lands into place (its own accent color/weight, a hard drop +
- * squash-settle, and a synced screen-shake — see the
- * .funnel-hero__title-crash* rules in funnel.css) while the rest of the H1
- * renders normally, present from first paint. Plain substring match, not a
- * content-schema change — title is a single CMS string everywhere else on
- * this page, so this only special-cases rendering, not storage. Falls back
- * to the plain string if a future content edit removes the phrase, rather
- * than rendering nothing.
+ * "ИМА И ДРУГ НАЧИН!" is the title's punchline clause — styled as a
+ * static accent (its own color/weight, centered on its own line — see
+ * the .funnel-hero__title-crash* rules in funnel.css). Plain substring
+ * match, not a content-schema change — title is a single CMS string
+ * everywhere else on this page, so this only special-cases rendering,
+ * not storage. Falls back to the plain string if a future content edit
+ * removes the phrase, rather than rendering nothing.
  */
-const HERO_TITLE_EMPHASIS = 'АМА САМО ПОНЯКОГА?';
+const HERO_TITLE_EMPHASIS = 'ИМА И ДРУГ НАЧИН!';
 
 function renderHeroTitle(title: string): ReactNode {
   const index = title.indexOf(HERO_TITLE_EMPHASIS);
@@ -60,7 +60,7 @@ function renderHeroTitle(title: string): ReactNode {
  * the CMS-editable trust_items badge row via TrustIcon/.funnel-trust-row
  * — previously seeded but never rendered anywhere on the page.
  */
-export default function HeroSection({ content, productName, fromPrice, dispatchCutoff }: HeroSectionProps) {
+export default function HeroSection({ content, productName, fromPrice, dispatchCutoff, ribbon }: HeroSectionProps) {
   const packagesFromLabel = fromPrice ? funnelOffer.packagesFrom(formatPrice(fromPrice.amount, fromPrice.currency)) : null;
 
   const introRef = useRef<HTMLDivElement>(null);
@@ -104,8 +104,13 @@ export default function HeroSection({ content, productName, fromPrice, dispatchC
               <h1 className="funnel-hero__title mb-3">{renderHeroTitle(content.title)}</h1>
               <p className="lead">{content.body}</p>
 
+              {/* Links to the early buy box right below the Hero
+                  (id="pricing-early"), not the numbered #pricing section
+                  further down the page — by request, so this CTA jumps to
+                  the nearest set of package cards instead of scrolling past
+                  everything in between. */}
               <div className="mt-3 mb-2 text-center">
-                <a href="#pricing" className="btn btn-primary btn-lg funnel-hero__cta">
+                <a href="#pricing-early" className="btn btn-primary btn-lg funnel-hero__cta">
                   <span className="funnel-hero__cta-main">{content.cta_primary}</span>
                   {packagesFromLabel && <span className="funnel-hero__cta-sub">{packagesFromLabel}</span>}
                 </a>
@@ -137,19 +142,35 @@ export default function HeroSection({ content, productName, fromPrice, dispatchC
             </div>
           </div>
           <div className="col-12 col-lg-6">
-            <div className="funnel-photo funnel-hero__image" style={imageHeight ? { height: `${imageHeight}px` } : undefined}>
-              {/* The LCP element: eager + high priority, with intrinsic
-                  dimensions so the browser reserves the space (no CLS).
-                  Phones pick the 800w variant via srcset. */}
-              <img
-                src="/funnel/v2/01-hero-sticks.webp"
-                srcSet="/funnel/v2/01-hero-sticks-800.webp 800w, /funnel/v2/01-hero-sticks.webp 1536w"
-                sizes="(min-width: 992px) 50vw, 100vw"
-                alt={productName}
-                width={1536}
-                height={1024}
-                fetchPriority="high"
-              />
+            {/* position-relative on this plain, unpadded wrapper rather
+                than the column itself — the column's own padding (the
+                grid gutter) would otherwise make the ribbon-wrap's
+                inset:0 below span the column's padding box (wider than
+                the photo) instead of matching the photo's own bounds. */}
+            <div className="position-relative">
+              <div className="funnel-photo funnel-hero__image" style={imageHeight ? { height: `${imageHeight}px` } : undefined}>
+                {/* The LCP element: eager + high priority, with intrinsic
+                    dimensions so the browser reserves the space (no CLS).
+                    Phones pick the 800w variant via srcset. */}
+                <img
+                  src="/funnel/v2/01-hero-sticks.webp"
+                  srcSet="/funnel/v2/01-hero-sticks-800.webp 800w, /funnel/v2/01-hero-sticks.webp 1536w"
+                  sizes="(min-width: 992px) 50vw, 100vw"
+                  alt={productName}
+                  width={1536}
+                  height={1024}
+                  fetchPriority="high"
+                />
+              </div>
+              {/* Sibling of .funnel-hero__image, not a child — that element
+                  carries a left-edge fade mask (see funnel.css), which would
+                  fade the ribbon along with the photo if nested inside it. */}
+              <div className="funnel-hero__ribbon-wrap" aria-hidden="true">
+                <div className="funnel-hero__ribbon">
+                  <p className="funnel-hero__ribbon-title">{ribbon.title}</p>
+                  <p className="funnel-hero__ribbon-subtitle">{ribbon.subtitle}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -8,7 +8,6 @@
  * avoids medical claims ("cures", "treats", "heals", guaranteed health
  * outcomes) per brand guidelines.
  */
-import type { IconName } from '../components/icons/Icon';
 
 export const siteName = 'Smisul';
 
@@ -254,14 +253,26 @@ export const funnelOffer = {
 export const funnelUseCases = {
   title: 'Познато ли ти е?',
   cards: [
-    { icon: 'coffee' as IconName, title: 'След кафе', body: 'Кафето приключи. Вкусът остана. А четката ти е вкъщи.' },
     {
-      icon: 'fork' as IconName,
+      image: '/funnel/v2/usecase-coffee.webp',
+      title: 'След кафе',
+      body: 'Кафето приключи. Вкусът остана. А четката ти е вкъщи.',
+    },
+    {
+      image: '/funnel/v2/usecase-lunch.webp',
       title: 'След обяд',
       body: 'След малко имаш среща, а няма къде удобно да си измиеш зъбите.',
     },
-    { icon: 'car' as IconName, title: 'В движение', body: 'От работа тръгваш директно към вечеря, среща или събитие.' },
-    { icon: 'plane' as IconName, title: 'На път', body: 'Летище, хотел, къмпинг, фестивал или просто дълъг ден навън.' },
+    {
+      image: '/funnel/v2/usecase-car.webp',
+      title: 'В движение',
+      body: 'От работа тръгваш директно към вечеря, среща или събитие.',
+    },
+    {
+      image: '/funnel/v2/usecase-travel.webp',
+      title: 'На път',
+      body: 'Летище, хотел, къмпинг, фестивал или просто дълъг ден навън.',
+    },
   ],
   closing: 'Винаги, когато ти потрябва бляскава усмивка, Miswak идва на помощ!',
   cta: 'ВИЖ КАК РАБОТИ ↓',

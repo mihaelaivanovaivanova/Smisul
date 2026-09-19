@@ -34,7 +34,11 @@ class FunnelContentUpdateRequest extends FormRequest
                 'title' => ['required', 'string', 'max:255'],
                 'paragraphs' => ['required', 'array', 'min:1'],
                 'paragraphs.*' => ['required', 'string', 'max:1000'],
-                'benefits_title' => ['required', 'string', 'max:255'],
+                // Optional lead-in line directly above the checklist —
+                // nullable so a paragraph that already ends by
+                // introducing the list (e.g. with a trailing colon)
+                // doesn't need a redundant second heading above it.
+                'benefits_title' => ['nullable', 'string', 'max:255'],
                 'benefits' => ['required', 'array', 'min:1'],
                 'benefits.*.label' => ['required', 'string', 'max:255'],
                 'benefits.*.description' => ['required', 'string', 'max:500'],

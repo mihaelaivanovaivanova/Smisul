@@ -1,5 +1,4 @@
 import { funnelUseCases } from '../../../content/copy';
-import Icon from '../../icons/Icon';
 
 /**
  * Section 3/20 — Use Cases, immediately below the Hero. Four short
@@ -14,6 +13,12 @@ import Icon from '../../icons/Icon';
  * product video is uploaded that id doesn't exist yet, and
  * FunnelLandingPage's existing hash-scroll effect already falls back to
  * opening the FAQ's usage answer in that case — no new JS needed here.
+ *
+ * Each card leads with a real lifestyle photo (not an icon) — shown at
+ * its own native framing for now (no crop, by request, while the photos
+ * are still being finalized), just scaled down and compressed to WebP
+ * (originals were ~2.1-2.4MB PNGs; see /public/funnel/v2/usecase-*.webp)
+ * at build time, not on request.
  */
 export default function UseCasesSection() {
   return (
@@ -25,9 +30,9 @@ export default function UseCasesSection() {
           {funnelUseCases.cards.map((card) => (
             <div className="col" key={card.title}>
               <div className="funnel-usecase-card funnel-usecase-card--hover">
-                <span className="funnel-usecase-card__icon" aria-hidden="true">
-                  <Icon name={card.icon} />
-                </span>
+                <div className="funnel-usecase-card__image">
+                  <img src={card.image} alt="" loading="lazy" width={1100} height={259} />
+                </div>
                 <h3 className="h6 mb-2">{card.title}</h3>
                 <p className="section-lead lead mb-0">{card.body}</p>
               </div>

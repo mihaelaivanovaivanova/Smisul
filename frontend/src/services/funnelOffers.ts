@@ -26,6 +26,10 @@ export function resolvePackageOffers(product: Product, packages: FunnelPackage[]
   });
 }
 
+function findSingleStickPrice(offers: PackageOffer[]): number | undefined {
+  return offers.find(({ variant }) => variant.pack_size === 1)?.price.amount;
+}
+
 /**
  * The real, non-fabricated savings badge every package card shows (funnel
  * PackageOffers.tsx and the product page's VariantPicker.tsx both use
@@ -34,9 +38,25 @@ export function resolvePackageOffers(product: Product, packages: FunnelPackage[]
  * comment for why compare_at_amount was rejected as the source for this.
  */
 export function computeSavingsPercent(offers: PackageOffer[], variant: ProductVariant, price: Price): number | null {
-  const singleStickPrice = offers.find(({ variant: candidate }) => candidate.pack_size === 1)?.price.amount;
+  const singleStickPrice = findSingleStickPrice(offers);
 
   return singleStickPrice && variant.pack_size > 1
     ? Math.round((1 - price.amount / variant.pack_size / singleStickPrice) * 100)
+    : null;
+}
+
+/**
+ * The struck-through "was" price shown next to the discounted bundle
+ * price — what this many sticks would cost at the live 1-pack rate, the
+ * same real, non-fabricated basis computeSavingsPercent above uses (see
+ * PackageOffers.tsx's own comment on why compare_at_amount was rejected
+ * as a source for this). Null under the same conditions as the savings
+ * percent — no 1-pack price to compare against, or this isn't a bundle.
+ */
+export function computeOriginalPrice(offers: PackageOffer[], variant: ProductVariant, price: Price): Price | null {
+  const singleStickPrice = findSingleStickPrice(offers);
+
+  return singleStickPrice && variant.pack_size > 1
+    ? { amount: singleStickPrice * variant.pack_size, currency: price.currency, compare_at_amount: null, is_on_sale: false }
     : null;
 }

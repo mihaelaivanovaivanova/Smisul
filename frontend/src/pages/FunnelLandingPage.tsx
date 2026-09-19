@@ -23,7 +23,6 @@ import WhatIsMiswakSection from '../components/funnel/sections/WhatIsMiswakSecti
 import CoreBenefitsSection from '../components/funnel/sections/CoreBenefitsSection';
 import HowToUseSection from '../components/funnel/sections/HowToUseSection';
 import ScienceSection from '../components/funnel/sections/ScienceSection';
-import SkepticismHonestySection from '../components/funnel/sections/SkepticismHonestySection';
 import ComparisonSection from '../components/funnel/sections/ComparisonSection';
 import FunnelTestimonialsSection from '../components/funnel/sections/FunnelTestimonialsSection';
 import BrandStatementSection from '../components/funnel/sections/BrandStatementSection';
@@ -45,7 +44,7 @@ import { funnelOffer, reviews as reviewsCopy, seo, states } from '../content/cop
  *  5  Core Benefits             -> CoreBenefitsSection (funnel.why)
  *  6  How To Use                -> HowToUseSection (funnelHowToUse, fixed copy + optional product video)
  *  7  Science                   -> ScienceSection (funnel.science)
- *  8  Skepticism / Honesty      -> SkepticismHonestySection (funnel.awareness)
+ *  8  Skepticism / Honesty      -> removed as its own section; funnel.awareness's title/subtitle/body now render as a diagonal ribbon on the Hero photo (see HeroSection's ribbon prop) instead of a full band further down the page
  *  9  Positioning Statement     -> removed
  *  10 Comparison                -> ComparisonSection (funnel.comparison)
  *  11 Actual Product            -> removed
@@ -456,7 +455,13 @@ export default function FunnelLandingPage() {
 
       {/* 1 Header -> Navbar.tsx, rendered by PublicLayout */}
       {/* 2 Hero — carries the page's only H1 */}
-      <HeroSection content={hero} productName={product.name} fromPrice={fromPrice} dispatchCutoff={dispatchCutoff} />
+      <HeroSection
+        content={hero}
+        productName={product.name}
+        fromPrice={fromPrice}
+        dispatchCutoff={dispatchCutoff}
+        ribbon={awareness}
+      />
       {/* Early buy box — a second, non-anchor copy of the Pricing section
           (see PricingSection's doc comment) placed immediately after the
           Hero so a ready-to-buy visitor doesn't have to scroll past 13
@@ -483,8 +488,7 @@ export default function FunnelLandingPage() {
       <HowToUseSection videos={productVideos} pdfUrl={usageGuidePdfUrl} ctaPrimaryLabel={hero.cta_primary} fromPrice={fromPrice} />
       {/* 7 Science */}
       <ScienceSection content={science} />
-      {/* 8 Skepticism / Honesty */}
-      <SkepticismHonestySection content={awareness} />
+      {/* 8 Skepticism / Honesty — removed as its own section; its title now renders as the Hero image's ribbon (see above) */}
       {/* 10 Comparison */}
       <ComparisonSection content={comparison} ctaPrimaryLabel={hero.cta_primary} fromPrice={fromPrice} />
       {/* 12 Reviews */}

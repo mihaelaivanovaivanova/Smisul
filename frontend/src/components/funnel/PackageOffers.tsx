@@ -3,7 +3,7 @@ import AddToCartButton from '../product/AddToCartButton';
 import { formatPrice } from '../../services/productCatalog';
 import { trackFunnelAddToCart } from '../../services/analytics';
 import { funnelOffer, stock as stockCopy } from '../../content/copy';
-import { computeSavingsPercent } from '../../services/funnelOffers';
+import { computeOriginalPrice, computeSavingsPercent } from '../../services/funnelOffers';
 import type { PackageOffer } from '../../services/funnelOffers';
 
 /**
@@ -37,13 +37,17 @@ export default function PackageOffers({ offers, showImages = false, variantSlug 
       {offers.map(({ pkg, variant, price }, index) => {
         // The single-stick price is itself a live, real price from this
         // same offers list (not hardcoded) — every bundle's savings badge
-        // is computed against it, matching ai/context/14_Offer_and_Pricing.md's
-        // own "Saving vs. single price" methodology. No fabricated
-        // compare-at anchors: a previous version used
-        // Price.compare_at_amount for this, but those values had no
-        // documented basis anywhere in the project — removed at the data
-        // level (see FunnelSeeder.php), not just hidden here.
+        // AND its struck-through "was" price are computed against it,
+        // matching ai/context/14_Offer_and_Pricing.md's own "Saving vs.
+        // single price" methodology. No fabricated compare-at anchors: a
+        // previous version used Price.compare_at_amount for this, but
+        // those values had no documented basis anywhere in the project —
+        // removed at the data level (see FunnelSeeder.php), not just
+        // hidden here. The struck-through price is exactly
+        // singleStickPrice × pack_size, not a separate stored value, so
+        // it can never drift from what the percent badge already claims.
         const savingsPercent = computeSavingsPercent(offers, variant, price);
+        const originalPrice = computeOriginalPrice(offers, variant, price);
         const hasImage = showImages && Boolean(packageImages[variant.pack_size]);
 
         return (
@@ -67,10 +71,24 @@ export default function PackageOffers({ offers, showImages = false, variantSlug 
             <h3 className="funnel-package-card__detail h5 mb-0">{pkg.detail}</h3>
             <p className="funnel-package-card__value mb-0">{pkg.value_label}</p>
             <div className="funnel-package-card__price-row">
-              <span className="funnel-package-card__price">{formatPrice(price.amount, price.currency)}</span>
-              {savingsPercent !== null && savingsPercent > 0 && (
-                <span className="funnel-package-card__save">-{savingsPercent}%</span>
-              )}
+              {/* Both the discount badge and the struck-through original
+                  price are pinned outside the price's own box (not in the
+                  row's normal flow), so the price itself stays the one
+                  truly centered element in the card — everything else
+                  reads as a side note next to it. */}
+              <span className="funnel-package-card__price-wrap">
+                <span className="funnel-package-card__price">{formatPrice(price.amount, price.currency)}</span>
+                {(originalPrice || (savingsPercent !== null && savingsPercent > 0)) && (
+                  <span className="funnel-package-card__price-extra">
+                    {savingsPercent !== null && savingsPercent > 0 && (
+                      <span className="funnel-package-card__save">-{savingsPercent}%</span>
+                    )}
+                    {originalPrice && (
+                      <span className="funnel-package-card__price-original">{formatPrice(originalPrice.amount, originalPrice.currency)}</span>
+                    )}
+                  </span>
+                )}
+              </span>
             </div>
             {variant.pack_size > 1 && (
               <span className="funnel-package-card__per-unit">

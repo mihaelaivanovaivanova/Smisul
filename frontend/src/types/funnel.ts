@@ -23,7 +23,8 @@ export interface FunnelIntroBenefit {
 export interface FunnelIntroContent {
   title: string;
   paragraphs: string[];
-  benefits_title: string;
+  /** Optional lead-in line directly above the checklist — absent when the last paragraph already introduces the list itself. */
+  benefits_title?: string | null;
   benefits: FunnelIntroBenefit[];
 }
 

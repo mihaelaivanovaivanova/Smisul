@@ -315,9 +315,10 @@ function IntroForm({ initial, onSaved, variantSlug, isOverridden, onReset }: Sec
           <TextField label="Title" value={value.title} onChange={(v) => setValue({ ...value, title: v })} />
           <RepeatableStringList label="Paragraphs" values={value.paragraphs} onChange={(paragraphs) => setValue({ ...value, paragraphs })} />
           <TextField
-            label="Benefits list heading"
-            value={value.benefits_title}
+            label="Benefits list heading (optional)"
+            value={value.benefits_title ?? ''}
             onChange={(v) => setValue({ ...value, benefits_title: v })}
+            required={false}
           />
           <RepeatableObjectList
             label="Benefits"

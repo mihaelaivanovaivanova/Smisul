@@ -130,6 +130,15 @@
   }
 }
 
+/* Centered on phones/tablets only, by request — desktop keeps the
+   headline left-aligned next to the photo, where centering would read
+   oddly against the surrounding left-aligned eyebrow/body copy. */
+@media (max-width: 991.98px) {
+  .funnel-hero__title {
+    text-align: center;
+  }
+}
+
 /* The title's punchline clause ("ИМА И ДРУГ НАЧИН!" — see HeroSection.tsx's
    renderHeroTitle()) is styled as a static accent, no animation. Block +
    centered by request — it already lands on its own line at every width
@@ -429,14 +438,21 @@
 
 /* The directional-fade photos (hero, buy section) keep their edge-bleed
    look: overflow is visible there, so a zoom would spill outside the
-   frame — they stay still. */
+   frame — they stay still. The infographic (funnel-intro) stays still
+   for a different reason: its hotspot overlays are positioned in
+   percentages against the image's own un-zoomed box, so any hover zoom
+   on it would shift the picture under those fixed-position overlays and
+   throw the alignment off, on top of a zoom reading oddly for a diagram
+   rather than a lifestyle photo. */
 .funnel-hero__image img,
-.funnel-final-cta__image img {
+.funnel-final-cta__image img,
+.funnel-intro__image img {
   transition: none;
 }
 
 .funnel-hero__image:hover img,
-.funnel-final-cta__image:hover img {
+.funnel-final-cta__image:hover img,
+.funnel-intro__image:hover img {
   transform: none;
 }
 
@@ -588,7 +604,7 @@
   margin-inline: auto;
 }
 
-/* ---- What Is Miswak — natural-substances checklist ---- */
+/* ---- What Is Miswak — infographic + hover hotspots ---- */
 
 /* Same fix as .funnel-usecases__closing above — .section-lead's own
    max-width (42rem) has no auto margins by default, so text-align:center
@@ -599,47 +615,120 @@
   margin-inline: auto;
 }
 
-/* Smaller than its column on desktop, by request — the infographic's own
-   text is already dense at full column width, and this reads better as a
-   contained visual next to the checklist rather than matching its size. */
-@media (min-width: 992px) {
-  .funnel-intro__image {
-    max-width: 75%;
-    margin-inline: auto;
+/* Positioning root for the hotspot rows below — sized by its column
+   (col-lg-7/col-xl-6, both centered), not by its own max-width, so
+   there's real room on both sides at desktop for the tooltip bubbles to
+   land outside the picture instead of overlapping it. */
+.funnel-intro__image-wrap {
+  position: relative;
+}
+
+/* left/width/top/height are all set inline per spot (see HOTSPOTS) — the
+   two columns turned out not to share one inset/width, so this rule only
+   supplies what's common to every row. */
+.funnel-intro__hotspot-row {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* A faint always-on border plus a slow pulsing glow (below) advertises
+   that these boxes are interactive before the visitor ever hovers one —
+   without the pulse, the hover affordance alone was too easy to miss on
+   first glance. Fills its row exactly, since the row above is already
+   sized to the box itself. */
+.funnel-intro__hotspot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1.5px solid rgba(58, 74, 55, 0.4);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: funnel-intro-hotspot-pulse 2.4s ease-in-out infinite;
+  transition:
+    background-color 0.15s ease,
+    outline-color 0.15s ease;
+}
+
+/* Hover/focus is layered on top of the pulse via outline rather than
+   box-shadow/border-color — those two are already driven by the keyframes
+   below, and pausing the animation per-element on hover was exactly what
+   knocked the boxes out of sync with each other (each one resumes its own
+   pulse from wherever it left off). Outline is untouched by the
+   animation, so every box keeps pulsing in lockstep no matter which one
+   is currently hovered. */
+.funnel-intro__hotspot:hover,
+.funnel-intro__hotspot:focus-visible {
+  background-color: rgba(58, 74, 55, 0.1);
+  outline: 2px solid var(--color-forest);
+  outline-offset: 1px;
+}
+
+@keyframes funnel-intro-hotspot-pulse {
+  0%,
+  100% {
+    border-color: rgba(58, 74, 55, 0.35);
+    box-shadow: 0 0 0 0 rgba(58, 74, 55, 0.35);
+  }
+  50% {
+    border-color: rgba(58, 74, 55, 0.9);
+    box-shadow: 0 0 0 5px rgba(58, 74, 55, 0);
   }
 }
 
-.funnel-intro-benefits {
-  margin-top: var(--space-4);
+.funnel-intro__tooltip {
+  --tooltip-gap: 2.75rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17rem;
+  max-width: min(17rem, 32vw);
+  padding: var(--space-3) var(--space-4);
+  background-color: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  z-index: 5;
+  pointer-events: none;
 }
 
-.funnel-intro-benefits__title {
-  margin-bottom: var(--space-2);
-  font-weight: 700;
+/* Connector echoing the dot-and-line style already baked into the
+   infographic itself, spanning the exact gap opened up above (driven by
+   the same --tooltip-gap custom property) so the two can't drift apart. */
+.funnel-intro__tooltip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: var(--tooltip-gap);
+  height: 2px;
+  background-color: var(--color-forest);
+  opacity: 0.55;
+}
+
+.funnel-intro__tooltip--left {
+  right: calc(100% + var(--tooltip-gap));
+}
+
+.funnel-intro__tooltip--left::before {
+  right: calc(-1 * var(--tooltip-gap));
+}
+
+.funnel-intro__tooltip--right {
+  left: calc(100% + var(--tooltip-gap));
+}
+
+.funnel-intro__tooltip--right::before {
+  left: calc(-1 * var(--tooltip-gap));
+}
+
+.funnel-intro__tooltip strong {
+  display: block;
+  margin-bottom: 0.2rem;
   color: var(--color-forest-dark);
-}
-
-.funnel-intro-benefits__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.funnel-intro-benefits__list li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-}
-
-.funnel-intro-benefits__icon {
-  flex-shrink: 0;
-  width: 1.1em;
-  height: 1.1em;
-  margin-top: 0.2em;
-  color: var(--color-forest);
 }
 
 /* ---- How-to-use step cards (#how-to-use) ---- */

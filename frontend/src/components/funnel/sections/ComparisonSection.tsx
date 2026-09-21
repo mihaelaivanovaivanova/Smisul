@@ -139,7 +139,7 @@ export default function ComparisonSection({ content, ctaPrimaryLabel, fromPrice 
           </table>
         </div>
 
-        <div className="text-center mt-5">
+        <div className="text-center mt-5 funnel-comparison__cta-wrap">
           <a href="#pricing" className="btn btn-primary btn-lg funnel-hero__cta">
             <span className="funnel-hero__cta-main">{ctaPrimaryLabel}</span>
             {packagesFromLabel && <span className="funnel-hero__cta-sub">{packagesFromLabel}</span>}

@@ -593,13 +593,6 @@
   margin-inline: auto;
 }
 
-/* Same fix as .funnel-usecases__closing above — .section-lead's own
-   max-width has no auto margins by default, so text-align:center alone
-   only centers the text within a box that's itself left-anchored. */
-.funnel-why__closing {
-  margin-inline: auto;
-}
-
 .funnel-howtouse__subtitle {
   margin-inline: auto;
 }
@@ -1144,6 +1137,15 @@
 }
 
 /* ---- Comparison table (#compare) ---- */
+
+/* Matches .funnel-comparison__wrap's own max-width so the CTA button
+   below (full-width via .funnel-hero__cta) tracks the table's actual
+   width on desktop instead of stretching to the full container — it was
+   only reading right in the Hero, where that column IS the container. */
+.funnel-comparison__cta-wrap {
+  max-width: 56rem;
+  margin-inline: auto;
+}
 
 .funnel-comparison__wrap {
   position: relative;

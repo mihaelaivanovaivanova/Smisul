@@ -49,7 +49,6 @@ class FunnelContentUpdateRequest extends FormRequest
                 'cards.*.icon' => ['required', 'string', 'max:50'],
                 'cards.*.title' => ['required', 'string', 'max:255'],
                 'cards.*.text' => ['required', 'string', 'max:500'],
-                'closing' => ['required', 'string', 'max:500'],
             ],
             'history' => [
                 'title' => ['required', 'string', 'max:255'],

@@ -377,7 +377,6 @@ class FunnelSeeder extends Seeder
                         'text' => 'Една растителна пръчица от Salvadora persica без пластмаса и химикали.',
                     ],
                 ],
-                'closing' => 'По-малко неща. Повече свобода кога и къде да се погрижиш за зъбите си.',
             ],
             // History (#history) - deliberately short (one mobile screen),
             // moved later in the page order (see FunnelLandingPage.tsx's

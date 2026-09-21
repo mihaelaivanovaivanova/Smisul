@@ -24,7 +24,7 @@ const FALLBACK_IMAGE = { file: '03-bag-pocket', focus: '50% 55%' };
 /**
  * Section 5/20 — Core Benefits. Powered by the existing "funnel.why"
  * content block, now exactly 3 cards by design (always at hand /
- * naturally simple / no paste) plus a closing statement.
+ * naturally simple / no paste).
  *
  * The old card 2 ("допълва ежедневната грижа" — complement, not
  * replacement) and card 3 (yearly-discarded-toothbrushes eco stat) were
@@ -74,8 +74,6 @@ export default function CoreBenefitsSection({ content }: CoreBenefitsSectionProp
             );
           })}
         </div>
-
-        <p className="funnel-why__closing section-lead lead text-center fw-semibold mt-5 mb-0">{content.closing}</p>
       </div>
     </section>
   );

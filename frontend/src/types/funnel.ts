@@ -37,8 +37,6 @@ export interface FunnelWhyCard {
 export interface FunnelWhyContent {
   title: string;
   cards: FunnelWhyCard[];
-  /** Short statement shown after the benefit cards. */
-  closing: string;
 }
 
 export interface FunnelHistoryContent {

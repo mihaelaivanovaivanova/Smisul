@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Aggregates figures from existing services/models for the admin dashboard
@@ -43,7 +44,14 @@ class DashboardController extends Controller
                 'orders_today' => $orderStats['orders_today'],
                 'revenue_today' => $orderStats['revenue_today'],
                 'total_revenue' => $orderStats['total_revenue'],
-                'total_customers' => User::query()->where('role', Role::Customer)->count(),
+                // Excludes the same internal/test accounts OrderService::
+                // statistics() excludes from order/revenue figures - a test
+                // account shouldn't inflate "how many real customers do we
+                // have" either.
+                'total_customers' => User::query()
+                    ->where('role', Role::Customer)
+                    ->whereNotIn(DB::raw('LOWER(email)'), array_map('mb_strtolower', OrderService::TEST_CUSTOMER_EMAILS))
+                    ->count(),
                 'total_products' => Product::query()->count(),
                 'low_stock_products' => $lowStockCount,
                 'out_of_stock_products' => $outOfStockCount,

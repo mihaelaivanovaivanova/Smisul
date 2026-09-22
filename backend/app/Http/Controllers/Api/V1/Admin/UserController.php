@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\DataTransferObjects\Admin\CustomerFilterData;
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CustomerIndexRequest;
 use App\Http\Resources\Admin\CustomerResource;
@@ -31,6 +32,6 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        return new CustomerResource($user->loadCount('orders'));
+        return new CustomerResource($user->loadCount(['orders' => fn ($query) => $query->where('status', '!=', OrderStatus::Cancelled)]));
     }
 }

@@ -106,6 +106,40 @@ class OrderAdminTest extends TestCase
     }
 
     #[Test]
+    public function hide_cancelled_excludes_cancelled_orders_regardless_of_the_status_filter(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        Order::factory()->create(['status' => OrderStatus::Pending]);
+        Order::factory()->create(['status' => OrderStatus::Cancelled]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?hide_cancelled=1');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.status', 'pending');
+    }
+
+    /**
+     * The literal string "true" is what a GET query string actually
+     * carries (?hide_cancelled=true, from the frontend's boolean param) -
+     * distinct from "1", which Laravel's own 'boolean' validation rule
+     * would already accept and so wouldn't have caught a regression back
+     * to that stricter rule.
+     */
+    #[Test]
+    public function hide_cancelled_accepts_the_literal_string_true_from_a_query_param(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        Order::factory()->create(['status' => OrderStatus::Pending]);
+        Order::factory()->create(['status' => OrderStatus::Cancelled]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?hide_cancelled=true');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+    }
+
+    #[Test]
     public function orders_can_be_searched_by_order_number_or_customer_email(): void
     {
         $admin = User::factory()->administrator()->create();
@@ -182,7 +216,12 @@ class OrderAdminTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders/statistics');
 
         $response->assertOk();
-        $response->assertJsonPath('data.total_orders', 4);
+        // Cancelled excluded from total_orders (3, not 4) the same way it's
+        // excluded from revenue below - it was never a real sale. All four
+        // were created "today" by the factory default, so orders_today
+        // must exclude it too, for the same reason.
+        $response->assertJsonPath('data.total_orders', 3);
+        $response->assertJsonPath('data.orders_today', 3);
         $response->assertJsonPath('data.orders_by_status.pending', 1);
         $response->assertJsonPath('data.orders_by_status.cancelled', 1);
         // Cancelled excluded from revenue: 50 + 30, not +999.

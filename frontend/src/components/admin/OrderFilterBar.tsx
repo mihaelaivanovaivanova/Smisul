@@ -4,6 +4,7 @@ import type { AdminOrderFilters } from '../../api/admin/orders';
 export interface OrderFilters {
   search: string;
   status: string;
+  hideCancelled: boolean;
   dateFrom: string;
   dateTo: string;
   sort: AdminOrderFilters['sort'];
@@ -74,6 +75,20 @@ export default function OrderFilterBar({ filters, onChange }: OrderFilterBarProp
           <option value="total_desc">Total: high to low</option>
           <option value="total_asc">Total: low to high</option>
         </select>
+      </div>
+      <div className="col-sm-auto d-flex align-items-center">
+        <div className="form-check">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="hide-cancelled-orders"
+            checked={filters.hideCancelled}
+            onChange={(event) => set('hideCancelled', event.target.checked)}
+          />
+          <label className="form-check-label" htmlFor="hide-cancelled-orders">
+            Hide cancelled
+          </label>
+        </div>
       </div>
     </div>
   );

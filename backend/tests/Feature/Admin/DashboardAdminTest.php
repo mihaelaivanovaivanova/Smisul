@@ -81,4 +81,30 @@ class DashboardAdminTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('data.total_customers', 3);
     }
+
+    /**
+     * Internal/test accounts (see OrderService::TEST_CUSTOMER_EMAILS) place
+     * real orders for onboarding/staging real carrier requests - never
+     * actual customers, so they shouldn't skew what the dashboard reports
+     * as real business activity. Matched case-insensitively since the list
+     * itself is lowercase but real-world input rarely is.
+     */
+    #[Test]
+    public function test_customer_accounts_and_their_orders_are_excluded_from_every_summary_figure(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $testCustomer = User::factory()->create(['email' => 'Test@Gmail.com']);
+        Order::factory()->create(['status' => OrderStatus::Paid, 'grand_total' => 500, 'customer_email' => 'VLADOFILCHEV@GMAIL.COM']);
+        Order::factory()->forUser($testCustomer)->create(['status' => OrderStatus::Paid, 'grand_total' => 300, 'customer_email' => 'test@gmail.com']);
+        Order::factory()->create(['status' => OrderStatus::Paid, 'grand_total' => 50, 'customer_email' => 'real-customer@example.com']);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/dashboard');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.total_orders', 1);
+        $response->assertJsonPath('data.orders_today', 1);
+        $response->assertJsonPath('data.total_revenue', 50);
+        $response->assertJsonPath('data.revenue_today', 50);
+        $response->assertJsonPath('data.total_customers', 0);
+    }
 }

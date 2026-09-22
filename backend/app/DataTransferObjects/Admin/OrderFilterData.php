@@ -7,6 +7,7 @@ final readonly class OrderFilterData
     public function __construct(
         public ?string $search = null,
         public ?string $status = null,
+        public bool $hideCancelled = false,
         public ?string $dateFrom = null,
         public ?string $dateTo = null,
         public string $sort = 'newest',
@@ -23,6 +24,7 @@ final readonly class OrderFilterData
         return new self(
             search: $data['search'] ?? null,
             status: $data['status'] ?? null,
+            hideCancelled: filter_var($data['hide_cancelled'] ?? false, FILTER_VALIDATE_BOOLEAN),
             dateFrom: $data['date_from'] ?? null,
             dateTo: $data['date_to'] ?? null,
             sort: $data['sort'] ?? 'newest',

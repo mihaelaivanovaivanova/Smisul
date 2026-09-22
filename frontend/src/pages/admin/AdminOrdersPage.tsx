@@ -11,7 +11,7 @@ import OrderFilterBar from '../../components/admin/OrderFilterBar';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
 
-const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', dateFrom: '', dateTo: '', sort: 'newest' };
+const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
 
 export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
@@ -23,6 +23,7 @@ export default function AdminOrdersPage() {
         page,
         search: filters.search || undefined,
         status: filters.status || undefined,
+        hide_cancelled: filters.hideCancelled || undefined,
         date_from: filters.dateFrom || undefined,
         date_to: filters.dateTo || undefined,
         sort: filters.sort,

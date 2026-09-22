@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,6 +65,29 @@ class CustomerAdminTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('data.id', $customer->id);
         $response->assertJsonPath('data.orders_count', 2);
+    }
+
+    /**
+     * A cancelled order was never a real sale, so it shouldn't inflate how
+     * many orders a customer "has" - same reasoning as OrderService::
+     * statistics()'s total_orders excluding it. Covers both the list
+     * (CustomerService::list()) and detail (UserController::show()) count.
+     */
+    #[Test]
+    public function a_cancelled_order_does_not_count_toward_a_customers_order_count(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $customer = User::factory()->create();
+        Order::factory()->forUser($customer)->create(['status' => OrderStatus::Paid]);
+        Order::factory()->forUser($customer)->create(['status' => OrderStatus::Cancelled]);
+
+        $listResponse = $this->actingAs($admin)->getJson('/api/v1/admin/customers');
+        $listResponse->assertOk();
+        $listResponse->assertJsonFragment(['id' => $customer->id, 'orders_count' => 1]);
+
+        $detailResponse = $this->actingAs($admin)->getJson("/api/v1/admin/customers/{$customer->id}");
+        $detailResponse->assertOk();
+        $detailResponse->assertJsonPath('data.orders_count', 1);
     }
 
     #[Test]

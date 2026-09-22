@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchDashboardStats } from '../../api/admin/dashboard';
 import { fetchAdminOrders } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
+import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import EmptyState from '../../components/EmptyState';
@@ -11,8 +12,18 @@ import StatusBadge from '../../components/admin/StatusBadge';
 import OrderFilterBar from '../../components/admin/OrderFilterBar';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
+import type { DashboardStats } from '../../types/admin';
 
-const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', dateFrom: '', dateTo: '', sort: 'newest' };
+// The dashboard is commonly left open in a background tab - a one-time
+// fetch on mount (the useAsync default) would leave these figures looking
+// frozen ("total customers never updates") even as real activity happens
+// elsewhere, since nothing ever triggers a refetch without a full page
+// reload/navigation. Polled independently of useAsync so a background
+// refresh silently updates the numbers in place rather than replacing the
+// whole stat-card grid with a loading spinner every minute.
+const STATS_POLL_INTERVAL_MS = 60_000;
+
+const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
 
 interface StatCardProps {
   label: string;
@@ -33,7 +44,41 @@ function StatCard({ label, value }: StatCardProps) {
 }
 
 export default function DashboardPage() {
-  const { data: stats, isLoading: statsLoading, error: statsError } = useAsync(fetchDashboardStats, [], 'Could not load the dashboard.');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    function loadStats() {
+      fetchDashboardStats()
+        .then((result) => {
+          if (isMounted) {
+            setStats(result);
+            setStatsError(null);
+          }
+        })
+        .catch((err: unknown) => {
+          if (isMounted) {
+            setStatsError(getErrorMessage(err, 'Could not load the dashboard.'));
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setStatsLoading(false);
+          }
+        });
+    }
+
+    loadStats();
+    const interval = setInterval(loadStats, STATS_POLL_INTERVAL_MS);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const [ordersPage, setOrdersPage] = useState(1);
   const [orderFilters, setOrderFilters] = useState<OrderFilters>(DEFAULT_FILTERS);
@@ -48,6 +93,7 @@ export default function DashboardPage() {
         page: ordersPage,
         search: orderFilters.search || undefined,
         status: orderFilters.status || undefined,
+        hide_cancelled: orderFilters.hideCancelled || undefined,
         date_from: orderFilters.dateFrom || undefined,
         date_to: orderFilters.dateTo || undefined,
         sort: orderFilters.sort,
@@ -100,6 +146,8 @@ export default function DashboardPage() {
                     <th>Customer</th>
                     <th>Status</th>
                     <th>Placed</th>
+                    <th>Items</th>
+                    <th>Tracking #</th>
                     <th className="text-end">Total</th>
                     <th></th>
                   </tr>
@@ -113,6 +161,10 @@ export default function DashboardPage() {
                         <StatusBadge status={order.status} />
                       </td>
                       <td>{new Date(order.placed_at).toLocaleDateString('bg-BG')}</td>
+                      <td>
+                        {order.items.map((item) => `${item.product_name}${item.variant_name ? ` (${item.variant_name})` : ''} x${item.quantity}`).join(', ')}
+                      </td>
+                      <td>{order.shipment?.tracking_number ?? ''}</td>
                       <td className="text-end">{formatPrice(order.totals.grand_total)}</td>
                       <td className="text-end">
                         <Link to={`/admin/orders/${order.id}`}>View</Link>

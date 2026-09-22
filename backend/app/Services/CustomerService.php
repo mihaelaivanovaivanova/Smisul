@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\DataTransferObjects\Admin\CustomerFilterData;
+use App\Enums\OrderStatus;
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -18,7 +19,12 @@ class CustomerService
 {
     public function list(CustomerFilterData $filters): LengthAwarePaginator
     {
-        $query = User::query()->where('role', Role::Customer)->withCount('orders');
+        // A cancelled order was never a real sale, so it shouldn't inflate
+        // how many orders a customer "has" any more than it inflates the
+        // dashboard's own total_orders (see OrderService::statistics()).
+        $query = User::query()
+            ->where('role', Role::Customer)
+            ->withCount(['orders' => fn ($query) => $query->where('status', '!=', OrderStatus::Cancelled)]);
 
         if ($filters->search !== null && $filters->search !== '') {
             $term = "%{$filters->search}%";

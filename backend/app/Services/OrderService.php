@@ -396,6 +396,10 @@ class OrderService
             $query->where('status', $filters->status);
         }
 
+        if ($filters->hideCancelled) {
+            $query->where('status', '!=', OrderStatus::Cancelled);
+        }
+
         if ($filters->dateFrom !== null) {
             $query->whereDate('created_at', '>=', $filters->dateFrom);
         }
@@ -415,11 +419,36 @@ class OrderService
     }
 
     /**
+     * Internal/test accounts used to place real orders against production
+     * for onboarding, staging real carrier requests, etc. - never actual
+     * customers, so they'd otherwise skew "how many orders/how much
+     * revenue" toward numbers nobody could act on. Matched
+     * case-insensitively against customer_email (see excludingTestOrders())
+     * since email local-parts aren't reliably stored in one case.
+     *
+     * @var list<string>
+     */
+    public const TEST_CUSTOMER_EMAILS = [
+        'vladofilchev@gmail.com',
+        'admin@smisul.bg',
+        'test@gmail.com',
+    ];
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<Order>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Order>
+     */
+    private function excludingTestOrders($query)
+    {
+        return $query->whereNotIn(DB::raw('LOWER(customer_email)'), array_map('mb_strtolower', self::TEST_CUSTOMER_EMAILS));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function statistics(): array
     {
-        $ordersByStatus = Order::query()
+        $ordersByStatus = $this->excludingTestOrders(Order::query())
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');
@@ -435,13 +464,21 @@ class OrderService
         ];
 
         return [
-            'total_orders' => array_sum($ordersByStatus->all()),
+            // Excludes Cancelled - a cancelled order was never a real sale,
+            // so it shouldn't inflate "how many orders have we had" any
+            // more than it inflates total_revenue below (which already
+            // excluded it via $revenueStatuses). orders_by_status still
+            // reports its count on its own, individually, right below.
+            'total_orders' => array_sum($ordersByStatus->all()) - (int) ($ordersByStatus[OrderStatus::Cancelled->value] ?? 0),
             'orders_by_status' => collect(OrderStatus::cases())
                 ->mapWithKeys(fn (OrderStatus $status) => [$status->value => (int) ($ordersByStatus[$status->value] ?? 0)])
                 ->all(),
-            'total_revenue' => (float) Order::query()->whereIn('status', $revenueStatuses)->sum('grand_total'),
-            'orders_today' => Order::query()->whereDate('created_at', now()->toDateString())->count(),
-            'revenue_today' => (float) Order::query()
+            'total_revenue' => (float) $this->excludingTestOrders(Order::query())->whereIn('status', $revenueStatuses)->sum('grand_total'),
+            'orders_today' => $this->excludingTestOrders(Order::query())
+                ->whereDate('created_at', now()->toDateString())
+                ->where('status', '!=', OrderStatus::Cancelled)
+                ->count(),
+            'revenue_today' => (float) $this->excludingTestOrders(Order::query())
                 ->whereIn('status', $revenueStatuses)
                 ->whereDate('created_at', now()->toDateString())
                 ->sum('grand_total'),

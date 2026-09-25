@@ -6,7 +6,7 @@ import {
   getActivePromotion,
   getDefaultVariant,
   getDownloads,
-  getGalleryImagesForVariant,
+  getGalleryMediaForVariant,
   getVariantPrice,
   sortVariantsByPackSize,
 } from '../services/productCatalog';
@@ -35,6 +35,16 @@ interface ReviewPromptState {
 
 export default function ProductPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+
+  // The Juun.bg-structured redesign (see the approved plan) is still being
+  // reviewed — /products/miswak stays on the plain layout below (same as
+  // every other product) so it isn't exposed through the cart item row,
+  // order confirmation, favorites, etc. while it's unfinished. Preview it
+  // at /preview/miswak (see App.tsx) instead, which nothing links to.
+  return <ProductPageDefault slug={slug} />;
+}
+
+function ProductPageDefault({ slug }: { slug: string }) {
   const location = useLocation();
   const { funnelModeEnabled, funnelPackages } = useSettings();
   const { product, isLoading, error } = useProduct(slug);
@@ -43,7 +53,7 @@ export default function ProductPage() {
 
   /**
    * Switching pack size swaps the gallery to that variant's own photo
-   * (see getGalleryImagesForVariant/ProductGallery's key remount) — without
+   * (see getGalleryMediaForVariant/ProductGallery's key remount) — without
    * this, the very first time a given pack size is picked, the browser has
    * never fetched that photo before and shows a blank gallery until it
    * loads. Every variant photo is small (one JPEG each), so preloading the
@@ -89,7 +99,7 @@ export default function ProductPage() {
   const activeVariant = selectedVariant ?? getDefaultVariant(product) ?? variants[0];
   const price = activeVariant ? getVariantPrice(activeVariant) : undefined;
   const promotion = getActivePromotion(product);
-  const images = getGalleryImagesForVariant(product, activeVariant);
+  const images = getGalleryMediaForVariant(product, activeVariant);
   const downloads = getDownloads(product);
   // The funnel landing page's per-pack marketing copy (badge/tagline/
   // discount/per-unit price) — shown once for the active pack size via

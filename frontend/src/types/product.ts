@@ -23,6 +23,9 @@ export interface Media {
   alt_text: string | null;
   is_primary: boolean;
   sort_order: number;
+  /** Fraction (0-1) of the photo's own width/height to keep centered when it's displayed cropped to fit — see ProductGallery.tsx. */
+  focus_x: number;
+  focus_y: number;
 }
 
 /** A slim product reference nested under a variant — present only when the backend eager-loads it (e.g. cart responses). */
@@ -43,7 +46,7 @@ export interface ProductVariant {
   prices: Price[];
   inventory: Inventory | null;
   product?: ProductSummary;
-  /** Present (possibly empty) only where the backend eager-loads it — currently just the product detail endpoint. Empty/absent means "no pack-size-specific photo", not "no photo at all" — see getGalleryImagesForVariant(). */
+  /** Present (possibly empty) only where the backend eager-loads it — currently just the product detail endpoint. Empty/absent means "no pack-size-specific photo", not "no photo at all" — see getGalleryMediaForVariant(). */
   media?: Media[];
 }
 

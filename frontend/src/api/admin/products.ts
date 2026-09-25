@@ -56,3 +56,20 @@ export async function makeProductMediaPrimary(productId: number, mediaId: number
 export async function deleteProductMedia(productId: number, mediaId: number): Promise<void> {
   await apiClient.delete(`/admin/products/${productId}/media/${mediaId}`);
 }
+
+/** @param orderedIds Media ids in the desired display order. */
+export async function reorderProductMedia(productId: number, orderedIds: number[]): Promise<Media[]> {
+  const { data } = await apiClient.patch<{ data: Media[] }>(`/admin/products/${productId}/media/reorder`, {
+    media_ids: orderedIds,
+  });
+  return data.data;
+}
+
+/** @param focusX @param focusY Fraction (0-1) of the photo's own width/height to keep centered when it's cropped to fit — see ProductGallery.tsx's objectPosition usage. */
+export async function updateProductMediaFocus(productId: number, mediaId: number, focusX: number, focusY: number): Promise<Media> {
+  const { data } = await apiClient.patch<{ data: Media }>(`/admin/products/${productId}/media/${mediaId}/focus`, {
+    focus_x: focusX,
+    focus_y: focusY,
+  });
+  return data.data;
+}

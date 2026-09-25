@@ -23,6 +23,8 @@ class MediaResource extends JsonResource
             'alt_text' => $this->alt_text,
             'is_primary' => $this->is_primary,
             'sort_order' => $this->sort_order,
+            'focus_x' => $this->focus_x,
+            'focus_y' => $this->focus_y,
         ];
     }
 }

@@ -1,7 +1,16 @@
 import { useRef, useState } from 'react';
-import { deleteProductMedia, fetchAdminProduct, makeProductMediaPrimary, uploadProductMedia } from '../../api/admin/products';
+import type { DragEvent } from 'react';
+import {
+  deleteProductMedia,
+  fetchAdminProduct,
+  makeProductMediaPrimary,
+  reorderProductMedia,
+  updateProductMediaFocus,
+  uploadProductMedia,
+} from '../../api/admin/products';
 import { getErrorMessage } from '../../api/errors';
 import ConfirmModal from './ConfirmModal';
+import MediaFocusPointModal from './MediaFocusPointModal';
 import type { Media } from '../../types/product';
 
 function isImage(mimeType: string | null): boolean {
@@ -30,11 +39,44 @@ export default function ProductMediaManager({ productId, media, onChange }: Prod
   const [pendingActionId, setPendingActionId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<Media | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [settingFocusFor, setSettingFocusFor] = useState<Media | null>(null);
+  const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function refresh() {
     const product = await fetchAdminProduct(productId);
     onChange(product.media);
+  }
+
+  function handleDrop(targetId: number, event: DragEvent<HTMLDivElement>) {
+    setDragOverId(null);
+    // Reading the dragged id back from dataTransfer (set in onDragStart)
+    // rather than trusting draggedId state alone — some browsers/automation
+    // can drop without the drag's own dragover/dragenter having landed on
+    // this exact element first, which would otherwise leave state stale.
+    const sourceId = Number(event.dataTransfer.getData('text/plain')) || draggedId;
+    if (sourceId === null || sourceId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+
+    const reordered = [...media];
+    const fromIndex = reordered.findIndex((item) => item.id === sourceId);
+    const toIndex = reordered.findIndex((item) => item.id === targetId);
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+
+    setDraggedId(null);
+    onChange(reordered); // optimistic — reflects the new order immediately
+    void reorderProductMedia(productId, reordered.map((item) => item.id)).then(refresh);
+  }
+
+  async function handleSaveFocus(focusX: number, focusY: number) {
+    if (!settingFocusFor) return;
+    await updateProductMediaFocus(productId, settingFocusFor.id, focusX, focusY);
+    setSettingFocusFor(null);
+    await refresh();
   }
 
   async function handleFilesSelected(files: FileList) {
@@ -83,11 +125,47 @@ export default function ProductMediaManager({ productId, media, onChange }: Prod
       {media.length > 0 && (
         <div className="row g-2 mb-3">
           {media.map((item) => (
-            <div className="col-4 col-sm-3" key={item.id}>
+            <div
+              className="col-4 col-sm-3"
+              key={item.id}
+              draggable
+              onDragStart={(event) => {
+                // Setting real drag data (rather than relying only on React
+                // state) is what makes some browsers/automation treat this
+                // as a genuine drag operation instead of a no-op.
+                event.dataTransfer.setData('text/plain', String(item.id));
+                event.dataTransfer.effectAllowed = 'move';
+                setDraggedId(item.id);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault(); // required for onDrop to fire
+                event.dataTransfer.dropEffect = 'move';
+                if (dragOverId !== item.id) setDragOverId(item.id);
+              }}
+              onDragLeave={() => setDragOverId((current) => (current === item.id ? null : current))}
+              onDrop={(event) => {
+                event.preventDefault();
+                handleDrop(item.id, event);
+              }}
+              onDragEnd={() => {
+                setDraggedId(null);
+                setDragOverId(null);
+              }}
+              style={{
+                cursor: 'grab',
+                opacity: draggedId === item.id ? 0.4 : 1,
+                outline: dragOverId === item.id && draggedId !== item.id ? '2px dashed var(--bs-primary)' : undefined,
+              }}
+            >
               <div className="card h-100">
                 <div className="ratio ratio-1x1 bg-body-tertiary">
                   {isImage(item.mime_type) ? (
-                    <img src={item.url} alt={item.alt_text ?? ''} className="object-fit-cover" />
+                    <img
+                      src={item.url}
+                      alt={item.alt_text ?? ''}
+                      className="object-fit-cover"
+                      style={{ objectPosition: `${item.focus_x * 100}% ${item.focus_y * 100}%` }}
+                    />
                   ) : isVideo(item.mime_type) ? (
                     <video src={item.url} className="object-fit-cover" muted />
                   ) : (
@@ -105,6 +183,11 @@ export default function ProductMediaManager({ productId, media, onChange }: Prod
                       onClick={() => void handleMakePrimary(item)}
                     >
                       Set as main
+                    </button>
+                  )}
+                  {isImage(item.mime_type) && (
+                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setSettingFocusFor(item)}>
+                      Set focus point
                     </button>
                   )}
                   <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => setDeleting(item)}>
@@ -139,7 +222,15 @@ export default function ProductMediaManager({ productId, media, onChange }: Prod
         {isUploading && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
         Upload photos or videos
       </button>
-      <div className="form-text">The first photo you mark as main is shown on the storefront; the rest appear as a gallery.</div>
+      <div className="form-text">
+        Drag a tile to reorder it. The photo marked "Main photo" is shown first on the storefront.
+      </div>
+
+      <MediaFocusPointModal
+        media={settingFocusFor}
+        onSave={(x, y) => handleSaveFocus(x, y)}
+        onClose={() => setSettingFocusFor(null)}
+      />
 
       <ConfirmModal
         show={deleting !== null}

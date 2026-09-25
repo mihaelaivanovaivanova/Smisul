@@ -40,6 +40,7 @@ export type IconName =
   | 'plane'
   | 'chevron-left'
   | 'chevron-right'
+  | 'play'
   | 'cash'
   | 'visa'
   | 'mastercard'
@@ -112,6 +113,8 @@ const PATHS: Record<IconName, string> = {
   // Carousel prev/next controls (FunnelTestimonialsSection).
   'chevron-left': 'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12Z',
   'chevron-right': 'M8.59 16.59 10 18l6-6-6-6-1.41 1.41L13.17 12Z',
+  // Play triangle — marks a video thumbnail in ProductGallery.
+  play: 'M8 5v14l11-7Z',
   // Banknote for "Наложен платеж" (cash on delivery) — same hole technique
   // as `card`'s signature line: the coin circle is wound counterclockwise
   // (sweep-flag 0) against the clockwise outer rect, so the nonzero fill

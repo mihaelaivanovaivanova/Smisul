@@ -1,11 +1,21 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { fetchAdminProduct } from '../../api/admin/products';
-import { createVariant, deleteVariant, updateVariant, updateVariantInventory, updateVariantPrice } from '../../api/admin/variants';
+import {
+  createVariant,
+  deleteVariant,
+  deleteVariantPhoto,
+  updateVariant,
+  updateVariantInventory,
+  updateVariantPrice,
+  updateVariantPhotoFocus,
+  uploadVariantPhoto,
+} from '../../api/admin/variants';
 import { getErrorMessage, getValidationErrors } from '../../api/errors';
 import { formatPrice } from '../../services/productCatalog';
 import ConfirmModal from './ConfirmModal';
 import FieldError from '../FieldError';
-import type { ProductVariant } from '../../types/product';
+import MediaFocusPointModal from './MediaFocusPointModal';
+import type { Media, ProductVariant } from '../../types/product';
 
 interface VariantManagerProps {
   productId: number;
@@ -41,10 +51,49 @@ export default function VariantManager({ productId, variants, onChange }: Varian
 
   const [deleting, setDeleting] = useState<ProductVariant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [photoActionId, setPhotoActionId] = useState<number | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const photoTargetRef = useRef<number | null>(null);
+  const [settingFocusFor, setSettingFocusFor] = useState<{ variantId: number; media: Media } | null>(null);
 
   async function refresh() {
     const product = await fetchAdminProduct(productId);
     onChange(product.variants);
+  }
+
+  function openPhotoPicker(variantId: number) {
+    photoTargetRef.current = variantId;
+    photoInputRef.current?.click();
+  }
+
+  async function handlePhotoSelected(file: File) {
+    const variantId = photoTargetRef.current;
+    if (!variantId) return;
+
+    setPhotoActionId(variantId);
+    try {
+      await uploadVariantPhoto(productId, variantId, file);
+      await refresh();
+    } finally {
+      setPhotoActionId(null);
+    }
+  }
+
+  async function handleClearPhoto(variantId: number) {
+    setPhotoActionId(variantId);
+    try {
+      await deleteVariantPhoto(productId, variantId);
+      await refresh();
+    } finally {
+      setPhotoActionId(null);
+    }
+  }
+
+  async function handleSaveFocus(focusX: number, focusY: number) {
+    if (!settingFocusFor) return;
+    await updateVariantPhotoFocus(productId, settingFocusFor.variantId, settingFocusFor.media.id, focusX, focusY);
+    setSettingFocusFor(null);
+    await refresh();
   }
 
   function openCreateForm() {
@@ -120,6 +169,20 @@ export default function VariantManager({ productId, variants, onChange }: Varian
     <div>
       <label className="form-label d-block">Variants (pack sizes)</label>
 
+      <input
+        type="file"
+        accept="image/*"
+        className="d-none"
+        ref={photoInputRef}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            void handlePhotoSelected(file);
+          }
+          event.target.value = '';
+        }}
+      />
+
       {variants.length > 0 && (
         <div className="table-responsive mb-2">
           <table className="table table-sm align-middle">
@@ -130,12 +193,15 @@ export default function VariantManager({ productId, variants, onChange }: Varian
                 <th>Pack size</th>
                 <th>Price</th>
                 <th>Stock</th>
+                <th>Photo</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {variants.map((variant) => {
                 const price = variant.prices.find((candidate) => candidate.currency === 'EUR');
+                const photo = variant.media?.[0];
+                const isBusy = photoActionId === variant.id;
 
                 return (
                   <tr key={variant.id}>
@@ -144,6 +210,52 @@ export default function VariantManager({ productId, variants, onChange }: Varian
                     <td>{variant.pack_size}</td>
                     <td>{price ? formatPrice(price.amount, price.currency) : '—'}</td>
                     <td>{variant.inventory?.available_quantity ?? '—'}</td>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        {photo ? (
+                          <img
+                            src={photo.url}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className="rounded object-fit-cover"
+                            style={{ objectPosition: `${photo.focus_x * 100}% ${photo.focus_y * 100}%` }}
+                          />
+                        ) : (
+                          <span className="text-muted small">— (uses product gallery)</span>
+                        )}
+                        <div className="btn-group btn-group-sm">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            disabled={isBusy}
+                            onClick={() => openPhotoPicker(variant.id)}
+                          >
+                            {isBusy ? '…' : photo ? 'Replace' : 'Upload'}
+                          </button>
+                          {photo && (
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary"
+                              disabled={isBusy}
+                              onClick={() => setSettingFocusFor({ variantId: variant.id, media: photo })}
+                            >
+                              Set focus point
+                            </button>
+                          )}
+                          {photo && (
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger"
+                              disabled={isBusy}
+                              onClick={() => void handleClearPhoto(variant.id)}
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
                         <button type="button" className="btn btn-outline-secondary" onClick={() => openEditForm(variant)}>
@@ -272,6 +384,12 @@ export default function VariantManager({ productId, variants, onChange }: Varian
           </div>
         </div>
       )}
+
+      <MediaFocusPointModal
+        media={settingFocusFor?.media ?? null}
+        onSave={(x, y) => handleSaveFocus(x, y)}
+        onClose={() => setSettingFocusFor(null)}
+      />
 
       <ConfirmModal
         show={deleting !== null}

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Product\ReorderMediaRequest;
 use App\Http\Requests\Product\StoreProductMediaRequest;
+use App\Http\Requests\Product\UpdateMediaFocusRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\Media;
 use App\Models\Product;
@@ -44,6 +46,20 @@ class ProductMediaController extends Controller
         $this->assertBelongsToProduct($product, $media);
 
         return new MediaResource($this->mediaService->makePrimary($media));
+    }
+
+    public function reorder(ReorderMediaRequest $request, Product $product): JsonResponse
+    {
+        $this->mediaService->reorder($product, $request->validated('media_ids'));
+
+        return response()->json(['data' => MediaResource::collection($product->media()->orderBy('sort_order')->get())]);
+    }
+
+    public function updateFocus(UpdateMediaFocusRequest $request, Product $product, Media $media): MediaResource
+    {
+        $this->assertBelongsToProduct($product, $media);
+
+        return new MediaResource($this->mediaService->updateFocus($media, $request->validated('focus_x'), $request->validated('focus_y')));
     }
 
     private function assertBelongsToProduct(Product $product, Media $media): void

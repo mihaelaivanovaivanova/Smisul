@@ -26,6 +26,8 @@ class Media extends Model
         'alt_text',
         'sort_order',
         'is_primary',
+        'focus_x',
+        'focus_y',
     ];
 
     protected function casts(): array
@@ -34,6 +36,8 @@ class Media extends Model
             'size' => 'integer',
             'sort_order' => 'integer',
             'is_primary' => 'boolean',
+            'focus_x' => 'float',
+            'focus_y' => 'float',
         ];
     }
 

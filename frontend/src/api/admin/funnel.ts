@@ -1,13 +1,5 @@
 import { apiClient } from '../client';
-import type {
-  FunnelAdminPayload,
-  FunnelContent,
-  FunnelPackage,
-  FunnelSection,
-  FunnelVariantAdminPayload,
-  FunnelVariantInput,
-  FunnelVariantSummary,
-} from '../../types/funnel';
+import type { FunnelAdminPayload, FunnelContent, FunnelPackage, FunnelSection } from '../../types/funnel';
 
 export async function fetchAdminFunnel(): Promise<FunnelAdminPayload> {
   const { data } = await apiClient.get<{ data: FunnelAdminPayload }>('/admin/funnel');
@@ -32,61 +24,6 @@ export async function updateFunnelContentSection<K extends FunnelSection>(
   payload: FunnelContent[K],
 ): Promise<FunnelContent[K]> {
   const { data } = await apiClient.put<{ data: FunnelContent[K] }>(`/admin/funnel/content/${section}`, payload);
-  return data.data;
-}
-
-/** Additional ad-angle landing pages layered on top of the base funnel above (see FunnelVariant on the backend). */
-export async function fetchFunnelVariants(): Promise<FunnelVariantSummary[]> {
-  const { data } = await apiClient.get<{ data: FunnelVariantSummary[] }>('/admin/funnel/variants');
-  return data.data;
-}
-
-export async function fetchFunnelVariant(slug: string): Promise<FunnelVariantAdminPayload> {
-  const { data } = await apiClient.get<{ data: FunnelVariantAdminPayload }>(`/admin/funnel/variants/${slug}`);
-  return data.data;
-}
-
-/** slug is immutable once created — see the backend's FunnelVariantStoreRequest doc comment. */
-export async function createFunnelVariant(
-  slug: string,
-  payload: FunnelVariantInput,
-): Promise<FunnelVariantAdminPayload> {
-  const { data } = await apiClient.post<{ data: FunnelVariantAdminPayload }>('/admin/funnel/variants', {
-    slug,
-    ...payload,
-  });
-  return data.data;
-}
-
-export async function updateFunnelVariant(slug: string, payload: FunnelVariantInput): Promise<FunnelVariantAdminPayload> {
-  const { data } = await apiClient.patch<{ data: FunnelVariantAdminPayload }>(`/admin/funnel/variants/${slug}`, payload);
-  return data.data;
-}
-
-export async function deleteFunnelVariant(slug: string): Promise<void> {
-  await apiClient.delete(`/admin/funnel/variants/${slug}`);
-}
-
-export async function updateFunnelVariantContentSection<K extends FunnelSection>(
-  variantSlug: string,
-  section: K,
-  payload: FunnelContent[K],
-): Promise<FunnelContent[K]> {
-  const { data } = await apiClient.put<{ data: FunnelContent[K] }>(
-    `/admin/funnel/variants/${variantSlug}/content/${section}`,
-    payload,
-  );
-  return data.data;
-}
-
-/** Removes the variant's override for one section so it falls back to the base funnel's content again. */
-export async function resetFunnelVariantContentSection(
-  variantSlug: string,
-  section: FunnelSection,
-): Promise<FunnelVariantAdminPayload> {
-  const { data } = await apiClient.delete<{ data: FunnelVariantAdminPayload }>(
-    `/admin/funnel/variants/${variantSlug}/content/${section}`,
-  );
   return data.data;
 }
 

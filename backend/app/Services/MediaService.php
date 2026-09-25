@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DataTransferObjects\Admin\MediaFilterData;
 use App\Models\Contracts\IsMediable;
 use App\Models\Media;
+use App\Models\ProductVariant;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -114,6 +115,50 @@ class MediaService
         });
 
         return $media->fresh();
+    }
+
+    /**
+     * Reorders every media row belonging to one mediable to match
+     * $orderedIds' position — ids that don't belong to this mediable are
+     * silently ignored rather than erroring, so a stale client-side list
+     * (e.g. a photo deleted by someone else moments earlier) can't corrupt
+     * other rows' ordering.
+     *
+     * @param  list<int>  $orderedIds
+     */
+    public function reorder(Model&IsMediable $mediable, array $orderedIds): void
+    {
+        $ownIds = $mediable->media()->pluck('id')->all();
+
+        Media::query()->getConnection()->transaction(function () use ($orderedIds, $ownIds) {
+            foreach (array_values(array_intersect($orderedIds, $ownIds)) as $position => $id) {
+                Media::query()->where('id', $id)->update(['sort_order' => $position]);
+            }
+        });
+    }
+
+    public function updateFocus(Media $media, float $x, float $y): Media
+    {
+        $media->update(['focus_x' => $x, 'focus_y' => $y]);
+
+        return $media->fresh();
+    }
+
+    /**
+     * The pack-size-specific photo shown when this variant is selected
+     * (see ProductPage.tsx's getGalleryImagesForVariant) — one photo per
+     * variant, no gallery, same convention FunnelSeeder::seedVariantImage()
+     * already seeds by hand. Replaces the existing photo in place if the
+     * variant already has one, so its Media id (and any focus point set on
+     * it) survives a re-upload; otherwise attaches a new primary photo.
+     */
+    public function attachOrReplaceVariantPhoto(ProductVariant $variant, UploadedFile $file, ?string $altText = null): Media
+    {
+        $existing = $variant->media()->first();
+
+        return $existing !== null
+            ? $this->replace($existing, $file, $altText)
+            : $this->attach($variant, $file, altText: $altText, isPrimary: true);
     }
 
     private function directoryFor(Model&IsMediable $mediable): string

@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage';
 import FunnelLandingPage from './pages/FunnelLandingPage';
 import { useSettings } from './hooks/useSettings';
 import ProductPage from './pages/ProductPage';
+import MiswakLandingPage from './pages/MiswakLandingPage';
 import CategoryPage from './pages/CategoryPage';
 import SearchPage from './pages/SearchPage';
 import CartPage from './pages/CartPage';
@@ -51,9 +52,20 @@ function ScrollToTop() {
   useLayoutEffect(() => {
     // Hash links intentionally manage their own target position (for
     // example the FAQ links on the funnel landing page).
-    if (!hash) {
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (hash) {
+      return;
     }
+    // On mobile, navigating away mid-fling (e.g. tapping "Add to cart" right
+    // after a scroll gesture) can leave the browser's momentum scroll still
+    // settling: it keeps applying after this scrollTo, landing the new page
+    // scrolled down near the footer instead of at the top. A follow-up
+    // scrollTo on the next frame re-asserts the top once that momentum has
+    // been overridden once already, which is enough to win the race.
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [pathname, search, hash]);
 
   return null;
@@ -69,19 +81,12 @@ export default function App() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={funnelModeEnabled ? <FunnelLandingPage /> : <HomePage />} />
         <Route path="/products/:slug" element={<ProductPage />} />
+        {/* Unlisted review link for the in-progress Juun.bg-structured
+            redesign — nothing on the site links here, so it stays out of
+            the cart/order-confirmation/favorites flows that point at
+            /products/miswak until the redesign is ready to launch there. */}
+        <Route path="/preview/miswak" element={<MiswakLandingPage />} />
         <Route path="/categories/:slug" element={<CategoryPage />} />
-        {/* Ad-angle landing pages (e.g. "/miswak/whitening") — same page
-            component as "/", scoped to one commercial's angle via the
-            second URL segment. The first segment is the product's own
-            slug so a future second product line gets its own prefix for
-            free (see FunnelLandingPage's variant handling). Registered
-            unconditionally (not gated on funnelModeEnabled, unlike "/"'s
-            ternary above) — funnelModeEnabled starts false until the
-            settings fetch resolves, so gating the route itself would 404
-            every direct navigation/refresh for the instant before that
-            fetch completes. FunnelLandingPage handles the loading/disabled
-            states internally instead (see useFunnelLandingData). */}
-        <Route path="/:productSlug/:variantSlug" element={<FunnelLandingPage />} />
         <Route element={<FunnelSearchGuard />}>
           <Route path="/search" element={<SearchPage />} />
         </Route>

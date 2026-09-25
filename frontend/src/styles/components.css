@@ -464,6 +464,24 @@
   border-width: 2px !important;
 }
 
+/* Marks a video thumbnail so it reads as playable, not a static photo. */
+.gallery__thumb-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.gallery__thumb-play svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
 .gallery__placeholder {
   border: 1px dashed var(--color-border);
   color: var(--color-muted);

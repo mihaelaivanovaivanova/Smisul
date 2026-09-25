@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVariantController;
+use App\Http\Controllers\Api\V1\Admin\ProductVariantMediaController as AdminProductVariantMediaController;
 use App\Http\Controllers\Api\V1\Admin\PromotionController as AdminPromotionController;
 use App\Http\Controllers\Api\V1\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
@@ -150,10 +151,8 @@ Route::prefix('v1')->group(function () {
 
     // Funnel mode: public, unauthenticated — the storefront reads this at
     // boot to decide whether to render the normal homepage or the funnel
-    // landing page (see FunnelService). The optional {variant} is an
-    // ad-angle slug (e.g. "whitening") served at /{product-slug}/{variant}
-    // instead of "/" — an unknown/inactive slug 404s.
-    Route::get('/funnel/{variant?}', [FunnelController::class, 'show'])->name('funnel.show');
+    // landing page (see FunnelService).
+    Route::get('/funnel', [FunnelController::class, 'show'])->name('funnel.show');
 
     // Funnel lead capture (the landing page's email opt-in block) — no
     // auth, throttled like the contact form.
@@ -271,10 +270,27 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/products/{product}/media', [AdminProductMediaController::class, 'store'])
             ->name('products.media.store');
+        // Declared before the {media} wildcard routes below purely as a
+        // defensive convention (see AdminFunnelLeadController's /export
+        // note elsewhere in this file) — not actually ambiguous here since
+        // every {media} route below uses a different HTTP method.
+        Route::patch('/products/{product}/media/reorder', [AdminProductMediaController::class, 'reorder'])
+            ->name('products.media.reorder');
         Route::patch('/products/{product}/media/{media}/primary', [AdminProductMediaController::class, 'makePrimary'])
             ->name('products.media.primary');
+        Route::patch('/products/{product}/media/{media}/focus', [AdminProductMediaController::class, 'updateFocus'])
+            ->name('products.media.focus');
         Route::delete('/products/{product}/media/{media}', [AdminProductMediaController::class, 'destroy'])
             ->name('products.media.destroy');
+
+        // The pack-size-specific "view photo" shown when this variant is
+        // selected (see ProductVariantMediaController's doc comment).
+        Route::post('/products/{product}/variants/{variant}/media', [AdminProductVariantMediaController::class, 'store'])
+            ->name('products.variants.media.store');
+        Route::patch('/products/{product}/variants/{variant}/media/{media}/focus', [AdminProductVariantMediaController::class, 'updateFocus'])
+            ->name('products.variants.media.focus');
+        Route::delete('/products/{product}/variants/{variant}/media', [AdminProductVariantMediaController::class, 'destroy'])
+            ->name('products.variants.media.destroy');
 
         Route::apiResource('categories', AdminCategoryController::class);
 
@@ -343,21 +359,6 @@ Route::prefix('v1')->group(function () {
             ->name('funnel.content.update');
         Route::post('/funnel/faq-attachment', [AdminFunnelController::class, 'uploadFaqAttachment'])
             ->name('funnel.faq-attachment.upload');
-
-        // Funnel variants: additional ad-angle landing pages layered on top
-        // of the base funnel above (see FunnelVariant). Bound by slug, not
-        // id, since the admin UI and every log entry deal in slugs.
-        Route::get('/funnel/variants', [AdminFunnelController::class, 'variants'])->name('funnel.variants.index');
-        Route::post('/funnel/variants', [AdminFunnelController::class, 'storeVariant'])->name('funnel.variants.store');
-        Route::get('/funnel/variants/{variant:slug}', [AdminFunnelController::class, 'showVariant'])->name('funnel.variants.show');
-        Route::patch('/funnel/variants/{variant:slug}', [AdminFunnelController::class, 'updateVariant'])->name('funnel.variants.update');
-        Route::delete('/funnel/variants/{variant:slug}', [AdminFunnelController::class, 'destroyVariant'])->name('funnel.variants.destroy');
-        Route::put('/funnel/variants/{variant:slug}/content/{section}', [AdminFunnelController::class, 'updateVariantContent'])
-            ->where('section', implode('|', FunnelContentService::FUNNEL_SECTIONS))
-            ->name('funnel.variants.content.update');
-        Route::delete('/funnel/variants/{variant:slug}/content/{section}', [AdminFunnelController::class, 'resetVariantContent'])
-            ->where('section', implode('|', FunnelContentService::FUNNEL_SECTIONS))
-            ->name('funnel.variants.content.reset');
 
         // Leads captured by the funnel landing page's email opt-in.
         // /export is declared before /{lead} so it isn't swallowed by the

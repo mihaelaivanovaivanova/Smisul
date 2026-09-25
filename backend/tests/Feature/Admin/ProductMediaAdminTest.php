@@ -146,4 +146,71 @@ class ProductMediaAdminTest extends TestCase
         $this->actingAs($admin)->deleteJson("/api/v1/admin/products/{$product->id}/media/{$categoryMedia->id}")
             ->assertNotFound();
     }
+
+    #[Test]
+    public function an_administrator_can_reorder_product_media(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $first = Media::factory()->create(['mediable_type' => Product::class, 'mediable_id' => $product->id, 'sort_order' => 0]);
+        $second = Media::factory()->create(['mediable_type' => Product::class, 'mediable_id' => $product->id, 'sort_order' => 1]);
+
+        $this->actingAs($admin)->patchJson("/api/v1/admin/products/{$product->id}/media/reorder", [
+            'media_ids' => [$second->id, $first->id],
+        ])->assertOk();
+
+        $this->assertSame(0, $second->fresh()->sort_order);
+        $this->assertSame(1, $first->fresh()->sort_order);
+    }
+
+    #[Test]
+    public function reordering_ignores_ids_that_do_not_belong_to_the_product(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $otherProduct = Product::factory()->create();
+        $own = Media::factory()->create(['mediable_type' => Product::class, 'mediable_id' => $product->id, 'sort_order' => 5]);
+        $foreign = Media::factory()->create(['mediable_type' => Product::class, 'mediable_id' => $otherProduct->id, 'sort_order' => 5]);
+
+        $this->actingAs($admin)->patchJson("/api/v1/admin/products/{$product->id}/media/reorder", [
+            'media_ids' => [$own->id, $foreign->id],
+        ])->assertOk();
+
+        $this->assertSame(0, $own->fresh()->sort_order);
+        $this->assertSame(5, $foreign->fresh()->sort_order);
+    }
+
+    #[Test]
+    public function an_administrator_can_set_a_focus_point_on_a_photo(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $media = Media::factory()->create(['mediable_type' => Product::class, 'mediable_id' => $product->id]);
+
+        $response = $this->actingAs($admin)->patchJson("/api/v1/admin/products/{$product->id}/media/{$media->id}/focus", [
+            'focus_x' => 0.25,
+            'focus_y' => 0.75,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.focus_x', 0.25);
+        $response->assertJsonPath('data.focus_y', 0.75);
+    }
+
+    #[Test]
+    public function focus_point_must_be_within_zero_and_one(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrator()->create();
+        $product = Product::factory()->create();
+        $media = Media::factory()->create(['mediable_type' => Product::class, 'mediable_id' => $product->id]);
+
+        $this->actingAs($admin)->patchJson("/api/v1/admin/products/{$product->id}/media/{$media->id}/focus", [
+            'focus_x' => 1.5,
+            'focus_y' => 0.5,
+        ])->assertUnprocessable();
+    }
 }

@@ -24,11 +24,9 @@ const packageImages: Record<number, string> = {
 interface PackageOffersProps {
   offers: PackageOffer[];
   showImages?: boolean;
-  /** The ad-angle this page rendered — tags the AddToCart event so Ads/GA4 reporting can compare angles (see trackFunnelAddToCart). */
-  variantSlug?: string;
 }
 
-export default function PackageOffers({ offers, showImages = false, variantSlug }: PackageOffersProps) {
+export default function PackageOffers({ offers, showImages = false }: PackageOffersProps) {
   const navigate = useNavigate();
   const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
 
@@ -117,7 +115,7 @@ export default function PackageOffers({ offers, showImages = false, variantSlug 
                   // parked on the landing page — the storefront's product
                   // pages keep the stay-on-page behavior.
                   onAdded={() => {
-                    trackFunnelAddToCart(price.amount, price.currency, variantSlug);
+                    trackFunnelAddToCart(price.amount, price.currency);
                     navigate('/cart');
                   }}
                 />

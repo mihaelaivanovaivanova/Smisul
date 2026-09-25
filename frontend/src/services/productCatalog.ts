@@ -77,15 +77,53 @@ export function getGalleryImages(product: Product): Media[] {
 }
 
 /**
- * The gallery to show for a specific selected pack size: that variant's own
- * photo(s) if it has any (e.g. a real packaging shot per pack count — see
- * FunnelSeeder's per-variant seedVariantImage calls), otherwise the
- * product's own gallery as a fallback for pack sizes without a dedicated
- * photo yet.
+ * Image OR video media from a raw media array (excludes PDFs and other
+ * attachments), primary item first — same rules as imagesFromMedia, just
+ * not narrowed to images only. Backs ProductGallery, which knows how to
+ * render either kind; single-image consumers (getPrimaryImage, OG/meta
+ * tags, etc.) deliberately keep using the images-only getGalleryImages
+ * instead, since those need something an <img>/<meta> tag can use.
  */
-export function getGalleryImagesForVariant(product: Product, variant: ProductVariant | null | undefined): Media[] {
+function galleryMediaFromMedia(media: Media[]): Media[] {
+  const items = sortMedia(
+    media.filter((item) => (item.mime_type?.startsWith('image/') || item.mime_type?.startsWith('video/')) ?? true),
+  );
+  const primaryIndex = items.findIndex((item) => item.is_primary);
+
+  if (primaryIndex <= 0) {
+    return items;
+  }
+
+  const [primary] = items.splice(primaryIndex, 1);
+  return [primary, ...items];
+}
+
+/** A product's own gallery — photos and videos, primary item first. */
+export function getGalleryMedia(product: Product): Media[] {
+  return galleryMediaFromMedia(product.media);
+}
+
+/**
+ * The gallery to show for a specific selected pack size: that variant's own
+ * photo(s) first if it has any (e.g. a real packaging shot per pack count —
+ * see FunnelSeeder's per-variant seedVariantImage calls), followed by the
+ * rest of the product's own gallery (photos and videos) — so picking a pack
+ * size brings its own photo into focus (ProductGallery resets to the first
+ * item whenever the set's id list changes) without hiding the other
+ * product media a shopper might still want to browse. Falls back to just
+ * the product's own gallery for pack sizes with no dedicated photo yet.
+ * Deduplicated by id in case a variant's photo is also separately attached
+ * to the product itself. Variant media is image-only by design (see
+ * StoreVariantMediaRequest) so imagesFromMedia is enough for that half.
+ */
+export function getGalleryMediaForVariant(product: Product, variant: ProductVariant | null | undefined): Media[] {
   const variantImages = variant?.media ? imagesFromMedia(variant.media) : [];
-  return variantImages.length > 0 ? variantImages : getGalleryImages(product);
+  if (variantImages.length === 0) {
+    return getGalleryMedia(product);
+  }
+
+  const variantImageIds = new Set(variantImages.map((image) => image.id));
+  return [...variantImages, ...getGalleryMedia(product).filter((item) => !variantImageIds.has(item.id))];
 }
 
 /** The primary product image, or the first gallery image as a fallback. */

@@ -55,17 +55,35 @@ function ScrollToTop() {
     if (hash) {
       return;
     }
-    // On mobile, navigating away mid-fling (e.g. tapping "Add to cart" right
-    // after a scroll gesture) can leave the browser's momentum scroll still
-    // settling: it keeps applying after this scrollTo, landing the new page
-    // scrolled down near the footer instead of at the top. A follow-up
-    // scrollTo on the next frame re-asserts the top once that momentum has
-    // been overridden once already, which is enough to win the race.
+
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    const raf = requestAnimationFrame(() => {
+
+    // On mobile, navigating away mid-fling (e.g. tapping "Add to cart" right
+    // after a scroll gesture) leaves the browser's momentum scroll still
+    // settling on its own compositor thread — a plain scrollTo (even a
+    // follow-up one queued on the next frame) loses that race, since the
+    // fling keeps nudging the position for several hundred ms independent
+    // of any JS timing. The only thing that reliably stops it is making the
+    // page briefly unscrollable, which the compositor respects immediately;
+    // scrollTo(0) is re-applied once more right before unlocking in case the
+    // fling was still in flight when the lock engaged.
+    const { documentElement, body } = document;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    documentElement.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+
+    const timeout = window.setTimeout(() => {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    });
-    return () => cancelAnimationFrame(raf);
+      documentElement.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+    }, 150);
+
+    return () => {
+      window.clearTimeout(timeout);
+      documentElement.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+    };
   }, [pathname, search, hash]);
 
   return null;

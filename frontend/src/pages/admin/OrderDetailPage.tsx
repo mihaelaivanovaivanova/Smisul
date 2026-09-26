@@ -387,7 +387,7 @@ export default function OrderDetailPage() {
               <p className="mb-1">
                 {order.customer.first_name} {order.customer.last_name}
               </p>
-              <p className="mb-1">{order.customer.email}</p>
+              <p className="mb-1">{order.customer.email ?? <span className="text-muted">No email (manual order)</span>}</p>
               <p className="mb-0">{order.customer.phone}</p>
             </div>
           </div>

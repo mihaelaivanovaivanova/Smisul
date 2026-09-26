@@ -4,12 +4,14 @@ import type { Role } from './auth';
 import type { Product } from './product';
 
 /** OrderResource enriched with admin-only fields (see backend Admin\OrderResource). */
-export interface AdminOrder extends Order {
+export interface AdminOrder extends Omit<Order, 'customer'> {
   user_id: number | null;
   payments: Payment[];
   shipment: Shipment | null;
   /** чл. 54, ал. 2 ЗЗП withdrawal-refund cap: cheapest standard delivery option offered at placement time, not today's price. null for orders placed before this was tracked. */
   cheapest_standard_shipping_price_at_placement: number | null;
+  /** Null only for a manually-created order with no email on file (see Admin\OrderController::store()) — every checkout order still always has one. */
+  customer: Omit<Order['customer'], 'email'> & { email: string | null };
 }
 
 /**

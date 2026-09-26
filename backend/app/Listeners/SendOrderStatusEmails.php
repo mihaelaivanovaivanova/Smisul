@@ -85,8 +85,20 @@ class SendOrderStatusEmails
         }
     }
 
-    private function send(string $to, Mailable $mailable, string $orderNumber): void
+    /**
+     * $to is null for a manually-created admin order with no email on file
+     * (see Admin\OrderController::store()) — skipped rather than attempted,
+     * since Mail::to(null) would throw before this method's own try/catch
+     * ever ran, which (dispatched synchronously from inside
+     * OrderStatusService::transitionTo()'s DB::transaction()) would roll
+     * back the status transition itself.
+     */
+    private function send(?string $to, Mailable $mailable, string $orderNumber): void
     {
+        if ($to === null) {
+            return;
+        }
+
         try {
             Mail::to($to)->send($mailable);
         } catch (Throwable $exception) {

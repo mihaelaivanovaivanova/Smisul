@@ -101,6 +101,43 @@
   font-size: var(--fs-sm);
 }
 
+/* ---- Trust bullets (before the package selector) ---- */
+
+.miswak-trust-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.miswak-trust-bullets__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--color-charcoal);
+}
+
+.miswak-trust-bullets__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background-color: var(--color-success-bg);
+  color: #fff;
+}
+
+.miswak-trust-bullets__icon svg {
+  width: 0.7em;
+  height: 0.7em;
+}
+
 /* ---- Package radio selector ---- */
 
 .miswak-package-selector {

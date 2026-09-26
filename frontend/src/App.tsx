@@ -37,6 +37,7 @@ import ContentPage from './pages/admin/ContentPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
+import CreateOrderPage from './pages/admin/CreateOrderPage';
 import CustomersPage from './pages/admin/CustomersPage';
 import CustomerDetailPage from './pages/admin/CustomerDetailPage';
 import MediaLibraryPage from './pages/admin/MediaLibraryPage';
@@ -144,6 +145,7 @@ export default function App() {
           <Route path="funnel" element={<FunnelPage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/new" element={<CreateOrderPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />

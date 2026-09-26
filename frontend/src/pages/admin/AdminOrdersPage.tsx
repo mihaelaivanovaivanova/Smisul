@@ -39,7 +39,12 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="h3 mb-4">Orders</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">Orders</h1>
+        <Link className="btn btn-primary" to="/admin/orders/new">
+          Create order
+        </Link>
+      </div>
 
       <OrderFilterBar filters={filters} onChange={handleFiltersChange} />
 
@@ -67,7 +72,7 @@ export default function AdminOrdersPage() {
                 {data.data.map((order) => (
                   <tr key={order.id}>
                     <td>{order.order_number}</td>
-                    <td>{order.customer.email}</td>
+                    <td>{order.customer.email ?? `${order.customer.first_name} ${order.customer.last_name} (manual)`}</td>
                     <td>
                       <StatusBadge status={order.status} />
                     </td>

@@ -2,6 +2,7 @@ import { apiClient } from '../client';
 import type { AdminOrder } from '../../types/admin';
 import type { Payment } from '../../types/payment';
 import type { PaginatedResponse } from '../../types/product';
+import type { ShippingCarrier, ShippingDeliveryType } from '../../types/checkout';
 
 export interface AdminOrderFilters {
   search?: string;
@@ -21,6 +22,29 @@ export async function fetchAdminOrders(filters: AdminOrderFilters): Promise<Pagi
 
 export async function fetchAdminOrder(id: number): Promise<AdminOrder> {
   const { data } = await apiClient.get<{ data: AdminOrder }>(`/admin/orders/${id}`);
+  return data.data;
+}
+
+export interface ManualOrderPayload {
+  customer_first_name: string;
+  customer_last_name: string;
+  customer_phone: string;
+  shipping_carrier: ShippingCarrier;
+  shipping_delivery_type: Extract<ShippingDeliveryType, 'office' | 'locker'>;
+  shipping_office_id: string;
+  shipping_office_name: string;
+  shipping_office_city: string;
+  shipping_office_address: string;
+  shipping_price: number;
+  payment_method: 'cash_on_delivery' | 'paid';
+  cod_fee: number;
+  product_variant_id: number;
+  quantity: number;
+}
+
+/** A quick phone/in-person sale entered straight in — no cart, no email, one line item (see Admin\OrderController::store()). */
+export async function createManualOrder(payload: ManualOrderPayload): Promise<AdminOrder> {
+  const { data } = await apiClient.post<{ data: AdminOrder }>('/admin/orders', payload);
   return data.data;
 }
 

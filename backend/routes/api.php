@@ -298,6 +298,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/orders/statistics', [AdminOrderController::class, 'statistics'])->name('orders.statistics');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::post('/orders', [AdminOrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::delete('/orders/{order}', [AdminOrderController::class, 'destroy'])->name('orders.destroy');
         Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');

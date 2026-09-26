@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import GalleryCarousel from './GalleryCarousel';
 import PackageRadioSelector from './PackageRadioSelector';
+import TrustBullets from './TrustBullets';
 import StarRating from '../reviews/StarRating';
 import { getGalleryMediaForVariant } from '../../services/productCatalog';
 import { reviews as reviewsCopy } from '../../content/copy';
@@ -52,6 +53,8 @@ export default function PurchasePanel({ product, offers, reviewSummary }: Purcha
             )}
 
             {product.short_description && <p className="section-lead lead">{product.short_description}</p>}
+
+            <TrustBullets />
 
             <PackageRadioSelector offers={offers} selectedIndex={selectedIndex} onSelect={setSelectedIndex} />
           </div>

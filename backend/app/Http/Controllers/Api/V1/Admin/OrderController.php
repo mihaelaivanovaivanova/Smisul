@@ -6,10 +6,12 @@ use App\DataTransferObjects\Admin\OrderFilterData;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OrderIndexRequest;
+use App\Http\Requests\Admin\StoreManualOrderRequest;
 use App\Http\Requests\Admin\UpdateOrderStatusRequest;
 use App\Http\Resources\Admin\OrderResource;
 use App\Models\Order;
 use App\Services\AdminActionLogger;
+use App\Services\AdminOrderService;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
 use App\Services\ShippingService;
@@ -28,6 +30,7 @@ class OrderController extends Controller
         private readonly OrderStatusService $orderStatus,
         private readonly ShippingService $shipping,
         private readonly AdminActionLogger $actionLogger,
+        private readonly AdminOrderService $adminOrders,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -35,6 +38,21 @@ class OrderController extends Controller
         $orders = $this->orders->listForAdmin(OrderFilterData::fromArray($request->validated()));
 
         return OrderResource::collection($orders);
+    }
+
+    /**
+     * A quick phone/in-person sale entered straight in — see
+     * AdminOrderService::createManual()'s own docblock for why this never
+     * touches the cart/checkout flow, and never auto-creates a shipment the
+     * way a real checkout order does the moment it's confirmed.
+     */
+    public function store(StoreManualOrderRequest $request): JsonResponse
+    {
+        $order = $this->adminOrders->createManual($request->validated(), $request->user());
+
+        $this->actionLogger->log($request->user(), 'order.created_manually', $order, ['order_number' => $order->order_number]);
+
+        return (new OrderResource($order))->response()->setStatusCode(201);
     }
 
     public function show(Order $order): OrderResource

@@ -50,6 +50,16 @@ export const miswakUgcVideos: MiswakUgcVideo[] = [];
  */
 export const miswakUgcPhotos: MiswakUgcPhoto[] = [];
 
+/** Quick trust/benefit bullets shown above the package selector (TrustBullets). */
+export const miswakTrustBullets: string[] = [
+  '0% пластмаса',
+  'без нужда от паста и вода',
+  'биоразградим',
+  '100% естествени съставки',
+  'естествено избелване до 2 нюанса',
+  'компактен и удобен',
+];
+
 export interface MiswakMyth {
   question: string;
   answer: string;

@@ -440,7 +440,15 @@ class OrderService
      */
     private function excludingTestOrders($query)
     {
-        return $query->whereNotIn(DB::raw('LOWER(customer_email)'), array_map('mb_strtolower', self::TEST_CUSTOMER_EMAILS));
+        // whereNotIn alone would silently drop every manually-created order
+        // too: SQL's `NULL NOT IN (...)` evaluates to NULL (neither true nor
+        // false), which a WHERE clause treats as "exclude" — a manual order
+        // has no customer_email (see Admin\OrderController::store()) and is
+        // a real sale, not a test one, so it must still count here.
+        return $query->where(function ($query) {
+            $query->whereNotIn(DB::raw('LOWER(customer_email)'), array_map('mb_strtolower', self::TEST_CUSTOMER_EMAILS))
+                ->orWhereNull('customer_email');
+        });
     }
 
     /**

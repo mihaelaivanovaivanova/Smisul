@@ -121,7 +121,7 @@ class ShipmentCreatedOnPaymentTest extends TestCase
         ]);
         OrderItem::factory()->for($order)->create();
 
-        $this->app->make(OrderStatusService::class)->transitionTo($order, OrderStatus::Processing, changedBy: null);
+        $this->app->make(OrderStatusService::class)->transitionTo($order, OrderStatus::Packed, changedBy: null);
 
         Http::assertNothingSent();
         $this->assertNull($order->fresh()->shipment);

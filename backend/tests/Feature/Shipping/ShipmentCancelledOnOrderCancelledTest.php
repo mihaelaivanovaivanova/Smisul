@@ -88,7 +88,7 @@ class ShipmentCancelledOnOrderCancelledTest extends TestCase
         OrderItem::factory()->for($order)->create();
         Shipment::factory()->for($order)->created()->create(['carrier' => ShippingCarrier::BoxNow]);
 
-        $this->app->make(OrderStatusService::class)->transitionTo($order, OrderStatus::Processing, changedBy: null);
+        $this->app->make(OrderStatusService::class)->transitionTo($order, OrderStatus::Packed, changedBy: null);
 
         Http::assertNothingSent();
         $this->assertSame(ShipmentStatus::Accepted, $order->shipment->fresh()->status);

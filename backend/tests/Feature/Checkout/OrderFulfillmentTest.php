@@ -174,7 +174,6 @@ class OrderFulfillmentTest extends TestCase
         $order = $this->placePendingOrder($variant, 1);
 
         $order = app(OrderService::class)->confirmPayment($order);
-        $order = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Processing, null);
         $order = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Packed, null);
         $order = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Shipped, null);
 

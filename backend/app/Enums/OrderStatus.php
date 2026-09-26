@@ -26,10 +26,36 @@ enum OrderStatus: string
     case AwaitingPayment = 'awaiting_payment';
     case Paid = 'paid';
     case Confirmed = 'confirmed';
+    // Retired: it had no automated behavior of its own (no email, no
+    // shipment request - see SendOrderStatusEmails' own docblock) and was
+    // just an extra manual click between Paid/Confirmed and Packed with no
+    // real distinction the store actually used. The case stays here on
+    // purpose (same reasoning as ShippingCarrier::Econt): existing
+    // order_status_histories rows recorded real orders passing through it,
+    // and Eloquent's native enum cast throws - not silently nulls - when a
+    // persisted value has no matching case, so removing it outright would
+    // 500 every read of that history. See OrderStatusService::TRANSITIONS
+    // for where it was actually cut out: Paid/Confirmed now go straight to
+    // Packed, and nothing can transition into Processing anymore.
     case Processing = 'processing';
     case Packed = 'packed';
     case Shipped = 'shipped';
     case Delivered = 'delivered';
+    // Retired: it had no automated behavior of its own, and its mere
+    // existence was a real bug - ReviewService::assertEligible() (and the
+    // frontend's own review-prompt check) only accept a status of exactly
+    // Delivered, not "Delivered or later", so an order pushed on to
+    // Completed silently lost its customer's ability to review it. Delivered
+    // is now the terminal happy-path status instead (see
+    // OrderStatusService::TRANSITIONS) - every order that had already
+    // reached Completed was moved back to Delivered by
+    // 2026_09_27_000000_revert_completed_orders_to_delivered before this
+    // took effect. The case stays here on purpose (same reasoning as
+    // ShippingCarrier::Econt/Processing above): Eloquent's native enum cast
+    // throws - not silently nulls - when a persisted value has no matching
+    // case, so removing it outright would 500 every read of any
+    // order_status_histories row that still records it from before that
+    // migration ran.
     case Completed = 'completed';
     case Cancelled = 'cancelled';
     case Refunded = 'refunded';

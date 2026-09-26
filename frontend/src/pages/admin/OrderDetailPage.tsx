@@ -8,7 +8,7 @@ import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { formatPrice } from '../../services/productCatalog';
-import { ORDER_STATUSES } from '../../constants/orderStatus';
+import { SETTABLE_ORDER_STATUSES } from '../../constants/orderStatus';
 
 // Mirrors ShipmentStatus::isFinal() on the backend - cancelling any of
 // these would just get rejected by the carrier, so the button never shows.
@@ -409,7 +409,7 @@ export default function OrderDetailPage() {
               {updateError && <div className="alert alert-danger py-2 mb-0">{updateError}</div>}
               <select className="form-select" value={newStatus} onChange={(event) => setNewStatus(event.target.value)}>
                 <option value="">Select new status...</option>
-                {ORDER_STATUSES.filter((status) => status !== order.status).map((status) => (
+                {SETTABLE_ORDER_STATUSES.filter((status) => status !== order.status).map((status) => (
                   <option key={status} value={status}>
                     {status.replace(/_/g, ' ')}
                   </option>

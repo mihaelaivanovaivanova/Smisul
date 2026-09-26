@@ -60,7 +60,7 @@ class OrderInvoiceEmailTest extends TestCase
     private function deliver(Order $order): void
     {
         $status = app(OrderStatusService::class);
-        foreach ([OrderStatus::Paid, OrderStatus::Processing, OrderStatus::Packed, OrderStatus::Shipped, OrderStatus::Delivered] as $to) {
+        foreach ([OrderStatus::Paid, OrderStatus::Packed, OrderStatus::Shipped, OrderStatus::Delivered] as $to) {
             $status->transitionTo($order, $to, null);
         }
     }

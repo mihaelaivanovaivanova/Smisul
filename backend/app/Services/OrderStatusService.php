@@ -30,12 +30,21 @@ class OrderStatusService
     private const TRANSITIONS = [
         OrderStatus::Pending->value => [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Confirmed, OrderStatus::Cancelled, OrderStatus::Failed],
         OrderStatus::AwaitingPayment->value => [OrderStatus::Paid, OrderStatus::Confirmed, OrderStatus::Failed, OrderStatus::Cancelled],
-        OrderStatus::Paid->value => [OrderStatus::Processing, OrderStatus::Refunded, OrderStatus::Cancelled],
-        OrderStatus::Confirmed->value => [OrderStatus::Processing, OrderStatus::Refunded, OrderStatus::Cancelled],
+        // Processing is retired (see OrderStatus::Processing's own docblock)
+        // - Paid/Confirmed go straight to Packed now. Its own outgoing
+        // transitions stay listed below so an order already sitting in it
+        // from before this change can still move forward normally; it's
+        // just no longer a reachable target for anything new.
+        OrderStatus::Paid->value => [OrderStatus::Packed, OrderStatus::Refunded, OrderStatus::Cancelled],
+        OrderStatus::Confirmed->value => [OrderStatus::Packed, OrderStatus::Refunded, OrderStatus::Cancelled],
         OrderStatus::Processing->value => [OrderStatus::Packed, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Packed->value => [OrderStatus::Shipped, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Refunded],
-        OrderStatus::Delivered->value => [OrderStatus::Completed, OrderStatus::Refunded],
+        // Completed is retired (see OrderStatus::Completed's own docblock) -
+        // Delivered is the terminal happy-path status now. Completed's own
+        // outgoing transition stays listed below for the same reason
+        // Processing's does above.
+        OrderStatus::Delivered->value => [OrderStatus::Refunded],
         OrderStatus::Completed->value => [OrderStatus::Refunded],
         OrderStatus::Cancelled->value => [OrderStatus::Refunded],
         OrderStatus::Refunded->value => [],

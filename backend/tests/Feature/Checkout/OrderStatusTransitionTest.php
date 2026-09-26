@@ -79,17 +79,15 @@ class OrderStatusTransitionTest extends TestCase
 
         foreach ([
             OrderStatus::Paid,
-            OrderStatus::Processing,
             OrderStatus::Packed,
             OrderStatus::Shipped,
             OrderStatus::Delivered,
-            OrderStatus::Completed,
         ] as $status) {
             $order = $service->transitionTo($order, $status, null);
         }
 
-        $this->assertSame(OrderStatus::Completed, $order->status);
-        $this->assertDatabaseCount('order_status_histories', 6);
+        $this->assertSame(OrderStatus::Delivered, $order->status);
+        $this->assertDatabaseCount('order_status_histories', 4);
     }
 
     /**
@@ -105,16 +103,60 @@ class OrderStatusTransitionTest extends TestCase
 
         foreach ([
             OrderStatus::Confirmed,
-            OrderStatus::Processing,
             OrderStatus::Packed,
             OrderStatus::Shipped,
             OrderStatus::Delivered,
-            OrderStatus::Completed,
         ] as $status) {
             $order = $service->transitionTo($order, $status, null);
         }
 
-        $this->assertSame(OrderStatus::Completed, $order->status);
-        $this->assertDatabaseCount('order_status_histories', 6);
+        $this->assertSame(OrderStatus::Delivered, $order->status);
+        $this->assertDatabaseCount('order_status_histories', 4);
+    }
+
+    /**
+     * Completed is retired (see OrderStatus::Completed's own docblock) -
+     * Delivered is the terminal happy-path status now, and nothing can
+     * transition into Completed anymore. An order that somehow still sits
+     * there from before the retirement migration ran can still move
+     * forward, though - its own outgoing transition was deliberately left
+     * alone.
+     */
+    #[Test]
+    public function completed_is_no_longer_a_reachable_target_but_still_has_a_way_out(): void
+    {
+        $service = app(OrderStatusService::class);
+
+        $this->assertNotContains(OrderStatus::Completed, $service->allowedTransitions(OrderStatus::Delivered));
+        $this->assertContains(OrderStatus::Refunded, $service->allowedTransitions(OrderStatus::Delivered));
+        $this->assertContains(OrderStatus::Refunded, $service->allowedTransitions(OrderStatus::Completed));
+
+        $order = Order::factory()->create(['status' => OrderStatus::Completed]);
+        $updated = $service->transitionTo($order, OrderStatus::Refunded, null);
+
+        $this->assertSame(OrderStatus::Refunded, $updated->status);
+    }
+
+    /**
+     * Processing is retired (see OrderStatus::Processing's own docblock) -
+     * Paid/Confirmed go straight to Packed now, and nothing can transition
+     * into Processing anymore. An order that somehow still sits there from
+     * before this change can still move forward, though - its own outgoing
+     * transitions were deliberately left alone.
+     */
+    #[Test]
+    public function processing_is_no_longer_a_reachable_target_but_still_has_a_way_out(): void
+    {
+        $service = app(OrderStatusService::class);
+
+        $this->assertNotContains(OrderStatus::Processing, $service->allowedTransitions(OrderStatus::Paid));
+        $this->assertNotContains(OrderStatus::Processing, $service->allowedTransitions(OrderStatus::Confirmed));
+        $this->assertContains(OrderStatus::Packed, $service->allowedTransitions(OrderStatus::Paid));
+        $this->assertContains(OrderStatus::Packed, $service->allowedTransitions(OrderStatus::Processing));
+
+        $order = Order::factory()->create(['status' => OrderStatus::Processing]);
+        $updated = $service->transitionTo($order, OrderStatus::Packed, null);
+
+        $this->assertSame(OrderStatus::Packed, $updated->status);
     }
 }

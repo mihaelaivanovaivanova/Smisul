@@ -44,14 +44,19 @@ class DashboardController extends Controller
                 'orders_today' => $orderStats['orders_today'],
                 'revenue_today' => $orderStats['revenue_today'],
                 'total_revenue' => $orderStats['total_revenue'],
-                // Excludes the same internal/test accounts OrderService::
-                // statistics() excludes from order/revenue figures - a test
-                // account shouldn't inflate "how many real customers do we
-                // have" either.
+                // Registered accounts (excludes the same internal/test
+                // accounts OrderService::statistics() excludes from order/
+                // revenue figures - a test account shouldn't inflate "how
+                // many real customers do we have" either) plus everyone who
+                // bought as a guest and never created one - guest checkout
+                // is a fully supported path, not an edge case, so a metric
+                // that only counted User rows would systematically
+                // undercount actual customers (see
+                // OrderService::uniqueGuestCustomerCount()).
                 'total_customers' => User::query()
                     ->where('role', Role::Customer)
                     ->whereNotIn(DB::raw('LOWER(email)'), array_map('mb_strtolower', OrderService::TEST_CUSTOMER_EMAILS))
-                    ->count(),
+                    ->count() + $this->orders->uniqueGuestCustomerCount(),
                 'total_products' => Product::query()->count(),
                 'low_stock_products' => $lowStockCount,
                 'out_of_stock_products' => $outOfStockCount,

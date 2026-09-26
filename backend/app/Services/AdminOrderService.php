@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentProvider;
+use App\Enums\PaymentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Manual order entry for the admin panel — a phone/in-person sale typed
@@ -127,6 +131,36 @@ class AdminOrderService
                 'changed_by_user_id' => $admin->id,
                 'note' => 'Manually created by admin',
             ]);
+
+            // Both shipping providers decide whether to tell the carrier to
+            // collect cash at hand-off by checking for a Payment row with
+            // payment_method = CashOnDelivery on the order (see
+            // SpeedyShippingProvider::createShipment() /
+            // BoxNowShippingProvider::createShipment()) — real checkout
+            // creates that row via PaymentService::initiate()'s own COD
+            // branch, which this manual path never goes through. Without a
+            // matching row here, a manual Speedy+COD order's shipment would
+            // silently go out with no cash to collect at all. Mirrors that
+            // branch's own Payment/transaction shape exactly so both
+            // providers' existing checks keep working unchanged.
+            if ($data['payment_method'] === 'cash_on_delivery') {
+                $payment = $order->payments()->create([
+                    'provider' => PaymentProvider::CashOnDelivery,
+                    'gateway_environment' => null,
+                    'payment_method' => PaymentMethod::CashOnDelivery,
+                    'status' => PaymentStatus::Pending,
+                    'amount' => $order->grand_total,
+                    'currency' => $order->currency,
+                    'transaction_reference' => (string) Str::uuid(),
+                ]);
+
+                $payment->transactions()->create([
+                    'type' => 'cash_on_delivery_created',
+                    'payment_method' => PaymentMethod::CashOnDelivery,
+                    'status' => PaymentStatus::Pending,
+                    'raw_payload' => null,
+                ]);
+            }
 
             return $order->load(OrderService::ADMIN_EAGER_LOAD);
         });

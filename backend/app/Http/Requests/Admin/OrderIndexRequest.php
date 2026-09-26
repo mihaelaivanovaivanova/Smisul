@@ -28,6 +28,7 @@ class OrderIndexRequest extends FormRequest
             // leniently either way in OrderFilterData::fromArray() via
             // filter_var(..., FILTER_VALIDATE_BOOLEAN).
             'hide_cancelled' => ['sometimes', 'nullable', 'string', 'in:0,1,true,false'],
+            'hide_failed' => ['sometimes', 'nullable', 'string', 'in:0,1,true,false'],
             'date_from' => ['sometimes', 'nullable', 'date'],
             'date_to' => ['sometimes', 'nullable', 'date', 'after_or_equal:date_from'],
             'sort' => ['sometimes', Rule::in(['newest', 'oldest', 'total_asc', 'total_desc'])],

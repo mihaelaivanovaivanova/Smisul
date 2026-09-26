@@ -94,6 +94,12 @@ export default function DashboardPage() {
         search: orderFilters.search || undefined,
         status: orderFilters.status || undefined,
         hide_cancelled: orderFilters.hideCancelled || undefined,
+        // Unconditional (not a filter toggle, unlike hide_cancelled above)
+        // - a failed payment attempt never became a real order, so it has
+        // no place in the dashboard's own summary view. Still fully visible
+        // on the main Orders page for troubleshooting a customer's failed
+        // checkout.
+        hide_failed: true,
         date_from: orderFilters.dateFrom || undefined,
         date_to: orderFilters.dateTo || undefined,
         sort: orderFilters.sort,

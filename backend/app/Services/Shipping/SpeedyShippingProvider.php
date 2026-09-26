@@ -66,6 +66,9 @@ class SpeedyShippingProvider implements ShippingProviderInterface
 
     private const SERVICE_ID = 505;
 
+    /** See splitStreetAndNumber()'s own docblock for why this exists. */
+    private const MAX_STREET_NAME_LENGTH = 50;
+
     public function carrier(): ShippingCarrier
     {
         return ShippingCarrier::Speedy;
@@ -202,14 +205,11 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         if ($deliveryType->requiresOfficeSelection() && $officeId !== null) {
             $recipient['pickupOfficeId'] = (int) $officeId;
         } else {
-            [$streetName, $streetNo] = $this->splitStreetAndNumber($order->shipping_address_line);
-
-            $recipient['address'] = [
+            $recipient['address'] = array_filter([
                 'siteName' => $order->shipping_city,
                 'postCode' => $order->shipping_postal_code,
-                'streetName' => $streetName,
-                'streetNo' => $streetNo,
-            ];
+                ...$this->parseAddressComponents($order->shipping_address_line, $order->shipping_apartment),
+            ], fn ($value) => $value !== null);
         }
 
         $ownClient = $this->ownClient();
@@ -451,15 +451,100 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
+     * Bulgarian free-text address token -> Speedy's real Address schema
+     * field (confirmed against their published JSON schema at
+     * api.speedy.bg/v1/schema — Address.schema.json / ShipmentAddress.
+     * schema.json both list complexName/blockNo/entranceNo/floorNo/
+     * apartmentNo as real, separate fields from streetName/streetNo).
+     * Ordered so complexName (whose value can itself contain multiple
+     * words) is pulled out before the single-token block/entrance/floor/
+     * apartment matches, which stops it from swallowing a later token that
+     * happens to share the same clause.
+     *
+     * @var array<string, string>
+     */
+    private const ADDRESS_COMPONENT_PATTERNS = [
+        'complexName' => '/\bж\.?\s*к\.?\s*([^,]+)/ui',
+        'blockNo' => '/\bбл\.\s*([^\s,]+)/ui',
+        'entranceNo' => '/\bвх\.\s*([^\s,]+)/ui',
+        'floorNo' => '/\bет\.\s*([^\s,]+)/ui',
+        'apartmentNo' => '/\bап\.\s*([^\s,]+)/ui',
+    ];
+
+    /**
      * Checkout only captures one free-text address line (see
-     * shipping_address_line), but Speedy's real `shipment` endpoint
-     * rejects an address without a non-empty streetNo — it isn't willing
-     * to take a single unstructured line the way `calculate` will. Pulls
-     * a trailing house number (e.g. "1", "25А", "5B") off the line as
-     * streetNo; if none is found, the whole line becomes streetName and
-     * streetNo falls back to "0" so the request stays deliverable-shaped
-     * rather than failing outright. Confirmed against the real sandbox —
-     * see the Sprint 11.5 Speedy integration notes.
+     * shipping_address_line) rather than Speedy's fully structured address
+     * - this pulls out the pieces that Bulgarian addresses conventionally
+     * mark with a recognizable abbreviation (ж.к./бл./вх./ет./ап.) into
+     * their own real fields (see ADDRESS_COMPONENT_PATTERNS) instead of
+     * leaving them jumbled inside one streetName, or worse: before this
+     * existed, splitStreetAndNumber() alone just grabbed whatever number
+     * ended the whole line as "the" street number, which for an address
+     * ending "...бл. 5, ет. 2" wrongly took the *floor* (2) as the street
+     * number and left "бл. 5" as trailing junk inside streetName - a real
+     * reported case. shipping_apartment (a dedicated column checkout
+     * already collects) is used for apartmentNo only when the address line
+     * itself didn't already spell one out.
+     *
+     * Whatever remains after removing every recognized token is handled
+     * exactly as before: a trailing house number is pulled off as
+     * streetNo, and streetName (whatever residual free text — typically
+     * the actual street, plus the city/complex if either didn't already
+     * get its own field above) is truncated via truncateStreetName().
+     *
+     * @return array{
+     *     streetName: string, streetNo: string, complexName: ?string,
+     *     blockNo: ?string, entranceNo: ?string, floorNo: ?string,
+     *     apartmentNo: ?string,
+     * }
+     */
+    private function parseAddressComponents(string $addressLine, ?string $apartment): array
+    {
+        $remaining = trim($addressLine);
+        $components = [];
+
+        foreach (self::ADDRESS_COMPONENT_PATTERNS as $field => $pattern) {
+            if (preg_match($pattern, $remaining, $matches) === 1) {
+                $components[$field] = trim($matches[1]);
+                $remaining = trim(preg_replace($pattern, '', $remaining, 1));
+                // Tidies up whatever punctuation is left stranded where the
+                // removed token used to sit (a lone leading comma, or two
+                // commas left next to each other where it used to bridge
+                // two clauses) so the leftover text stays clean for the
+                // street-name split below.
+                $remaining = trim(preg_replace('/\s*,\s*,/', ',', $remaining), " \t\n\r,");
+            }
+        }
+
+        if (! isset($components['apartmentNo']) && $apartment !== null && $apartment !== '') {
+            $components['apartmentNo'] = $apartment;
+        }
+
+        [$streetName, $streetNo] = $this->splitStreetAndNumber($remaining);
+
+        return [
+            'streetName' => $streetName,
+            'streetNo' => $streetNo,
+            'complexName' => $components['complexName'] ?? null,
+            'blockNo' => $components['blockNo'] ?? null,
+            'entranceNo' => $components['entranceNo'] ?? null,
+            'floorNo' => $components['floorNo'] ?? null,
+            'apartmentNo' => $components['apartmentNo'] ?? null,
+        ];
+    }
+
+    /**
+     * Pulls a trailing house number (e.g. "1", "25А", "5B") off whatever
+     * free text is left as streetNo; if none is found, the whole remainder
+     * becomes streetName and streetNo falls back to "0" so the request
+     * stays deliverable-shaped rather than failing outright — Speedy's real
+     * `shipment` endpoint rejects an address without a non-empty streetNo.
+     * Confirmed against the real sandbox — see the Sprint 11.5 Speedy
+     * integration notes.
+     *
+     * streetName is also capped at MAX_STREET_NAME_LENGTH via
+     * truncateStreetName() — see its own docblock for why a straight
+     * left-to-right character cut is wrong here.
      *
      * @return array{0: string, 1: string}
      */
@@ -468,10 +553,61 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         $addressLine = trim($addressLine);
 
         if (preg_match('/^(.*?)[\s,]+(\d+[\p{L}]?)$/u', $addressLine, $matches) === 1) {
-            return [trim($matches[1]), $matches[2]];
+            return [$this->truncateStreetName(trim($matches[1])), $matches[2]];
         }
 
-        return [$addressLine, '0'];
+        return [$this->truncateStreetName($addressLine), '0'];
+    }
+
+    /**
+     * Speedy's real `shipment` endpoint rejects `address.streetName` outright
+     * once it passes 50 characters ("Получател Улица: Максималната позволена
+     * дължина е 50") — confirmed live by a real failed request from a
+     * Bulgarian address combining a residential complex with a boulevard
+     * ("ж.к. Меден рудник, бул. Александър Георгиев - Коджакафалията"),
+     * which alone is 60 characters.
+     *
+     * A plain mb_substr(..., 0, 50) would cut that from the right ("...бул.
+     * Александър Гео"), losing the actual street name and building/complex
+     * detail entirely and keeping only the least useful part (the city
+     * quarter) — confirmed against the real reported case, this is
+     * genuinely worse than useless on a printed label. Comma-separated
+     * segments are instead dropped from the front (broadest context first —
+     * city, then residential complex) until what's left fits, since the
+     * *last* segment is conventionally the actual deliverable street name a
+     * Bulgarian free-text address ends with. Falls back to a hard
+     * mb_substr cut only if even that last segment alone still doesn't fit.
+     *
+     * The full original text is untouched in shipping_address_line for our
+     * own records/label review either way — only what's sent to Speedy is
+     * shortened. mb_substr/mb_strlen throughout, not the byte-oriented
+     * substr/strlen — a multi-byte cut mid-character would corrupt the
+     * Cyrillic text rather than just shorten it.
+     */
+    private function truncateStreetName(string $streetName): string
+    {
+        if (mb_strlen($streetName) <= self::MAX_STREET_NAME_LENGTH) {
+            return $streetName;
+        }
+
+        $segments = array_values(array_filter(array_map('trim', explode(',', $streetName)), fn ($segment) => $segment !== ''));
+
+        if ($segments === []) {
+            return mb_substr($streetName, 0, self::MAX_STREET_NAME_LENGTH);
+        }
+
+        $kept = '';
+        foreach (array_reverse($segments) as $segment) {
+            $candidate = $kept === '' ? $segment : "{$segment}, {$kept}";
+
+            if (mb_strlen($candidate) > self::MAX_STREET_NAME_LENGTH) {
+                break;
+            }
+
+            $kept = $candidate;
+        }
+
+        return $kept !== '' ? $kept : mb_substr(end($segments), 0, self::MAX_STREET_NAME_LENGTH);
     }
 
     /**

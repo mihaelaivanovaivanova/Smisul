@@ -7,7 +7,9 @@ use App\Models\Order;
 use App\Models\Price;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -126,6 +128,41 @@ class ManualOrderAdminTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('shipping_delivery_type');
+    }
+
+    /**
+     * Regression test for a real reported bug: a manually-created
+     * Speedy + cash-on-delivery order was sending 0 as the amount to
+     * collect, because SpeedyShippingProvider::createShipment() decides
+     * whether to send a cod block by checking for a Payment row with
+     * payment_method = CashOnDelivery, and the manual-order path never
+     * created one (see AdminOrderService::createManual()'s own docblock).
+     */
+    #[Test]
+    public function a_manually_created_speedy_cash_on_delivery_order_sends_the_real_amount_to_collect(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-MANUAL-COD-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $admin = User::factory()->administrator()->create();
+        $variant = ProductVariant::factory()->create();
+        Price::factory()->for($variant, 'productVariant')->create(['amount' => 10]);
+        Inventory::factory()->for($variant, 'productVariant')->create(['quantity_on_hand' => 20, 'quantity_reserved' => 0]);
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/orders', $this->payload($variant, ['quantity' => 2]));
+        $response->assertCreated();
+        $order = Order::find($response->json('data.id'));
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) use ($order) {
+            if (! str_ends_with($request->url(), '/shipment')) {
+                return false;
+            }
+
+            $cod = $request['service']['additionalServices']['cod'] ?? null;
+
+            return $cod !== null && $cod['amount'] === (float) $order->grand_total;
+        });
     }
 
     #[Test]

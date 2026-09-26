@@ -9,6 +9,7 @@ export interface AdminOrderFilters {
   user_id?: number;
   status?: string;
   hide_cancelled?: boolean;
+  hide_failed?: boolean;
   date_from?: string;
   date_to?: string;
   sort?: 'newest' | 'oldest' | 'total_asc' | 'total_desc';

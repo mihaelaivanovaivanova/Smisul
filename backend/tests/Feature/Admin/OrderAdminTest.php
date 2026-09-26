@@ -120,6 +120,27 @@ class OrderAdminTest extends TestCase
     }
 
     /**
+     * Used by the dashboard's own orders list (unconditionally, not a user
+     * toggle - see DashboardPage.tsx) so a failed payment attempt, which
+     * never became a real order, doesn't clutter that summary view. The
+     * main Orders page never sends this, so failed orders stay fully
+     * visible there for troubleshooting a customer's checkout.
+     */
+    #[Test]
+    public function hide_failed_excludes_failed_orders(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        Order::factory()->create(['status' => OrderStatus::Pending]);
+        Order::factory()->create(['status' => OrderStatus::Failed]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?hide_failed=1');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.status', 'pending');
+    }
+
+    /**
      * The literal string "true" is what a GET query string actually
      * carries (?hide_cancelled=true, from the frontend's boolean param) -
      * distinct from "1", which Laravel's own 'boolean' validation rule

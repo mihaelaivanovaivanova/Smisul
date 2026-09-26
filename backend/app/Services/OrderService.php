@@ -400,6 +400,10 @@ class OrderService
             $query->where('status', '!=', OrderStatus::Cancelled);
         }
 
+        if ($filters->hideFailed) {
+            $query->where('status', '!=', OrderStatus::Failed);
+        }
+
         if ($filters->dateFrom !== null) {
             $query->whereDate('created_at', '>=', $filters->dateFrom);
         }
@@ -472,25 +476,57 @@ class OrderService
         ];
 
         return [
-            // Excludes Cancelled - a cancelled order was never a real sale,
-            // so it shouldn't inflate "how many orders have we had" any
-            // more than it inflates total_revenue below (which already
-            // excluded it via $revenueStatuses). orders_by_status still
-            // reports its count on its own, individually, right below.
-            'total_orders' => array_sum($ordersByStatus->all()) - (int) ($ordersByStatus[OrderStatus::Cancelled->value] ?? 0),
+            // Excludes Cancelled and Failed - neither was ever a real sale,
+            // so they shouldn't inflate "how many orders have we had" any
+            // more than they inflate total_revenue below (already excluded
+            // via $revenueStatuses, an allowlist neither appears in).
+            // orders_by_status still reports each one's count on its own,
+            // individually, right below.
+            'total_orders' => array_sum($ordersByStatus->all())
+                - (int) ($ordersByStatus[OrderStatus::Cancelled->value] ?? 0)
+                - (int) ($ordersByStatus[OrderStatus::Failed->value] ?? 0),
             'orders_by_status' => collect(OrderStatus::cases())
                 ->mapWithKeys(fn (OrderStatus $status) => [$status->value => (int) ($ordersByStatus[$status->value] ?? 0)])
                 ->all(),
             'total_revenue' => (float) $this->excludingTestOrders(Order::query())->whereIn('status', $revenueStatuses)->sum('grand_total'),
             'orders_today' => $this->excludingTestOrders(Order::query())
                 ->whereDate('created_at', now()->toDateString())
-                ->where('status', '!=', OrderStatus::Cancelled)
+                ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Failed])
                 ->count(),
             'revenue_today' => (float) $this->excludingTestOrders(Order::query())
                 ->whereIn('status', $revenueStatuses)
                 ->whereDate('created_at', now()->toDateString())
                 ->sum('grand_total'),
         ];
+    }
+
+    /**
+     * Distinct guest customers who've placed a real order - the same "did
+     * this order actually happen" bar total_orders/orders_today use above
+     * (excludes Cancelled and Failed). Deduped case-insensitively by email
+     * (see excludingTestOrders()) since the same guest can place several
+     * orders without ever creating an account. A manually-created order has
+     * no email at all (see Admin\OrderController::store()) and so can't be
+     * reliably matched to any particular person, guest or otherwise - it's
+     * excluded here via the whereNotNull rather than counted as a one-off
+     * "customer" with no identity.
+     *
+     * Registered customers are counted separately by DashboardController
+     * (a query over the users table, not orders) - this covers only the
+     * half that has no account to count instead.
+     */
+    public function uniqueGuestCustomerCount(): int
+    {
+        // COUNT(DISTINCT LOWER(...)) rather than ->distinct()->count() on the
+        // raw column - the same guest checking out once as "Foo@Bar.com"
+        // and again as "foo@bar.com" must dedupe to one customer, matching
+        // excludingTestOrders()'s own case-insensitive email comparison.
+        return (int) $this->excludingTestOrders(
+            Order::query()
+                ->whereNull('user_id')
+                ->whereNotNull('customer_email')
+                ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Failed])
+        )->select(DB::raw('COUNT(DISTINCT LOWER(customer_email)) as count'))->value('count');
     }
 
     /**

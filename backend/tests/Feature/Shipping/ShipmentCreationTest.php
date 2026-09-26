@@ -299,6 +299,180 @@ class ShipmentCreationTest extends TestCase
     }
 
     /**
+     * Regression test for a real reported bug: a Bulgarian address
+     * combining a city, a residential complex, and a boulevard ("гр.
+     * Бургас, ж.к. Меден рудник, бул. Александър Георгиев -
+     * Коджакафалията 278") made createShipment() fail outright, because
+     * Speedy's real API rejects address.streetName once it passes 50
+     * characters and nothing was capping it. Fixed by recognizing "ж.к."
+     * and sending the complex name as its own real field (complexName -
+     * confirmed against Speedy's published Address schema) instead of
+     * leaving it jumbled inside streetName, which also means this
+     * particular address no longer even needs truncating.
+     */
+    #[Test]
+    public function creating_a_speedy_shipment_sends_the_residential_complex_as_its_own_field(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-COMPLEX-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_address_line' => 'гр. Бургас, ж.к. Меден рудник, бул. Александър Георгиев - Коджакафалията 278',
+        ]);
+
+        $shipment = $this->app->make(ShippingService::class)->createShipment($order);
+
+        $this->assertSame('SPEEDY-COMPLEX-1', $shipment->tracking_number);
+
+        Http::assertSent(function ($request) {
+            if (! str_ends_with($request->url(), '/shipment')) {
+                return false;
+            }
+
+            $address = $request['recipient']['address'];
+
+            return $address['complexName'] === 'Меден рудник'
+                && $address['streetName'] === 'бул. Александър Георгиев - Коджакафалията'
+                && $address['streetNo'] === '278';
+        });
+    }
+
+    /**
+     * Regression test for a second real reported bug found while verifying
+     * the one above: an address ending "...бл. 5, ет. 2" made
+     * splitStreetAndNumber() grab the trailing number (2, the *floor*) as
+     * the street number, wrongly leaving "бл. 5" (the actual block number)
+     * as junk text inside streetName. blockNo/floorNo are real, separate
+     * Speedy Address fields - each recognized token is now pulled out
+     * before the street/number split ever runs.
+     */
+    #[Test]
+    public function creating_a_speedy_shipment_separates_block_entrance_floor_and_apartment_from_the_street(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-COMPONENTS-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_address_line' => 'бул. Цар Борис III 41, бл. 2, вх. Б, ет. 4, ап. 12',
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            if (! str_ends_with($request->url(), '/shipment')) {
+                return false;
+            }
+
+            $address = $request['recipient']['address'];
+
+            return $address['streetName'] === 'бул. Цар Борис III'
+                && $address['streetNo'] === '41'
+                && $address['blockNo'] === '2'
+                && $address['entranceNo'] === 'Б'
+                && $address['floorNo'] === '4'
+                && $address['apartmentNo'] === '12';
+        });
+    }
+
+    /**
+     * The exact address that surfaced the block/floor mix-up above: no
+     * street at all, just a residential complex and a block/floor - the
+     * floor number (2) must not end up as streetNo just because it's the
+     * last number in the line.
+     */
+    #[Test]
+    public function a_complex_and_block_address_with_no_street_does_not_mistake_the_floor_for_the_street_number(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-COMPONENTS-2', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_city' => 'гр. Приселци',
+            'shipping_address_line' => 'гр. Приселци, ж.к. Дружба, бл. 5, ет. 2',
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            if (! str_ends_with($request->url(), '/shipment')) {
+                return false;
+            }
+
+            $address = $request['recipient']['address'];
+
+            return $address['complexName'] === 'Дружба'
+                && $address['blockNo'] === '5'
+                && $address['floorNo'] === '2'
+                && $address['streetNo'] === '0';
+        });
+    }
+
+    /**
+     * shipping_apartment (a dedicated column checkout already collects) is
+     * used as a fallback for apartmentNo only when the free-text address
+     * line didn't already spell one out with "ап." itself.
+     */
+    #[Test]
+    public function the_dedicated_apartment_column_is_sent_when_the_address_line_has_no_apartment_of_its_own(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-APARTMENT-1', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_address_line' => 'ul. Vitosha 25A',
+            'shipping_apartment' => '7',
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) {
+            return str_ends_with($request->url(), '/shipment')
+                && $request['recipient']['address']['apartmentNo'] === '7';
+        });
+    }
+
+    /**
+     * When even the last (most specific) segment alone still doesn't fit
+     * under 50 characters, there's nothing left to drop - it falls back to
+     * a hard character cut rather than sending nothing.
+     */
+    #[Test]
+    public function a_street_name_that_still_does_not_fit_after_dropping_every_other_segment_is_hard_truncated(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response(['id' => 'SPEEDY-LONG-STREET-2', 'clientId' => 12345, 'client' => ['clientName' => 'Test Sender Co']])]);
+
+        $longSingleSegment = str_repeat('ул', 40).' 5';
+
+        $order = Order::factory()->create([
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'shipping_delivery_type' => ShippingDeliveryType::Address,
+            'shipping_office_id' => null,
+            'shipping_address_line' => $longSingleSegment,
+        ]);
+
+        $this->app->make(ShippingService::class)->createShipment($order);
+
+        Http::assertSent(function ($request) use ($longSingleSegment) {
+            if (! str_ends_with($request->url(), '/shipment')) {
+                return false;
+            }
+
+            $streetName = $request['recipient']['address']['streetName'];
+
+            return mb_strlen($streetName) === 50
+                && $streetName === mb_substr(str_repeat('ул', 40), 0, 50);
+        });
+    }
+
+    /**
      * Speedy rejects `shipment/cancel` with fewer than 4 characters in
      * `comment`, despite the schema marking it optional - confirmed live.
      * Nothing upstream of SpeedyShippingProvider is guaranteed to supply a

@@ -5,8 +5,17 @@
  * styles in components.css that these deliberately don't touch.
  */
 
+/* overflow: clip, not hidden — hidden forces overflow-y to compute as
+   auto too (the CSS rule: one non-visible axis makes the other compute as
+   auto instead of visible), which makes this element register as a
+   scroll container for any position: sticky descendant's purposes even
+   though it never actually scrolls itself (no explicit height — it just
+   grows to fit content, so its own scrollTop is permanently 0, real
+   scrolling happens on the document). A sticky element computing against
+   a container that never moves just never activates. clip still stops
+   horizontal bleed (e.g. the hero ribbon) without that side effect. */
 .funnel-page {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Uniform breathing room before and after every section. This replaces
@@ -311,6 +320,19 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
+}
+
+/* The delivery/card/cash/quality-guarantee line icons (see FunnelIcons.tsx)
+   are a full illustration reaching close to their own viewBox edges, not a
+   pre-cropped circular photo — no background badge behind them and no
+   circular clip on the image itself, unlike --photo above. */
+.funnel-trust-item__icon--svg {
+  background-color: transparent;
+}
+
+.funnel-trust-item__icon--svg img {
+  width: 100%;
+  height: 100%;
 }
 
 .funnel-trust-item__label {

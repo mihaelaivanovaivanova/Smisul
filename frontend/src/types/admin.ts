@@ -139,13 +139,15 @@ export interface LogEntry {
 export interface AdminReview {
   id: number;
   rating: number;
-  title: string;
+  /** Null for reviews submitted through the guest wizard, which doesn't collect one. */
+  title: string | null;
   body: string;
   status: 'pending' | 'approved' | 'rejected' | 'hidden';
   verified_purchase: boolean;
   helpful_count: number;
   created_at: string;
-  customer: { id: number; name: string; email: string };
+  /** id/email are null for a guest-wizard review, which has no user account. */
+  customer: { id: number | null; name: string; email: string | null };
   product: { id: number; name: string; slug: string };
   order_id: number;
   admin_reply: string | null;

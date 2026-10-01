@@ -65,7 +65,7 @@ export default function PackageOffers({ offers, showImages = false }: PackageOff
                 />
               </div>
             )}
-            <span className="funnel-package-card__badge">{pkg.badge}</span>
+            {pkg.badge && <span className="funnel-package-card__badge">{pkg.badge}</span>}
             <h3 className="funnel-package-card__detail h5 mb-0">{pkg.detail}</h3>
             <p className="funnel-package-card__value mb-0">{pkg.value_label}</p>
             <div className="funnel-package-card__price-row">

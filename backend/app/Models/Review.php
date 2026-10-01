@@ -34,6 +34,10 @@ class Review extends Model
         'admin_reply',
         'admin_reply_at',
         'admin_replied_by',
+        'email',
+        'display_name',
+        'is_anonymous',
+        'confirmed_at',
     ];
 
     protected function casts(): array
@@ -44,6 +48,8 @@ class Review extends Model
             'verified_purchase' => 'boolean',
             'helpful_count' => 'integer',
             'admin_reply_at' => 'datetime',
+            'is_anonymous' => 'boolean',
+            'confirmed_at' => 'datetime',
         ];
     }
 

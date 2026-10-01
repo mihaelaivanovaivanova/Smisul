@@ -42,10 +42,24 @@ class ReviewResource extends JsonResource
     }
 
     /**
-     * First name + last initial — full last names aren't shown publicly.
+     * Anonymous takes priority regardless of what display_name holds (the
+     * wizard still collects it even when "publish as anonymous" is
+     * checked). display_name covers every review submitted through the
+     * guest wizard. The user-relation fallback is for reviews created
+     * through the older authenticated-only flow, which predates
+     * display_name and always has a user_id — first name + last initial,
+     * since full last names aren't shown publicly.
      */
     private function authorDisplayName(): string
     {
+        if ($this->is_anonymous) {
+            return 'Анонимен клиент';
+        }
+
+        if ($this->display_name !== null && $this->display_name !== '') {
+            return $this->display_name;
+        }
+
         $user = $this->user;
         $lastInitial = $user->last_name !== '' ? mb_substr($user->last_name, 0, 1).'.' : '';
 

@@ -23,7 +23,11 @@ class FunnelPackagesRequest extends FormRequest
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'packages' => ['required', 'array', 'size:4'],
             'packages.*.variant_id' => ['required', 'integer'],
-            'packages.*.badge' => ['required', 'string', 'max:255'],
+            // nullable, not required — not every package has one (e.g. the
+            // 1-pack/3-pack "try it"/"starter" tiers dropped theirs by
+            // request); PackageRadioSelector.tsx and friends already treat
+            // an absent badge as "render nothing".
+            'packages.*.badge' => ['nullable', 'string', 'max:255'],
             'packages.*.detail' => ['required', 'string', 'max:255'],
             'packages.*.value_label' => ['required', 'string', 'max:255'],
             'packages.*.button_text' => ['required', 'string', 'max:255'],

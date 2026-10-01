@@ -233,7 +233,12 @@ function ProductPageDefault({ slug }: { slug: string }) {
 
       <div className="row mt-5">
         <div className="col-12 col-lg-8">
-          <ReviewsSection productSlug={product.slug} writePrompt={writePrompt} />
+          <ReviewsSection
+            productSlug={product.slug}
+            productName={product.name}
+            productImageUrl={images[0]?.url}
+            writePrompt={writePrompt}
+          />
         </div>
       </div>
     </div>

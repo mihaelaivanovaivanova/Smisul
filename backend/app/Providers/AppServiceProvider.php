@@ -121,6 +121,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(3)->by($request->ip());
         });
 
+        RateLimiter::for('review-submission', function ($request) {
+            return Limit::perMinute(3)->by($request->ip());
+        });
+
         RateLimiter::for('funnel-leads', function ($request) {
             return Limit::perMinute(3)->by($request->ip());
         });

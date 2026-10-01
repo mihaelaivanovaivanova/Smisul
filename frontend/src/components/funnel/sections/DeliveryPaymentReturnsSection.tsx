@@ -1,9 +1,13 @@
-import { TrustIcon } from '../FunnelIcons';
-import { funnelAssurance } from '../../../content/copy';
+import TrustAndPaymentRow from '../TrustAndPaymentRow';
 import type { FunnelTrustItem } from '../../../types/funnel';
 
 interface DeliveryPaymentReturnsSectionProps {
   trustItems: FunnelTrustItem[];
+  /** Miswak page passes "d-lg-none" here — on desktop this same content
+   * renders inside PurchasePanel's own right column instead (see its
+   * TrustAndPaymentRow usage), so this top-level section is mobile-only
+   * there. Unused (no-op) on the live funnel page. */
+  className?: string;
 }
 
 /**
@@ -28,14 +32,10 @@ interface DeliveryPaymentReturnsSectionProps {
  *   shape, cropped to the same visual height as the Apple Pay mark beside
  *   it (its stock viewBox has a lot of transparent padding around the
  *   badge, which made it render smaller than Apple Pay at the same
- *   `height`). Last is a plain icon (public/icons/cash-on-delivery.png,
- *   CC0/no-attribution per its iconpacks.net source) for "Наложен платеж"
- *   — no label here (icon-only, by request), unlike the trust row's own
- *   "Наложен платеж" item, which keeps the hand-drawn Icon.tsx banknote
- *   glyph and its label (also by request — the two aren't meant to match).
- * - Payment copy: funnelAssurance.paymentCopy — the section's own
- *   "Сигурно онлайн плащане" heading was dropped (by request); the
- *   remaining fine print covers this whole logos row, cash icon included.
+ *   `height`). The cash-on-delivery icon that used to sit at the end of
+ *   this row (and the "Сигурно онлайн плащане" fine print above it) were
+ *   both dropped by request — COD is still covered by the trust row's own
+ *   "Наложен платеж" item above.
  *
  * className list keeps "funnel-final-cta" purely for a mobile CSS rule
  * (`.funnel-final-cta .funnel-trust-item` tightens padding at <=575px —
@@ -44,34 +44,14 @@ interface DeliveryPaymentReturnsSectionProps {
  * carry the "funnel-checkout" classes since this section has no purchase
  * mechanics of its own.
  */
-export default function DeliveryPaymentReturnsSection({ trustItems }: DeliveryPaymentReturnsSectionProps) {
+export default function DeliveryPaymentReturnsSection({ trustItems, className = '' }: DeliveryPaymentReturnsSectionProps) {
   return (
-    <section className="section funnel-hero-tone funnel-final-cta" id="delivery-payment-returns">
+    <section
+      className={`section funnel-hero-tone funnel-final-cta ${className}`.trim()}
+      id="delivery-payment-returns"
+    >
       <div className="container">
-        <div className="funnel-trust-row funnel-final-cta__trust">
-          {trustItems.map((item) => (
-            <div className="funnel-trust-item" key={item.label}>
-              <TrustIcon icon={item.icon} />
-              <span className="funnel-trust-item__label">{item.label}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="funnel-payment-block">
-          <p className="funnel-payment-block__copy">{funnelAssurance.paymentCopy}</p>
-          <div className="funnel-payment-logos" role="img" aria-label={funnelAssurance.paymentLogosAria}>
-            <img src="/payments/visa-2021.svg" alt="Visa" height={18} loading="lazy" />
-            <img src="/payments/mastercard.svg" alt="Mastercard" height={30} loading="lazy" />
-            <img src="/payments/amex.png" alt="American Express" height={30} loading="lazy" />
-            <img src="/payments/apple-pay.svg" alt="Apple Pay" height={30} loading="lazy" />
-            <img src="/payments/google-pay.svg" alt="Google Pay" height={30} loading="lazy" />
-            {/* Not a card-network logo (there's no "brand mark" for cash) —
-                covers the same CashOnDelivery option the trust row's own
-                "Наложен платеж" item (icon + label) already advertises;
-                icon-only here since this row is otherwise bare marks. */}
-            <img src="/icons/cash-on-delivery.png" alt="Наложен платеж" height={30} loading="lazy" />
-          </div>
-        </div>
+        <TrustAndPaymentRow trustItems={trustItems} />
       </div>
     </section>
   );

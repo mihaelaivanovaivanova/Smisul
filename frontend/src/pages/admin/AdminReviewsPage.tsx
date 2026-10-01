@@ -217,7 +217,7 @@ export default function AdminReviewsPage() {
                     </td>
                     <td>{review.rating} / 5</td>
                     <td style={{ maxWidth: '20rem' }}>
-                      <div className="fw-semibold">{review.title}</div>
+                      {review.title && <div className="fw-semibold">{review.title}</div>}
                       <div
                         className={`text-muted small ${expandedIds.includes(review.id) ? '' : 'text-truncate'}`}
                         role="button"

@@ -25,10 +25,13 @@ class ReviewResource extends JsonResource
             'verified_purchase' => $this->verified_purchase,
             'helpful_count' => $this->helpful_count,
             'created_at' => $this->created_at->toIso8601String(),
+            // A guest-wizard review has no user row — email/display_name
+            // live on the review itself in that case (see the reviews
+            // table's guest-confirmation-flow migration).
             'customer' => [
-                'id' => $this->user->id,
-                'name' => $this->user->fullName(),
-                'email' => $this->user->email,
+                'id' => $this->user?->id,
+                'name' => $this->display_name ?? $this->user?->fullName() ?? 'Гост',
+                'email' => $this->email ?? $this->user?->email,
             ],
             'product' => [
                 'id' => $this->product->id,

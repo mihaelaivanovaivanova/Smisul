@@ -96,18 +96,19 @@ class FunnelSeeder extends Seeder
 
             $variant->inventory()->update(['quantity_on_hand' => $definition['stock']]);
 
-            // Per-pack-size gallery photo (real product packaging shots,
-            // one per pack count) — by request, so switching "Разфасовка"
-            // on the product page swaps the gallery to match. Only set for
-            // pack sizes with a real photo on hand; variants without a
-            // 'gallery_image' key here just fall back to the product's own
-            // gallery (see getGalleryImagesForVariant() on the frontend).
-            if (isset($definition['gallery_image'])) {
+            // Per-pack-size gallery photo(s) (real product packaging shots)
+            // — by request, so switching "Разфасовка" on the product page
+            // swaps the gallery to match. A variant with no entry here
+            // just falls back to the product's own gallery (see
+            // getGalleryImagesForVariant() on the frontend).
+            foreach ($this->variantGalleryImages()[$definition['sku']] ?? [] as $index => $image) {
                 $this->seedVariantImage(
                     $variant,
-                    $definition['gallery_image'],
-                    "products/variants/{$definition['sku']}.jpg",
+                    $image['source'],
+                    "products/variants/{$image['dest']}",
                     "Miswak - опаковка {$definition['pack_size']} бр.",
+                    $index,
+                    $index === 0,
                 );
             }
         }
@@ -120,19 +121,54 @@ class FunnelSeeder extends Seeder
             'og_description' => 'Натурална четка за зъби директно от природата.',
         ]);
 
-        $this->seedImage($product, 'hero-miswak-hand.webp', 'products/miswak-hero-hand.webp', 'Ръка, която държи Miswak', 0, true);
-        $this->seedImage($product, 'miswak-closeup.jpg', 'products/miswak-closeup.jpg', 'Близък план на подготвен връх на Miswak', 1, false);
-        $this->seedImage($product, 'miswak-bundle.webp', 'products/miswak-bundle.webp', 'Miswak натурални пръчици', 2, false);
-        // The real retail package photo (gift-pack bundle) — added alongside
-        // the staged lifestyle/studio shots above, not replacing them.
-        $this->seedImage($product, 'miswak-package-real.jpg', 'products/miswak-package-real.jpg', 'Miswak в оригиналната опаковка', 3, false);
-        // Powers HowToUseSection's optional demo clip (frontend/src/components/
-        // funnel/sections/HowToUseSection.tsx) - the video isn't mounted/
-        // requested until the visitor clicks the poster's play button, so
-        // this ~44MB file is never loaded automatically.
-        $this->seedVideo($product, 'miswak-how-to-use.mp4', 'products/miswak-how-to-use.mp4', 'Демонстрация как се използва Miswak', 4);
+        // The wooden-holder product shots - the real gallery as of
+        // 2026-10-01, after the staged lifestyle shots (hero hand, closeup,
+        // bundle, gift-pack real-package photo) and the long how-to-use
+        // demo video were removed per direct request (git history has the
+        // removed seedImage/seedVideo calls and source files if ever
+        // wanted back).
+        $this->seedImage($product, 'miswak-holder-stick.png', 'products/miswak-holder-stick.png', 'Miswak пръчица в дървен калъф', 0, true);
+        $this->seedImage($product, 'miswak-holder-hand.png', 'products/miswak-holder-hand.png', 'Miswak пръчица в ръка', 1, false);
+        $this->seedImage($product, 'miswak-holder-loose-stick.png', 'products/miswak-holder-loose-stick.png', 'Miswak пръчица до отворен дървен калъф', 2, false);
+        $this->seedImage($product, 'miswak-holder-closeup.png', 'products/miswak-holder-closeup.png', 'Близък план на Miswak пръчица и дървен калъф', 3, false);
+        $this->seedImage($product, 'miswak-holder-flat.png', 'products/miswak-holder-flat.png', 'Miswak пръчица и дървен калъф', 4, false);
+        // Short admin-uploaded clip - kept at its originally-uploaded hash
+        // filename (not renamed) so re-seeding matches this exact existing
+        // row instead of creating a duplicate.
+        $this->seedVideo($product, 'miswak-usage-clip.mp4', 'products/zFXJ9k2DyQM3moG8AX49iCgfK4s2SbHneE9YwDDw.mp4', '', 6);
 
         return $product;
+    }
+
+    /**
+     * Gallery photos per variant SKU, in display order (index 0 is the
+     * variant's primary/first photo). Destination filenames for the first
+     * generation of these (the "-alt" sources below) keep their original
+     * upload-hash names rather than being renamed to something readable -
+     * intentional, so re-seeding an existing install matches those rows by
+     * path and updates them in place instead of creating duplicates.
+     * MISWAK-5 has only one photo: its second one was removed 2026-10-01
+     * per direct request (see variantDefinitions()'s own note).
+     */
+    private function variantGalleryImages(): array
+    {
+        return [
+            'MISWAK-1' => [
+                ['source' => 'miswak-variant-1-alt.png', 'dest' => 'HEBZppxlVyTH5Hmo4Jbw7yzqAu9vRthJXgupXU2c.png'],
+                ['source' => 'miswak-variant-1.jpg', 'dest' => 'MISWAK-1.jpg'],
+            ],
+            'MISWAK-3' => [
+                ['source' => 'miswak-variant-3-alt.png', 'dest' => 'nMGFUFG2t3J12JkWYabrC2zJqNBcn3XAeWaclbah.png'],
+                ['source' => 'miswak-variant-3.jpg', 'dest' => 'MISWAK-3.jpg'],
+            ],
+            'MISWAK-5' => [
+                ['source' => 'miswak-variant-5-alt.png', 'dest' => 'yn3X7K8X95pcmVCMieRgatguQqJ03YjWRFg3APn9.png'],
+            ],
+            'MISWAK-10' => [
+                ['source' => 'miswak-variant-10-alt.png', 'dest' => 'ABMiZjPRCqR8zs56vybVYj0VEQJL8wFJGgbZgga7.png'],
+                ['source' => 'miswak-variant-10.jpg', 'dest' => 'MISWAK-10.jpg'],
+            ],
+        ];
     }
 
     /**
@@ -146,8 +182,12 @@ class FunnelSeeder extends Seeder
      * now correctly returns false for all of these; no bundle is
      * actually "on sale". Real, defensible savings are computed instead
      * in PackageOffers.tsx by comparing each bundle's price against
-     * pack_size × the verified 1-stick price (€3.99) - the same
-     * methodology as the doc's own "Saving vs. single price" column.
+     * pack_size × the live 1-stick price - the same methodology as the
+     * doc's own "Saving vs. single price" column.
+     *
+     * Prices updated again 2026-10-01 per direct request (4.29 / 11.49 /
+     * 17.99 / 34.49) - supersedes the doc-sourced 3.99/10.99/17.49/32.99
+     * figures above.
      *
      * is_default moved from MISWAK-3 to MISWAK-5 per the doc: "The
      * 5-pack should be pre-selected by default on the product page
@@ -156,10 +196,10 @@ class FunnelSeeder extends Seeder
     private function variantDefinitions(): array
     {
         return [
-            ['sku' => 'MISWAK-1', 'name' => '1 бр.', 'pack_size' => 1, 'amount' => 3.99, 'stock' => 200, 'gallery_image' => 'miswak-pack-1.jpg'],
-            ['sku' => 'MISWAK-3', 'name' => '3 бр.', 'pack_size' => 3, 'amount' => 10.99, 'stock' => 200, 'gallery_image' => 'miswak-pack-3.jpg'],
-            ['sku' => 'MISWAK-5', 'name' => '5 бр.', 'pack_size' => 5, 'is_default' => true, 'amount' => 17.49, 'stock' => 200, 'gallery_image' => 'miswak-pack-5.jpg'],
-            ['sku' => 'MISWAK-10', 'name' => '10 бр.', 'pack_size' => 10, 'amount' => 32.99, 'stock' => 200, 'gallery_image' => 'miswak-pack-10.jpg'],
+            ['sku' => 'MISWAK-1', 'name' => '1 бр.', 'pack_size' => 1, 'amount' => 4.29, 'stock' => 200],
+            ['sku' => 'MISWAK-3', 'name' => '3 бр.', 'pack_size' => 3, 'amount' => 11.49, 'stock' => 200],
+            ['sku' => 'MISWAK-5', 'name' => '5 бр.', 'pack_size' => 5, 'is_default' => true, 'amount' => 17.99, 'stock' => 200],
+            ['sku' => 'MISWAK-10', 'name' => '10 бр.', 'pack_size' => 10, 'amount' => 34.49, 'stock' => 200],
         ];
     }
 
@@ -175,7 +215,7 @@ class FunnelSeeder extends Seeder
             [
                 'disk' => 'public',
                 'filename' => basename($path),
-                'mime_type' => str_ends_with($path, '.jpg') ? 'image/jpeg' : 'image/webp',
+                'mime_type' => $this->imageMimeTypeFor($path),
                 'size' => Storage::disk('public')->size($path),
                 'alt_text' => $altText,
                 'sort_order' => $sortOrder,
@@ -186,13 +226,19 @@ class FunnelSeeder extends Seeder
 
     /**
      * Same as seedImage() above but attaches to a ProductVariant instead of
-     * the Product - a single, sort_order-0 photo per variant is enough
-     * (there's no per-variant gallery/thumbnail strip, just the one photo
-     * the product page swaps to on pack-size selection), so isPrimary isn't
-     * a parameter here.
+     * the Product. A variant can have more than one gallery photo (see
+     * variantGalleryImages()) - sortOrder/isPrimary work exactly like
+     * seedImage()'s, defaulting to "the only/first photo" for the common
+     * single-image-per-variant case.
      */
-    private function seedVariantImage(ProductVariant $variant, string $sourceFilename, string $path, string $altText): void
-    {
+    private function seedVariantImage(
+        ProductVariant $variant,
+        string $sourceFilename,
+        string $path,
+        string $altText,
+        int $sortOrder = 0,
+        bool $isPrimary = true,
+    ): void {
         $sourcePath = __DIR__."/assets/funnel/{$sourceFilename}";
         $contents = file_get_contents($sourcePath);
 
@@ -203,13 +249,28 @@ class FunnelSeeder extends Seeder
             [
                 'disk' => 'public',
                 'filename' => basename($path),
-                'mime_type' => 'image/jpeg',
+                'mime_type' => $this->imageMimeTypeFor($path),
                 'size' => Storage::disk('public')->size($path),
                 'alt_text' => $altText,
-                'sort_order' => 0,
-                'is_primary' => true,
+                'sort_order' => $sortOrder,
+                'is_primary' => $isPrimary,
             ],
         );
+    }
+
+    /**
+     * jpg/png/webp cover every image this seeder attaches - seedImage()
+     * used to hardcode jpg-or-else-webp (fine while every non-jpg source
+     * was a webp), but seedVariantImage() now also seeds png sources, so
+     * both need the real extension, not a two-way guess.
+     */
+    private function imageMimeTypeFor(string $path): string
+    {
+        return match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            default => 'image/jpeg',
+        };
     }
 
     /**
@@ -267,14 +328,12 @@ class FunnelSeeder extends Seeder
             'packages' => [
                 [
                     'variant_id' => $variantIds['MISWAK-1'],
-                    'badge' => 'ОПИТАЙ РАЗЛИКАТА',
                     'detail' => '1 брой',
                     'value_label' => 'Само да пробвам първо',
                     'button_text' => 'ИЗБИРАМ 1 БРОЙ',
                 ],
                 [
                     'variant_id' => $variantIds['MISWAK-3'],
-                    'badge' => 'ЗА НАЧАЛО',
                     'detail' => '3 броя',
                     'value_label' => 'Един у дома. Един в чантата. Един в офиса.',
                     'button_text' => 'ИЗБИРАМ 3 БРОЯ',
@@ -444,11 +503,11 @@ class FunnelSeeder extends Seeder
                     ['label' => 'Удобен извън дома', 'miswak_value' => '✓', 'brush_value' => '✕'],
                     ['label' => 'Без паста', 'miswak_value' => '✓', 'brush_value' => '✕'],
                     ['label' => 'Навсякъде и по всяко време', 'miswak_value' => '✓', 'brush_value' => '△'],
-                    ['label' => 'Лесен за носене', 'miswak_value' => '✓', 'brush_value' => '△'],
                     ['label' => 'Без пластмаса', 'miswak_value' => '✓', 'brush_value' => '✕'],
                     ['label' => 'Стандартна домашна рутина', 'miswak_value' => 'Допълва', 'brush_value' => '✓'],
                     ['label' => '100% биоразградим', 'miswak_value' => '✓', 'brush_value' => '✕'],
                     ['label' => 'Без консумативи', 'miswak_value' => '✓', 'brush_value' => '✕'],
+                    ['label' => 'Избелващи свойства', 'miswak_value' => '✓', 'brush_value' => '✕'],
                 ],
                 'closing' => 'Две решения за различни моменти от деня.',
             ],
@@ -575,7 +634,7 @@ class FunnelSeeder extends Seeder
                 'items' => [
                     [
                         'question' => 'Как се използва Miswak?',
-                        'answer' => 'Използването на Miswak е лесно и интуитивно. Отстранете около 1–2 см от кората в единия край и леко сдъвчете дървесните влакна, докато се разтворят и образуват естествена "четка". След това почиствайте зъбите с нежни движения, подобно на обикновена четка за зъби.  Когато влакната се износят, просто ги отрежете с няколко милиметра и повторете процеса. Един Miswak може да се използва в продължение на няколко седмици, в зависимост от честотата на употреба.  За най-добри резултати го съхранявайте на сухо и проветриво място между отделните използвания.',
+                        'answer' => 'Използването на Miswak е лесно и интуитивно. Отстранете около 1–2 см от кората в единия край, потопете обеления край във вода за 5-10 мин до омекване и леко сдъвчете дървесните влакна, докато се разтворят и образуват естествена "четка". След това почиствайте зъбите с нежни движения, подобно на обикновена четка за зъби.  Когато влакната се износят, просто ги отрежете с няколко милиметра и повторете процеса.',
                         'attachment_url' => '/funnel/docs/miswak-usage-manual.pdf',
                         'attachment_label' => 'Изтегли упътване за употреба (PDF)',
                     ],
@@ -587,7 +646,7 @@ class FunnelSeeder extends Seeder
                     [
                         // = old "Колко време издържа един Miswak?" (question retitled to match the requested order; answer unchanged).
                         'question' => 'Колко време се използва един Miswak?',
-                        'answer' => 'Продължителността на употреба зависи от това колко често го използвате.  Средно една клонка може да служи между две и четири седмици при редовна употреба.  Когато влакната се износят, е достатъчно да отрежете малка част от върха и да оформите нова естествена четка.  Това прави Miswak не само практичен, но и изключително икономичен избор.',
+                        'answer' => 'Един Miswak може да се използва в продължение на няколко седмици, в зависимост от честотата на употреба. При редовна употреба - между 2 и 4 седмици, а като допълнение към рутината - до 2 месеца, при добра подръжка и правилно съхранение. Когато влакната се износят, е достатъчно да отрежете малка част от върха и да оформите нова естествена четка. Това прави Miswak не само практичен, но и изключително икономичен избор.',
                     ],
                     [
                         // = old "Има ли срок на годност?" - that content was
@@ -618,23 +677,6 @@ class FunnelSeeder extends Seeder
                         // species info with product sourcing, now Q7).
                         'question' => 'Какво е Salvadora persica?',
                         'answer' => 'Salvadora persica е растение, което естествено расте в сухите райони на Близкия изток, Северна и Източна Африка, както и части от Южна Азия. От хилядолетия клонките му се използват за поддържане на устната хигиена в много култури - именно от тях е направен Miswak.',
-                    ],
-                    [
-                        // New - same verified PMIDs cited in funnel.science, not new claims.
-                        'question' => 'Има ли научни изследвания?',
-                        'answer' => 'Да. Salvadora persica е обект на клинични изследвания за ролята ѝ в ежедневната устна хигиена - систематични прегледи отчитат ефект върху контрола на зъбната плака, сравним с този на стандартна четка за зъби, както и антибактериална активност. Виж повече в раздел "Древен навик. Съвременни доказателства." по-горе.',
-                    ],
-                    [
-                        // FLAGGED TO USER: no verified child-safety/medical
-                        // guidance exists anywhere in ai/context/ or
-                        // elsewhere in this project (the old answer here
-                        // asserted "yes, under parental supervision" with no
-                        // cited basis - an unverified claim this rewrite
-                        // deliberately does not carry forward). This answer
-                        // states that honestly instead of inventing an age
-                        // recommendation or a supervision/safety claim.
-                        'question' => 'Подходящ ли е за деца?',
-                        'answer' => 'Нямаме официално потвърдени препоръки за употреба от деца. Ако имаш въпроси относно подходящата възраст или начин на използване, препоръчваме консултация със зъболекар.',
                     ],
                 ],
             ],

@@ -27,7 +27,7 @@ export default function PackageOfferSummary({ offer, offers }: PackageOfferSumma
 
   return (
     <div className="product-package-summary">
-      <span className="product-package-summary__badge">{pkg.badge}</span>
+      {pkg.badge && <span className="product-package-summary__badge">{pkg.badge}</span>}
       <div className="product-package-summary__price-row">
         <span className="product-package-summary__price">{formatPrice(price.amount, price.currency)}</span>
         {savingsPercent !== null && savingsPercent > 0 && (

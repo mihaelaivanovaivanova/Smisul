@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(playwright-cli find *)"
+      "Bash(playwright-cli find *)",
+      "Read(//c/Users/Mihaela/Downloads/**)"
     ]
   }
 }

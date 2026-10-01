@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AddReviewWizard from './AddReviewWizard';
 import ReviewCard from './ReviewCard';
 import ReviewForm from './ReviewForm';
 import StarRating from './StarRating';
@@ -16,15 +17,18 @@ import type { Review, ReviewSortOption } from '../../types/review';
 
 interface ReviewsSectionProps {
   productSlug: string;
+  productName: string;
+  productImageUrl?: string;
   /** Set when arriving from a delivered order's "write a review" link (see OrderConfirmationPage). */
   writePrompt?: { orderId: number; productVariantId: number };
 }
 
-export default function ReviewsSection({ productSlug, writePrompt }: ReviewsSectionProps) {
+export default function ReviewsSection({ productSlug, productName, productImageUrl, writePrompt }: ReviewsSectionProps) {
   const { isAuthenticated } = useAuth();
   const [sort, setSort] = useState<ReviewSortOption>('newest');
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(Boolean(writePrompt));
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -109,6 +113,18 @@ export default function ReviewsSection({ productSlug, writePrompt }: ReviewsSect
         </div>
       )}
 
+      {/* Always visible (no login or eligibility check up front) — the wizard
+          itself checks eligibility by the typed email at submission time.
+          Hidden while the writePrompt banner/form above is active, so the
+          visitor never sees two "write a review" entry points at once. */}
+      {!writePrompt && !isFormOpen && (
+        <div className="d-flex justify-content-center mb-4">
+          <button type="button" className="btn btn-warning text-white px-5 py-1" onClick={() => setIsWizardOpen(true)}>
+            {reviewsCopy.writeReview}
+          </button>
+        </div>
+      )}
+
       {isFormOpen && writePrompt && (
         <ReviewForm
           createContext={editingReview ? undefined : { orderId: writePrompt.orderId, productVariantId: writePrompt.productVariantId }}
@@ -118,6 +134,15 @@ export default function ReviewsSection({ productSlug, writePrompt }: ReviewsSect
             setIsFormOpen(false);
             setEditingReview(undefined);
           }}
+        />
+      )}
+
+      {isWizardOpen && (
+        <AddReviewWizard
+          productSlug={productSlug}
+          productName={productName}
+          productImageUrl={productImageUrl}
+          onClose={() => setIsWizardOpen(false)}
         />
       )}
 
@@ -156,7 +181,7 @@ export default function ReviewsSection({ productSlug, writePrompt }: ReviewsSect
             ))}
           </div>
           <div className="mt-3">
-            <Pagination meta={list.meta} onPageChange={setPage} />
+            <Pagination meta={list.meta} onPageChange={setPage} variant="minimal" />
           </div>
         </>
       )}

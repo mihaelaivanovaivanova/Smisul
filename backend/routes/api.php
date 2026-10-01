@@ -143,6 +143,17 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/{slug}/reviews', [ProductController::class, 'reviews'])->name('products.reviews.index');
     Route::get('/products/{slug}/reviews/summary', [ProductController::class, 'reviewsSummary'])->name('products.reviews.summary');
 
+    // Guest-friendly "Add a review" wizard (ReviewsSection.tsx /
+    // AddReviewWizard.tsx) — public, eligibility checked by the typed email
+    // rather than a login session, so guest checkouts can be reviewed too.
+    // See ReviewService::submitForConfirmation/confirm.
+    Route::post('/products/{slug}/reviews/submit', [ProductController::class, 'submitReview'])
+        ->middleware('throttle:review-submission')
+        ->name('products.reviews.submit');
+    Route::get('/reviews/{review}/confirm', [ReviewController::class, 'confirm'])
+        ->middleware('signed')
+        ->name('reviews.confirm');
+
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
     Route::get('/categories/{slug}/products', [CategoryController::class, 'products'])->name('categories.products');

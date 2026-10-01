@@ -1,9 +1,12 @@
+import Icon from '../icons/Icon';
 import type { PaginationMeta } from '../../types/product';
 import { listing } from '../../content/copy';
 
 interface PaginationProps {
   meta: PaginationMeta;
   onPageChange: (page: number) => void;
+  /** 'default' (unchanged) is Bootstrap's own bordered pagination — every admin page and OrdersPage rely on that exact look. 'minimal' is a plain-text/circle-number style (by request, for ReviewsSection specifically) — same component, same page-window logic, just different markup/classNames so it doesn't touch the shared .pagination/.page-item/.page-link Bootstrap classes the default variant still uses. */
+  variant?: 'default' | 'minimal';
 }
 
 type PageEntry = number | 'ellipsis';
@@ -33,12 +36,61 @@ function getPageEntries(current: number, last: number): PageEntry[] {
   return entries;
 }
 
-export default function Pagination({ meta, onPageChange }: PaginationProps) {
+export default function Pagination({ meta, onPageChange, variant = 'default' }: PaginationProps) {
   if (meta.last_page <= 1) {
     return null;
   }
 
   const entries = getPageEntries(meta.current_page, meta.last_page);
+
+  if (variant === 'minimal') {
+    return (
+      <nav aria-label={listing.paginationAria}>
+        <ul className="miswak-pagination">
+          <li>
+            <button
+              type="button"
+              className="miswak-pagination__arrow"
+              onClick={() => onPageChange(meta.current_page - 1)}
+              disabled={meta.current_page === 1}
+              aria-label={listing.previous}
+            >
+              <Icon name="chevron-left" />
+            </button>
+          </li>
+          {entries.map((entry, index) =>
+            entry === 'ellipsis' ? (
+              <li key={`ellipsis-${index}`} className="miswak-pagination__ellipsis" aria-hidden="true">
+                &hellip;
+              </li>
+            ) : (
+              <li key={entry}>
+                <button
+                  type="button"
+                  className={`miswak-pagination__page ${entry === meta.current_page ? 'is-active' : ''}`}
+                  aria-current={entry === meta.current_page ? 'page' : undefined}
+                  onClick={() => onPageChange(entry)}
+                >
+                  {entry}
+                </button>
+              </li>
+            ),
+          )}
+          <li>
+            <button
+              type="button"
+              className="miswak-pagination__arrow"
+              onClick={() => onPageChange(meta.current_page + 1)}
+              disabled={meta.current_page === meta.last_page}
+              aria-label={listing.next}
+            >
+              <Icon name="chevron-right" />
+            </button>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
 
   return (
     <nav aria-label={listing.paginationAria}>

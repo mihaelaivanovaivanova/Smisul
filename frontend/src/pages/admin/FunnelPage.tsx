@@ -851,8 +851,12 @@ function PackagesForm({ initial, onSaved }: { initial: FunnelAdminPayload; onSav
               </select>
             </div>
             <div className="col-6 col-md-2">
-              <label className="form-label">Badge</label>
-              <input className="form-control" value={pkg.badge} onChange={(event) => updatePackage(index, { badge: event.target.value })} required />
+              <label className="form-label">Badge (optional)</label>
+              <input
+                className="form-control"
+                value={pkg.badge ?? ''}
+                onChange={(event) => updatePackage(index, { badge: event.target.value })}
+              />
             </div>
             <div className="col-6 col-md-2">
               <label className="form-label">Detail</label>

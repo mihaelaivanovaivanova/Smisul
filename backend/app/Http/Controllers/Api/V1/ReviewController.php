@@ -61,4 +61,15 @@ class ReviewController extends Controller
 
         return response()->json(['data' => $this->reviews->markHelpful($review, $request->user())]);
     }
+
+    /**
+     * Confirms a review submitted through the guest "Add a review" wizard —
+     * public, no auth (the visitor who submitted it may not have an
+     * account), protected instead by the route's own `signed` middleware,
+     * which validates the URL before this method ever runs.
+     */
+    public function confirm(Review $review): JsonResponse
+    {
+        return response()->json(['data' => new ReviewResource($this->reviews->confirm($review))]);
+    }
 }

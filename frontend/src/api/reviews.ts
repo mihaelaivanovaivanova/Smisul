@@ -1,6 +1,17 @@
 import { apiClient } from './client';
 import type { PaginatedResponse } from '../types/product';
-import type { CreateReviewPayload, Review, ReviewSortOption, ReviewSummary, UpdateReviewPayload } from '../types/review';
+import type {
+  CreateReviewPayload,
+  Review,
+  ReviewSortOption,
+  ReviewSummary,
+  SubmitReviewPayload,
+  UpdateReviewPayload,
+} from '../types/review';
+
+interface ApiMessage {
+  message: string;
+}
 
 export async function fetchProductReviews(
   slug: string,
@@ -20,6 +31,16 @@ export async function fetchReviewSummary(slug: string): Promise<ReviewSummary> {
 
 export async function fetchMyReviews(): Promise<Review[]> {
   const { data } = await apiClient.get<{ data: Review[] }>('/customer/reviews');
+  return data.data;
+}
+
+export async function submitReviewForConfirmation(slug: string, payload: SubmitReviewPayload): Promise<string> {
+  const { data } = await apiClient.post<ApiMessage>(`/products/${slug}/reviews/submit`, payload);
+  return data.message;
+}
+
+export async function confirmReview(reviewId: string, params: { expires: string; signature: string }): Promise<Review> {
+  const { data } = await apiClient.get<{ data: Review }>(`/reviews/${reviewId}/confirm`, { params });
   return data.data;
 }
 

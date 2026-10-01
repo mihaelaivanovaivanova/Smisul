@@ -162,7 +162,8 @@ export type FunnelSection = keyof FunnelContent;
 
 export interface FunnelPackage {
   variant_id: number;
-  badge: string;
+  /** Not every package has one (e.g. the 1-pack/3-pack "try it"/"starter" tiers dropped theirs by request) — PackageRadioSelector.tsx's own `{pkg.badge && ...}` already renders nothing when absent. */
+  badge?: string;
   detail: string;
   value_label: string;
   button_text: string;

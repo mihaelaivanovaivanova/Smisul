@@ -23,6 +23,7 @@ import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ReviewConfirmPage from './pages/ReviewConfirmPage';
 import ProfilePage from './pages/ProfilePage';
 import OrdersPage from './pages/OrdersPage';
 import FavoritesPage from './pages/FavoritesPage';
@@ -124,6 +125,7 @@ export default function App() {
 
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email/:id/:hash" element={<VerifyEmailPage />} />
+        <Route path="/reviews/confirm/:reviewId" element={<ReviewConfirmPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />

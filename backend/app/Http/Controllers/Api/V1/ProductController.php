@@ -6,6 +6,7 @@ use App\DataTransferObjects\ProductFilterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\ProductIndexRequest;
 use App\Http\Requests\Review\ReviewIndexRequest;
+use App\Http\Requests\Review\SubmitReviewRequest;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ProductVariantResource;
 use App\Http\Resources\ReviewResource;
@@ -62,5 +63,23 @@ class ProductController extends Controller
         $product = $this->products->findBySlug($slug, publishedOnly: true);
 
         return response()->json(['data' => $this->reviews->summaryFor($product)]);
+    }
+
+    /**
+     * Powers the storefront's "Add a review" wizard — public, no auth
+     * required (eligibility is checked by the typed email, not a login
+     * session, so guest checkouts can be reviewed too). Always returns the
+     * same generic message regardless of whether the email actually
+     * matched an eligible order — see ReviewService::submitForConfirmation.
+     */
+    public function submitReview(SubmitReviewRequest $request, string $slug): JsonResponse
+    {
+        $product = $this->products->findBySlug($slug, publishedOnly: true);
+
+        $this->reviews->submitForConfirmation($product, $request->validated());
+
+        return response()->json([
+            'message' => 'Ако имейлът отговаря на доставена поръчка за този продукт, ще получиш писмо за потвърждение.',
+        ]);
     }
 }

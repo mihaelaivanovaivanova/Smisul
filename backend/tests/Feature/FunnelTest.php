@@ -140,7 +140,11 @@ class FunnelTest extends TestCase
         $this->assertSame(10, Review::query()->where('product_id', $product->id)->approved()->count());
         $this->getJson('/api/v1/products/miswak/reviews')
             ->assertOk()
-            ->assertJsonCount(10, 'data')
+            // The endpoint paginates 4 per page (ReviewService::listForProduct) -
+            // all 10 still exist, just across pages.
+            ->assertJsonCount(4, 'data')
+            ->assertJsonPath('meta.total', 10)
+            ->assertJsonPath('meta.per_page', 4)
             // Sorted newest-first by default - Иван Николов's review has
             // the smallest days_ago in ReviewSeeder::REVIEWS.
             ->assertJsonPath('data.0.verified_purchase', true)

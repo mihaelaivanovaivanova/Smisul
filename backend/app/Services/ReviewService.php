@@ -9,6 +9,7 @@ use App\Events\Review\ReviewApproved;
 use App\Events\Review\ReviewRejected;
 use App\Events\Review\ReviewReplied;
 use App\Exceptions\ReviewNotEligibleException;
+use App\Mail\ReviewConfirmationMail;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -18,6 +19,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Throwable;
 
 class ReviewService
 {
@@ -58,6 +63,131 @@ class ReviewService
         if ($alreadyReviewed) {
             throw ReviewNotEligibleException::alreadyReviewed();
         }
+    }
+
+    /**
+     * Powers the storefront's "Add a review" flow — finds the most recent
+     * Delivered order for this product whose customer_email matches
+     * (case-insensitively), regardless of whether that order belongs to a
+     * registered account or was placed as a guest (orders.customer_email is
+     * always populated either way — see OrderService::create()). This is
+     * what lets a guest checkout be reviewed at all: guest orders have no
+     * user_id, so an auth-session-based lookup could never find them.
+     * Mirrors assertEligible's own three rules (purchased, delivered, not
+     * already reviewed) as a query instead of a per-order check, since here
+     * there's no single order in hand yet — this finds one. Returns the
+     * order_id and the specific variant of this product that order actually
+     * contains, or null if no such order exists.
+     *
+     * The "not already reviewed" rule is per email+product here, not just
+     * per order+product (unlike assertEligible, which only ever sees one
+     * order at a time) — by request, one review per product per email, even
+     * if that email has several delivered orders containing it. Checked
+     * before confirmation too: a still-unconfirmed submission already
+     * counts as "written", so a stray retry can't queue up a second one
+     * waiting on the same or a different email link.
+     *
+     * @return array{order_id: int, product_variant_id: int}|null
+     */
+    public function findEligibleOrderForEmail(string $email, Product $product): ?array
+    {
+        $alreadyReviewed = Review::query()
+            ->where('product_id', $product->id)
+            ->where(DB::raw('LOWER(email)'), Str::lower($email))
+            ->exists();
+
+        if ($alreadyReviewed) {
+            return null;
+        }
+
+        $variantIds = $product->variants()->pluck('id');
+
+        $order = Order::query()
+            ->where(DB::raw('LOWER(customer_email)'), Str::lower($email))
+            ->where('status', OrderStatus::Delivered)
+            ->whereHas('items', fn ($query) => $query->whereIn('product_variant_id', $variantIds))
+            ->latest()
+            ->first();
+
+        if (! $order) {
+            return null;
+        }
+
+        $variantId = $order->items()->whereIn('product_variant_id', $variantIds)->value('product_variant_id');
+
+        return ['order_id' => $order->id, 'product_variant_id' => $variantId];
+    }
+
+    /**
+     * Entry point for the guest-friendly "Add a review" wizard. Never
+     * reveals whether the typed email actually matched anything — the
+     * caller (ProductController::submitReview) returns the same generic
+     * "check your email" response either way, so this method's return type
+     * is void rather than a success/failure result that could leak through.
+     * A non-matching email is a silent no-op: no review row, no email sent.
+     *
+     * The review is created immediately (status Pending, confirmed_at null)
+     * rather than staged elsewhere, so the existing unique(order_id,
+     * product_id) constraint still prevents a duplicate submission outright,
+     * and confirming later is just a two-column update via confirm().
+     *
+     * @param  array{rating: int, title?: ?string, body: string, email: string, display_name: string, is_anonymous?: bool}  $data
+     */
+    public function submitForConfirmation(Product $product, array $data): void
+    {
+        $eligible = $this->findEligibleOrderForEmail($data['email'], $product);
+
+        if ($eligible === null) {
+            return;
+        }
+
+        $review = Review::create([
+            'order_id' => $eligible['order_id'],
+            'product_id' => $product->id,
+            'product_variant_id' => $eligible['product_variant_id'],
+            'rating' => $data['rating'],
+            'title' => $data['title'] ?? null,
+            'body' => $data['body'],
+            'email' => $data['email'],
+            'display_name' => $data['display_name'],
+            'is_anonymous' => $data['is_anonymous'] ?? false,
+            'status' => ReviewStatus::Pending,
+            'verified_purchase' => true,
+        ]);
+
+        // A mail transport failure must never turn into a 500 for the
+        // visitor — the same "attempt and log, don't let it break the
+        // primary action" convention SendOrderStatusEmails::send() uses.
+        // The review row above is already saved either way; only the
+        // notification is best-effort.
+        try {
+            Mail::to($data['email'])->send(new ReviewConfirmationMail($review));
+        } catch (Throwable $exception) {
+            Log::error('Could not send the review confirmation email.', [
+                'review_id' => $review->id,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Idempotent — a second click on the same email link (or a page
+     * refresh) just returns the already-confirmed review rather than
+     * erroring.
+     */
+    public function confirm(Review $review): Review
+    {
+        if ($review->confirmed_at !== null) {
+            return $review;
+        }
+
+        $review->update([
+            'confirmed_at' => now(),
+            'status' => ReviewStatus::Approved,
+        ]);
+
+        return $review;
     }
 
     /**
@@ -106,7 +236,7 @@ class ReviewService
     /**
      * @return LengthAwarePaginator<int, Review>
      */
-    public function listForProduct(Product $product, string $sort, int $page, int $perPage = 10): LengthAwarePaginator
+    public function listForProduct(Product $product, string $sort, int $page, int $perPage = 4): LengthAwarePaginator
     {
         $query = Review::query()
             ->where('product_id', $product->id)
@@ -186,8 +316,13 @@ class ReviewService
         if ($filters->search !== null && $filters->search !== '') {
             $term = "%{$filters->search}%";
             $query->where(function ($query) use ($term) {
+                // email/display_name cover guest reviews directly (no user
+                // row to join through); the orWhereHas('user') branch still
+                // covers the authenticated-flow reviews that predate them.
                 $query->where('title', 'like', $term)
                     ->orWhere('body', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('display_name', 'like', $term)
                     ->orWhereHas('user', function ($query) use ($term) {
                         $query->where('email', 'like', $term)
                             ->orWhere('first_name', 'like', $term)

@@ -969,3 +969,84 @@
   font-weight: 600;
   background-color: var(--bs-tertiary-bg);
 }
+
+/* ---- Minimal pagination (Pagination.tsx's "minimal" variant) ---- */
+/* By request, for ReviewsSection specifically (shared between the regular
+   product page and the Miswak redesign) — plain numbers/chevrons instead
+   of Bootstrap's bordered .page-item/.page-link boxes, which every other
+   Pagination usage (admin pages, OrdersPage) keeps unchanged via the
+   component's default variant. --bs-warning matches StarRating's own
+   .text-warning fill right above this in the reviews section, so the
+   active page reads as the same accent color as the star ratings. */
+
+.miswak-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.miswak-pagination__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-charcoal);
+  transition: background-color 0.15s ease;
+}
+
+.miswak-pagination__arrow svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.miswak-pagination__arrow:hover:not(:disabled) {
+  background-color: var(--color-sand);
+}
+
+.miswak-pagination__arrow:disabled {
+  color: var(--color-muted-light);
+  cursor: default;
+}
+
+.miswak-pagination__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.25rem;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-charcoal);
+  font-weight: 600;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.miswak-pagination__page:hover {
+  background-color: var(--color-sand);
+}
+
+.miswak-pagination__page.is-active {
+  background-color: var(--bs-warning);
+  color: var(--color-charcoal);
+}
+
+.miswak-pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  color: var(--color-muted-light);
+}

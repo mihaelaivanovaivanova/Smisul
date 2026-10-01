@@ -87,8 +87,23 @@
   height: 1.25rem;
 }
 
+/* Desktop-only sticky gallery — see PurchasePanel.tsx. `top` is set inline
+   from the live navbar height. The row's own default flex stretch makes
+   this element's wrapping column as tall as the (taller) info column
+   beside it, which is what gives this sticky child room to stay pinned
+   while the page scrolls past, unsticking once that column's bottom is
+   reached — same behavior as juun.bg's reference layout. (A JS
+   reimplementation of this lived here briefly after sticky initially
+   appeared broken — see PurchasePanel.tsx's docblock for the real cause,
+   fixed in funnel.css instead.) */
+@media (min-width: 992px) {
+  .miswak-purchase__gallery-sticky {
+    position: sticky;
+  }
+}
+
 .miswak-purchase__title {
-  font-size: var(--fs-2xl);
+  font-size: var(--fs-3xl);
   margin-bottom: var(--space-2);
 }
 
@@ -98,7 +113,27 @@
   gap: var(--space-2);
   margin-bottom: var(--space-3);
   color: var(--color-muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-lg);
+}
+
+.miswak-purchase__from-price {
+  font-weight: 700;
+  font-size: var(--fs-xl);
+  margin-bottom: var(--space-3);
+}
+
+/* Deliberately switches to the heading serif (the same one "Miswak" above
+   uses) rather than the body sans-serif the description right above this
+   uses — bigger and bolder alone reads as "the same text, just louder";
+   pairing that with a distinct typeface is what actually makes it register
+   as its own standalone statement instead of a continuation. */
+.miswak-purchase__tagline {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  color: var(--color-forest);
+  max-width: 32rem;
+  margin-bottom: var(--space-3);
 }
 
 /* ---- Trust bullets (before the package selector) ---- */
@@ -229,6 +264,15 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
+  margin-top: -1.8rem;
+}
+
+/* A package with no discount (e.g. the 1-pack) never renders
+   .miswak-package-option__price-original — the price stack above is one
+   line shorter, so pulling this row up by the same amount as a discounted
+   card overshoots and overlaps the price itself. Pulled up less here to
+   land in the same place a full price stack would put it. */
+.miswak-package-option__bottom--no-original-price {
   margin-top: -0.6rem;
 }
 
@@ -262,6 +306,27 @@
 .miswak-package-selector__cta .btn {
   width: 100%;
   border-radius: var(--radius-pill);
+}
+
+/* ---- Delivery/payment trust row, desktop-only inside the purchase panel ---- */
+
+/* Reuses funnel.css's own .funnel-trust-row/.funnel-final-cta__trust
+   layout (see TrustAndPaymentRow.tsx) as-is. An earlier version forced
+   flex-wrap: wrap here since this column is roughly half the container
+   width funnel.css's own nowrap rule was tuned for — by request, this now
+   keeps all 5 items on one line here too, letting them flex-shrink below
+   their 11rem basis (.funnel-final-cta__trust .funnel-trust-item already
+   has flex-shrink enabled) to fit. 3 classes here outweighs funnel.css's
+   2-class rule regardless of stylesheet order, so this always wins
+   without needing !important. */
+@media (min-width: 992px) {
+  .funnel-trust-row.funnel-final-cta__trust.miswak-purchase__trust-row {
+    flex-wrap: nowrap;
+  }
+}
+
+.miswak-purchase__trust {
+  margin-top: var(--space-5);
 }
 
 /* ---- Generic carousel (Experts / UGC video / UGC gallery) ---- */
@@ -405,6 +470,57 @@
   font-size: var(--fs-xs);
 }
 
+/* ---- Expert cards (image slides, ExpertCardsSection) ---- */
+
+.miswak-expert-card-slide {
+  position: relative;
+  scroll-snap-align: start;
+  flex: 0 0 86%;
+}
+
+@media (min-width: 576px) {
+  .miswak-expert-card-slide {
+    flex-basis: calc(50% - var(--space-3) / 2);
+  }
+}
+
+@media (min-width: 768px) {
+  .miswak-expert-card-slide {
+    flex-basis: calc((100% - 2 * var(--space-3)) / 3);
+  }
+}
+
+.miswak-expert-card-slide__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Sits directly over the card image's own drawn "Виж изследването"
+   button — measured pixel-for-pixel against the actual card graphic
+   (891x1373, after cropping away its outer canvas margin): button spans
+   roughly x 230-661, y 1222-1281, i.e. left 25.8%/top 89.0%/width
+   48.4%/height 4.3% of the card. All 4 cards share the identical
+   template, so one set of percentages covers all of them. The subtle
+   hover tint is the only visual change this adds — the button itself is
+   already fully drawn into the image. */
+.miswak-expert-card-slide__link {
+  position: absolute;
+  left: 25.8%;
+  top: 89%;
+  width: 48.4%;
+  height: 4.3%;
+  border-radius: var(--radius-pill);
+  transition: background-color 0.15s ease;
+}
+
+.miswak-expert-card-slide__link:hover,
+.miswak-expert-card-slide__link:focus-visible {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* ---- UGC video cards ---- */
 
 .miswak-video-card {
@@ -478,34 +594,351 @@
 
 /* ---- Audience claims (icon tabs) ---- */
 
+/* One shared pill (not each tab its own separate circle) - the active tab
+   is a solid capsule inside it, the rest are bare outline icons on the
+   pill's own background. overflow-x auto is a safety net only: 6 icons at
+   the sizes below fit a 375px viewport without scrolling, this just
+   guards against a narrower device or a 7th tab added later. */
 .miswak-audience-tabs {
   display: flex;
-  justify-content: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
+  align-items: center;
+  /* Full-width on mobile, tabs spread edge-to-edge across it (by request)
+     - width: fit-content + justify-content: center (desktop's own compact
+     look, see the min-width override below) would instead pack all 6 into
+     a small centered pill with dead space on either side. */
+  justify-content: space-between;
+  gap: 0.25rem;
+  width: 100%;
+  margin: 0 auto var(--space-5);
+  padding: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface);
+  overflow-x: auto;
+}
+
+@media (min-width: 768px) {
+  .miswak-audience-tabs {
+    /* Wider than fit-content's tightly-packed cluster (by request) —
+       capped rather than full-bleed 100% so it still reads as a pill, not
+       a bar stretched edge to edge across a wide desktop viewport.
+       space-between (matching mobile) spreads the 6 icons across that
+       width instead of leaving them clustered in the middle of a wider
+       empty box. */
+    width: 100%;
+    max-width: 34rem;
+    justify-content: space-between;
+  }
 }
 
 .miswak-audience-tabs__tab {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface);
-  color: var(--color-forest);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.miswak-audience-tabs__tab img {
+  /* Bigger than the tab circle's own 2.75rem might suggest (by request —
+     the icons read as too small/unclear at 1.5rem); the circle itself
+     (and so the pill bar's overall height) is untouched. */
+  width: 2.125rem;
+  height: 2.125rem;
 }
 
 .miswak-audience-tabs__tab.is-active {
-  background-color: var(--color-forest);
-  color: #fff;
+  background-color: var(--color-forest-dark);
+}
+
+/* The icon files are flat single-color line art with a hardcoded gray
+   stroke (see public/funnel/v2/icon-claim-*.svg) — loaded via <img src>,
+   so neither currentColor nor a CSS variable can reach into them (an
+   img-embedded SVG is rendered in an isolated context with no access to
+   the host page's CSS). brightness(0) invert(1) is the standard reliable
+   way to force a flat-color icon to solid white regardless of its source
+   color, for the active tab's dark background. */
+.miswak-audience-tabs__tab.is-active img {
+  filter: brightness(0) invert(1);
 }
 
 .miswak-audience-claim__image {
   width: 100%;
   border-radius: var(--radius-md);
+}
+
+/* Bigger than a plain .h4 (by request) — heading font/weight already come
+   from the global h1-h6 rule, this just bumps the size. Shared by
+   ClaimText, so it applies on both the desktop panel and the mobile
+   slider's own slides (all 6 claims, not just the panel view). */
+.miswak-audience-claim__title {
+  font-size: var(--fs-xl);
+}
+
+/* Extra breathing room between the image and text columns, desktop panel
+   only — by request, without touching the image (own column width/
+   position unchanged). Added as left padding on the text column alone
+   rather than widening the row's own g-4 gutter, since a wider gutter
+   would shrink both 50/50 columns (including the image's) to fit the
+   same container width. */
+@media (min-width: 768px) {
+  .miswak-audience-claim__text {
+    padding-left: var(--space-6);
+  }
+}
+
+/* Mobile-only swipeable slider (AudienceClaimsSection.tsx, gated d-md-none
+   in JSX) — same scroll-snap mechanics as .miswak-gallery-carousel__track
+   (GalleryCarousel.tsx), just without arrow buttons since the tab bar
+   above already doubles as both a nav control and a position indicator. */
+.miswak-audience-claim-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.miswak-audience-claim-track::-webkit-scrollbar {
+  display: none;
+}
+
+.miswak-audience-claim-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+/* ---- How-to-use accordion (mobile-only, HowToUseAccordionMobile.tsx) ---- */
+
+.miswak-howtouse__divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  color: var(--color-forest);
+}
+
+.miswak-howtouse__divider::before,
+.miswak-howtouse__divider::after {
+  content: '';
+  width: 2.5rem;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+/* Mobile: accordion, then video+CTA, stacked in that order (default flex
+   column). Desktop: side by side — accordion left, video+CTA right —
+   matching this page's other two-column sections' own lg breakpoint. */
+.miswak-howtouse__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+@media (min-width: 992px) {
+  .miswak-howtouse__layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-4);
+    max-width: 60rem;
+    margin-inline: auto;
+  }
+
+  /* Fixed (not flex-grow) width on the accordion specifically — narrower
+     and capped rather than a proportional share of the row, so it sits in
+     a tighter block near the middle instead of stretching to fill its
+     share of the full 60rem row; the video absorbs whatever space that
+     leaves via its own flex-grow. */
+  .miswak-howtouse-accordion {
+    flex: 0 1 22rem;
+    min-width: 0;
+    margin-left: 6rem;
+  }
+
+  .miswak-howtouse__side {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+}
+
+.miswak-howtouse-accordion {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (min-width: 992px) {
+  /* Widened from the base 0.75rem so the 6 items' combined height (items
+     + gaps) lands flush with the video column's own height (22rem-wide
+     video wrap at its 9:16 aspect ratio) — by request, so the last
+     step's bottom edge lines up with the video's bottom edge. Tuned
+     against this specific item height/count, not derived via calc(),
+     since item height is itself content-driven (circle + padding), not
+     a value this rule can reference directly. Declared after the base
+     rule above (not inside that same lg+ block further up, where an
+     earlier version of this put it) — same selector, same media
+     condition, so source order alone decided the winner, and the base
+     rule declared later in the file was winning regardless. */
+  .miswak-howtouse-accordion {
+    gap: 2.57rem;
+  }
+}
+
+/* Positioned to run through the center of the 2.75rem number badges below
+   (half of 2.75rem = 1.375rem) — behind them (z-index), so each badge
+   visually breaks the line rather than the line drawing over it. */
+.miswak-howtouse-accordion__line {
+  position: absolute;
+  top: 1.375rem;
+  bottom: 1.375rem;
+  left: 1.375rem;
+  width: 2px;
+  background-color: var(--color-border);
+  z-index: 0;
+}
+
+/* The border/background/radius live here, on the item, not the toggle —
+   with the collapsible body mounted as a sibling of the toggle inside
+   this same box, an open item renders as one continuous card (header +
+   body sharing one border/tint), matching the reference. Putting them on
+   the toggle instead (an earlier version did this) made the header look
+   like its own separate pill floating above an unrelated, unbordered
+   paragraph once opened. overflow: hidden clips the body-wrap's grid
+   animation to the card's own rounded corners. */
+.miswak-howtouse-accordion__item {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.miswak-howtouse-accordion__item.is-active {
+  border-color: var(--color-forest);
+  background-color: rgba(36, 54, 44, 0.06);
+}
+
+.miswak-howtouse-accordion__toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background-color: transparent;
+  text-align: left;
+}
+
+.miswak-howtouse-accordion__number {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background-color: var(--color-forest-dark);
+  color: #fff;
+  font-weight: 700;
+}
+
+.miswak-howtouse-accordion__label {
+  flex: 1 1 auto;
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+/* chevron-right rotated 90deg reads as "down" (collapsed) / -90deg as
+   "up" (open) — reusing that glyph rather than adding a dedicated
+   chevron-down/up pair to Icon.tsx's shared icon set for this one spot. */
+.miswak-howtouse-accordion__chevron {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  transform: rotate(90deg);
+  transition: transform 0.2s ease-out;
+}
+
+.miswak-howtouse-accordion__item.is-active .miswak-howtouse-accordion__chevron {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miswak-howtouse-accordion__chevron {
+    transition: none;
+  }
+}
+
+/* Same grid-rows 0fr -> 1fr collapse animation as
+   .funnel-faq-answer-wrap/.funnel-faq-answer (funnel.css) — see that
+   pair's own comments for why (real-height animation, no max-height
+   guesswork; visibility flips after close so collapsed panels leave the
+   a11y tree without cutting the closing transition short). */
+.miswak-howtouse-accordion__body-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.35s ease,
+    opacity 0.3s ease,
+    visibility 0s linear 0.35s;
+}
+
+.miswak-howtouse-accordion__body-wrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 0.35s ease,
+    opacity 0.3s ease 0.05s,
+    visibility 0s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miswak-howtouse-accordion__body-wrap {
+    transition: none;
+  }
+}
+
+.miswak-howtouse-accordion__body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Left padding lines the text up under the toggle's own label, not its
+   number circle: toggle's left padding (space-4) + circle width (2.75rem)
+   + the gap before the label (space-3), the exact same three values the
+   toggle itself uses to place the label. */
+.miswak-howtouse-accordion__body-inner {
+  padding: 0 var(--space-4) var(--space-3) calc(var(--space-4) + 2.75rem + var(--space-3));
+  color: var(--color-muted);
+}
+
+/* funnel.css's .funnel-video__wrap video carries a clip-path (trims an
+   AI-generation watermark at the very top of this product's demo clip,
+   10px in from the other three sides) that its own poster-button <img>
+   sibling never gets. Matching that same inset onto the poster image (an
+   earlier version of this rule did that) just moved the problem: since
+   .funnel-video__poster-button has its own dark background showing
+   through the inset gap, both states then showed an unwanted black frame
+   around the footage instead of a clean jump. Removing the clip-path
+   entirely instead — for both the poster and the real video, so they're
+   flush/edge to edge and stay perfectly aligned between the two states,
+   with no frame either way. Scoped to this component's own video block,
+   not funnel.css itself, which the live "/" page's own instance of this
+   same video block still relies on for its own watermark trim. */
+.miswak-howtouse__video .funnel-video__poster-button img,
+.miswak-howtouse__video .funnel-video__wrap video {
+  clip-path: none;
 }
 
 /* ---- Evidence ---- */
@@ -524,4 +957,228 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* ---- Media mention (BNT segment) ---- */
+
+/* 16:9 — a TV broadcast clip, not a vertical demo clip like
+   .funnel-video__wrap (9:16), which this otherwise mirrors. */
+.miswak-media-mention__wrap {
+  max-width: 40rem;
+  aspect-ratio: 16 / 9;
+}
+
+.miswak-media-mention__play-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-forest-dark);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.miswak-media-mention__thumbnail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
+
+.miswak-media-mention__play-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.85);
+  color: var(--color-forest-dark);
+  font-size: 1.75rem;
+  transition: background-color 0.15s ease;
+}
+
+.miswak-media-mention__play-button:hover .miswak-media-mention__play-icon,
+.miswak-media-mention__play-button:focus-visible .miswak-media-mention__play-icon {
+  background-color: #fff;
+}
+
+.miswak-media-mention__link {
+  margin-top: var(--space-2);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.miswak-media-mention__disclaimer {
+  max-width: 40rem;
+  margin-top: var(--space-2);
+  text-align: left;
+  font-style: italic;
+  font-size: var(--fs-xs);
+  color: var(--color-muted-light, var(--color-muted));
+}
+
+/* ---- Social comments (SocialCommentsSection) ---- */
+
+.miswak-social-comments__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.miswak-social-comments__header .section-title {
+  text-wrap: balance;
+}
+
+.miswak-social-comments__pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.miswak-social-comments__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background-color: rgba(142, 148, 103, 0.16);
+  color: var(--color-forest);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.miswak-social-comments__pill svg {
+  color: var(--color-sage);
+  width: 1em;
+  height: 1em;
+}
+
+.miswak-social-comments__grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.miswak-social-comments__card {
+  margin: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--color-surface);
+}
+
+.miswak-social-comments__card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.miswak-social-comments__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: rgba(142, 148, 103, 0.16);
+  color: var(--color-forest);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.miswak-social-comments__tag svg {
+  color: var(--color-sage);
+  width: 1em;
+  height: 1em;
+}
+
+.miswak-social-comments__summary {
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background-color: rgba(142, 148, 103, 0.16);
+}
+
+.miswak-social-comments__summary h3 {
+  font-size: var(--fs-lg);
+  margin-bottom: var(--space-4);
+  color: var(--color-forest);
+}
+
+.miswak-social-comments__summary ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.miswak-social-comments__summary li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-charcoal);
+  font-weight: 600;
+}
+
+.miswak-social-comments__summary li svg {
+  flex-shrink: 0;
+  width: 1.5em;
+  height: 1.5em;
+  padding: 0.25em;
+  border-radius: 50%;
+  background-color: var(--color-forest);
+  color: #fff;
+}
+
+@media (min-width: 992px) {
+  .miswak-social-comments__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas:
+      'c1 c2 c2'
+      'c3 c4 c5'
+      'c3 c4 summary';
+    align-items: start;
+    gap: var(--space-4);
+  }
+
+  .miswak-social-comments__card--1 {
+    grid-area: c1;
+  }
+
+  .miswak-social-comments__card--2 {
+    grid-area: c2;
+  }
+
+  .miswak-social-comments__card--3 {
+    grid-area: c3;
+  }
+
+  .miswak-social-comments__card--4 {
+    grid-area: c4;
+  }
+
+  .miswak-social-comments__card--5 {
+    grid-area: c5;
+  }
+
+  .miswak-social-comments__summary {
+    grid-area: summary;
+  }
 }

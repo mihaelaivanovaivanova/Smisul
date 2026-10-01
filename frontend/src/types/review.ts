@@ -1,7 +1,8 @@
 export interface Review {
   id: number;
   rating: number;
-  title: string;
+  /** Null for reviews submitted through the guest wizard, which doesn't collect one. */
+  title: string | null;
   body: string;
   author_name: string;
   verified_purchase: boolean;
@@ -37,4 +38,13 @@ export interface UpdateReviewPayload {
   rating?: number;
   title?: string;
   body?: string;
+}
+
+/** Payload for the guest-friendly "Add a review" wizard — eligibility is checked by `email`, not a login session. No title: the wizard collects just a rating and free-text review. */
+export interface SubmitReviewPayload {
+  rating: number;
+  body: string;
+  email: string;
+  display_name: string;
+  is_anonymous: boolean;
 }

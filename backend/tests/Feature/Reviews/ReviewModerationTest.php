@@ -55,6 +55,25 @@ class ReviewModerationTest extends TestCase
     }
 
     #[Test]
+    public function an_admin_can_list_a_guest_submitted_review_with_no_user_account(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $review = Review::factory()->create([
+            'user_id' => null,
+            'email' => 'guest@example.com',
+            'display_name' => 'Guest Reviewer',
+        ]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/reviews');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.customer.id', null);
+        $response->assertJsonPath('data.0.customer.name', 'Guest Reviewer');
+        $response->assertJsonPath('data.0.customer.email', 'guest@example.com');
+        $response->assertJsonPath('data.0.id', $review->id);
+    }
+
+    #[Test]
     public function an_admin_can_approve_a_pending_review_and_the_author_is_notified(): void
     {
         Notification::fake();

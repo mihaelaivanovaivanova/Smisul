@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import AddToCartButton from '../product/AddToCartButton';
 import StockStatus from '../product/StockStatus';
 import { computeOriginalPrice, computeSavingsPercent } from '../../services/funnelOffers';
@@ -23,8 +22,6 @@ interface PackageRadioSelectorProps {
  * plan — the live funnel page keeps its existing per-card buy buttons.
  */
 export default function PackageRadioSelector({ offers, selectedIndex, onSelect }: PackageRadioSelectorProps) {
-  const navigate = useNavigate();
-
   if (offers.length === 0) {
     return null;
   }
@@ -93,10 +90,7 @@ export default function PackageRadioSelector({ offers, selectedIndex, onSelect }
           label={selected.pkg.button_text}
           size="lg"
           hideQuantity
-          onAdded={() => {
-            trackFunnelAddToCart(selected.price.amount, selected.price.currency);
-            navigate('/cart');
-          }}
+          onAdded={() => trackFunnelAddToCart(selected.price.amount, selected.price.currency)}
         />
       </div>
     </div>

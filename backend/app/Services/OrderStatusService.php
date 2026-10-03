@@ -48,7 +48,16 @@ class OrderStatusService
         OrderStatus::Completed->value => [OrderStatus::Refunded],
         OrderStatus::Cancelled->value => [OrderStatus::Refunded],
         OrderStatus::Refunded->value => [],
-        OrderStatus::Failed->value => [OrderStatus::Pending, OrderStatus::Cancelled],
+        // A retry after Failed mints a fresh Payment (see PaymentService::
+        // initiate()'s own docblock), so a later webhook/reconcile reporting
+        // *that* attempt Paid must still be able to land here - without
+        // AwaitingPayment/Paid/Confirmed listed, confirmPayment()/
+        // confirmCashOnDelivery() throw InvalidOrderStatusTransitionException,
+        // which rolls back the whole DB::transaction() in handleWebhook()/
+        // reconcile() - so even the Payment row's own status update to Paid
+        // was being lost, not just the order's. Confirmed via a real bug
+        // report: a successful second attempt left both stuck at Failed.
+        OrderStatus::Failed->value => [OrderStatus::Pending, OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Confirmed, OrderStatus::Cancelled],
     ];
 
     /**

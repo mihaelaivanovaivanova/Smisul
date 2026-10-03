@@ -238,6 +238,17 @@ Route::prefix('v1')->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
 
+    // The 30-day reminder email's "Остави ревю" link resolves this order's
+    // customer_email/customer_first_name so the review wizard can skip
+    // asking for them again - works for a registered customer's order too
+    // (which has no guest_access_token - see OrderService::placeOrder())
+    // without requiring them to be logged in, same `signed` middleware,
+    // no-other-auth-needed pattern as reviews.confirm (see
+    // ReviewConfirmationMail/ReviewController::confirm).
+    Route::get('/orders/{order}/review-identity', [OrderController::class, 'reviewIdentity'])
+        ->middleware('signed')
+        ->name('orders.review-identity');
+
     // Shipment tracking: same ownership rules as the order it belongs to
     // (see ShipmentController::authorizeAccess) — no auth:sanctum
     // middleware, since guests place and track orders too.

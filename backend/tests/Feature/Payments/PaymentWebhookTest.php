@@ -156,6 +156,46 @@ class PaymentWebhookTest extends TestCase
     }
 
     /**
+     * Real bug report: a customer's first card attempt is declined (order
+     * -> Failed), they retry and the second attempt succeeds, but the order
+     * stayed stuck at Failed forever. Root cause was
+     * OrderStatusService::TRANSITIONS not listing Paid as reachable from
+     * Failed - confirmPayment() threw InvalidOrderStatusTransitionException,
+     * which rolled back the whole DB::transaction() this webhook handler
+     * runs in, silently losing even the new Payment row's own status update
+     * to Paid, not just the order's.
+     */
+    #[Test]
+    public function a_successful_retry_after_a_failed_attempt_marks_the_order_paid(): void
+    {
+        [$order, $firstPayment, $variant] = $this->placeAwaitingPaymentOrder(stock: 10, quantity: 2);
+        $this->postWebhook($firstPayment, 'declined')->assertOk();
+        $this->assertSame(OrderStatus::Failed, $order->fresh()->status);
+
+        // A retry mints a fresh Payment rather than reusing the declined
+        // one (see PaymentService::initiate()'s own docblock).
+        $retry = $this->postJson("/api/v1/payments/{$order->id}/initiate?token={$order->guest_access_token}", [
+            'payment_method' => 'card',
+        ])->assertOk();
+        $secondPayment = Payment::findOrFail($retry->json('data.id'));
+        $this->assertNotSame($firstPayment->id, $secondPayment->id);
+        // The retry itself should already reflect that a new attempt is in
+        // flight, not keep showing the order as a dead end.
+        $this->assertSame(OrderStatus::AwaitingPayment, $order->fresh()->status);
+
+        $this->postWebhook($secondPayment, 'success')->assertOk();
+
+        $secondPayment->refresh();
+        $order->refresh();
+        $variant->inventory->refresh();
+
+        $this->assertSame(PaymentStatus::Paid, $secondPayment->status);
+        $this->assertSame(OrderStatus::Paid, $order->status);
+        $this->assertSame(8, $variant->inventory->quantity_on_hand);
+        $this->assertSame(0, $variant->inventory->quantity_reserved);
+    }
+
+    /**
      * An intermediate step (3DS challenge, validation, etc.) reports
      * Payment.Status=success too — only a successful "authorization"
      * Operation confirms the payment. iCard's redirect-checkout callback

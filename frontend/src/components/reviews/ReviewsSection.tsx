@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AddReviewWizard from './AddReviewWizard';
 import ReviewCard from './ReviewCard';
 import ReviewForm from './ReviewForm';
@@ -21,14 +21,35 @@ interface ReviewsSectionProps {
   productImageUrl?: string;
   /** Set when arriving from a delivered order's "write a review" link (see OrderConfirmationPage). */
   writePrompt?: { orderId: number; productVariantId: number };
+  /** Set from a shareable ?write_review=1 link (see ProductPage) - e.g. the 30-day reminder email's "Остави ревю" button, which can't carry writePrompt's in-app navigation state. */
+  openWizard?: boolean;
+  /** Resolved from the order referenced in that same link (see ProductPage) - lets the wizard skip asking for an email/display name it already knows. */
+  knownReviewerIdentity?: { email: string; displayName: string; orderId: number; expires: string; signature: string };
 }
 
-export default function ReviewsSection({ productSlug, productName, productImageUrl, writePrompt }: ReviewsSectionProps) {
+export default function ReviewsSection({
+  productSlug,
+  productName,
+  productImageUrl,
+  writePrompt,
+  openWizard,
+  knownReviewerIdentity,
+}: ReviewsSectionProps) {
   const { isAuthenticated } = useAuth();
   const [sort, setSort] = useState<ReviewSortOption>('newest');
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(Boolean(writePrompt));
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(Boolean(openWizard));
+
+  // openWizard only becomes true after ProductPage finishes resolving the
+  // order's reviewer identity (an async fetch) - well after this
+  // component's first render, so the useState initializer above alone
+  // never sees it flip. This effect catches that later change instead.
+  useEffect(() => {
+    if (openWizard) {
+      setIsWizardOpen(true);
+    }
+  }, [openWizard]);
   const [editingReview, setEditingReview] = useState<Review | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -142,6 +163,7 @@ export default function ReviewsSection({ productSlug, productName, productImageU
           productSlug={productSlug}
           productName={productName}
           productImageUrl={productImageUrl}
+          knownIdentity={knownReviewerIdentity}
           onClose={() => setIsWizardOpen(false)}
         />
       )}

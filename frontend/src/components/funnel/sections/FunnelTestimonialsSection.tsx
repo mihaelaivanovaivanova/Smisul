@@ -10,13 +10,14 @@ interface FunnelTestimonialsSectionProps {
 
 /**
  * Section 12/20 — Reviews. A horizontally-scrolling carousel (scroll-snap +
- * prev/next arrows) over the top reviews from the reviews API — up to 10 of
- * them (ReviewService::listForProduct's default page size), not the
- * previous static 3-card grid. Deliberately no "see all reviews" link out
- * to the product page anymore: the full paginated list still lives at
- * components/reviews/ReviewsSection.tsx on the product detail page,
- * unchanged, but this landing page no longer sends visitors away from it —
- * by request.
+ * prev/next arrows) over every review from the reviews API — up to 50 of
+ * them (see FunnelLandingPage's fetchProductReviews call, which explicitly
+ * asks for that many rather than listForProduct's normal 4-per-page
+ * default), not the previous static 3-card grid and not a curated subset.
+ * Deliberately no "see all reviews" link out to the product page anymore:
+ * the full paginated list still lives at components/reviews/ReviewsSection.tsx
+ * on the product detail page, unchanged, but this landing page no longer
+ * sends visitors away from it — by request.
  */
 export default function FunnelTestimonialsSection({ topReviews }: FunnelTestimonialsSectionProps) {
   const trackRef = useRef<HTMLDivElement>(null);

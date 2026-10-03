@@ -27,6 +27,7 @@ class PublicSettingsTest extends TestCase
                 'support_phone',
                 'store_email',
                 'same_day_dispatch_cutoff',
+                'free_shipping_threshold',
                 'social_instagram',
                 'social_facebook',
                 'social_tiktok',
@@ -52,6 +53,23 @@ class PublicSettingsTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('data.company_name', 'Смисъл ЕООД');
         $response->assertJsonPath('data.company_id', null);
+    }
+
+    #[Test]
+    public function the_free_shipping_threshold_comes_back_as_a_real_integer_not_a_string(): void
+    {
+        Setting::query()->create([
+            'key' => 'general.free_shipping_threshold',
+            'group' => 'general',
+            'type' => 'integer',
+            'label' => 'Free shipping threshold (EUR, 0 = disabled)',
+            'value' => '25',
+        ]);
+
+        $response = $this->getJson('/api/v1/settings/public');
+
+        $response->assertOk();
+        $this->assertSame(25, $response->json('data.free_shipping_threshold'));
     }
 
     #[Test]

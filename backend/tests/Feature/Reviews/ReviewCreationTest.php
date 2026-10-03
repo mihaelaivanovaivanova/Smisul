@@ -192,4 +192,21 @@ class ReviewCreationTest extends TestCase
         $summary = $this->getJson("/api/v1/products/{$product->slug}/reviews/summary");
         $summary->assertJsonPath('data.review_count', 1);
     }
+
+    /**
+     * Regression: per_page was already validated by ReviewIndexRequest but
+     * never actually read by ProductController::reviews() - a caller asking
+     * for more than listForProduct()'s own 4-per-page default (e.g. the
+     * funnel landing page's testimonial carousel, which wants every review,
+     * not a capped subset) silently got 4 back anyway.
+     */
+    #[Test]
+    public function per_page_is_actually_honored_not_silently_ignored(): void
+    {
+        $product = Product::factory()->published()->create();
+        Review::factory()->for($product)->count(5)->create();
+
+        $this->getJson("/api/v1/products/{$product->slug}/reviews")->assertJsonCount(4, 'data');
+        $this->getJson("/api/v1/products/{$product->slug}/reviews?per_page=50")->assertJsonCount(5, 'data');
+    }
 }

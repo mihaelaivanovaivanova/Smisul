@@ -407,7 +407,9 @@ class ProductSeeder extends Seeder
             ],
         );
 
-        $category = Category::where('slug', $definition['category_slug'])->first();
+        $category = isset($definition['category_slug'])
+            ? Category::where('slug', $definition['category_slug'])->first()
+            : null;
 
         if ($category !== null) {
             $product->categories()->syncWithoutDetaching([$category->id]);

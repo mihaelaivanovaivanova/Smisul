@@ -32,6 +32,10 @@ class SettingsSeeder extends Seeder
             // string/null disables the line entirely. Only promise what
             // operations can actually keep.
             ['key' => 'general.same_day_dispatch_cutoff', 'group' => 'general', 'type' => 'string', 'label' => 'Same-day dispatch cutoff (HH:MM, empty = off)', 'value' => '14:00'],
+            // "Spend €X more for free shipping" progress bar in the cart
+            // drawer (CartDrawer.tsx) - whole EUR amount the cart subtotal
+            // must reach; 0 disables the bar entirely.
+            ['key' => 'general.free_shipping_threshold', 'group' => 'general', 'type' => 'integer', 'label' => 'Free shipping threshold (EUR, 0 = disabled)', 'value' => '22'],
             // Social profiles for the footer - icons render only for the
             // ones that are filled in.
             ['key' => 'general.social_instagram', 'group' => 'general', 'type' => 'string', 'label' => 'Instagram URL', 'value' => 'https://www.instagram.com/smisulbg/'],

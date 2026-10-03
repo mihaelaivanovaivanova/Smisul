@@ -17,9 +17,10 @@ export async function fetchProductReviews(
   slug: string,
   sort: ReviewSortOption,
   page: number,
+  perPage?: number,
 ): Promise<PaginatedResponse<Review>> {
   const { data } = await apiClient.get<PaginatedResponse<Review>>(`/products/${slug}/reviews`, {
-    params: { sort, page },
+    params: { sort, page, per_page: perPage },
   });
   return data;
 }

@@ -8,6 +8,8 @@ interface AddReviewWizardProps {
   productSlug: string;
   productName: string;
   productImageUrl?: string;
+  /** Resolved from a review-reminder email link's signed order reference (see ProductPage) - when set, the "about" step is skipped entirely instead of asking for an email/display name already on file, and submission re-proves the same signature so the backend can skip the usual confirm-by-email step too. */
+  knownIdentity?: { email: string; displayName: string; orderId: number; expires: string; signature: string };
   onClose: () => void;
 }
 
@@ -22,13 +24,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * so the wizard always ends on the same generic "check your email" step
  * regardless of whether that email actually matched a delivered order —
  * the backend never reveals which (see ProductController::submitReview).
+ *
+ * knownIdentity skips the "about" step's email/display-name inputs when
+ * the caller already resolved them from a specific order (see ProductPage) -
+ * submission still goes through the exact same endpoint/eligibility check,
+ * just with those two fields pre-filled instead of typed.
  */
-export default function AddReviewWizard({ productSlug, productName, productImageUrl, onClose }: AddReviewWizardProps) {
+export default function AddReviewWizard({ productSlug, productName, productImageUrl, knownIdentity, onClose }: AddReviewWizardProps) {
   const [step, setStep] = useState<Step>('rating');
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState('');
-  const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState(knownIdentity?.email ?? '');
+  const [displayName, setDisplayName] = useState(knownIdentity?.displayName ?? '');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +71,11 @@ export default function AddReviewWizard({ productSlug, productName, productImage
         email: email.trim(),
         display_name: displayName.trim(),
         is_anonymous: isAnonymous,
+        ...(knownIdentity && {
+          order_id: knownIdentity.orderId,
+          expires: knownIdentity.expires,
+          signature: knownIdentity.signature,
+        }),
       });
       setStep('done');
     } catch (err) {
@@ -184,7 +196,16 @@ export default function AddReviewWizard({ productSlug, productName, productImage
                 </>
               )}
 
-              {step === 'done' && (
+              {step === 'done' && knownIdentity && (
+                // The backend already verified the same signed link and
+                // published the review immediately (see ReviewService::
+                // submitForConfirmation's preVerified branch) - no email
+                // confirmation is coming, so skip that half of the message
+                // entirely rather than tell them to wait for one.
+                <p className="mb-0">{reviewsCopy.addReviewWizard.doneMessagePreVerified}</p>
+              )}
+
+              {step === 'done' && !knownIdentity && (
                 <>
                   <p className="mb-2">{reviewsCopy.addReviewWizard.doneMessage}</p>
                   <p className="mb-0">{reviewsCopy.addReviewWizard.doneMessageDetail}</p>
@@ -210,7 +231,18 @@ export default function AddReviewWizard({ productSlug, productName, productImage
                 </button>
               )}
 
-              {step === 'review' && (
+              {step === 'review' && knownIdentity && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={body.trim() === '' || isSubmitting}
+                  onClick={() => void handleSubmit()}
+                >
+                  {isSubmitting ? reviewsCopy.addReviewWizard.submitting : reviewsCopy.addReviewWizard.submit}
+                </button>
+              )}
+
+              {step === 'review' && !knownIdentity && (
                 <button
                   type="button"
                   className="btn btn-primary"

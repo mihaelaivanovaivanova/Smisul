@@ -47,4 +47,8 @@ export interface SubmitReviewPayload {
   email: string;
   display_name: string;
   is_anonymous: boolean;
+  /** Present only when submitted via a 30-day reminder email's pre-filled review link (see AddReviewWizard's knownIdentity) - re-verified server-side, lets the backend skip the usual confirm-by-email step. */
+  order_id?: number;
+  expires?: string;
+  signature?: string;
 }

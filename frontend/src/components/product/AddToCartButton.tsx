@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useCart } from '../../hooks/useCart';
 import { getErrorMessage } from '../../api/errors';
 import { cart as cartCopy } from '../../content/copy';
@@ -58,11 +57,10 @@ export default function AddToCartButton({
   label,
   onAdded,
 }: AddToCartButtonProps) {
-  const { addItem } = useCart();
+  const { addItem, openDrawer } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [added, setAdded] = useState(false);
 
   const canAdd = inventory?.is_in_stock ?? false;
   const availableQuantity = inventory?.available_quantity ?? 0;
@@ -75,12 +73,11 @@ export default function AddToCartButton({
   async function handleAdd(): Promise<void> {
     setIsPending(true);
     setError(null);
-    setAdded(false);
 
     try {
       await addItem(productVariantId, quantity);
-      setAdded(true);
       setQuantity(1);
+      openDrawer();
       onAdded?.();
     } catch (err) {
       setError(getErrorMessage(err, cartCopy.addToCartError));
@@ -107,11 +104,6 @@ export default function AddToCartButton({
 
       <div aria-live="polite">
         {error && <div className="text-danger small">{error}</div>}
-        {added && !error && (
-          <div className="text-success small">
-            {cartCopy.addedToCart} <Link to="/cart">{cartCopy.viewCart}</Link>
-          </div>
-        )}
       </div>
     </div>
   );

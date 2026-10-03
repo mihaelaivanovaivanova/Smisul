@@ -14,6 +14,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Re-fetches whenever auth state settles or changes — this is also what
   // drives the guest-cart-merge-on-login flow: as long as the frontend
@@ -76,7 +77,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(updated);
   }, []);
 
-  const value: CartContextValue = { cart, isLoading, error, addItem, updateItem, removeItem, clear, refresh };
+  const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
+
+  const value: CartContextValue = {
+    cart,
+    isLoading,
+    error,
+    addItem,
+    updateItem,
+    removeItem,
+    clear,
+    refresh,
+    isDrawerOpen,
+    openDrawer,
+    closeDrawer,
+  };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

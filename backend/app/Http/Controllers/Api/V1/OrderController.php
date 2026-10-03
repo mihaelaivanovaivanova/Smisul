@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Services\InvoiceNumberGenerator;
 use App\Services\OrderService;
 use App\Services\SettingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -46,6 +47,26 @@ class OrderController extends Controller
         $this->authorizeAccess($request, $order);
 
         return new OrderResource($order->load(OrderService::EAGER_LOAD));
+    }
+
+    /**
+     * Just enough to pre-fill the "Add a review" wizard (see
+     * ProductPage/AddReviewWizard on the frontend) from a 30-day reminder
+     * email's "Остави ревю" link without asking for an email/display name
+     * it already knows - authorized purely by the route's own `signed`
+     * middleware (see routes/api.php), same as reviews.confirm, so it works
+     * for a registered customer's order too (no guest_access_token exists
+     * for those — see OrderService::placeOrder()) without requiring them to
+     * be logged in on whatever device they open the email on.
+     */
+    public function reviewIdentity(Order $order): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'email' => $order->customer_email,
+                'display_name' => $order->customer_first_name,
+            ],
+        ]);
     }
 
     /**

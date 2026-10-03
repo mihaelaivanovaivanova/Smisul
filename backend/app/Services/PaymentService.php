@@ -174,7 +174,14 @@ class PaymentService
                 'raw_payload' => $sessionData,
             ]);
 
-            if ($order->status === OrderStatus::Pending) {
+            // Same "only when actually reachable" guard as the cash-on-
+            // delivery branch above — covers the first attempt (Pending)
+            // and, since OrderStatusService::TRANSITIONS now allows it, a
+            // retry after a prior failed attempt (Failed) too, so the order
+            // doesn't keep showing "failed" while a brand-new card session
+            // is genuinely in flight. A no-op while already AwaitingPayment
+            // (not listed as its own target - correctly idempotent).
+            if (in_array(OrderStatus::AwaitingPayment, $this->orderStatus->allowedTransitions($order->status), strict: true)) {
                 $this->orderStatus->transitionTo($order, OrderStatus::AwaitingPayment, changedBy: null, note: 'Payment initiated');
             }
 

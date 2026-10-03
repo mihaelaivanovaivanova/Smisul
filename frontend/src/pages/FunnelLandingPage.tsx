@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { fetchProduct } from '../api/products';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { fetchPublicSettings } from '../api/settings';
@@ -82,7 +82,6 @@ export default function FunnelLandingPage() {
     error: funnelDataError,
   } = useFunnelLandingData();
   const location = useLocation();
-  const navigate = useNavigate();
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
   const [showDesktopBar, setShowDesktopBar] = useState(false);
   const [showMobileBar, setShowMobileBar] = useState(false);
@@ -99,15 +98,20 @@ export default function FunnelLandingPage() {
   const { data: socialProof } = useAsync(
     () =>
       funnelProductSlug
-        ? Promise.all([fetchReviewSummary(funnelProductSlug), fetchProductReviews(funnelProductSlug, 'helpful', 1)])
+        ? Promise.all([
+            fetchReviewSummary(funnelProductSlug),
+            // 50 (ReviewIndexRequest's own validated max) rather than
+            // listForProduct's normal 4-per-page default — this carousel is
+            // meant to show every review, not a curated/paginated subset
+            // (the product page's own ReviewsSection.tsx already covers
+            // paginated browsing for anyone who wants that).
+            fetchProductReviews(funnelProductSlug, 'helpful', 1, 50),
+          ])
         : Promise.resolve(null),
     [funnelProductSlug],
     reviewsCopy.loadError,
   );
   const reviewSummary = socialProof && socialProof[0].review_count > 0 ? socialProof[0] : null;
-  // All of page 1 (up to 10 — ReviewService::listForProduct's default page
-  // size), not just the top 3: the carousel scrolls, so it isn't limited to
-  // however many fit in a static row.
   const topReviews = socialProof?.[1].data ?? [];
 
   // Merchant settings (same-day dispatch cutoff) — non-gating like the
@@ -351,7 +355,6 @@ export default function FunnelLandingPage() {
     if (price) {
       trackFunnelAddToCart(price.amount, price.currency);
     }
-    navigate('/cart');
   }
 
   function handleFaqToggle(index: number) {

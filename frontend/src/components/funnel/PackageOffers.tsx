@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import AddToCartButton from '../product/AddToCartButton';
 import { formatPrice } from '../../services/productCatalog';
 import { trackFunnelAddToCart } from '../../services/analytics';
@@ -27,7 +26,6 @@ interface PackageOffersProps {
 }
 
 export default function PackageOffers({ offers, showImages = false }: PackageOffersProps) {
-  const navigate = useNavigate();
   const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
 
   return (
@@ -110,14 +108,7 @@ export default function PackageOffers({ offers, showImages = false }: PackageOff
                   label={pkg.button_text}
                   size="md"
                   hideQuantity
-                  // Funnel-only: a "yes" goes straight to the cart page
-                  // (with its checkout CTA) instead of leaving the visitor
-                  // parked on the landing page — the storefront's product
-                  // pages keep the stay-on-page behavior.
-                  onAdded={() => {
-                    trackFunnelAddToCart(price.amount, price.currency);
-                    navigate('/cart');
-                  }}
+                  onAdded={() => trackFunnelAddToCart(price.amount, price.currency)}
                 />
               ) : (
                 <span className="text-muted">{stockCopy.outOfStock}</span>

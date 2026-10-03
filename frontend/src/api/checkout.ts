@@ -90,6 +90,25 @@ export async function fetchOrder(orderId: number, token?: string | null): Promis
   return data.data;
 }
 
+/**
+ * Resolves the customer_email/customer_first_name to pre-fill the review
+ * wizard with (see ProductPage) from a 30-day reminder email's signed
+ * "Остави ревю" link — authorized purely by the expires+signature query
+ * params Laravel's `signed` route middleware checks (see
+ * OrderController::reviewIdentity/OrderThirtyDayReminderMail::reviewUrl on
+ * the backend), not a guest token or session, so it works for a
+ * registered customer's order too without requiring them to be logged in.
+ */
+export async function fetchOrderReviewIdentity(
+  orderId: number,
+  signedParams: { expires: string; signature: string },
+): Promise<{ email: string; display_name: string }> {
+  const { data } = await apiClient.get<{ data: { email: string; display_name: string } }>(`/orders/${orderId}/review-identity`, {
+    params: signedParams,
+  });
+  return data.data;
+}
+
 /** The signed-in customer's own order history — requires an authenticated session. */
 export async function fetchOrders(page = 1): Promise<PaginatedResponse<Order>> {
   const { data } = await apiClient.get<PaginatedResponse<Order>>('/orders', { params: { page } });

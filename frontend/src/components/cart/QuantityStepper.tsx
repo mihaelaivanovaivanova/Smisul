@@ -6,9 +6,39 @@ interface QuantityStepperProps {
   max: number;
   disabled?: boolean;
   onChange: (quantity: number) => void;
+  /** 'bordered' (default) is the existing Bootstrap button-group look used on the full cart page; 'flat' is a borderless, tighter +/− used by CartDrawer's compact rows. */
+  variant?: 'bordered' | 'flat';
 }
 
-export default function QuantityStepper({ quantity, min = 1, max, disabled = false, onChange }: QuantityStepperProps) {
+export default function QuantityStepper({ quantity, min = 1, max, disabled = false, onChange, variant = 'bordered' }: QuantityStepperProps) {
+  if (variant === 'flat') {
+    return (
+      <div className="quantity-stepper-flat" role="group" aria-label={cartCopy.quantityLabel}>
+        <button
+          type="button"
+          className="quantity-stepper-flat__btn"
+          onClick={() => onChange(quantity - 1)}
+          disabled={disabled || quantity <= min}
+          aria-label={cartCopy.decreaseAria}
+        >
+          &minus;
+        </button>
+        <span className="quantity-stepper-flat__value" aria-live="polite">
+          {quantity}
+        </span>
+        <button
+          type="button"
+          className="quantity-stepper-flat__btn"
+          onClick={() => onChange(quantity + 1)}
+          disabled={disabled || quantity >= max}
+          aria-label={cartCopy.increaseAria}
+        >
+          +
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="btn-group" role="group" aria-label={cartCopy.quantityLabel}>
       <button

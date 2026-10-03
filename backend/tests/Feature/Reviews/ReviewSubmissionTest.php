@@ -272,4 +272,108 @@ class ReviewSubmissionTest extends TestCase
         $this->getJson($signedUrl.'&tampered=1')->assertForbidden();
         $this->assertNull($review->refresh()->confirmed_at);
     }
+
+    /**
+     * Covers ProductController::hasValidReviewIdentityLink() - a submission
+     * carrying order_id/expires/signature for a still-valid
+     * orders.review-identity link (see OrderThirtyDayReminderMail) skips the
+     * usual confirm-by-email step entirely: published immediately, no
+     * ReviewConfirmationMail sent, since clicking that link already proved
+     * the customer controls the inbox it was sent to.
+     */
+    #[Test]
+    public function a_submission_with_a_valid_signed_order_link_is_published_immediately_with_no_confirmation_email(): void
+    {
+        Mail::fake();
+
+        $product = Product::factory()->published()->create();
+        $variant = ProductVariant::factory()->for($product)->create();
+        $order = $this->deliveredOrderWithItem($variant, null, 'ivan@example.com');
+        $signedUrl = URL::temporarySignedRoute('orders.review-identity', now()->addDays(30), ['order' => $order->id]);
+        $query = parse_url($signedUrl, PHP_URL_QUERY);
+        parse_str($query, $signedParams);
+
+        $response = $this->postJson(
+            "/api/v1/products/{$product->slug}/reviews/submit",
+            $this->payload([
+                'email' => 'ivan@example.com',
+                'order_id' => $order->id,
+                'expires' => $signedParams['expires'],
+                'signature' => $signedParams['signature'],
+            ]),
+        );
+
+        $response->assertOk();
+        $review = Review::query()->where('order_id', $order->id)->firstOrFail();
+        $this->assertSame('approved', $review->status->value);
+        $this->assertNotNull($review->confirmed_at);
+        Mail::assertNothingSent();
+        $this->getJson("/api/v1/products/{$product->slug}/reviews")->assertJsonCount(1, 'data');
+    }
+
+    /**
+     * Defense in depth: a valid signature for order A doesn't pre-verify a
+     * submission claiming a different email than order A's real
+     * customer_email, even when that email is itself legitimately eligible
+     * via a separate order B - the review still gets created (tied to B,
+     * via the normal eligibility lookup), just not pre-verified, so it
+     * falls back to the normal Pending/confirm-by-email flow rather than
+     * trusting the client-echoed email outright.
+     */
+    #[Test]
+    public function a_valid_signature_does_not_pre_verify_a_mismatched_email(): void
+    {
+        Mail::fake();
+
+        $product = Product::factory()->published()->create();
+        $variant = ProductVariant::factory()->for($product)->create();
+        $orderA = $this->deliveredOrderWithItem($variant, null, 'order-a@example.com');
+        $orderB = $this->deliveredOrderWithItem($variant, null, 'order-b@example.com');
+        $signedUrl = URL::temporarySignedRoute('orders.review-identity', now()->addDays(30), ['order' => $orderA->id]);
+        parse_str(parse_url($signedUrl, PHP_URL_QUERY), $signedParams);
+
+        $response = $this->postJson(
+            "/api/v1/products/{$product->slug}/reviews/submit",
+            $this->payload([
+                // Legitimately eligible via order B, but the signature/
+                // order_id below are order A's - they must not combine
+                // into a pre-verified submission.
+                'email' => 'order-b@example.com',
+                'order_id' => $orderA->id,
+                'expires' => $signedParams['expires'],
+                'signature' => $signedParams['signature'],
+            ]),
+        );
+
+        $response->assertOk();
+        $review = Review::query()->where('order_id', $orderB->id)->firstOrFail();
+        $this->assertSame('pending', $review->status->value);
+        $this->assertNull($review->confirmed_at);
+        Mail::assertSent(ReviewConfirmationMail::class);
+    }
+
+    #[Test]
+    public function a_tampered_signature_falls_back_to_the_normal_confirm_by_email_flow_instead_of_being_rejected(): void
+    {
+        Mail::fake();
+
+        $product = Product::factory()->published()->create();
+        $variant = ProductVariant::factory()->for($product)->create();
+        $order = $this->deliveredOrderWithItem($variant, null, 'ivan@example.com');
+
+        $response = $this->postJson(
+            "/api/v1/products/{$product->slug}/reviews/submit",
+            $this->payload([
+                'email' => 'ivan@example.com',
+                'order_id' => $order->id,
+                'expires' => (string) now()->addDays(30)->timestamp,
+                'signature' => str_repeat('a', 64),
+            ]),
+        );
+
+        $response->assertOk();
+        $review = Review::query()->where('order_id', $order->id)->firstOrFail();
+        $this->assertSame('pending', $review->status->value);
+        Mail::assertSent(ReviewConfirmationMail::class);
+    }
 }

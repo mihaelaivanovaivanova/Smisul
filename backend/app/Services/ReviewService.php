@@ -131,9 +131,19 @@ class ReviewService
      * product_id) constraint still prevents a duplicate submission outright,
      * and confirming later is just a two-column update via confirm().
      *
+     * $preVerified skips that double opt-in entirely: set only when
+     * ProductController::submitReview() has already cryptographically
+     * re-verified the submission came through the 30-day reminder email's
+     * own signed link (see its hasValidReviewIdentityLink()) - the
+     * customer already proved they control that inbox by clicking a link
+     * we sent there, which is at least as strong a proof as clicking a
+     * confirmation link would be, so asking them to confirm a second time
+     * is pure friction. The typed-email guest wizard (no such proof) always
+     * gets $preVerified=false and keeps the existing confirm-by-email step.
+     *
      * @param  array{rating: int, title?: ?string, body: string, email: string, display_name: string, is_anonymous?: bool}  $data
      */
-    public function submitForConfirmation(Product $product, array $data): void
+    public function submitForConfirmation(Product $product, array $data, bool $preVerified = false): void
     {
         $eligible = $this->findEligibleOrderForEmail($data['email'], $product);
 
@@ -151,9 +161,14 @@ class ReviewService
             'email' => $data['email'],
             'display_name' => $data['display_name'],
             'is_anonymous' => $data['is_anonymous'] ?? false,
-            'status' => ReviewStatus::Pending,
+            'status' => $preVerified ? ReviewStatus::Approved : ReviewStatus::Pending,
+            'confirmed_at' => $preVerified ? now() : null,
             'verified_purchase' => true,
         ]);
+
+        if ($preVerified) {
+            return;
+        }
 
         // A mail transport failure must never turn into a 500 for the
         // visitor — the same "attempt and log, don't let it break the

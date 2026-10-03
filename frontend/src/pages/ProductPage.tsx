@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { fetchOrderReviewIdentity } from '../api/checkout';
 import { useProduct } from '../hooks/useProduct';
 import { useSettings } from '../hooks/useSettings';
 import {
@@ -46,10 +47,76 @@ export default function ProductPage() {
 
 function ProductPageDefault({ slug }: { slug: string }) {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { funnelModeEnabled, funnelPackages } = useSettings();
   const { product, isLoading, error } = useProduct(slug);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const writePrompt = (location.state as ReviewPromptState | null)?.reviewPrompt;
+
+  // Shareable version of the same "jump straight to writing a review"
+  // intent as writePrompt above - that one only works via in-app
+  // navigation state (e.g. from OrderConfirmationPage), which a link in an
+  // email can't carry. This opens the guest-friendly wizard instead of the
+  // authenticated form, since an email recipient usually isn't logged in
+  // and the wizard needs no orderId/productVariantId up front - it checks
+  // eligibility by the typed email at submission time (see
+  // AddReviewWizard's own docblock).
+  const wantsReviewWizard = searchParams.get('write_review') === '1';
+  const reviewOrderId = searchParams.get('order_id');
+  const reviewExpires = searchParams.get('expires');
+  const reviewSignature = searchParams.get('signature');
+  const [knownReviewerIdentity, setKnownReviewerIdentity] = useState<
+    { email: string; displayName: string; orderId: number; expires: string; signature: string } | undefined
+  >(undefined);
+  // Starts true (nothing to resolve) unless there's actually an order to
+  // look up - avoids flashing the wizard's email/name step for a moment
+  // before the fetch below resolves and the identity becomes known.
+  const [reviewerIdentityResolved, setReviewerIdentityResolved] = useState(reviewOrderId === null);
+
+  // Resolves via a signed link (see OrderThirtyDayReminderMail::reviewUrl)
+  // rather than putting the customer's email/name directly in the URL -
+  // authorized purely by the expires+signature params Laravel's own
+  // `signed` route middleware checks server-side, same mechanism as the
+  // review-confirmation email link. Works for a registered customer's
+  // order too (unlike a guest_access_token, which only guest orders get -
+  // see OrderService::placeOrder()) without requiring them to be logged in
+  // on whatever device they open the email on. An expired/tampered link
+  // just 403s, which silently falls back to the wizard's normal
+  // ask-for-email-and-name step rather than erroring.
+  useEffect(() => {
+    if (reviewOrderId === null || reviewExpires === null || reviewSignature === null) {
+      return;
+    }
+
+    let cancelled = false;
+    fetchOrderReviewIdentity(Number(reviewOrderId), { expires: reviewExpires, signature: reviewSignature })
+      .then((identity) => {
+        if (!cancelled) {
+          setKnownReviewerIdentity({
+            email: identity.email,
+            displayName: identity.display_name,
+            orderId: Number(reviewOrderId),
+            expires: reviewExpires,
+            signature: reviewSignature,
+          });
+        }
+      })
+      .catch(() => {
+        // Expired or tampered link, or the order no longer exists - fine,
+        // just fall back below.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReviewerIdentityResolved(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewOrderId, reviewExpires, reviewSignature]);
+
+  const openReviewWizard = wantsReviewWizard && reviewerIdentityResolved;
 
   /**
    * Switching pack size swaps the gallery to that variant's own photo
@@ -238,6 +305,8 @@ function ProductPageDefault({ slug }: { slug: string }) {
             productName={product.name}
             productImageUrl={images[0]?.url}
             writePrompt={writePrompt}
+            openWizard={openReviewWizard}
+            knownReviewerIdentity={knownReviewerIdentity}
           />
         </div>
       </div>

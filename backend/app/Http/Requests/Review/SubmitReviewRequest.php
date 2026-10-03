@@ -29,6 +29,14 @@ class SubmitReviewRequest extends FormRequest
             'email' => ['required', 'email', 'max:255'],
             'display_name' => ['required', 'string', 'max:150'],
             'is_anonymous' => ['sometimes', 'boolean'],
+            // Present only when arriving from the 30-day reminder email's
+            // pre-filled review wizard (see ProductController::submitReview()
+            // and OrderThirtyDayReminderMail::reviewUrl()) - re-verified
+            // server-side against orders.review-identity's own signature,
+            // never trusted as a bare client-asserted flag.
+            'order_id' => ['sometimes', 'integer'],
+            'expires' => ['sometimes', 'string'],
+            'signature' => ['sometimes', 'string'],
         ];
     }
 }

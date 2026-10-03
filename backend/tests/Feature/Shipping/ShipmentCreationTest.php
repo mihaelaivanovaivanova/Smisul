@@ -213,6 +213,7 @@ class ShipmentCreationTest extends TestCase
 
             $cod = $request['service']['additionalServices']['cod'];
             $receiptItem = $cod['fiscalReceiptItems'][0];
+            $obpd = $request['service']['additionalServices']['obpd'];
 
             return $cod['amount'] === 27.98
                 && $cod['currencyCode'] === 'EUR'
@@ -223,7 +224,13 @@ class ShipmentCreationTest extends TestCase
                 // ДДС-registered, so it's always the 0% group.
                 && $receiptItem['vatGroup'] === 'А'
                 && $receiptItem['amount'] === 27.98
-                && $receiptItem['amountWithVat'] === 27.98;
+                && $receiptItem['amountWithVat'] === 27.98
+                // OBPD ("Opening Before Paying/Delivery") - lets the
+                // recipient inspect the parcel before paying the courier.
+                // returnShipmentPayer is required despite the schema
+                // marking it optional - confirmed live.
+                && $obpd['option'] === 'OPEN'
+                && $obpd['returnShipmentPayer'] === 'RECIPIENT';
         });
     }
 
@@ -460,7 +467,7 @@ class ShipmentCreationTest extends TestCase
 
         $this->app->make(ShippingService::class)->createShipment($order);
 
-        Http::assertSent(function ($request) use ($longSingleSegment) {
+        Http::assertSent(function ($request) {
             if (! str_ends_with($request->url(), '/shipment')) {
                 return false;
             }

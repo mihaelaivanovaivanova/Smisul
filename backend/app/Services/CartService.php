@@ -47,6 +47,11 @@ class CartService
      */
     public const EAGER_LOAD = [
         'items.productVariant.product.primaryMedia',
+        // The sibling pack_size===1 variant + its prices — needed for the
+        // bundle "was" price CartPricingService::bundleCompareAtUnitPrice()
+        // computes (same non-fabricated basis as funnelOffers.ts's
+        // computeOriginalPrice on the frontend), without an N+1 query per line.
+        'items.productVariant.product.variants.prices',
         'items.productVariant.media',
         'items.productVariant.prices',
         'items.productVariant.inventory',

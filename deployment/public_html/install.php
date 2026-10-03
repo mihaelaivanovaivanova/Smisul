@@ -145,6 +145,21 @@ if ($isUpgrade) {
         if ($code !== 0) throw new RuntimeException($kernel->output());
         importIcardProfiles($app, $backend, $messages);
 
+        // One-time catch-up for real storefront products added after this
+        // site's original install (unlike ProductSeeder's 7 dev fixtures -
+        // see the fresh-install branch's own comment below - this one IS
+        // real catalog data the live cart upsell depends on). Deliberately
+        // NOT run unconditionally on every upgrade like the fresh-install
+        // seeder list would: MiswakAccessoriesSeeder's updateOrCreate
+        // would silently overwrite any price/description an admin has
+        // since edited for these two products. The existence check makes
+        // it run exactly once, the very next time this already-installed
+        // site is upgraded, then never again.
+        if (! App\Models\Product::query()->where('slug', 'bambukov-keis-za-miswak')->exists()) {
+            (new Database\Seeders\MiswakAccessoriesSeeder)->run();
+            $messages[] = 'Новите продукти (стъргалка, бамбуков кейс) са добавени.';
+        }
+
         foreach ([['optimize:clear', []], ['config:cache', []]] as [$command, $arguments]) {
             $code = $kernel->call($command, $arguments);
             if ($code !== 0) throw new RuntimeException($kernel->output());
@@ -279,8 +294,13 @@ try {
     // fixture products (fake names, auto-generated SVG placeholder
     // images) plus demo promotions on them - fine for local dev, wrong
     // for a real storefront's first boot. FunnelSeeder must run before
-    // ReviewSeeder - the reviews attach to the 'miswak' product it
-    // creates.
+    // MiswakAccessoriesSeeder and ReviewSeeder - the accessories' cart
+    // upsell and the reviews both attach to the 'miswak' product it
+    // creates. MiswakAccessoriesSeeder (unlike ProductSeeder) IS real
+    // storefront catalog, not dev fixture data - see its own docblock.
+    // (An already-installed site instead gets it from the one-time,
+    // existence-guarded call in the upgrade branch above - not from this
+    // list, which only ever runs on a brand new install.)
     $commands = [
         ['migrate', ['--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\AdminSeeder::class, '--force' => true]],
@@ -289,6 +309,7 @@ try {
         ['db:seed', ['--class' => Database\Seeders\CategorySeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\LegalDocumentSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\FunnelSeeder::class, '--force' => true]],
+        ['db:seed', ['--class' => Database\Seeders\MiswakAccessoriesSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\ReviewSeeder::class, '--force' => true]],
         ['config:cache', []],
     ];

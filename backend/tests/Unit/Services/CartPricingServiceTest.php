@@ -159,6 +159,41 @@ class CartPricingServiceTest extends TestCase
     }
 
     #[Test]
+    public function bundle_compare_at_is_the_live_single_pack_price_times_pack_size(): void
+    {
+        $product = Product::factory()->published()->create();
+        ProductVariant::factory()->for($product)->packSize(1)->create()
+            ->prices()->create(['currency' => Currency::EUR->value, 'amount' => 5.00]);
+        $fivePack = ProductVariant::factory()->for($product)->packSize(5)->create();
+        $fivePack->prices()->create(['currency' => Currency::EUR->value, 'amount' => 20.00]);
+
+        $compareAt = $this->pricing->bundleCompareAtUnitPrice($fivePack->fresh(['product.variants.prices']), Currency::EUR->value);
+
+        $this->assertSame(25.0, $compareAt);
+    }
+
+    #[Test]
+    public function bundle_compare_at_is_null_for_a_single_piece_variant(): void
+    {
+        $variant = $this->makeVariant(['pack_size' => 1]);
+        $variant->prices()->create(['currency' => Currency::EUR->value, 'amount' => 5.00]);
+
+        $this->assertNull($this->pricing->bundleCompareAtUnitPrice($variant->fresh(['product.variants.prices']), Currency::EUR->value));
+    }
+
+    #[Test]
+    public function bundle_compare_at_is_null_when_the_product_has_no_single_piece_sibling(): void
+    {
+        $product = Product::factory()->published()->create();
+        $fivePack = ProductVariant::factory()->for($product)->packSize(5)->create();
+        $fivePack->prices()->create(['currency' => Currency::EUR->value, 'amount' => 20.00]);
+
+        $compareAt = $this->pricing->bundleCompareAtUnitPrice($fivePack->fresh(['product.variants.prices']), Currency::EUR->value);
+
+        $this->assertNull($compareAt);
+    }
+
+    #[Test]
     public function totals_sum_line_totals_into_the_subtotal_and_grand_total(): void
     {
         $cart = Cart::factory()->create();

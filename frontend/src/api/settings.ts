@@ -11,6 +11,8 @@ export interface PublicSettings {
   store_email: string | null;
   /** "HH:MM" — same-day dispatch cutoff for the funnel promise line; null/empty disables it. */
   same_day_dispatch_cutoff: string | null;
+  /** Whole-EUR cart subtotal that unlocks free shipping (CartDrawer.tsx's progress bar); null/0 disables the bar. */
+  free_shipping_threshold: number | null;
   social_instagram: string | null;
   social_facebook: string | null;
   social_tiktok: string | null;

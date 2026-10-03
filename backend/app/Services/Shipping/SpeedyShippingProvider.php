@@ -56,6 +56,16 @@ use Throwable;
  * cash sale) needs `vatGroup` as the Cyrillic letter "А" — the visually
  * identical Latin "A" is rejected outright, confirmed by trial.
  *
+ * `service.additionalServices.obpd` (`ShipmentOBPD` in Speedy's real
+ * schema — "Opening Before Paying/Delivery") lets the recipient open and
+ * inspect the parcel before paying the courier, with `option: "OPEN"`.
+ * Always included alongside cod above, since both only make sense together
+ * — nothing to inspect "before paying" on a prepaid card order.
+ * `returnShipmentPayer: "RECIPIENT"` is required despite the schema
+ * marking it optional (confirmed live — omitting it is rejected with
+ * error.context "payer.not-null"); `returnShipmentServiceId` is genuinely
+ * optional — also confirmed live, with a real accepted test shipment.
+ *
  * Three delivery types now: staffed office, automated machine (APT — both
  * come back from the same location/office lookup, distinguished by the
  * office's own `type` field; see offices() below), and home address.
@@ -257,6 +267,26 @@ class SpeedyShippingProvider implements ShippingProviderInterface
                             'amountWithVat' => (float) $order->grand_total,
                         ],
                     ],
+                ],
+                // OBPD = "Opening Before Paying/Delivery" (ShipmentOBPD in
+                // Speedy's real schema) - lets the recipient open and
+                // inspect the parcel before paying the courier, only
+                // meaningful alongside COD (a prepaid card order has no
+                // "before paying" moment at delivery to open before).
+                // option: "OPEN" (inspect) vs "TEST" (also try/power on
+                // the item) - "OPEN" matches what was asked for here.
+                // returnShipmentPayer is required despite the schema
+                // marking it optional - confirmed live: omitting it gets
+                // rejected with error.context "payer.not-null". RECIPIENT
+                // matches this store's existing return policy (see the
+                // Right of Withdrawal document's "Разходи по връщането" -
+                // the customer bears direct return costs). No
+                // returnShipmentServiceId needed - also confirmed live,
+                // a real shipment (tracking 63764622138) was accepted
+                // without one.
+                'obpd' => [
+                    'option' => 'OPEN',
+                    'returnShipmentPayer' => 'RECIPIENT',
                 ],
             ];
         }

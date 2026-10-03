@@ -156,41 +156,6 @@
   }
 }
 
-/*
- * The mini-cart dropdown was a fixed 320px wide, which doesn't fit on
- * narrow screens on its own. min() caps it to whatever actually fits,
- * with 1rem of breathing room on each side.
- */
-.minicart-dropdown {
-  width: min(320px, calc(100vw - 2rem));
-}
-
-/*
- * Bootstrap disables Popper's own positioning for dropdowns inside a
- * .navbar (see dropdown.js's _inNavbar/applyStyles:false) and falls back
- * to plain CSS: .dropdown-menu-end's `right:0` resolves against the
- * nearest positioned ancestor, which by default is the immediate
- * `.dropdown` wrapper — i.e. the cart button itself, not the navbar. On
- * mobile the profile button/dropdown sits to the cart button's right, so
- * that button never reaches the screen's right edge, and anchoring there
- * still runs the menu off the left edge even at the width cap above.
- * Reverting the wrapper to position:static below makes `right:0` resolve
- * against the next positioned ancestor up instead — the full-width,
- * position:sticky <nav> — so the menu is always flush with the screen's
- * actual edges.
- */
-@media (max-width: 575.98px) {
-  .minicart-wrapper {
-    position: static;
-  }
-
-  .minicart-dropdown {
-    /* !important: must outrank .dropdown-menu-end[data-bs-popper]'s
-       right:0, which has higher selector specificity than a single class. */
-    right: 1rem !important;
-  }
-}
-
 /* ---- Footer ---- */
 
 /*
@@ -1049,4 +1014,460 @@
   min-width: 2rem;
   height: 2rem;
   color: var(--color-muted-light);
+}
+
+/* ---- Cart drawer ----
+   Slide-in panel opened by AddToCartButton on every successful add (see
+   CartDrawer.tsx) instead of navigating to /cart. z-index sits above the
+   cookie banner (1050) and the navbar (1020) since it's a modal-level
+   overlay, same tier as Bootstrap's own .modal-backdrop. */
+.cart-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  background-color: rgba(43, 40, 34, 0.45);
+}
+
+.cart-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1060;
+  width: min(420px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  animation: cart-drawer-slide-in 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-drawer {
+    animation: none;
+  }
+}
+
+@keyframes cart-drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.cart-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-drawer__title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--color-forest-dark);
+}
+
+.cart-drawer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-charcoal);
+  transition: background-color 0.15s ease;
+}
+
+.cart-drawer__close:hover {
+  background-color: var(--color-sand);
+}
+
+/* "Spend €X more for free shipping" progress nudge (CartDrawer's
+   FreeShippingBar) — striped fill + a truck marker riding its leading
+   edge, in the site's own forest-green rather than a generic blue/orange. */
+.cart-drawer-shipping-bar {
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-drawer-shipping-bar__message {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-forest-dark);
+}
+
+.cart-drawer-shipping-bar__track {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-sand);
+}
+
+.cart-drawer-shipping-bar__fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-forest) 0 8px,
+    var(--color-forest-dark) 8px 16px
+  );
+  transition: width 0.4s ease;
+}
+
+.cart-drawer-shipping-bar__marker {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-forest);
+  color: var(--color-forest);
+  transform: translate(-50%, -50%);
+  transition: left 0.4s ease;
+}
+
+.cart-drawer-shipping-bar__marker svg {
+  width: 0.7em;
+  height: 0.7em;
+}
+
+.cart-drawer-shipping-bar__goal {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: right;
+  color: var(--color-muted);
+}
+
+.cart-drawer__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-5);
+}
+
+.cart-drawer__empty-title {
+  font-weight: 600;
+  margin: 0;
+}
+
+.cart-drawer__empty-message {
+  color: var(--color-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.cart-drawer__items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-5);
+}
+
+.cart-drawer-item {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-drawer-item__image {
+  flex-shrink: 0;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-cream);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-drawer-item__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-drawer-item__no-image {
+  font-size: var(--fs-xs);
+  color: var(--color-muted-light);
+  text-align: center;
+  padding: 0 var(--space-1);
+}
+
+.cart-drawer-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-drawer-item__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.cart-drawer-item__name {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--color-charcoal);
+  text-decoration: none;
+}
+
+a.cart-drawer-item__name:hover,
+a.cart-drawer-upsell__name:hover {
+  color: var(--color-forest);
+  text-decoration: underline;
+}
+
+.cart-drawer-item__variant {
+  font-size: var(--fs-sm);
+  color: var(--color-muted);
+  margin-top: var(--space-1);
+}
+
+.cart-drawer-item__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--fs-sm);
+}
+
+.cart-drawer-item__price {
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+
+.cart-drawer-item__price.is-sale {
+  color: var(--color-terracotta);
+}
+
+.cart-drawer-item__controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.cart-drawer-item__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.cart-drawer-item__remove svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.cart-drawer-item__remove:hover:not(:disabled) {
+  background-color: var(--color-sand);
+  color: var(--color-terracotta);
+}
+
+.cart-drawer-item__totals {
+  text-align: right;
+}
+
+.cart-drawer-item__total-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.cart-drawer-item__total-amount {
+  font-weight: 700;
+  font-size: var(--fs-md);
+  color: var(--color-charcoal);
+}
+
+.cart-drawer-item__total-amount.is-sale {
+  color: var(--color-terracotta);
+}
+
+.cart-drawer-item__savings {
+  margin-top: var(--space-1);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--color-success-bg);
+}
+
+/* Flat, borderless +/− used by CartDrawer's compact item rows (QuantityStepper's variant="flat") — the bordered .btn-group look stays the default everywhere else (full cart page). */
+.quantity-stepper-flat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.quantity-stepper-flat__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  color: var(--color-charcoal);
+  cursor: pointer;
+}
+
+.quantity-stepper-flat__btn:disabled {
+  color: var(--color-muted-light);
+  cursor: default;
+}
+
+.quantity-stepper-flat__value {
+  min-width: 1.25rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bamboo-case cross-sell card (CartDrawer's CartUpsell) — tinted cream so
+   it reads as a suggestion, distinct from the actual cart lines above it. */
+.cart-drawer-upsell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-cream);
+  border-top: 1px solid var(--color-border);
+}
+
+.cart-drawer-upsell__image {
+  flex-shrink: 0;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-drawer-upsell__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-drawer-upsell__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-drawer-upsell__heading {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-sage);
+}
+
+.cart-drawer-upsell__name {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-charcoal);
+  text-decoration: none;
+}
+
+.cart-drawer-upsell__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.cart-drawer-upsell__price {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--color-charcoal);
+}
+
+.cart-drawer-upsell__price.is-sale {
+  color: var(--color-terracotta);
+}
+
+.cart-drawer-upsell__savings {
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--color-success-bg);
+}
+
+.cart-drawer-upsell__add {
+  flex-shrink: 0;
+}
+
+.cart-drawer__footer {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.cart-drawer__total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 700;
+  font-size: var(--fs-md);
+  color: var(--color-charcoal);
+}
+
+.cart-drawer__total-savings {
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--color-success-bg);
+  margin-top: var(--space-1);
+}
+
+.cart-drawer__checkout {
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+.cart-drawer__payment-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.cart-drawer__payment-logos img {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
 }

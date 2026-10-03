@@ -451,6 +451,8 @@ export const homeSectionEyebrows = {
 export const cart = {
   title: 'Количка',
   badgeAria: (count: number) => `Количка, ${count} артикула`,
+  closeAria: 'Затвори количката',
+  savings: (amount: string) => `Спестяваш ${amount}`,
   empty: {
     title: 'Количката е празна',
     message: 'Разгледай продуктите и добави нещо, което ти харесва.',
@@ -484,6 +486,17 @@ export const cart = {
   noImage: 'Няма снимка',
   seoTitle: `Количка - ${siteName}`,
   seoDescription: 'Прегледай продуктите в количката си в Smisul.',
+  upsell: {
+    heading: 'Пасва добре с Miswak',
+    add: 'Добави',
+    adding: 'Добавяне…',
+    addError: 'Неуспешно добавяне.',
+  },
+  freeShipping: {
+    remaining: (amount: string) => `Още ${amount} до БЕЗПЛАТНА доставка!`,
+    unlocked: 'Безплатна доставка отключена!',
+    goal: (amount: string) => `БЕЗПЛАТНА ДОСТАВКА над ${amount}`,
+  },
 };
 
 export const checkout = {
@@ -804,6 +817,8 @@ export const reviews = {
     doneTitle: 'Благодарим ти!',
     doneMessage: 'Високо оценяваме твоята оценка!',
     doneMessageDetail: 'Моля, потвърди коментара като кликнеш на линка в имейла, който ти изпратихме! ❤️',
+    /** Shown instead of doneMessage+doneMessageDetail when submitted via a pre-verified review-reminder link (see AddReviewWizard's knownIdentity) - the review already published immediately, no email confirmation is coming. */
+    doneMessagePreVerified: 'Високо оценяваме твоята оценка! ❤️',
     close: 'Затвори',
     closeAria: 'Затвори прозореца',
     invalidEmail: 'Моля, въведи валиден имейл адрес.',

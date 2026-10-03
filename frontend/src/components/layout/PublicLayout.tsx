@@ -6,6 +6,7 @@ import CookiePreferencesModal from '../CookiePreferencesModal';
 import AnalyticsLoader from '../AnalyticsLoader';
 import LegalDocumentUpdateModal from '../LegalDocumentUpdateModal';
 import TopAnnouncementBar from '../TopAnnouncementBar';
+import CartDrawer from '../cart/CartDrawer';
 
 export default function PublicLayout() {
   return (
@@ -20,6 +21,7 @@ export default function PublicLayout() {
       <CookieBanner />
       <CookiePreferencesModal />
       <AnalyticsLoader />
+      <CartDrawer />
     </div>
   );
 }

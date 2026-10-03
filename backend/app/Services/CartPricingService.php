@@ -87,6 +87,33 @@ class CartPricingService
         return $variant->priceFor($currency);
     }
 
+    /**
+     * The struck-through "was" price for a multi-piece pack variant that
+     * isn't otherwise on sale — what this many pieces would cost at the
+     * product's own live 1-piece price, the same non-fabricated "vs. buying
+     * singly" methodology the frontend's funnelOffers.ts::computeOriginalPrice
+     * uses for the funnel page's package cards. Never a stored/fabricated
+     * compare-at value (see FunnelSeeder.php's history: compare_at_amount
+     * was deliberately removed from pack-variant Price rows for having no
+     * documented basis) — this is computed fresh from a real sibling price
+     * every time. Null whenever this isn't a multi-piece pack, the product
+     * has no 1-piece sibling variant, or that sibling has no price in this
+     * currency.
+     */
+    public function bundleCompareAtUnitPrice(ProductVariant $variant, string $currency): ?float
+    {
+        if ($variant->pack_size <= 1 || $variant->product === null) {
+            return null;
+        }
+
+        $singleVariant = $variant->product->variants->first(
+            fn (ProductVariant $candidate) => $candidate->pack_size === 1,
+        );
+        $singlePrice = $singleVariant?->priceFor($currency);
+
+        return $singlePrice ? round((float) $singlePrice->amount * $variant->pack_size, 2) : null;
+    }
+
     public function lineTotal(CartItem $item, string $currency): float
     {
         $variant = $item->productVariant;

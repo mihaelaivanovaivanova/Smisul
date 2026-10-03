@@ -95,6 +95,9 @@ class SettingService
             'general.support_phone' => 'support_phone',
             'general.store_email' => 'store_email',
             'general.same_day_dispatch_cutoff' => 'same_day_dispatch_cutoff',
+            // Whole-EUR cart subtotal that unlocks free shipping (the cart
+            // drawer's progress bar, CartDrawer.tsx) - 0 disables the bar.
+            'general.free_shipping_threshold' => 'free_shipping_threshold',
             'general.social_instagram' => 'social_instagram',
             'general.social_facebook' => 'social_facebook',
             'general.social_tiktok' => 'social_tiktok',
@@ -120,11 +123,11 @@ class SettingService
                     return [$publicKey => null];
                 }
 
-                // Booleans must come back as real booleans, not the raw '1'/'0'
-                // string stored in the column — every other public setting so
-                // far has been a string, so this is the first key that needs
-                // castValue() rather than the raw ->value.
-                if ($setting->type === 'boolean') {
+                // Non-string types (boolean, integer, ...) must come back as
+                // their real JSON type, not the raw string stored in the
+                // column, so the frontend can use them directly (e.g. do
+                // arithmetic on free_shipping_threshold without parsing).
+                if ($setting->type !== 'string') {
                     return [$publicKey => $setting->castValue()];
                 }
 

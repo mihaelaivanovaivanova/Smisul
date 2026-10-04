@@ -16,6 +16,8 @@ use App\Exceptions\Cart\VariantNotPurchasableException;
 use App\Exceptions\InsufficientStockException;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Price;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -56,6 +58,17 @@ class CartService
         'items.productVariant.prices',
         'items.productVariant.inventory',
     ];
+
+    /**
+     * The one cross-sell pairing this store has: adding the bamboo Miswak
+     * case through the cart drawer's upsell card is only ever honored at
+     * its upsell_amount when the cart already contains a real Miswak item —
+     * mirrors the frontend's own hardcoded MISWAK_SLUG/UPSELL_CASE_SLUG in
+     * CartDrawer.tsx. A simple hardcoded pairing, not a general feature.
+     */
+    private const UPSELL_MISWAK_SLUG = 'miswak';
+
+    private const UPSELL_CASE_SLUG = 'bambukov-keis-za-miswak';
 
     public function __construct(
         private readonly CartPricingService $pricing,
@@ -122,9 +135,18 @@ class CartService
 
             $wasCreated = $existing === null;
 
+            // is_upsell is only ever set when this line is first created —
+            // a later re-add/merge (updateOrCreate's update branch) must
+            // never flip it either way, so its price basis can't change
+            // out from under an existing line.
+            $values = ['quantity' => $requestedTotal];
+            if ($wasCreated) {
+                $values['is_upsell'] = $data->isUpsell && $this->isEligibleForUpsellPrice($cart, $variant);
+            }
+
             $item = $cart->items()->updateOrCreate(
                 ['product_variant_id' => $variant->id],
-                ['quantity' => $requestedTotal],
+                $values,
             );
 
             CartItemAdded::dispatch($cart, $item);
@@ -160,7 +182,7 @@ class CartService
     public function removeItem(Cart $cart, int $cartItemId): void
     {
         DB::transaction(function () use ($cart, $cartItemId) {
-            $item = $cart->items()->with('productVariant')->lockForUpdate()->find($cartItemId);
+            $item = $cart->items()->with('productVariant.product')->lockForUpdate()->find($cartItemId);
 
             if ($item === null) {
                 throw CartItemNotFoundException::forId($cartItemId);
@@ -168,8 +190,13 @@ class CartService
 
             $this->releaseReservation($item);
 
+            $removedProductSlug = $item->productVariant?->product?->slug;
             $productVariantId = $item->product_variant_id;
             $item->delete();
+
+            if ($removedProductSlug === self::UPSELL_MISWAK_SLUG) {
+                $this->revokeUpsellPriceIfMiswakGone($cart);
+            }
 
             CartItemRemoved::dispatch($cart, $productVariantId);
         });
@@ -296,7 +323,9 @@ class CartService
 
                 $lockedUserCart->items()->updateOrCreate(
                     ['product_variant_id' => $variant->id],
-                    ['quantity' => $cappedQuantity],
+                    $existing !== null
+                        ? ['quantity' => $cappedQuantity]
+                        : ['quantity' => $cappedQuantity, 'is_upsell' => $guestItem->is_upsell],
                 );
 
                 $mergedCount++;
@@ -306,5 +335,83 @@ class CartService
 
             CartMerged::dispatch($lockedUserCart, $mergedCount);
         });
+    }
+
+    /**
+     * Server-side truth for whether this add-to-cart request may actually
+     * be priced as the bamboo-case upsell — never just trusts the
+     * request's is_upsell flag (see AddCartItemRequest's own comment).
+     * True only when the variant being added IS the bamboo case and the
+     * cart already contains a real Miswak item, the same condition
+     * upsellOffer() below uses to decide whether to show the card at all.
+     */
+    private function isEligibleForUpsellPrice(Cart $cart, ProductVariant $variant): bool
+    {
+        if ($variant->product?->slug !== self::UPSELL_CASE_SLUG) {
+            return false;
+        }
+
+        return $this->cartHasProduct($cart, self::UPSELL_MISWAK_SLUG);
+    }
+
+    private function cartHasProduct(Cart $cart, string $productSlug): bool
+    {
+        return $cart->items()
+            ->whereHas('productVariant.product', fn ($query) => $query->where('slug', $productSlug))
+            ->exists();
+    }
+
+    /**
+     * Keeps CartItem::is_upsell honest after a Miswak item is removed — the
+     * bamboo case's upsell_amount is only ever justified by a real Miswak
+     * item genuinely being in the same cart (see isEligibleForUpsellPrice()
+     * above), so a case line priced that way must revert to its regular
+     * price the moment the last Miswak item leaves, not keep a discount
+     * that no longer applies. A no-op if the cart still has another Miswak
+     * line (e.g. two different pack sizes) or no case line is upsell-priced.
+     */
+    private function revokeUpsellPriceIfMiswakGone(Cart $cart): void
+    {
+        if ($this->cartHasProduct($cart, self::UPSELL_MISWAK_SLUG)) {
+            return;
+        }
+
+        $cart->items()
+            ->whereHas('productVariant.product', fn ($query) => $query->where('slug', self::UPSELL_CASE_SLUG))
+            ->where('is_upsell', true)
+            ->update(['is_upsell' => false]);
+    }
+
+    /**
+     * The bamboo-case cross-sell offer for this cart right now, if any —
+     * null when the cart has no Miswak item yet, already contains the
+     * case, the case product/variant/price can't be found, or no
+     * upsell_amount is configured for it (set via the admin product price
+     * form — see Admin\PriceResource). Single source of truth for both
+     * what CartDrawer.tsx's upsell card displays and what addItem() above
+     * actually charges — isEligibleForUpsellPrice() reuses the exact same
+     * two slugs, so an offer never gets shown that wouldn't also be
+     * honored at add time.
+     *
+     * @return array{product: Product, variant: ProductVariant, price: Price}|null
+     */
+    public function upsellOffer(Cart $cart): ?array
+    {
+        if (! $this->cartHasProduct($cart, self::UPSELL_MISWAK_SLUG) || $this->cartHasProduct($cart, self::UPSELL_CASE_SLUG)) {
+            return null;
+        }
+
+        $product = Product::with(['variants.prices', 'variants.inventory', 'primaryMedia'])
+            ->where('slug', self::UPSELL_CASE_SLUG)
+            ->first();
+
+        $variant = $product?->variants->firstWhere('is_default', true) ?? $product?->variants->first();
+        $price = $variant?->priceFor($cart->currency);
+
+        if ($product === null || $variant === null || $price === null || $price->upsell_amount === null) {
+            return null;
+        }
+
+        return ['product' => $product, 'variant' => $variant, 'price' => $price];
     }
 }

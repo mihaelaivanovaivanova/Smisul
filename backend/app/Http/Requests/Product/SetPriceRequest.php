@@ -22,6 +22,7 @@ class SetPriceRequest extends FormRequest
             'currency' => ['required', Rule::enum(Currency::class)],
             'amount' => ['required', 'numeric', 'min:0'],
             'compare_at_amount' => ['nullable', 'numeric', 'gt:amount'],
+            'upsell_amount' => ['nullable', 'numeric', 'min:0', 'lt:amount'],
             'reason' => ['nullable', 'string', 'max:255'],
         ];
     }

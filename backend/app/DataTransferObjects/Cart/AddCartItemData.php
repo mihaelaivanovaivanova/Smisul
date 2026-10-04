@@ -7,6 +7,7 @@ final readonly class AddCartItemData
     public function __construct(
         public int $productVariantId,
         public int $quantity,
+        public bool $isUpsell = false,
     ) {}
 
     /**
@@ -17,6 +18,7 @@ final readonly class AddCartItemData
         return new self(
             productVariantId: (int) $data['product_variant_id'],
             quantity: (int) $data['quantity'],
+            isUpsell: (bool) ($data['is_upsell'] ?? false),
         );
     }
 }

@@ -8,9 +8,9 @@ import AdminRoute from './components/admin/AdminRoute';
 import AdminLayout from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
 import FunnelLandingPage from './pages/FunnelLandingPage';
+import MiswakLandingPage from './pages/MiswakLandingPage';
 import { useSettings } from './hooks/useSettings';
 import ProductPage from './pages/ProductPage';
-import MiswakLandingPage from './pages/MiswakLandingPage';
 import CategoryPage from './pages/CategoryPage';
 import SearchPage from './pages/SearchPage';
 import CartPage from './pages/CartPage';
@@ -99,13 +99,13 @@ export default function App() {
       <ScrollToTop />
       <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={funnelModeEnabled ? <FunnelLandingPage /> : <HomePage />} />
+        <Route path="/" element={funnelModeEnabled ? <MiswakLandingPage /> : <HomePage />} />
         <Route path="/products/:slug" element={<ProductPage />} />
-        {/* Unlisted review link for the in-progress Juun.bg-structured
-            redesign — nothing on the site links here, so it stays out of
-            the cart/order-confirmation/favorites flows that point at
-            /products/miswak until the redesign is ready to launch there. */}
-        <Route path="/preview/miswak" element={<MiswakLandingPage />} />
+        {/* The previous "/" funnel layout, kept reachable for comparison
+            now that MiswakLandingPage has taken over "/" and /products/miswak
+            (see ProductPage.tsx's guard clause) - nothing on the site links
+            here. */}
+        <Route path="/preview/miswak" element={<FunnelLandingPage />} />
         <Route path="/categories/:slug" element={<CategoryPage />} />
         <Route element={<FunnelSearchGuard />}>
           <Route path="/search" element={<SearchPage />} />

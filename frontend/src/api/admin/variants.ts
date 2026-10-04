@@ -14,6 +14,8 @@ export interface VariantPricePayload {
   currency: 'EUR';
   amount: number;
   compare_at_amount?: number | null;
+  /** Lower than amount — only ever charged when added via a specific cross-sell upsell flow (see CartDrawer.tsx's bamboo-case upsell), never shown on the product's own page. */
+  upsell_amount?: number | null;
 }
 
 export interface VariantInventoryPayload {

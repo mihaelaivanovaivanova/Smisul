@@ -33,31 +33,15 @@ class CartItemResource extends JsonResource
         /** @var CartPricingService $pricing */
         $pricing = app(CartPricingService::class);
         $variant = $this->productVariant;
-        $price = $variant ? $pricing->unitPrice($variant, $this->currency) : null;
-
-        $compareAtUnitPrice = $price?->compare_at_amount !== null ? (float) $price->compare_at_amount : null;
-        $isOnSale = $price?->isOnSale() ?? false;
-
-        // No real sale on this exact price row — fall back to the bundle
-        // "was" price (pack price vs. buying singly) so a multi-piece
-        // pack's cart line shows the same savings the product/funnel page
-        // already advertised when it was added.
-        if (! $isOnSale && $variant !== null && $price !== null) {
-            $bundleCompareAt = $pricing->bundleCompareAtUnitPrice($variant, $this->currency);
-
-            if ($bundleCompareAt !== null && $bundleCompareAt > $price->amount) {
-                $compareAtUnitPrice = $bundleCompareAt;
-                $isOnSale = true;
-            }
-        }
+        $price = $pricing->effectivePrice($this->resource, $this->currency);
 
         return [
             'id' => $this->id,
             'quantity' => $this->quantity,
             'product_variant' => new ProductVariantResource($variant),
             'unit_price' => $price ? (float) $price->amount : null,
-            'compare_at_unit_price' => $compareAtUnitPrice,
-            'is_on_sale' => $isOnSale,
+            'compare_at_unit_price' => $price?->compare_at_amount !== null ? (float) $price->compare_at_amount : null,
+            'is_on_sale' => $price?->isOnSale() ?? false,
             'line_total' => $pricing->lineTotal($this->resource, $this->currency),
             'is_available' => $pricing->isItemAvailable($this->resource),
             'max_quantity' => $variant ? $pricing->maxQuantityFor($variant, $this->quantity) : 0,

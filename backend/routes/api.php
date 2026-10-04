@@ -205,6 +205,7 @@ Route::prefix('v1')->group(function () {
     // CartController::resolve() / CartService::resolveCart().
     Route::prefix('cart')->group(function () {
         Route::get('/', [CartController::class, 'show'])->name('cart.show');
+        Route::get('/upsell', [CartController::class, 'upsell'])->name('cart.upsell');
         Route::post('/items', [CartController::class, 'storeItem'])->name('cart.items.store');
         Route::patch('/items/{item}', [CartController::class, 'updateItem'])->name('cart.items.update');
         Route::delete('/items/{item}', [CartController::class, 'destroyItem'])->name('cart.items.destroy');

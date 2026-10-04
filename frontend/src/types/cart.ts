@@ -1,4 +1,4 @@
-import type { ProductVariant } from './product';
+import type { Currency, Media, ProductVariant } from './product';
 
 export interface CartItem {
   id: number;
@@ -33,4 +33,18 @@ export interface Cart {
   items_count: number;
   total_quantity: number;
   totals: CartTotals;
+}
+
+/** The bamboo-case cross-sell card's current offer — see api/cart.ts's fetchCartUpsell(). */
+export interface CartUpsellOffer {
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    primary_image: Media | null;
+  };
+  variant_id: number;
+  amount: number;
+  compare_at_amount: number;
+  currency: Currency;
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\Cart\CartResource;
+use App\Http\Resources\Cart\CartUpsellResource;
 use App\Models\Cart;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
@@ -57,6 +58,20 @@ class CartController extends Controller
         $this->carts->clear($cart);
 
         return $this->respond($cart);
+    }
+
+    /**
+     * The bamboo-case cross-sell card's actual offer (see CartService::
+     * upsellOffer()) — the only source for what CartDrawer.tsx's upsell
+     * card displays, so it can never show a price the backend wouldn't
+     * also honor at add time.
+     */
+    public function upsell(Request $request): JsonResponse
+    {
+        $cart = $this->resolve($request);
+        $offer = $this->carts->upsellOffer($cart);
+
+        return response()->json(['data' => $offer ? new CartUpsellResource($offer) : null]);
     }
 
     private function resolve(Request $request): Cart

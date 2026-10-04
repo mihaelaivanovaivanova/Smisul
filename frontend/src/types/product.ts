@@ -8,6 +8,8 @@ export interface Price {
   amount: number;
   compare_at_amount: number | null;
   is_on_sale: boolean;
+  /** Admin-only — present when loaded via the admin product endpoints, absent from every public/storefront response (see backend's Admin\PriceResource). */
+  upsell_amount?: number | null;
 }
 
 export interface Inventory {

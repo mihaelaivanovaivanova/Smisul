@@ -17,6 +17,7 @@ class Price extends Model
         'currency',
         'amount',
         'compare_at_amount',
+        'upsell_amount',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class Price extends Model
         return [
             'amount' => 'decimal:2',
             'compare_at_amount' => 'decimal:2',
+            'upsell_amount' => 'decimal:2',
         ];
     }
 

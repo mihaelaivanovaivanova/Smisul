@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useProduct } from '../hooks/useProduct';
 import { useSettings } from '../hooks/useSettings';
 import { useAsync } from '../hooks/useAsync';
+import { fetchOrderReviewIdentity } from '../api/checkout';
 import { fetchProductReviews, fetchReviewSummary } from '../api/reviews';
 import { fetchPublicSettings } from '../api/settings';
 import { resolvePackageOffers } from '../services/funnelOffers';
@@ -72,6 +73,10 @@ import { buildBreadcrumbJsonLd } from '../services/structuredData';
  * funnelContent/funnelPackages (the same boot-time fetch "/" already uses)
  * rather than duplicated — see the approved plan.
  */
+interface ReviewPromptState {
+  reviewPrompt?: { orderId: number; productVariantId: number };
+}
+
 export default function MiswakLandingPage() {
   const { product, isLoading, error } = useProduct('miswak');
   const { funnelPackages, funnelContent, isLoading: settingsLoading } = useSettings();
@@ -80,10 +85,62 @@ export default function MiswakLandingPage() {
   // the same way FunnelLandingPage.tsx fetches it for the live "/" page.
   const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
   const dispatchCutoff = publicSettings?.same_day_dispatch_cutoff ?? null;
+  const freeShippingThreshold = publicSettings?.free_shipping_threshold ?? 0;
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
   const [showDesktopBar, setShowDesktopBar] = useState(false);
   const [showMobileBar, setShowMobileBar] = useState(false);
+
+  // Ported from ProductPage.tsx's ProductPageDefault, which this page
+  // replaced at /products/miswak (and now "/" too) - without this, the
+  // order confirmation page's "write a review" link and the 30-day
+  // reminder email's review-confirmation link would silently land here and
+  // do nothing, since this is the only real product on the storefront.
+  const writePrompt = (location.state as ReviewPromptState | null)?.reviewPrompt;
+  const wantsReviewWizard = searchParams.get('write_review') === '1';
+  const reviewOrderId = searchParams.get('order_id');
+  const reviewExpires = searchParams.get('expires');
+  const reviewSignature = searchParams.get('signature');
+  const [knownReviewerIdentity, setKnownReviewerIdentity] = useState<
+    { email: string; displayName: string; orderId: number; expires: string; signature: string } | undefined
+  >(undefined);
+  const [reviewerIdentityResolved, setReviewerIdentityResolved] = useState(reviewOrderId === null);
+
+  useEffect(() => {
+    if (reviewOrderId === null || reviewExpires === null || reviewSignature === null) {
+      return;
+    }
+
+    let cancelled = false;
+    fetchOrderReviewIdentity(Number(reviewOrderId), { expires: reviewExpires, signature: reviewSignature })
+      .then((identity) => {
+        if (!cancelled) {
+          setKnownReviewerIdentity({
+            email: identity.email,
+            displayName: identity.display_name,
+            orderId: Number(reviewOrderId),
+            expires: reviewExpires,
+            signature: reviewSignature,
+          });
+        }
+      })
+      .catch(() => {
+        // Expired or tampered link, or the order no longer exists - fine,
+        // just fall back below.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReviewerIdentityResolved(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewOrderId, reviewExpires, reviewSignature]);
+
+  const openReviewWizard = wantsReviewWizard && reviewerIdentityResolved;
 
   const { data: socialProof } = useAsync(
     () =>
@@ -214,6 +271,7 @@ export default function MiswakLandingPage() {
         reviewSummary={reviewSummary}
         trustItems={final_cta.trust_items}
         dispatchCutoff={dispatchCutoff}
+        freeShippingThreshold={freeShippingThreshold}
       />
 
       {/* Desktop gets this same content inside PurchasePanel's own right
@@ -250,7 +308,14 @@ export default function MiswakLandingPage() {
 
       <section className="section" id="reviews-full">
         <div className="container">
-          <ReviewsSection productSlug={product.slug} productName={product.name} productImageUrl={barImage?.url} />
+          <ReviewsSection
+            productSlug={product.slug}
+            productName={product.name}
+            productImageUrl={barImage?.url}
+            writePrompt={writePrompt}
+            openWizard={openReviewWizard}
+            knownReviewerIdentity={knownReviewerIdentity}
+          />
         </div>
       </section>
 

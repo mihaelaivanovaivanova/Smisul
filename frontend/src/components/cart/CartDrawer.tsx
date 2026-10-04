@@ -3,35 +3,16 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../hooks/useCart';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
-import { fetchProduct } from '../../api/products';
+import { fetchCartUpsell } from '../../api/cart';
 import { fetchPublicSettings } from '../../api/settings';
-import { formatPrice, getPrimaryImage, getVariantImage, getVariantPrice } from '../../services/productCatalog';
+import { formatPrice, getVariantImage } from '../../services/productCatalog';
 import { cart as cartCopy, funnelAssurance } from '../../content/copy';
 import Icon from '../icons/Icon';
 import QuantityStepper from './QuantityStepper';
-import type { CartItem } from '../../types/cart';
-import type { Product } from '../../types/product';
+import type { CartItem, CartUpsellOffer } from '../../types/cart';
 
-/**
- * Cross-sell pairing: buying any Miswak variant offers the bamboo case as a
- * one-click add, as long as it isn't already in the cart. A simple
- * hardcoded pairing, not a general "related products" admin feature — there
- * isn't one yet, and this is the only cross-sell the site needs today.
- */
-const MISWAK_SLUG = 'miswak';
-const UPSELL_CASE_SLUG = 'bambukov-keis-za-miswak';
-
-/**
- * Miswak's real storefront page is the funnel redesign at /preview/miswak,
- * not its generic /products/miswak page (see App.tsx's own comment on that
- * route - nothing else links there yet either, pending the redesign's
- * launch) - every other product just gets its normal product page.
- */
 function productHref(slug: string | undefined): string | null {
-  if (!slug) {
-    return null;
-  }
-  return slug === MISWAK_SLUG ? '/preview/miswak' : `/products/${slug}`;
+  return slug ? `/products/${slug}` : null;
 }
 
 /**
@@ -46,13 +27,14 @@ export default function CartDrawer() {
   const { cart, isLoading, isDrawerOpen, closeDrawer, updateItem, removeItem, addItem } = useCart();
 
   const items = cart?.items ?? [];
-  const hasMiswak = items.some((item) => item.product_variant.product?.slug === MISWAK_SLUG);
-  const hasUpsellCase = items.some((item) => item.product_variant.product?.slug === UPSELL_CASE_SLUG);
-  const shouldOfferUpsell = isDrawerOpen && hasMiswak && !hasUpsellCase;
 
-  const { data: upsellProduct } = useAsync(
-    () => (shouldOfferUpsell ? fetchProduct(UPSELL_CASE_SLUG) : Promise.resolve(null)),
-    [shouldOfferUpsell],
+  // Re-fetched whenever the drawer opens or the cart itself changes (add/
+  // remove/quantity) — the backend is the sole source of eligibility (see
+  // CartService::upsellOffer()), so this never duplicates that logic
+  // client-side.
+  const { data: upsellOffer } = useAsync(
+    () => (isDrawerOpen ? fetchCartUpsell() : Promise.resolve(null)),
+    [isDrawerOpen, cart],
     '',
   );
 
@@ -117,9 +99,6 @@ export default function CartDrawer() {
           <div className="cart-drawer__empty">
             <p className="cart-drawer__empty-title">{cartCopy.empty.title}</p>
             <p className="cart-drawer__empty-message">{cartCopy.empty.message}</p>
-            <Link to="/products" className="btn btn-primary" onClick={closeDrawer}>
-              {cartCopy.empty.cta}
-            </Link>
           </div>
         ) : (
           <>
@@ -135,7 +114,7 @@ export default function CartDrawer() {
               ))}
             </div>
 
-            {upsellProduct && <CartUpsell product={upsellProduct} onAdd={addItem} onNavigate={closeDrawer} />}
+            {upsellOffer && <CartUpsell offer={upsellOffer} onAdd={addItem} onNavigate={closeDrawer} />}
 
             <div className="cart-drawer__footer">
               <div className="cart-drawer__total-row">
@@ -293,33 +272,26 @@ function CartDrawerItem({ item, onUpdate, onRemove, onNavigate }: CartDrawerItem
 }
 
 interface CartUpsellProps {
-  product: Product;
-  onAdd: (productVariantId: number, quantity: number) => Promise<void>;
+  offer: CartUpsellOffer;
+  onAdd: (productVariantId: number, quantity: number, isUpsell?: boolean) => Promise<void>;
   /** Closes the drawer when the shopper follows the card's link to the case's product page. */
   onNavigate: () => void;
 }
 
-/** The bamboo-case cross-sell card (see MISWAK_SLUG/UPSELL_CASE_SLUG above) — disappears on its own once the case is added, since that flips shouldOfferUpsell to false on the next cart refresh. */
-function CartUpsell({ product, onAdd, onNavigate }: CartUpsellProps) {
+/** The bamboo-case cross-sell card — disappears on its own once the case is added, since that's exactly when the backend stops returning an offer (see CartService::upsellOffer()). */
+function CartUpsell({ offer, onAdd, onNavigate }: CartUpsellProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const variant = product.variants.find((candidate) => candidate.is_default) ?? product.variants[0];
-  const price = variant ? getVariantPrice(variant) : undefined;
-  const image = getPrimaryImage(product);
+  const { product } = offer;
   const href = productHref(product.slug);
-
-  if (!variant || !price) {
-    return null;
-  }
-
-  const savings = price.is_on_sale && price.compare_at_amount !== null ? price.compare_at_amount - price.amount : 0;
+  const savings = offer.compare_at_amount - offer.amount;
 
   async function handleAdd(): Promise<void> {
     setIsPending(true);
     setError(null);
     try {
-      await onAdd(variant.id, 1);
+      await onAdd(offer.variant_id, 1, true);
     } catch (err) {
       setError(getErrorMessage(err, cartCopy.upsell.addError));
     } finally {
@@ -327,8 +299,8 @@ function CartUpsell({ product, onAdd, onNavigate }: CartUpsellProps) {
     }
   }
 
-  const imageNode = image ? (
-    <img src={image.url} alt={image.alt_text ?? product.name} />
+  const imageNode = product.primary_image ? (
+    <img src={product.primary_image.url} alt={product.primary_image.alt_text ?? product.name} />
   ) : (
     <span className="cart-drawer-item__no-image">{cartCopy.noImage}</span>
   );
@@ -353,12 +325,8 @@ function CartUpsell({ product, onAdd, onNavigate }: CartUpsellProps) {
           <div className="cart-drawer-upsell__name">{product.name}</div>
         )}
         <div className="cart-drawer-upsell__price-row">
-          {price.is_on_sale && price.compare_at_amount !== null && (
-            <span className="price__compare">{formatPrice(price.compare_at_amount, price.currency)}</span>
-          )}
-          <span className={`cart-drawer-upsell__price${price.is_on_sale ? ' is-sale' : ''}`}>
-            {formatPrice(price.amount, price.currency)}
-          </span>
+          <span className="price__compare">{formatPrice(offer.compare_at_amount, offer.currency)}</span>
+          <span className="cart-drawer-upsell__price is-sale">{formatPrice(offer.amount, offer.currency)}</span>
         </div>
         {savings > 0 && <div className="cart-drawer-upsell__savings">{cartCopy.savings(formatPrice(savings))}</div>}
         {error && <div className="text-danger small mt-1">{error}</div>}

@@ -157,6 +157,42 @@ class ProductAdminTest extends TestCase
         $this->assertSame(1, $product->variants()->count());
     }
 
+    /**
+     * Regression test for a real incident: the simplified "Price (EUR)"
+     * field on the product form only ever carries amount, but used to
+     * build a fresh PriceData with no compare_at_amount/upsell_amount,
+     * silently wiping both every time it was used - even if the variant
+     * had an upsell_amount configured via VariantManager.tsx's own,
+     * separate price form. See ProductService::applyDefaultVariantValues().
+     */
+    #[Test]
+    public function updating_the_quick_price_field_preserves_the_variants_existing_upsell_amount(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $create = $this->actingAs($admin)->postJson('/api/v1/admin/products', [
+            'name' => 'Cross-sell item', 'quantity' => 5, 'price' => 6.49,
+        ]);
+        $productId = $create->json('data.id');
+        $variantId = $create->json('data.variants.0.id');
+
+        $this->actingAs($admin)->putJson(
+            "/api/v1/admin/products/{$productId}/variants/{$variantId}/price",
+            ['currency' => 'EUR', 'amount' => 6.49, 'upsell_amount' => 5.49],
+        )->assertOk();
+
+        $response = $this->actingAs($admin)->putJson("/api/v1/admin/products/{$productId}", [
+            'name' => 'Cross-sell item', 'quantity' => 5, 'price' => 6.99,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.price', 6.99);
+        $this->assertDatabaseHas('prices', [
+            'product_variant_id' => $variantId,
+            'amount' => 6.99,
+            'upsell_amount' => 5.49,
+        ]);
+    }
+
     #[Test]
     public function setting_quantity_on_a_product_created_before_this_feature_creates_its_default_variant_on_the_fly(): void
     {

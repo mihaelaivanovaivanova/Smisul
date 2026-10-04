@@ -5,7 +5,8 @@ export interface CartContextValue {
   cart: Cart | null;
   isLoading: boolean;
   error: string | null;
-  addItem: (productVariantId: number, quantity: number) => Promise<void>;
+  /** isUpsell: see api/cart.ts's addCartItem — only the cart drawer's bamboo-case upsell card ever passes this. */
+  addItem: (productVariantId: number, quantity: number, isUpsell?: boolean) => Promise<void>;
   updateItem: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   clear: () => Promise<void>;

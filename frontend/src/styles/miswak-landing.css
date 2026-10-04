@@ -200,10 +200,16 @@
   box-shadow: var(--shadow-sm);
 }
 
-.miswak-package-option__badge {
+.miswak-package-option__badges {
   position: absolute;
   top: -0.7rem;
   right: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.miswak-package-option__badge {
   padding: 0.15rem var(--space-3);
   border-radius: var(--radius-pill);
   background-color: var(--color-forest);
@@ -211,6 +217,10 @@
   font-size: var(--fs-xs);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.miswak-package-option__badge--shipping {
+  background-color: var(--color-gold);
 }
 
 .miswak-package-option__radio {

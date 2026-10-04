@@ -242,6 +242,8 @@ export const funnelOffer = {
   packagesFrom: (formattedPrice: string) => `Пакети от ${formattedPrice}`,
   /** Mobile sticky CTA's fixed label - paired with the live fromPrice() price at render. */
   mobileCtaLabel: 'ИЗБЕРИ ПАКЕТ',
+  /** Shown on any package priced at/above the live free-shipping threshold (see PackageRadioSelector) - never hardcoded to one tier, so it stays correct if the threshold or a package's price changes. */
+  freeShippingBadge: 'БЕЗПЛАТНА ДОСТАВКА',
 };
 
 /**

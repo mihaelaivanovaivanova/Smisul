@@ -26,6 +26,8 @@ interface PurchasePanelProps {
   trustItems: FunnelTrustItem[];
   /** Same-day dispatch cutoff (Settings → General) — see DispatchPromise.tsx; renders nothing outside the window. */
   dispatchCutoff: string | null | undefined;
+  /** Live free-shipping threshold (Settings → General) — passed through to PackageRadioSelector's badge. */
+  freeShippingThreshold?: number;
 }
 
 /**
@@ -58,7 +60,7 @@ interface PurchasePanelProps {
  * than guessing a pixel offset that could drift if the navbar's own height
  * ever changes.
  */
-export default function PurchasePanel({ product, offers, reviewSummary, trustItems, dispatchCutoff }: PurchasePanelProps) {
+export default function PurchasePanel({ product, offers, reviewSummary, trustItems, dispatchCutoff, freeShippingThreshold }: PurchasePanelProps) {
   const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
   const [selectedIndex, setSelectedIndex] = useState(featuredIndex >= 0 ? featuredIndex : 0);
 
@@ -114,7 +116,12 @@ export default function PurchasePanel({ product, offers, reviewSummary, trustIte
 
             <TrustBullets />
 
-            <PackageRadioSelector offers={offers} selectedIndex={selectedIndex} onSelect={setSelectedIndex} />
+            <PackageRadioSelector
+              offers={offers}
+              selectedIndex={selectedIndex}
+              onSelect={setSelectedIndex}
+              freeShippingThreshold={freeShippingThreshold}
+            />
 
             <div className="text-center mb-3">
               <DispatchPromise cutoff={dispatchCutoff} />

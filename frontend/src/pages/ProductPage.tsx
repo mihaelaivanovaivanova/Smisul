@@ -26,6 +26,7 @@ import AddToCartButton from '../components/product/AddToCartButton';
 import FavoriteButton from '../components/product/FavoriteButton';
 import ReviewsSection from '../components/reviews/ReviewsSection';
 import NotFoundPage from './NotFoundPage';
+import MiswakLandingPage from './MiswakLandingPage';
 import { buildBreadcrumbJsonLd } from '../services/structuredData';
 import { breadcrumbLabels, funnelAssurance, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
@@ -34,14 +35,16 @@ interface ReviewPromptState {
   reviewPrompt?: { orderId: number; productVariantId: number };
 }
 
+/** The only product on its own Juun.bg-structured redesign so far — every other slug keeps the plain layout below. */
+const MISWAK_SLUG = 'miswak';
+
 export default function ProductPage() {
   const { slug = '' } = useParams<{ slug: string }>();
 
-  // The Juun.bg-structured redesign (see the approved plan) is still being
-  // reviewed — /products/miswak stays on the plain layout below (same as
-  // every other product) so it isn't exposed through the cart item row,
-  // order confirmation, favorites, etc. while it's unfinished. Preview it
-  // at /preview/miswak (see App.tsx) instead, which nothing links to.
+  if (slug === MISWAK_SLUG) {
+    return <MiswakLandingPage />;
+  }
+
   return <ProductPageDefault slug={slug} />;
 }
 

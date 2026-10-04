@@ -114,10 +114,58 @@ class CartPricingService
         return $singlePrice ? round((float) $singlePrice->amount * $variant->pack_size, 2) : null;
     }
 
-    public function lineTotal(CartItem $item, string $currency): float
+    /**
+     * The price this specific cart line actually charges - a real sale on
+     * the Price row always wins; failing that, a line added through the
+     * bamboo-case cross-sell (cart_items.is_upsell, set once at add time by
+     * CartService's server-validated eligibility check - never by the
+     * client) uses the variant's admin-configured upsell_amount instead of
+     * its regular price; failing that, a multi-piece pack with no sale of
+     * its own falls back to bundleCompareAtUnitPrice() above. Exactly one
+     * of these ever applies. Returns a transient, never-persisted Price
+     * instance when a fallback applies - just a shared shape for
+     * lineTotal()/CartItemResource to read amount/compare_at_amount/
+     * isOnSale() from, identically to a real row.
+     */
+    public function effectivePrice(CartItem $item, string $currency): ?Price
     {
         $variant = $item->productVariant;
-        $price = $variant ? $this->unitPrice($variant, $currency) : null;
+        if ($variant === null) {
+            return null;
+        }
+
+        $price = $this->unitPrice($variant, $currency);
+        if ($price === null) {
+            return null;
+        }
+
+        if ($price->isOnSale()) {
+            return $price;
+        }
+
+        if ($item->is_upsell && $price->upsell_amount !== null) {
+            return new Price([
+                'currency' => $currency,
+                'amount' => $price->upsell_amount,
+                'compare_at_amount' => $price->amount,
+            ]);
+        }
+
+        $bundleCompareAt = $this->bundleCompareAtUnitPrice($variant, $currency);
+        if ($bundleCompareAt !== null && $bundleCompareAt > $price->amount) {
+            return new Price([
+                'currency' => $currency,
+                'amount' => $price->amount,
+                'compare_at_amount' => $bundleCompareAt,
+            ]);
+        }
+
+        return $price;
+    }
+
+    public function lineTotal(CartItem $item, string $currency): float
+    {
+        $price = $this->effectivePrice($item, $currency);
 
         return $price ? round((float) $price->amount * $item->quantity, 2) : 0.0;
     }

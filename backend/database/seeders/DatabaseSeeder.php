@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(AdminSeeder::class);
         $this->call(SettingsSeeder::class);
+        $this->call(ShippingProviderSettingsSeeder::class);
         $this->call(ContentBlockSeeder::class);
 
         // Hosted installs use Composer --no-dev, so Faker-backed factories

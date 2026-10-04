@@ -145,6 +145,12 @@ if ($isUpgrade) {
         if ($code !== 0) throw new RuntimeException($kernel->output());
         importIcardProfiles($app, $backend, $messages);
 
+        // Safe to run on every upgrade, unlike the Miswak catch-up below:
+        // it only ever fills in cod_fee when the row doesn't have one set
+        // yet (see the seeder's own docblock), so a real admin-configured
+        // fee is never overwritten - no existence guard needed.
+        (new Database\Seeders\ShippingProviderSettingsSeeder)->run();
+
         // One-time catch-up for real storefront products added after this
         // site's original install (unlike ProductSeeder's 7 dev fixtures -
         // see the fresh-install branch's own comment below - this one IS
@@ -305,6 +311,7 @@ try {
         ['migrate', ['--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\AdminSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\SettingsSeeder::class, '--force' => true]],
+        ['db:seed', ['--class' => Database\Seeders\ShippingProviderSettingsSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\ContentBlockSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\CategorySeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\LegalDocumentSeeder::class, '--force' => true]],

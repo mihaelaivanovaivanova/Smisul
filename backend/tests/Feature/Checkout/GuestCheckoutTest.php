@@ -8,6 +8,7 @@ use App\Enums\VariantStatus;
 use App\Models\LegalDocument;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -24,6 +25,14 @@ class GuestCheckoutTest extends TestCase
         $variant->prices()->create(['currency' => Currency::EUR->value, 'amount' => 19.99]);
 
         return $variant;
+    }
+
+    private function setFreeShippingThreshold(float $amount): void
+    {
+        Setting::updateOrCreate(
+            ['key' => 'general.free_shipping_threshold'],
+            ['group' => 'general', 'type' => 'integer', 'label' => 'Free shipping threshold (EUR, 0 = disabled)', 'value' => (string) $amount],
+        );
     }
 
     /**
@@ -78,6 +87,36 @@ class GuestCheckoutTest extends TestCase
     }
 
     #[Test]
+    public function shipping_is_free_once_the_cart_clears_the_threshold(): void
+    {
+        $this->setFreeShippingThreshold(30.0);
+        $variant = $this->purchasableVariant(10);
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 2]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/checkout/shipping-methods');
+
+        $response->assertOk();
+        foreach ($response->json('data') as $method) {
+            $this->assertEquals(0, $method['price'], "{$method['carrier']}/{$method['delivery_type']} should be free");
+        }
+    }
+
+    #[Test]
+    public function shipping_keeps_its_normal_price_below_the_threshold(): void
+    {
+        $this->setFreeShippingThreshold(100.0);
+        $variant = $this->purchasableVariant(10);
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/checkout/shipping-methods');
+
+        $response->assertOk();
+        $response->assertJsonFragment(['carrier' => 'speedy', 'delivery_type' => 'address', 'price' => 5.99]);
+    }
+
+    #[Test]
     public function current_legal_documents_are_publicly_listed(): void
     {
         $this->acceptAllCurrentLegalDocuments();
@@ -118,6 +157,48 @@ class GuestCheckoutTest extends TestCase
         $this->assertNotNull($response->json('meta.guest_access_token'));
 
         $this->assertDatabaseHas('orders', ['order_number' => $response->json('data.order_number'), 'user_id' => null]);
+    }
+
+    #[Test]
+    public function placing_an_order_above_the_free_shipping_threshold_charges_no_delivery_fee(): void
+    {
+        $this->setFreeShippingThreshold(30.0);
+        $variant = $this->purchasableVariant(10);
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 2]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->postJson('/api/v1/checkout/orders', $this->validPayload());
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.shipping.price', 0);
+        $response->assertJsonPath('data.totals.shipping_total', 0);
+        $response->assertJsonPath('data.totals.subtotal', 39.98);
+        $response->assertJsonPath('data.totals.grand_total', 39.98);
+    }
+
+    /**
+     * The free-shipping threshold zeroes shipping_total only — the COD fee
+     * is a separate, payment-method-level charge (PaymentService::feeFor(),
+     * reconciled onto the order by initiate()) that still applies on top
+     * regardless of whether delivery itself was free.
+     */
+    #[Test]
+    public function the_cash_on_delivery_fee_still_applies_when_shipping_is_free(): void
+    {
+        $this->setFreeShippingThreshold(30.0);
+        $variant = $this->purchasableVariant(10);
+        $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 2]);
+        $guestToken = $addToCart->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->postJson('/api/v1/checkout/orders', $this->validPayload(['payment_method' => 'cash_on_delivery']));
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.shipping.price', 0);
+        $response->assertJsonPath('data.totals.shipping_total', 0);
+        $response->assertJsonPath('data.totals.cod_fee', 0.5);
+        $response->assertJsonPath('data.totals.grand_total', 40.48);
     }
 
     #[Test]

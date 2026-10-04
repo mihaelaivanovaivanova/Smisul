@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\DataTransferObjects\PriceData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\SetPriceRequest;
-use App\Http\Resources\PriceResource;
+use App\Http\Resources\Admin\PriceResource;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\PriceService;

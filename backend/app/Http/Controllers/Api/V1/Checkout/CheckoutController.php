@@ -20,6 +20,7 @@ use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Cart;
 use App\Services\BulgarianSettlementService;
+use App\Services\CartPricingService;
 use App\Services\CartService;
 use App\Services\LegalDocumentService;
 use App\Services\OrderService;
@@ -43,11 +44,21 @@ class CheckoutController extends Controller
         private readonly ShippingService $shipping,
         private readonly LegalDocumentService $legalDocuments,
         private readonly BulgarianSettlementService $settlements,
+        private readonly CartPricingService $cartPricing,
     ) {}
 
-    public function shippingMethods(): JsonResponse
+    /**
+     * Prices reflect the current cart's subtotal — every method's price is
+     * zeroed once it clears the free-shipping threshold (see
+     * ShippingMethodService::allForSubtotal()), so what's shown here is
+     * exactly what placeOrder() will actually charge.
+     */
+    public function shippingMethods(Request $request): JsonResponse
     {
-        return ShippingMethodResource::collection($this->shippingMethods->all())->response();
+        $cart = $this->resolveCart($request);
+        $subtotal = $this->cartPricing->totals($cart)->subtotal;
+
+        return ShippingMethodResource::collection($this->shippingMethods->allForSubtotal($subtotal))->response();
     }
 
     /**

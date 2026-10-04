@@ -57,8 +57,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(current);
   }, []);
 
-  const addItem = useCallback(async (productVariantId: number, quantity: number) => {
-    const updated = await cartApi.addCartItem(productVariantId, quantity);
+  const addItem = useCallback(async (productVariantId: number, quantity: number, isUpsell?: boolean) => {
+    const updated = await cartApi.addCartItem(productVariantId, quantity, isUpsell);
     setCart(updated);
   }, []);
 

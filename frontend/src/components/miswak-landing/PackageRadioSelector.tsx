@@ -11,6 +11,8 @@ interface PackageRadioSelectorProps {
   /** Controlled by PurchasePanel, which also uses it to swap the gallery to the selected variant's own photo (see getGalleryImagesForVariant). */
   selectedIndex: number;
   onSelect: (index: number) => void;
+  /** Live admin-configured threshold (Settings → General) - a package at/above it also gets the free-shipping badge. 0/undefined renders no badge. */
+  freeShippingThreshold?: number;
 }
 
 /**
@@ -21,7 +23,7 @@ interface PackageRadioSelectorProps {
  * adds that tier's variant. Scoped to this page only, per the approved
  * plan — the live funnel page keeps its existing per-card buy buttons.
  */
-export default function PackageRadioSelector({ offers, selectedIndex, onSelect }: PackageRadioSelectorProps) {
+export default function PackageRadioSelector({ offers, selectedIndex, onSelect, freeShippingThreshold }: PackageRadioSelectorProps) {
   if (offers.length === 0) {
     return null;
   }
@@ -34,13 +36,23 @@ export default function PackageRadioSelector({ offers, selectedIndex, onSelect }
         const savingsPercent = computeSavingsPercent(offers, variant, price);
         const originalPrice = computeOriginalPrice(offers, variant, price);
         const isSelected = index === selectedIndex;
+        const isFreeShipping = Boolean(freeShippingThreshold) && price.amount >= freeShippingThreshold!;
 
         return (
           <label
             key={pkg.variant_id}
             className={`miswak-package-option ${isSelected ? 'is-selected' : ''}`}
           >
-            {pkg.badge && <span className="miswak-package-option__badge">{pkg.badge}</span>}
+            {(pkg.badge || isFreeShipping) && (
+              <span className="miswak-package-option__badges">
+                {isFreeShipping && (
+                  <span className="miswak-package-option__badge miswak-package-option__badge--shipping">
+                    {funnelOfferCopy.freeShippingBadge}
+                  </span>
+                )}
+                {pkg.badge && <span className="miswak-package-option__badge">{pkg.badge}</span>}
+              </span>
+            )}
             <input
               type="radio"
               name="miswak-package"

@@ -16,6 +16,7 @@ use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -153,7 +154,12 @@ class OrderService
             }
 
             $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
-            $shippingTotal = $shippingMethod->price;
+            // Zeroed once the cart clears the free-shipping threshold —
+            // never touches shippingRateSnapshot above (the чл. 54, ал. 2
+            // ЗЗП refund cap needs the real catalog rate, not what this
+            // particular order happened to pay) or the COD fee, which
+            // PaymentService::initiate() applies separately regardless.
+            $shippingTotal = $this->shippingMethods->isFreeShipping($subtotal) ? 0.0 : $shippingMethod->price;
             $discountTotal = round(array_sum(array_column($lines, 'discount_amount')), 2);
             $taxTotal = 0.0;
 
@@ -439,8 +445,8 @@ class OrderService
     ];
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<Order>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<Order>
+     * @param  Builder<Order>  $query
+     * @return Builder<Order>
      */
     private function excludingTestOrders($query)
     {

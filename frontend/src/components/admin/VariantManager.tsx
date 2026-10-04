@@ -29,10 +29,19 @@ interface VariantFormState {
   pack_size: number;
   amount: number;
   compare_at_amount: number | null;
+  upsell_amount: number | null;
   quantity_on_hand: number;
 }
 
-const EMPTY_FORM: VariantFormState = { sku: '', name: '', pack_size: 1, amount: 0, compare_at_amount: null, quantity_on_hand: 0 };
+const EMPTY_FORM: VariantFormState = {
+  sku: '',
+  name: '',
+  pack_size: 1,
+  amount: 0,
+  compare_at_amount: null,
+  upsell_amount: null,
+  quantity_on_hand: 0,
+};
 
 /**
  * Self-contained, same spirit as ProductMediaManager: every action hits the
@@ -48,6 +57,13 @@ export default function VariantManager({ productId, variants, onChange }: Varian
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  // Snapshot of the upsell price this variant had when the form opened —
+  // the price PUT always resubmits all three price fields together, so
+  // saving with this field now blank would silently remove a configured
+  // cross-sell price. Compared against form.upsell_amount at submit time
+  // to decide whether to confirm first (see handleSubmit/confirmClearUpsell).
+  const [originalUpsellAmount, setOriginalUpsellAmount] = useState<number | null>(null);
+  const [confirmClearUpsell, setConfirmClearUpsell] = useState(false);
 
   const [deleting, setDeleting] = useState<ProductVariant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -102,6 +118,7 @@ export default function VariantManager({ productId, variants, onChange }: Varian
     setForm(EMPTY_FORM);
     setFormErrors({});
     setFormError(null);
+    setOriginalUpsellAmount(null);
   }
 
   function openEditForm(variant: ProductVariant) {
@@ -115,17 +132,40 @@ export default function VariantManager({ productId, variants, onChange }: Varian
       pack_size: variant.pack_size,
       amount: price?.amount ?? 0,
       compare_at_amount: price?.compare_at_amount ?? null,
+      upsell_amount: price?.upsell_amount ?? null,
       quantity_on_hand: variant.inventory?.available_quantity ?? 0,
     });
     setFormErrors({});
     setFormError(null);
+    setOriginalUpsellAmount(price?.upsell_amount ?? null);
   }
 
   function closeForm() {
     setFormMode('closed');
   }
 
+  /**
+   * Saving with the upsell field now blank, when this variant had a real
+   * upsell price when the form opened, would silently remove it (the
+   * price PUT always resubmits all three fields together) — confirm
+   * first instead of just doing it. Anything else (unchanged, newly set,
+   * or there was never one to lose) saves immediately.
+   */
   async function handleSubmit(): Promise<void> {
+    if (formMode === 'edit' && originalUpsellAmount !== null && form.upsell_amount === null) {
+      setConfirmClearUpsell(true);
+      return;
+    }
+
+    await performSubmit();
+  }
+
+  async function handleConfirmedClearUpsell(): Promise<void> {
+    setConfirmClearUpsell(false);
+    await performSubmit();
+  }
+
+  async function performSubmit(): Promise<void> {
     setIsSaving(true);
     setFormErrors({});
     setFormError(null);
@@ -140,6 +180,7 @@ export default function VariantManager({ productId, variants, onChange }: Varian
         currency: 'EUR',
         amount: form.amount,
         compare_at_amount: form.compare_at_amount,
+        upsell_amount: form.upsell_amount,
       });
       await updateVariantInventory(productId, variantId, { quantity_on_hand: form.quantity_on_hand });
 
@@ -371,6 +412,21 @@ export default function VariantManager({ productId, variants, onChange }: Varian
                 onChange={(event) => setForm({ ...form, compare_at_amount: event.target.value ? Number(event.target.value) : null })}
               />
             </div>
+            <div className="col-sm-6">
+              <label className="form-label" htmlFor="variant-upsell-amount">
+                Cross-sell upsell price (EUR, optional)
+              </label>
+              <input
+                id="variant-upsell-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                className="form-control"
+                value={form.upsell_amount ?? ''}
+                onChange={(event) => setForm({ ...form, upsell_amount: event.target.value ? Number(event.target.value) : null })}
+              />
+              <div className="form-text">Only charged when added through a specific cart cross-sell card — never shown on this product&apos;s own page.</div>
+            </div>
           </div>
 
           <div className="d-flex gap-2 mt-3">
@@ -398,6 +454,16 @@ export default function VariantManager({ productId, variants, onChange }: Varian
         isLoading={isDeleting}
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleting(null)}
+      />
+
+      <ConfirmModal
+        show={confirmClearUpsell}
+        title="Remove the cross-sell upsell price?"
+        message={`This variant currently has an upsell price of ${originalUpsellAmount !== null ? formatPrice(originalUpsellAmount) : ''}, but the upsell field is now empty. Saving will remove it — the cart cross-sell card will stop offering a discount for this variant. Continue?`}
+        confirmLabel="Remove upsell price"
+        isLoading={isSaving}
+        onConfirm={() => void handleConfirmedClearUpsell()}
+        onCancel={() => setConfirmClearUpsell(false)}
       />
     </div>
   );

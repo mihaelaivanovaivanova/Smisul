@@ -424,11 +424,16 @@ export default function FunnelLandingPage() {
         title={seo.funnelTitle}
         description={seo.funnelDescription}
         ogImage="/funnel/v2/og-image.jpg"
+        // This page now only renders at the unlinked /preview/miswak route
+        // (see App.tsx - MiswakLandingPage took over "/" and
+        // /products/miswak) - keeps it out of search results as a
+        // near-duplicate of the real landing page.
+        noindex
         jsonLd={[
-          // This page is what actually renders at "/" while funnel mode is
-          // on (see App.tsx) - the site-wide Organization/WebSite schema
-          // belongs here for exactly that reason, not just on HomePage.tsx
-          // (which only renders once funnel mode is switched off).
+          // Kept even though this page is no longer "/" itself - still
+          // useful structured data for whoever opens this preview route
+          // directly, and costs nothing now that noindex above keeps it
+          // out of search results regardless.
           organizationJsonLd({ logo: `${window.location.origin}${logoMark}`, sameAs }),
           websiteJsonLd(),
           productJsonLd,

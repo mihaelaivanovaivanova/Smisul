@@ -91,7 +91,6 @@ export default function HowToUseAccordion({ videos, pdfUrl, ctaPrimaryLabel, fro
     <section className="section funnel-hero-tone" id="how-to-use">
       <div className="container">
         <h2 className="section-title mb-2 text-center">{funnelHowToUse.title}</h2>
-        <p className="section-lead lead text-center mx-auto mb-3">6 лесни стъпки · под минута</p>
         <div className="miswak-howtouse__divider" aria-hidden="true">
           <Icon name="leaf" />
         </div>

@@ -105,7 +105,21 @@ class ProductService
         }
 
         if ($data->price !== null) {
-            $this->prices->setPrice($variant, new PriceData(Currency::EUR->value, $data->price), changedBy: $actor);
+            // This simplified field only ever carries amount - never blindly
+            // overwrite compare_at_amount/upsell_amount with null just
+            // because this form doesn't expose them; preserve whatever the
+            // variant's Price row already had for those (e.g. an admin-set
+            // cross-sell upsell_amount - see VariantManager.tsx's own form,
+            // the only UI that actually edits them, for the incident this
+            // fixes).
+            $existingPrice = $variant->priceFor(Currency::EUR->value);
+
+            $this->prices->setPrice($variant, new PriceData(
+                currency: Currency::EUR->value,
+                amount: $data->price,
+                compareAtAmount: $existingPrice?->compare_at_amount !== null ? (float) $existingPrice->compare_at_amount : null,
+                upsellAmount: $existingPrice?->upsell_amount !== null ? (float) $existingPrice->upsell_amount : null,
+            ), changedBy: $actor);
         }
 
         return $product->refresh()->load(['variants.prices', 'variants.inventory']);

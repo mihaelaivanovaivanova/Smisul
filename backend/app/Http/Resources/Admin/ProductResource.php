@@ -26,6 +26,9 @@ class ProductResource extends BaseProductResource
 
         return [
             ...parent::toArray($request),
+            // Overrides the parent's 'variants' (public ProductVariantResource,
+            // no upsell_amount) with the admin variant - see that class.
+            'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
             'quantity' => $variant?->inventory?->quantity_on_hand,
             'price' => $price !== null ? (float) $price : null,
             // Falls back to a live count when the caller didn't eager-load

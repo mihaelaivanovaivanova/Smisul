@@ -35,6 +35,7 @@ class PriceService
                 [
                     'amount' => $data->amount,
                     'compare_at_amount' => $data->compareAtAmount,
+                    'upsell_amount' => $data->upsellAmount,
                 ],
             );
 

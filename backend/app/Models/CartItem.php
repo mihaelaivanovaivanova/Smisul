@@ -16,12 +16,14 @@ class CartItem extends Model
         'cart_id',
         'product_variant_id',
         'quantity',
+        'is_upsell',
     ];
 
     protected function casts(): array
     {
         return [
             'quantity' => 'integer',
+            'is_upsell' => 'boolean',
         ];
     }
 

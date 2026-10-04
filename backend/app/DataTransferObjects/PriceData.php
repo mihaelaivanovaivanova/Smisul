@@ -8,6 +8,7 @@ final readonly class PriceData
         public string $currency,
         public float $amount,
         public ?float $compareAtAmount = null,
+        public ?float $upsellAmount = null,
     ) {}
 
     /**
@@ -19,6 +20,7 @@ final readonly class PriceData
             currency: $data['currency'],
             amount: (float) $data['amount'],
             compareAtAmount: isset($data['compare_at_amount']) ? (float) $data['compare_at_amount'] : null,
+            upsellAmount: isset($data['upsell_amount']) ? (float) $data['upsell_amount'] : null,
         );
     }
 }

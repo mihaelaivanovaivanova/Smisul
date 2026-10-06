@@ -64,6 +64,17 @@ a {
   transition: color 0.15s ease-in-out;
 }
 
+/* A bare <button> with no .btn class and no explicit color (several custom
+   toggles/carousel controls across the site are exactly this) keeps
+   Bootstrap's reboot `-webkit-appearance: button`, which lets iOS Safari
+   apply its own native control tint - visibly blue text, and blue icons
+   too since Icon.tsx's SVGs use fill="currentColor". A `.btn-*` class
+   still wins here (its color rule has higher specificity), so this only
+   ever affects buttons that would otherwise have no explicit color at all. */
+button {
+  color: inherit;
+}
+
 /* A visible, consistent focus ring for keyboard users across all
    interactive elements — Bootstrap's own focus styles vary by component. */
 a:focus-visible,

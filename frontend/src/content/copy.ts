@@ -496,7 +496,9 @@ export const cart = {
   },
   freeShipping: {
     remaining: (amount: string) => `Още ${amount} до БЕЗПЛАТНА доставка!`,
-    unlocked: 'Безплатна доставка отключена!',
+    unlockedPrefix: 'Безплатна доставка',
+    /** Rendered uppercase (via CSS text-transform) in its own accent color - see FreeShippingBar - so the "you've unlocked it" moment actually stands out instead of blending into the rest of the sentence. */
+    unlockedHighlight: 'отключена!',
     goal: (amount: string) => `БЕЗПЛАТНА ДОСТАВКА над ${amount}`,
   },
 };

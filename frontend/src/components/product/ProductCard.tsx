@@ -33,7 +33,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         <Link to={`/products/${product.slug}`} className="d-flex flex-column flex-grow-1 text-decoration-none text-body">
           <div className="ratio ratio-1x1 bg-white product-card__image-wrap">
             {image ? (
-              <img src={image.url} alt={image.alt_text ?? product.name} className="object-fit-cover" />
+              <img
+                src={image.url}
+                alt={image.alt_text ?? product.name}
+                className="object-fit-cover"
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               <div className="d-flex align-items-center justify-content-center text-muted small">
                 {productCopy.noImage}

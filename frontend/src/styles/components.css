@@ -413,12 +413,6 @@
 
 /* ---- Product gallery ---- */
 
-.gallery__main {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-sm);
-}
-
 .gallery__thumb {
   border-color: var(--color-border) !important;
   transition: border-color 0.15s ease-in-out;
@@ -556,6 +550,56 @@
    as two evenly-spaced paragraphs with no visual relationship. */
 .product-description__label + .product-description__paragraph {
   margin-top: calc(var(--space-1) * -1);
+}
+
+.product-description__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.product-description__list li {
+  position: relative;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-charcoal);
+  line-height: 1.6;
+}
+
+.product-description__list li::before {
+  content: '';
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.25rem;
+  border-radius: 50%;
+  background-color: var(--color-forest);
+}
+
+.product-description__qa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+.product-description__qa-item dt {
+  margin-bottom: var(--space-1);
+  font-weight: 700;
+  color: var(--color-forest-dark);
+}
+
+.product-description__qa-item dd {
+  margin: 0;
+  color: var(--color-charcoal);
+  line-height: 1.7;
 }
 
 /* Pack-size picker — a fixed 2-column grid (2x2 for the current 4 pack
@@ -1104,6 +1148,11 @@
   color: var(--color-forest-dark);
 }
 
+.cart-drawer-shipping-bar__unlocked {
+  text-transform: uppercase;
+  color: var(--color-terracotta);
+}
+
 .cart-drawer-shipping-bar__track {
   position: relative;
   height: 10px;
@@ -1216,14 +1265,20 @@
   min-width: 0;
 }
 
+/* 2-column grid (name+variant on the left, remove button+price stacked on
+   the right) rather than a flex row with the price-row bolted on below it
+   — a real grid so the right column's price stack can span both rows and
+   sit directly under the trash icon, by request. */
 .cart-drawer-item__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
 }
 
 .cart-drawer-item__name {
+  grid-column: 1;
+  grid-row: 1;
   font-size: var(--fs-md);
   font-weight: 700;
   color: var(--color-charcoal);
@@ -1237,17 +1292,20 @@ a.cart-drawer-upsell__name:hover {
 }
 
 .cart-drawer-item__variant {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
   font-size: var(--fs-sm);
   color: var(--color-muted);
-  margin-top: var(--space-1);
 }
 
-.cart-drawer-item__price-row {
+.cart-drawer-item__price-stack {
+  grid-column: 2;
+  grid-row: 2;
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-  font-size: var(--fs-sm);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
 }
 
 .cart-drawer-item__price {
@@ -1261,6 +1319,7 @@ a.cart-drawer-upsell__name:hover {
 
 .cart-drawer-item__controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-2);
@@ -1268,6 +1327,9 @@ a.cart-drawer-upsell__name:hover {
 }
 
 .cart-drawer-item__remove {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1293,6 +1355,7 @@ a.cart-drawer-upsell__name:hover {
 
 .cart-drawer-item__totals {
   text-align: right;
+  white-space: nowrap;
 }
 
 .cart-drawer-item__total-price {
@@ -1442,15 +1505,24 @@ a.cart-drawer-upsell__name:hover {
   justify-content: space-between;
   align-items: baseline;
   font-weight: 700;
-  font-size: var(--fs-md);
+  /* Bigger than every other price in the drawer (item prices/line totals
+     are --fs-md) - the grand total should read as the most important
+     number on the page, by request. */
+  font-size: var(--fs-lg);
   color: var(--color-charcoal);
+}
+
+.cart-drawer__total-savings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: var(--space-1);
 }
 
 .cart-drawer__total-savings {
   font-size: var(--fs-sm);
   font-style: italic;
   color: var(--color-success-bg);
-  margin-top: var(--space-1);
 }
 
 .cart-drawer__checkout {

@@ -65,7 +65,7 @@ export async function reorderProductMedia(productId: number, orderedIds: number[
   return data.data;
 }
 
-/** @param focusX @param focusY Fraction (0-1) of the photo's own width/height to keep centered when it's cropped to fit — see ProductGallery.tsx's objectPosition usage. */
+/** @param focusX @param focusY Fraction (0-1) of the photo's own width/height to keep centered when it's cropped to fit — see GalleryCarousel.tsx's objectPosition usage. */
 export async function updateProductMediaFocus(productId: number, mediaId: number, focusX: number, focusY: number): Promise<Media> {
   const { data } = await apiClient.patch<{ data: Media }>(`/admin/products/${productId}/media/${mediaId}/focus`, {
     focus_x: focusX,

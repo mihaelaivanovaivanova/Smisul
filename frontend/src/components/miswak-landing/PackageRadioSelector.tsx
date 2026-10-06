@@ -75,9 +75,7 @@ export default function PackageRadioSelector({ offers, selectedIndex, onSelect, 
                   </span>
                 )}
               </span>
-              <span
-                className={`miswak-package-option__bottom ${!originalPrice ? 'miswak-package-option__bottom--no-original-price' : ''}`}
-              >
+              <span className="miswak-package-option__bottom">
                 <span className="miswak-package-option__value">{pkg.value_label}</span>
                 {variant.pack_size > 1 && (
                   <span className="miswak-package-option__per-unit">

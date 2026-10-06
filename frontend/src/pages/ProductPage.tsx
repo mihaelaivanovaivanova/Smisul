@@ -15,7 +15,7 @@ import { resolvePackageOffers } from '../services/funnelOffers';
 import LoadingState from '../components/LoadingState';
 import Seo from '../components/Seo';
 import Icon from '../components/icons/Icon';
-import ProductGallery from '../components/product/ProductGallery';
+import GalleryCarousel from '../components/product/GalleryCarousel';
 import ProductDescription from '../components/product/ProductDescription';
 import { ProductDownloads } from '../components/product/ProductMediaExtras';
 import VariantPicker from '../components/product/VariantPicker';
@@ -27,6 +27,7 @@ import FavoriteButton from '../components/product/FavoriteButton';
 import ReviewsSection from '../components/reviews/ReviewsSection';
 import NotFoundPage from './NotFoundPage';
 import MiswakLandingPage from './MiswakLandingPage';
+import BambooCasePage, { BAMBOO_CASE_SLUG } from './BambooCasePage';
 import { buildBreadcrumbJsonLd } from '../services/structuredData';
 import { breadcrumbLabels, funnelAssurance, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
@@ -43,6 +44,10 @@ export default function ProductPage() {
 
   if (slug === MISWAK_SLUG) {
     return <MiswakLandingPage />;
+  }
+
+  if (slug === BAMBOO_CASE_SLUG) {
+    return <BambooCasePage />;
   }
 
   return <ProductPageDefault slug={slug} />;
@@ -123,13 +128,12 @@ function ProductPageDefault({ slug }: { slug: string }) {
 
   /**
    * Switching pack size swaps the gallery to that variant's own photo
-   * (see getGalleryMediaForVariant/ProductGallery's key remount) — without
-   * this, the very first time a given pack size is picked, the browser has
-   * never fetched that photo before and shows a blank gallery until it
-   * loads. Every variant photo is small (one JPEG each), so preloading the
-   * full set up front — not just the active one — makes every subsequent
-   * switch instant from cache instead of only fixing the second click
-   * onward.
+   * (see getGalleryMediaForVariant) — without this, the very first time a
+   * given pack size is picked, the browser has never fetched that photo
+   * before and the carousel briefly shows it loading in. Every variant
+   * photo is small (one JPEG each), so preloading the full set up front —
+   * not just the active one — makes every subsequent switch instant from
+   * cache instead of only fixing the second click onward.
    */
   useEffect(() => {
     if (!product) {
@@ -224,14 +228,11 @@ function ProductPageDefault({ slug }: { slug: string }) {
 
       <div className="row g-5 mt-1">
         <div className="col-12 col-lg-6">
-          {/* Not remounted (no key) across variant switches on purpose —
-              ProductGallery holds the previous photo on screen until the
-              newly selected one has actually finished loading, which only
-              works if it stays mounted; a remount would reset straight to
-              the new (possibly not-yet-loaded) photo and reintroduce the
-              blank-flash this was built to avoid. It resets its own active
-              thumbnail internally when the images set changes. */}
-          <ProductGallery images={images} productName={product.name} />
+          {/* Not remounted (no key) across variant switches on purpose — it
+              resets its own scroll position/active thumbnail internally
+              when the images set changes (see GalleryCarousel's own
+              imagesKey effect). */}
+          <GalleryCarousel images={images} productName={product.name} />
         </div>
         <div className="col-12 col-lg-6">
           <div className="d-flex align-items-start justify-content-between gap-3 mb-2">

@@ -51,7 +51,7 @@ export interface MiswakExpertCard {
 
 /**
  * "Експертите и Miswak" — 4 expert/citation cards supplied directly as
- * finished graphics (public/funnel/v2/expert-card-*.png, cropped from the
+ * finished graphics (public/funnel/v2/expert-card-*.webp, cropped from the
  * user-supplied doc 1-4.png to remove their outer canvas margin, keeping
  * just the card itself). PMIDs read directly off each card's own footer:
  * 33513418, 14973564 (also cited by AudienceClaimsSection's
@@ -59,22 +59,22 @@ export interface MiswakExpertCard {
  */
 export const miswakExpertCards: MiswakExpertCard[] = [
   {
-    image: '/funnel/v2/expert-card-1.png',
+    image: '/funnel/v2/expert-card-1.webp',
     alt: 'Д-р Фара Азуин Адам, ръководител на Центъра за пародонтологични изследвания, Факултет по дентална медицина, Universiti Teknologi MARA — систематичен преглед и мета-анализ: Salvadora persica L. chewing stick and standard toothbrush as anti-plaque and anti-gingivitis tool',
     sourceUrl: 'https://pubmed.ncbi.nlm.nih.gov/33513418/',
   },
   {
-    image: '/funnel/v2/expert-card-2.png',
+    image: '/funnel/v2/expert-card-2.webp',
     alt: 'Проф. Халид Алмас, професор по пародонтология, Imam Abdulrahman Bin Faisal University — клинично изследване: Immediate antimicrobial effect of Miswak on cariogenic bacteria',
     sourceUrl: 'https://pubmed.ncbi.nlm.nih.gov/14973564/',
   },
   {
-    image: '/funnel/v2/expert-card-3.png',
+    image: '/funnel/v2/expert-card-3.webp',
     alt: 'Д-р Джаган Кумар Баскарадос, доцент, Kuwait University College of Dentistry — рандомизирано клинично проучване: A clinical investigation into the efficacy of Miswak chewing sticks as an oral hygiene aid',
     sourceUrl: 'https://pubmed.ncbi.nlm.nih.gov/33258168/',
   },
   {
-    image: '/funnel/v2/expert-card-4.png',
+    image: '/funnel/v2/expert-card-4.webp',
     alt: 'Доц. Омар Шаалан, доцент по консервативно зъболечение, Cairo University — клинично проучване: Randomized clinical trial on Miswak toothpaste in high caries-risk patients',
     sourceUrl: 'https://pubmed.ncbi.nlm.nih.gov/37519323/',
   },
@@ -168,7 +168,7 @@ export interface MiswakAudienceClaim {
 /**
  * The 6-tab "Кой има полза" claim switcher (AudienceClaimsSection) — icons
  * and supporting infographics all supplied directly for this redesign
- * (public/funnel/v2/icon-claim-*.svg and science-source-*.png).
+ * (public/funnel/v2/icon-claim-*.svg and science-source-*.webp).
  *
  * All 6 have their own directly-supplied copy and real source(s) now (not
  * restated from memory) - plaque/gums and caries-bacteria each cite two
@@ -189,21 +189,21 @@ export const miswakAudienceClaims: MiswakAudienceClaim[] = [
       { url: 'https://pubmed.ncbi.nlm.nih.gov/21798329/', label: 'ВИЖ ИЗТОЧНИК 1 ↗' },
       { url: 'https://pubmed.ncbi.nlm.nih.gov/35944735/', label: 'ВИЖ ИЗТОЧНИК 2 ↗' },
     ],
-    image: '/funnel/v2/science-source-plaque-gums.png',
+    image: '/funnel/v2/science-source-plaque-gums.webp',
   },
   {
     icon: '/funnel/v2/icon-claim-antibacterial.svg',
     title: 'Антибактериален и антибиофилмен потенциал',
     body: 'Зъбната плака представлява организиран бактериален биофилм, който се прикрепя към зъбните повърхности. Систематичен преглед от 2025 г. разглежда проучвания върху Miswak и Salvadora persica и описва антибактериални и антибиофилмни свойства. Данните сочат потенциал за ограничаване на бактериалния биофилм и микроорганизми, свързани с орални заболявания. Авторите обаче отбелязват, че са необходими още добре стандартизирани клинични изследвания.',
     sources: [{ url: 'https://pubmed.ncbi.nlm.nih.gov/40475057/', label: 'ВИЖ НАУЧНИЯ ИЗТОЧНИК ↗' }],
-    image: '/funnel/v2/science-source-antibacterial.png',
+    image: '/funnel/v2/science-source-antibacterial.webp',
   },
   {
     icon: '/funnel/v2/icon-claim-whitening.svg',
     title: 'Нежен избелващ потенциал',
     body: 'Естественият вид на зъбите зависи не само от цвета им, а и от състоянието на повърхността и външните оцветявания. В лабораторно изследване върху екстрахирани и изкуствено оцветени зъби продукти със Salvadora persica показват избелващ ефект. Това е интересен резултат за потенциала на Miswak при повърхностни оцветявания, но е важно да се подчертае, че данните са лабораторни, а не клинично изпитване върху хора. Затова тази полза е най-коректно да се комуникира като „избелващ потенциал“.',
     sources: [{ url: 'https://doi.org/10.7324/JAPS.2017.71217', label: 'ВИЖ НАУЧНИЯ ИЗТОЧНИК ↗' }],
-    image: '/funnel/v2/science-source-whitening.png',
+    image: '/funnel/v2/science-source-whitening.webp',
   },
   {
     icon: '/funnel/v2/icon-claim-caries-bacteria.svg',
@@ -213,21 +213,21 @@ export const miswakAudienceClaims: MiswakAudienceClaim[] = [
       { url: 'https://pubmed.ncbi.nlm.nih.gov/31029127/', label: 'ВИЖ ИЗТОЧНИК 1 ↗' },
       { url: 'https://pubmed.ncbi.nlm.nih.gov/14973564/', label: 'ВИЖ ИЗТОЧНИК 2 ↗' },
     ],
-    image: '/funnel/v2/science-source-caries-bacteria.png',
+    image: '/funnel/v2/science-source-caries-bacteria.webp',
   },
   {
     icon: '/funnel/v2/icon-claim-oral-ph.svg',
     title: 'Miswak и pH на плаката',
     body: 'След прием на кисели храни и напитки pH на зъбната плака временно се понижава. In vivo проучване установява, че изплакване с екстракт от Miswak води до по-продължително повишаване на pH над 6.0 в сравнение с вода. Статистически значима разлика е отчетена и на 30-тата минута. Изследването установява и стимулиране на паротидната слюнчена секреция. Важно е, че тук се изследва Miswak екстракт, а не директно самата пръчица.',
     sources: [{ url: 'https://pubmed.ncbi.nlm.nih.gov/17823507/', label: 'ВИЖ НАУЧНИЯ ИЗТОЧНИК ↗' }],
-    image: '/funnel/v2/science-source-oral-ph.png',
+    image: '/funnel/v2/science-source-oral-ph.webp',
   },
   {
     icon: '/funnel/v2/icon-claim-bacterial-balance.svg',
     title: 'По-благоприятен бактериален профил',
     body: 'Устната кухина естествено съдържа множество видове бактерии - целта не е те да бъдат „унищожени“, а да се поддържа по-благоприятен баланс между тях. В рандомизирано клинично проучване при 94 деца с висок риск от кариес употребата на Miswak е свързана със значително намаляване на плаката и промени в състава на слюнчената микрофлора. След 3 месеца при Miswak групата се наблюдава увеличаване на S. sanguinis, вид с по-нисък кариогенен риск. Това предполага, че Miswak може да влияе не само механично, но и върху бактериалния профил в устата.',
     sources: [{ url: 'https://pubmed.ncbi.nlm.nih.gov/32054468/', label: 'ВИЖ НАУЧНИЯ ИЗТОЧНИК ↗' }],
-    image: '/funnel/v2/science-source-bacterial-balance.png',
+    image: '/funnel/v2/science-source-bacterial-balance.webp',
   },
 ];
 

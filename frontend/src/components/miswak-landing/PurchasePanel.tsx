@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import GalleryCarousel from './GalleryCarousel';
+import GalleryCarousel from '../product/GalleryCarousel';
 import PackageRadioSelector from './PackageRadioSelector';
 import TrustBullets from './TrustBullets';
 import StarRating from '../reviews/StarRating';

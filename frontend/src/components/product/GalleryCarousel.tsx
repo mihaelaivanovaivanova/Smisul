@@ -15,14 +15,13 @@ function isVideo(item: Media): boolean {
 }
 
 /**
- * The purchase panel's gallery, as an actual swipeable carousel — every
- * photo/video gets its own full-width slide in a scroll-snap track
- * (swipe on touch, arrow buttons on desktop), rather than
- * ProductGallery.tsx's single static image swapped via thumbnail clicks.
- * Kept as its own component (not a ProductGallery.tsx rewrite) since that
- * component is shared with the generic ProductPage.tsx, which keeps its
- * existing behavior — this page's redesign is scoped to its own
- * components per the approved plan.
+ * The product gallery, as an actual swipeable carousel — every photo/video
+ * gets its own full-width slide in a scroll-snap track (swipe on touch,
+ * arrow buttons on desktop). Shared by both the generic ProductPage.tsx
+ * and MiswakLandingPage.tsx's PurchasePanel; originally built just for the
+ * latter (ProductPage.tsx used a static image swapped via thumbnail
+ * clicks, ProductGallery.tsx, which had no swipe gesture on mobile) and
+ * promoted to the shared gallery by request once that gap was noticed.
  *
  * Mobile shows just the swipeable image and a dot row under it (by
  * request — no thumbnail strip crowding the screen); the thumbnail strip
@@ -75,6 +74,7 @@ export default function GalleryCarousel({ images, productName }: GalleryCarousel
                   src={item.url}
                   alt={item.alt_text ?? productName}
                   loading="lazy"
+                  decoding="async"
                   className="object-fit-cover"
                   style={{ objectPosition: `${item.focus_x * 100}% ${item.focus_y * 100}%` }}
                 />
@@ -151,6 +151,8 @@ export default function GalleryCarousel({ images, productName }: GalleryCarousel
                     src={item.url}
                     alt=""
                     className="w-100 h-100 object-fit-cover"
+                    loading="lazy"
+                    decoding="async"
                     style={{ objectPosition: `${item.focus_x * 100}% ${item.focus_y * 100}%` }}
                   />
                 )}

@@ -12,9 +12,9 @@ interface ScienceSectionProps {
 // edge, and lossy WebP re-encoding was producing visible color-bleed
 // ringing right at that edge — PNG's lossless encoding doesn't.
 const SCIENCE_CARD_IMAGES = [
-  '/funnel/v2/science-source-1.png',
-  '/funnel/v2/science-source-2.png',
-  '/funnel/v2/science-source-3.png',
+  '/funnel/v2/science-source-1.webp',
+  '/funnel/v2/science-source-2.webp',
+  '/funnel/v2/science-source-3.webp',
 ];
 
 /**

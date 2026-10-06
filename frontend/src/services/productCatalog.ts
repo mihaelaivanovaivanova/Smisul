@@ -79,7 +79,7 @@ export function getGalleryImages(product: Product): Media[] {
 /**
  * Image OR video media from a raw media array (excludes PDFs and other
  * attachments), primary item first — same rules as imagesFromMedia, just
- * not narrowed to images only. Backs ProductGallery, which knows how to
+ * not narrowed to images only. Backs GalleryCarousel, which knows how to
  * render either kind; single-image consumers (getPrimaryImage, OG/meta
  * tags, etc.) deliberately keep using the images-only getGalleryImages
  * instead, since those need something an <img>/<meta> tag can use.
@@ -108,7 +108,7 @@ export function getGalleryMedia(product: Product): Media[] {
  * photo(s) first if it has any (e.g. a real packaging shot per pack count —
  * see FunnelSeeder's per-variant seedVariantImage calls), followed by the
  * rest of the product's own gallery (photos and videos) — so picking a pack
- * size brings its own photo into focus (ProductGallery resets to the first
+ * size brings its own photo into focus (GalleryCarousel resets to the first
  * item whenever the set's id list changes) without hiding the other
  * product media a shopper might still want to browse. Falls back to just
  * the product's own gallery for pack sizes with no dedicated photo yet.

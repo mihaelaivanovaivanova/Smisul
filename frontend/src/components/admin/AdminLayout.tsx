@@ -1,3 +1,4 @@
+import { Offcanvas } from 'bootstrap';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Logo from '../Logo';
@@ -21,13 +22,29 @@ const NAV_ITEMS = [
 
 /**
  * Rendered in two places: the always-visible desktop sidebar and the
- * mobile offcanvas panel. `data-bs-dismiss="offcanvas"` must only be set
- * in the latter — Bootstrap's offcanvas click handler runs for any
- * element carrying that attribute regardless of context, and throws
- * trying to dismiss an offcanvas that isn't there when it's set on the
- * desktop copy, which was silently breaking every sidebar link.
+ * mobile offcanvas panel. The mobile copy needs to close the offcanvas on
+ * tap — deliberately NOT via `data-bs-dismiss="offcanvas"`, even though
+ * that's Bootstrap's normal mechanism for this. Bootstrap's shared dismiss
+ * handler (util/component-functions.js) calls `event.preventDefault()`
+ * unconditionally for any `<a>`/`<area>` carrying that attribute, and
+ * NavLink renders a real `<a href>` - react-router's own click handler
+ * checks `!event.defaultPrevented` before it will call navigate(), so
+ * whichever of the two document-level listeners runs first decides
+ * whether the click actually navigates at all. On mobile this consistently
+ * lost the race: every tap on a sidebar link closed the menu but never
+ * navigated anywhere. Calling the Offcanvas instance's own `.hide()`
+ * directly from a plain onClick sidesteps the data-API entirely, so
+ * nothing ever calls preventDefault and NavLink's navigation always goes
+ * through.
  */
 function SidebarNav({ dismissesOffcanvas = false }: { dismissesOffcanvas?: boolean }) {
+  function closeOffcanvas() {
+    const element = document.getElementById('adminSidebarOffcanvas');
+    if (element) {
+      Offcanvas.getInstance(element)?.hide();
+    }
+  }
+
   return (
     <nav className="nav flex-column">
       {NAV_ITEMS.map((item) => (
@@ -36,7 +53,7 @@ function SidebarNav({ dismissesOffcanvas = false }: { dismissesOffcanvas?: boole
           to={item.to}
           end={item.end}
           className={({ isActive }) => `nav-link admin-sidebar__link${isActive ? ' active' : ''}`}
-          {...(dismissesOffcanvas ? { 'data-bs-dismiss': 'offcanvas' } : {})}
+          onClick={dismissesOffcanvas ? closeOffcanvas : undefined}
         >
           {item.label}
         </NavLink>

@@ -44,15 +44,15 @@ class MediaService
      */
     public function replace(Media $media, UploadedFile $file, ?string $altText = null): Media
     {
-        $newPath = $file->store(dirname($media->path), $media->disk);
+        $stored = $this->storeOptimized($file, dirname($media->path), $media->disk);
 
         Storage::disk($media->disk)->delete($media->path);
 
         $media->update([
-            'path' => $newPath,
+            'path' => $stored['path'],
             'filename' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
+            'mime_type' => $stored['mime_type'],
+            'size' => Storage::disk($media->disk)->size($stored['path']),
             'alt_text' => $altText ?? $media->alt_text,
         ]);
 
@@ -60,9 +60,9 @@ class MediaService
     }
 
     /**
-     * Attach an uploaded file to any "mediable" model. Only stores the file
-     * and a database reference — no resizing/thumbnailing pipeline, which
-     * is out of scope until an actual upload UI exists.
+     * Attach an uploaded file to any "mediable" model. Images are resized
+     * and re-encoded by storeOptimized() below; anything else (video, PDF)
+     * is stored as uploaded.
      */
     public function attach(
         Model&IsMediable $mediable,
@@ -71,7 +71,7 @@ class MediaService
         bool $isPrimary = false,
         string $disk = 'public',
     ): Media {
-        $path = $file->store($this->directoryFor($mediable), $disk);
+        $stored = $this->storeOptimized($file, $this->directoryFor($mediable), $disk);
 
         if ($isPrimary) {
             $mediable->media()->update(['is_primary' => false]);
@@ -81,10 +81,10 @@ class MediaService
             'mediable_type' => $mediable::class,
             'mediable_id' => $mediable->getKey(),
             'disk' => $disk,
-            'path' => $path,
+            'path' => $stored['path'],
             'filename' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
+            'mime_type' => $stored['mime_type'],
+            'size' => Storage::disk($disk)->size($stored['path']),
             'alt_text' => $altText,
             'is_primary' => $isPrimary,
         ]);
@@ -164,5 +164,119 @@ class MediaService
     private function directoryFor(Model&IsMediable $mediable): string
     {
         return Str::plural(Str::snake(class_basename($mediable)));
+    }
+
+    /**
+     * Images get resized to a sane max dimension and re-encoded as WebP
+     * before being stored. Uploads were previously stored at whatever
+     * resolution/format the browser sent — product photos routinely
+     * arrived as 1600x2000+ PNGs several MB each, shipped unchanged to
+     * every visitor regardless of whether that photo was shown full-size
+     * or as a 64px thumbnail, which is what made images so slow to load.
+     * Plain GD, no new Composer dependency — matches what the shared host
+     * already has (see [[images-performance]] memory, if saved). Anything
+     * GD can't decode (video, PDF, an unsupported/corrupt image) is stored
+     * untouched.
+     *
+     * @return array{path: string, mime_type: string}
+     */
+    private function storeOptimized(UploadedFile $file, string $directory, string $disk): array
+    {
+        $isImage = str_starts_with($file->getMimeType() ?? '', 'image/');
+        $optimized = $isImage ? $this->resizeAndEncode((string) file_get_contents($file->getRealPath())) : null;
+
+        if ($optimized === null) {
+            return [
+                'path' => $file->store($directory, $disk),
+                'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
+            ];
+        }
+
+        $path = trim($directory, '/').'/'.Str::uuid()->toString().'.webp';
+        Storage::disk($disk)->put($path, $optimized);
+
+        return [
+            'path' => $path,
+            'mime_type' => 'image/webp',
+        ];
+    }
+
+    /**
+     * Re-runs an already-stored image through the same resize/WebP
+     * pipeline storeOptimized() applies to new uploads — for backfilling
+     * media uploaded before that existed (see the `media:optimize` artisan
+     * command). No-op for anything that isn't an image, is already WebP,
+     * or that GD can't decode.
+     */
+    public function reoptimize(Media $media): Media
+    {
+        if ($media->mime_type === null || ! str_starts_with($media->mime_type, 'image/') || $media->mime_type === 'image/webp') {
+            return $media;
+        }
+
+        $optimized = $this->resizeAndEncode(Storage::disk($media->disk)->get($media->path));
+
+        if ($optimized === null) {
+            return $media;
+        }
+
+        $oldPath = $media->path;
+        $newPath = trim(dirname($media->path), '/').'/'.Str::uuid()->toString().'.webp';
+
+        Storage::disk($media->disk)->put($newPath, $optimized);
+        Storage::disk($media->disk)->delete($oldPath);
+
+        $media->update([
+            'path' => $newPath,
+            'mime_type' => 'image/webp',
+            'size' => Storage::disk($media->disk)->size($newPath),
+        ]);
+
+        return $media->fresh();
+    }
+
+    /**
+     * Images get resized to a sane max dimension and re-encoded as WebP.
+     * Uploads were previously stored at whatever resolution/format the
+     * browser sent — product photos routinely arrived as 1600x2000+ PNGs
+     * several MB each, shipped unchanged to every visitor regardless of
+     * whether that photo was shown full-size or as a 64px thumbnail, which
+     * is what made images so slow to load. Plain GD, no new Composer
+     * dependency — matches what the shared host already has. Returns null
+     * (caller stores the original untouched) for anything GD can't decode
+     * — video, PDF, or an unsupported/corrupt image.
+     */
+    private function resizeAndEncode(string $contents): ?string
+    {
+        $decoded = @imagecreatefromstring($contents);
+
+        if ($decoded === false) {
+            return null;
+        }
+
+        imagepalettetotruecolor($decoded);
+        imagealphablending($decoded, true);
+        imagesavealpha($decoded, true);
+
+        $width = imagesx($decoded);
+        $height = imagesy($decoded);
+        $maxWidth = 1600;
+
+        if ($width > $maxWidth) {
+            $newHeight = (int) round($height * ($maxWidth / $width));
+            $resized = imagecreatetruecolor($maxWidth, $newHeight);
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+            imagecopyresampled($resized, $decoded, 0, 0, 0, 0, $maxWidth, $newHeight, $width, $height);
+            imagedestroy($decoded);
+            $decoded = $resized;
+        }
+
+        ob_start();
+        imagewebp($decoded, quality: 82);
+        $encoded = ob_get_clean();
+        imagedestroy($decoded);
+
+        return $encoded;
     }
 }

@@ -65,7 +65,7 @@ export async function deleteVariantPhoto(productId: number, variantId: number): 
   await apiClient.delete(`/admin/products/${productId}/variants/${variantId}/media`);
 }
 
-/** @param focusX @param focusY Fraction (0-1) of the photo's own width/height to keep centered when it's displayed cropped to fit — see ProductGallery.tsx. */
+/** @param focusX @param focusY Fraction (0-1) of the photo's own width/height to keep centered when it's displayed cropped to fit — see GalleryCarousel.tsx. */
 export async function updateVariantPhotoFocus(
   productId: number,
   variantId: number,

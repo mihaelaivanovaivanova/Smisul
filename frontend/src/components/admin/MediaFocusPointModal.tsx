@@ -15,7 +15,7 @@ function clamp01(value: number): number {
 /**
  * Lets an admin pick which point of a photo should stay centered when the
  * storefront crops it to fit a differently-shaped box (see
- * ProductGallery.tsx's objectPosition) — the same idea CoreBenefitsSection's
+ * GalleryCarousel.tsx's objectPosition) — the same idea CoreBenefitsSection's
  * hardcoded WHY_IMAGES focus points already use, now settable per photo.
  *
  * The image renders at its natural aspect ratio (only max-width/max-height

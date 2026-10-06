@@ -11,10 +11,7 @@
 
 /* ---- Purchase panel (gallery + buy box) ---- */
 
-/* Swipeable gallery carousel — see GalleryCarousel.tsx. Reuses
-   .gallery__main's border/shadow treatment (components.css) so it still
-   looks like the same product photo frame ProductGallery.tsx uses on the
-   generic product page. */
+/* Swipeable gallery carousel — see GalleryCarousel.tsx. */
 .miswak-gallery-carousel {
   position: relative;
   border: 1px solid var(--color-border);
@@ -231,15 +228,26 @@
   accent-color: var(--color-forest);
 }
 
+/* A real 2-column grid, not a 1-column flex stack nudged into place with
+   negative margins — that approach (see git history) hardcoded how tall
+   the price stack was assumed to be, so it silently overlapped the row
+   below it whenever the real rendered height drifted from that guess
+   (longer/shorter price strings, a wrapped badge, a font-size tweak...).
+   The price stack spanning both grid rows means its actual height can
+   never affect where __top/__bottom land. */
 .miswak-package-option__body {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
 }
 
 .miswak-package-option__top {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   align-items: baseline;
   justify-content: flex-start;
@@ -251,11 +259,13 @@
 }
 
 .miswak-package-option__price-stack {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
   gap: 0.1rem;
-  margin-top: -1.6rem;
 }
 
 .miswak-package-option__price {
@@ -270,20 +280,12 @@
 }
 
 .miswak-package-option__bottom {
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
-  margin-top: -1.8rem;
-}
-
-/* A package with no discount (e.g. the 1-pack) never renders
-   .miswak-package-option__price-original — the price stack above is one
-   line shorter, so pulling this row up by the same amount as a discounted
-   card overshoots and overlaps the price itself. Pulled up less here to
-   land in the same place a full price stack would put it. */
-.miswak-package-option__bottom--no-original-price {
-  margin-top: -0.6rem;
 }
 
 .miswak-package-option__value {
@@ -846,6 +848,12 @@
   border: none;
   background-color: transparent;
   text-align: left;
+  /* Bare <button>, no .btn class (unlike FaqSection's own toggle, which
+     pairs with .btn-outline-secondary for exactly this) — without an
+     explicit color, Bootstrap's reboot leaves `-webkit-appearance: button`
+     in place, so iOS Safari renders the text in its native control tint
+     (blue) instead of inheriting the page's own color. */
+  color: var(--color-charcoal);
 }
 
 .miswak-howtouse-accordion__number {

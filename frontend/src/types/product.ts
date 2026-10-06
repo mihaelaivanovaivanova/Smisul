@@ -25,7 +25,7 @@ export interface Media {
   alt_text: string | null;
   is_primary: boolean;
   sort_order: number;
-  /** Fraction (0-1) of the photo's own width/height to keep centered when it's displayed cropped to fit — see ProductGallery.tsx. */
+  /** Fraction (0-1) of the photo's own width/height to keep centered when it's displayed cropped to fit — see GalleryCarousel.tsx. */
   focus_x: number;
   focus_y: number;
 }

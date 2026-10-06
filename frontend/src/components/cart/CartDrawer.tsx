@@ -121,8 +121,11 @@ export default function CartDrawer() {
                 <span>{cartCopy.grandTotal}</span>
                 <span>{cart ? formatPrice(cart.totals.grand_total) : ''}</span>
               </div>
-              {totalSavings > 0 && (
-                <div className="cart-drawer__total-savings">{cartCopy.savings(formatPrice(totalSavings))}</div>
+              {totalSavings > 0 && cart && (
+                <div className="cart-drawer__total-savings-row">
+                  <span className="cart-drawer__total-savings">{cartCopy.savings(formatPrice(totalSavings))}</span>
+                  <span className="price__compare">{formatPrice(cart.totals.grand_total + totalSavings)}</span>
+                </div>
               )}
 
               <Link to="/checkout" className="btn btn-primary cart-drawer__checkout" onClick={closeDrawer}>
@@ -230,18 +233,18 @@ function CartDrawerItem({ item, onUpdate, onRemove, onNavigate }: CartDrawerItem
           >
             <Icon name="trash" />
           </button>
-        </div>
 
-        <div className="cart-drawer-item__price-row">
-          {item.is_on_sale && item.compare_at_unit_price !== null && (
-            <span className="price__compare">{formatPrice(item.compare_at_unit_price)}</span>
-          )}
-          <span className={`cart-drawer-item__price${item.is_on_sale ? ' is-sale' : ''}`}>
-            {item.unit_price !== null ? formatPrice(item.unit_price) : '—'}
-          </span>
-        </div>
+          {variant.name && <div className="cart-drawer-item__variant">{variant.name}</div>}
 
-        {variant.name && <div className="cart-drawer-item__variant">{variant.name}</div>}
+          <div className="cart-drawer-item__price-stack">
+            <span className={`cart-drawer-item__price${item.is_on_sale ? ' is-sale' : ''}`}>
+              {item.unit_price !== null ? formatPrice(item.unit_price) : '—'}
+            </span>
+            {item.is_on_sale && item.compare_at_unit_price !== null && (
+              <span className="price__compare">{formatPrice(item.compare_at_unit_price)}</span>
+            )}
+          </div>
+        </div>
 
         {!item.is_available && <div className="text-danger small mt-1">{cartCopy.unavailable}</div>}
 
@@ -254,15 +257,22 @@ function CartDrawerItem({ item, onUpdate, onRemove, onNavigate }: CartDrawerItem
             onChange={(quantity) => void handleQuantityChange(quantity)}
           />
 
-          <div className="cart-drawer-item__totals">
-            <div className="cart-drawer-item__total-price">
-              {compareLineTotal !== null && <span className="price__compare">{formatPrice(compareLineTotal)}</span>}
-              <span className={`cart-drawer-item__total-amount${item.is_on_sale ? ' is-sale' : ''}`}>
-                {formatPrice(item.line_total)}
-              </span>
+          {/* line_total is quantity * the same unit price already shown in
+              the price row above (see CartItemResource::lineTotal()) - at
+              quantity 1 they're always identical, so showing both just
+              duplicates the same number. Only worth a second line once the
+              quantity actually makes them diverge. */}
+          {item.quantity > 1 && (
+            <div className="cart-drawer-item__totals">
+              <div className="cart-drawer-item__total-price">
+                {compareLineTotal !== null && <span className="price__compare">{formatPrice(compareLineTotal)}</span>}
+                <span className={`cart-drawer-item__total-amount${item.is_on_sale ? ' is-sale' : ''}`}>
+                  {formatPrice(item.line_total)}
+                </span>
+              </div>
+              {savings > 0 && <div className="cart-drawer-item__savings">{cartCopy.savings(formatPrice(savings))}</div>}
             </div>
-            {savings > 0 && <div className="cart-drawer-item__savings">{cartCopy.savings(formatPrice(savings))}</div>}
-          </div>
+          )}
         </div>
 
         {error && <div className="text-danger small mt-1">{error}</div>}
@@ -362,7 +372,14 @@ function FreeShippingBar({ threshold, subtotal }: FreeShippingBarProps) {
   return (
     <div className="cart-drawer-shipping-bar">
       <p className="cart-drawer-shipping-bar__message">
-        {isUnlocked ? cartCopy.freeShipping.unlocked : cartCopy.freeShipping.remaining(formatPrice(remaining))}
+        {isUnlocked ? (
+          <>
+            {cartCopy.freeShipping.unlockedPrefix}{' '}
+            <span className="cart-drawer-shipping-bar__unlocked">{cartCopy.freeShipping.unlockedHighlight}</span>
+          </>
+        ) : (
+          cartCopy.freeShipping.remaining(formatPrice(remaining))
+        )}
       </p>
       <div className="cart-drawer-shipping-bar__track">
         <div className="cart-drawer-shipping-bar__fill" style={{ width: `${percent}%` }} />

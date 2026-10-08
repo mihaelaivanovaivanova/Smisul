@@ -93,6 +93,7 @@ export default function CartDrawer() {
           </button>
         </div>
 
+        <div className="cart-drawer__body">
         {!isEmpty && freeShippingThreshold > 0 && (
           <FreeShippingBar threshold={freeShippingThreshold} subtotal={subtotal} />
         )}
@@ -145,6 +146,7 @@ export default function CartDrawer() {
             </div>
           </>
         )}
+        </div>
       </aside>
     </>
   );

@@ -17,7 +17,8 @@
 /* ---- Hero (buy box) ---- */
 
 .bamboo-hero__gallery {
-  position: relative;
+  /* Ignore the desktop sticky top offset while the columns are stacked. */
+  position: static;
 }
 
 @media (min-width: 992px) {

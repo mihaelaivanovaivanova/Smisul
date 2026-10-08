@@ -40,6 +40,12 @@ enum OrderStatus: string
     case Processing = 'processing';
     case Packed = 'packed';
     case Shipped = 'shipped';
+    // The courier sent the parcel back to the store before the customer paid
+    // for it (cash on delivery refused, or the parcel couldn't be delivered
+    // and came back). Nothing was collected, so it isn't counted as revenue
+    // and no invoice is issued. An order that was already paid by card and
+    // comes back moves on to Refunded (see OrderStatusService::TRANSITIONS).
+    case Returned = 'returned';
     case Delivered = 'delivered';
     // Retired: it had no automated behavior of its own, and its mere
     // existence was a real bug - ReviewService::assertEligible() (and the
@@ -71,6 +77,7 @@ enum OrderStatus: string
             self::Processing => 'Processing',
             self::Packed => 'Packed',
             self::Shipped => 'Shipped',
+            self::Returned => 'Returned',
             self::Delivered => 'Delivered',
             self::Completed => 'Completed',
             self::Cancelled => 'Cancelled',

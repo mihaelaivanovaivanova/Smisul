@@ -5,7 +5,7 @@
 // SETTABLE_ORDER_STATUSES below.
 export const ORDER_STATUSES = [
   'pending', 'awaiting_payment', 'paid', 'confirmed', 'processing', 'packed', 'shipped',
-  'delivered', 'completed', 'cancelled', 'failed', 'refunded',
+  'returned', 'delivered', 'completed', 'cancelled', 'failed', 'refunded',
 ];
 
 const RETIRED_ORDER_STATUSES = new Set(['processing', 'completed']);

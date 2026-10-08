@@ -174,22 +174,64 @@ class CartUpsellPricingTest extends TestCase
         $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart/upsell');
 
         $response->assertOk();
-        $response->assertJsonPath('data.variant_id', $case->id);
-        $response->assertJsonPath('data.amount', 5.49);
-        $response->assertJsonPath('data.compare_at_amount', 6.49);
-        $response->assertJsonPath('data.product.slug', 'bambukov-keis-za-miswak');
+        $response->assertJsonPath('data.0.variant_id', $case->id);
+        $response->assertJsonPath('data.0.amount', 5.49);
+        $response->assertJsonPath('data.0.compare_at_amount', 6.49);
+        $response->assertJsonPath('data.0.product.slug', 'bambukov-keis-za-miswak');
     }
 
     #[Test]
-    public function the_offer_endpoint_is_null_without_miswak_in_the_cart(): void
+    public function the_offer_endpoint_lists_every_eligible_upsell_product_in_order(): void
+    {
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $scraper = $this->variant('stargalka-za-ezik', 'SCRAPER-1', 6.99, 5.99);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart/upsell');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.variant_id', $case->id);
+        $response->assertJsonPath('data.1.variant_id', $scraper->id);
+        $response->assertJsonPath('data.1.amount', 5.99);
+        $response->assertJsonPath('data.1.compare_at_amount', 6.99);
+    }
+
+    #[Test]
+    public function one_upsell_product_already_in_the_cart_does_not_hide_the_other(): void
+    {
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $scraper = $this->variant('stargalka-za-ezik', 'SCRAPER-1', 6.99, 5.99);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->postJson('/api/v1/cart/items', ['product_variant_id' => $case->id, 'quantity' => 1])
+            ->assertCreated();
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart/upsell');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.variant_id', $scraper->id);
+    }
+
+    #[Test]
+    public function the_offer_endpoint_is_empty_without_miswak_in_the_cart(): void
     {
         $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
 
-        $this->getJson('/api/v1/cart/upsell')->assertOk()->assertJsonPath('data', null);
+        $this->getJson('/api/v1/cart/upsell')->assertOk()->assertJsonPath('data', []);
     }
 
     #[Test]
-    public function the_offer_endpoint_is_null_once_the_case_is_already_in_the_cart(): void
+    public function the_offer_endpoint_is_empty_once_the_case_is_already_in_the_cart(): void
     {
         $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
         $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
@@ -205,11 +247,11 @@ class CartUpsellPricingTest extends TestCase
         $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
             ->getJson('/api/v1/cart/upsell')
             ->assertOk()
-            ->assertJsonPath('data', null);
+            ->assertJsonPath('data', []);
     }
 
     #[Test]
-    public function the_offer_endpoint_is_null_when_no_upsell_amount_is_configured(): void
+    public function the_offer_endpoint_skips_a_product_with_no_upsell_amount_configured(): void
     {
         $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
         $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, null);
@@ -221,7 +263,7 @@ class CartUpsellPricingTest extends TestCase
         $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
             ->getJson('/api/v1/cart/upsell')
             ->assertOk()
-            ->assertJsonPath('data', null);
+            ->assertJsonPath('data', []);
     }
 
     /**
@@ -291,5 +333,46 @@ class CartUpsellPricingTest extends TestCase
         $caseLine = collect($response->json('data.items'))->firstWhere('product_variant.id', $case->id);
         $this->assertSame(5.49, $caseLine['unit_price']);
         $this->assertTrue($caseLine['is_on_sale']);
+    }
+
+    /**
+     * Same regression as removing_the_last_miswak_item_reverts_the_case_to_its_regular_price()
+     * above, but with both upsell products in the cart at once — the revoke
+     * must sweep every UPSELL_PRODUCT_SLUGS line, not just the case.
+     */
+    #[Test]
+    public function removing_the_last_miswak_item_reverts_both_upsell_products_to_their_regular_price(): void
+    {
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $scraper = $this->variant('stargalka-za-ezik', 'SCRAPER-1', 6.99, 5.99);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+        $miswakItemId = collect($addMiswak->json('data.items'))->firstWhere('product_variant.id', $miswak->id)['id'];
+
+        $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $case->id,
+            'quantity' => 1,
+            'is_upsell' => true,
+        ])->assertCreated();
+
+        $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $scraper->id,
+            'quantity' => 1,
+            'is_upsell' => true,
+        ])->assertCreated();
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->deleteJson("/api/v1/cart/items/{$miswakItemId}");
+
+        $response->assertOk();
+        $caseLine = collect($response->json('data.items'))->firstWhere('product_variant.id', $case->id);
+        $scraperLine = collect($response->json('data.items'))->firstWhere('product_variant.id', $scraper->id);
+        $this->assertSame(6.49, $caseLine['unit_price']);
+        $this->assertSame(6.99, $scraperLine['unit_price']);
+        $this->assertFalse($caseLine['is_on_sale']);
+        $this->assertFalse($scraperLine['is_on_sale']);
     }
 }

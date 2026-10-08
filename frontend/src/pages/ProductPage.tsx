@@ -27,7 +27,9 @@ import FavoriteButton from '../components/product/FavoriteButton';
 import ReviewsSection from '../components/reviews/ReviewsSection';
 import NotFoundPage from './NotFoundPage';
 import MiswakLandingPage from './MiswakLandingPage';
-import BambooCasePage, { BAMBOO_CASE_SLUG } from './BambooCasePage';
+import BambooCasePage from './BambooCasePage';
+import ScraperPage from './ScraperPage';
+import { BAMBOO_CASE_SLUG, TONGUE_SCRAPER_SLUG } from '../content/accessoryProducts';
 import { buildBreadcrumbJsonLd } from '../services/structuredData';
 import { breadcrumbLabels, funnelAssurance, product as productCopy, seo } from '../content/copy';
 import type { ProductVariant } from '../types/product';
@@ -48,6 +50,10 @@ export default function ProductPage() {
 
   if (slug === BAMBOO_CASE_SLUG) {
     return <BambooCasePage />;
+  }
+
+  if (slug === TONGUE_SCRAPER_SLUG) {
+    return <ScraperPage />;
   }
 
   return <ProductPageDefault slug={slug} />;

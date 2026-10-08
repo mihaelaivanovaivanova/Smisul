@@ -39,7 +39,11 @@ class OrderStatusService
         OrderStatus::Confirmed->value => [OrderStatus::Packed, OrderStatus::Refunded, OrderStatus::Cancelled],
         OrderStatus::Processing->value => [OrderStatus::Packed, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Packed->value => [OrderStatus::Shipped, OrderStatus::Cancelled, OrderStatus::Refunded],
-        OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Refunded],
+        OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Refunded],
+        // Returned is reached only from Shipped (the parcel came back to the
+        // sender). From there the only move is Refunded, for an order that
+        // was paid by card before shipping (see PaymentService::refund()).
+        OrderStatus::Returned->value => [OrderStatus::Refunded],
         // Completed is retired (see OrderStatus::Completed's own docblock) -
         // Delivered is the terminal happy-path status now. Completed's own
         // outgoing transition stays listed below for the same reason

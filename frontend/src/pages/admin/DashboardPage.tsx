@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchDashboardStats } from '../../api/admin/dashboard';
 import { fetchAdminOrders } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
+import { usePersistedOrderListState } from '../../hooks/usePersistedOrderListState';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
@@ -80,8 +81,12 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const [ordersPage, setOrdersPage] = useState(1);
-  const [orderFilters, setOrderFilters] = useState<OrderFilters>(DEFAULT_FILTERS);
+  const {
+    page: ordersPage,
+    filters: orderFilters,
+    setPage: setOrdersPage,
+    changeFilters: changeOrderFilters,
+  } = usePersistedOrderListState('admin-dashboard-orders-list', DEFAULT_FILTERS);
 
   const {
     data: orders,
@@ -109,8 +114,7 @@ export default function DashboardPage() {
   );
 
   function handleOrderFiltersChange(next: OrderFilters) {
-    setOrderFilters(next);
-    setOrdersPage(1);
+    changeOrderFilters(next);
   }
 
   return (

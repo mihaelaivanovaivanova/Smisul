@@ -33,10 +33,10 @@ export async function fetchCart(): Promise<Cart> {
 }
 
 /**
- * isUpsell is just an intent signal from a specific UI entry point (the
- * cart drawer's bamboo-case cross-sell card) — the backend re-validates
- * eligibility itself (cart must already contain Miswak) before ever
- * honoring it, see CartService::isEligibleForUpsellPrice().
+ * isUpsell is just an intent signal from a specific UI entry point (an
+ * upsell card, see UpsellCard.tsx) — the backend re-validates eligibility
+ * itself (cart must already contain Miswak) before ever honoring it, see
+ * CartService::isEligibleForUpsellPrice().
  */
 export async function addCartItem(productVariantId: number, quantity: number, isUpsell?: boolean): Promise<Cart> {
   await ensureCsrfCookie();
@@ -73,12 +73,13 @@ export async function clearCart(): Promise<Cart> {
 }
 
 /**
- * The bamboo-case cross-sell card's current offer for this cart (see
- * backend's CartService::upsellOffer()) — null whenever it isn't eligible
- * right now. The sole source of the price CartDrawer.tsx's upsell card
- * shows, so it can never display something addItem() wouldn't also honor.
+ * Every cross-sell offer eligible for this cart right now (see backend's
+ * CartService::upsellOffers()) — empty whenever none are eligible. The
+ * sole source of the prices UpsellCard.tsx shows (cart drawer, checkout
+ * review, the bamboo case's own product page), so it can never display
+ * something addItem() wouldn't also honor.
  */
-export async function fetchCartUpsell(): Promise<CartUpsellOffer | null> {
-  const { data } = await apiClient.get<{ data: CartUpsellOffer | null }>('/cart/upsell', { headers: guestTokenHeaders() });
+export async function fetchCartUpsell(): Promise<CartUpsellOffer[]> {
+  const { data } = await apiClient.get<{ data: CartUpsellOffer[] }>('/cart/upsell', { headers: guestTokenHeaders() });
   return data.data;
 }

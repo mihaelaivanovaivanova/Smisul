@@ -35,7 +35,7 @@ export interface Cart {
   totals: CartTotals;
 }
 
-/** The bamboo-case cross-sell card's current offer — see api/cart.ts's fetchCartUpsell(). */
+/** One cross-sell card's current offer (there can be several at once) — see api/cart.ts's fetchCartUpsell(). */
 export interface CartUpsellOffer {
   product: {
     id: number;

@@ -61,17 +61,18 @@ class CartController extends Controller
     }
 
     /**
-     * The bamboo-case cross-sell card's actual offer (see CartService::
-     * upsellOffer()) — the only source for what CartDrawer.tsx's upsell
-     * card displays, so it can never show a price the backend wouldn't
+     * Every cross-sell card's actual offer, in order (see CartService::
+     * upsellOffers()) — the only source for what UpsellCard.tsx displays
+     * anywhere (cart drawer, checkout review, the bamboo case's own
+     * product page), so it can never show a price the backend wouldn't
      * also honor at add time.
      */
     public function upsell(Request $request): JsonResponse
     {
         $cart = $this->resolve($request);
-        $offer = $this->carts->upsellOffer($cart);
+        $offers = $this->carts->upsellOffers($cart);
 
-        return response()->json(['data' => $offer ? new CartUpsellResource($offer) : null]);
+        return response()->json(['data' => CartUpsellResource::collection($offers)]);
     }
 
     private function resolve(Request $request): Cart

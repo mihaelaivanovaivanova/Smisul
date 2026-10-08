@@ -1,8 +1,10 @@
 import LoadingState from '../LoadingState';
 import ErrorState from '../ErrorState';
+import UpsellCard from '../cart/UpsellCard';
+import FreeShippingBar from '../cart/FreeShippingBar';
 import { formatPrice } from '../../services/productCatalog';
 import { checkout as checkoutCopy } from '../../content/copy';
-import type { Cart } from '../../types/cart';
+import type { Cart, CartUpsellOffer } from '../../types/cart';
 import type { CustomerInfo, LegalDocument, ShippingAddress, ShippingMethod, ShippingOffice } from '../../types/checkout';
 
 interface OrderReviewStepProps {
@@ -19,6 +21,11 @@ interface OrderReviewStepProps {
   acceptedLegalDocumentIds: number[];
   onToggleLegalDocument: (documentId: number) => void;
   errors: Record<string, string>;
+  /** Last-chance cross-sell offers (see CartService::upsellOffers()) — empty once none are eligible. */
+  upsellOffers: CartUpsellOffer[];
+  onAddUpsell: (productVariantId: number, quantity: number, isUpsell?: boolean) => Promise<void>;
+  /** Whole-EUR cart subtotal that unlocks free shipping — admin-configured. 0 hides the progress nudge entirely (see FreeShippingBar.tsx). */
+  freeShippingThreshold: number;
 }
 
 export default function OrderReviewStep({
@@ -35,6 +42,9 @@ export default function OrderReviewStep({
   acceptedLegalDocumentIds,
   onToggleLegalDocument,
   errors,
+  upsellOffers,
+  onAddUpsell,
+  freeShippingThreshold,
 }: OrderReviewStepProps) {
   // For office/locker pickup, the actual delivery destination is the
   // pickup point, not whatever the customer typed in the address form
@@ -55,6 +65,23 @@ export default function OrderReviewStep({
           </li>
         ))}
       </ul>
+
+      {freeShippingThreshold > 0 && (
+        <div className="mb-4">
+          <FreeShippingBar threshold={freeShippingThreshold} subtotal={cart.totals.subtotal} />
+        </div>
+      )}
+
+      {upsellOffers.length > 0 && (
+        <div className="mb-4">
+          <h2 className="h6 mb-3">{checkoutCopy.review.upsellHeading}</h2>
+          <div className="d-flex flex-column gap-2">
+            {upsellOffers.map((offer) => (
+              <UpsellCard key={offer.variant_id} offer={offer} onAdd={onAddUpsell} className="cart-drawer-upsell--card" />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="row mb-4">
         <div className="col-12 col-sm-6">

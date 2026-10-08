@@ -1429,6 +1429,14 @@ a.cart-drawer-upsell__name:hover {
   border-top: 1px solid var(--color-border);
 }
 
+/* Standalone look for the same card outside the drawer's own list flow —
+   checkout's review step and the bamboo case's own product page. */
+.cart-drawer-upsell--card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
 .cart-drawer-upsell__image {
   flex-shrink: 0;
   width: 104px;

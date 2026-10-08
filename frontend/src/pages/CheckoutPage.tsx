@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
 import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments, fetchSettlements, fetchPaymentMethods } from '../api/checkout';
+import { fetchCartUpsell } from '../api/cart';
+import { fetchPublicSettings } from '../api/settings';
 import { initiatePayment, recordPaymentReturn } from '../api/payment';
 import { trackBeginCheckout } from '../services/analytics';
 import { getErrorMessage, getValidationErrors } from '../api/errors';
@@ -44,15 +46,34 @@ const STEP_LABELS = [
   checkoutCopy.steps.payment,
 ];
 const LAST_STEP = STEP_LABELS.length - 1;
+// Index of the review step within STEP_LABELS above — the last-chance
+// cross-sell offers (see fetchCartUpsell below) only matter once the
+// customer can see and act on them, not while still filling in delivery details.
+const REVIEW_STEP = 2;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, isLoading: isCartLoading, error: cartError, refresh: refreshCart } = useCart();
+  const { cart, isLoading: isCartLoading, error: cartError, refresh: refreshCart, addItem } = useCart();
   const { user } = useAuth();
 
   const [step, setStep] = useState(0);
+
+  // Re-fetched whenever the review step is reached or the cart changes
+  // (adding an offer, or anything else changing the cart) — the backend is
+  // the sole source of eligibility (see CartService::upsellOffers()), same
+  // as CartDrawer.tsx's own fetch.
+  const { data: upsellOffers } = useAsync(
+    () => (step === REVIEW_STEP ? fetchCartUpsell() : Promise.resolve([])),
+    [step, cart],
+    '',
+  );
+
+  // Fetched once per page load, same as CartDrawer.tsx's own fetch — the
+  // free-shipping threshold is admin-configured and rarely changes mid-visit.
+  const { data: publicSettings } = useAsync(fetchPublicSettings, [], '');
+  const freeShippingThreshold = publicSettings?.free_shipping_threshold ?? 0;
 
   useLayoutEffect(() => {
     // The Next/Back button remains near the bottom while the step content
@@ -118,11 +139,38 @@ export default function CheckoutPage() {
   const [paymentOutcome, setPaymentOutcome] = useState<'error' | 'cancelled' | null>(null);
   const [isRetryingPayment, setIsRetryingPayment] = useState(false);
 
+  // Re-fetched whenever the cart subtotal changes, not just once on mount —
+  // the backend zeroes every method's price once the subtotal clears the
+  // free-shipping threshold (see ShippingMethodService::allForSubtotal()),
+  // which can happen mid-checkout (e.g. adding an upsell item during the
+  // review step). Keyed on the subtotal itself, not the whole cart object,
+  // so an unrelated cart change (quantity staying the same total, etc.)
+  // doesn't force a refetch.
   const { data: shippingMethods, isLoading: isLoadingShippingMethods, error: shippingMethodsError } = useAsync(
     fetchShippingMethods,
-    [],
+    [cart?.totals.subtotal],
     checkoutCopy.delivery.loadError,
   );
+
+  // selectedMethod is held as its own snapshot object (set once at
+  // selection time, see handleSelectMethod below), not derived live from
+  // shippingMethods — so when that list is re-fetched above with a new
+  // subtotal, the already-selected method's own `price` would otherwise
+  // keep showing/charging whatever was true at selection time. Re-syncs it
+  // to the matching entry in the refreshed list (same carrier + delivery
+  // type) whenever that list changes.
+  useEffect(() => {
+    if (!shippingMethods || !selectedMethod) return;
+
+    const refreshed = shippingMethods.find(
+      (method) => method.carrier === selectedMethod.carrier && method.delivery_type === selectedMethod.delivery_type,
+    );
+
+    if (refreshed && refreshed.price !== selectedMethod.price) {
+      setSelectedMethod(refreshed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shippingMethods]);
   const { data: legalDocuments, isLoading: isLoadingLegalDocuments, error: legalDocumentsError } = useAsync(
     fetchLegalDocuments,
     [],
@@ -576,7 +624,7 @@ export default function CheckoutPage() {
                   />
                 )}
 
-                {step === 2 && (
+                {step === REVIEW_STEP && (
                   <OrderReviewStep
                     cart={cart}
                     customer={customer}
@@ -591,6 +639,9 @@ export default function CheckoutPage() {
                     acceptedLegalDocumentIds={acceptedLegalDocumentIds}
                     onToggleLegalDocument={toggleLegalDocument}
                     errors={errors}
+                    upsellOffers={upsellOffers ?? []}
+                    onAddUpsell={addItem}
+                    freeShippingThreshold={freeShippingThreshold}
                   />
                 )}
 

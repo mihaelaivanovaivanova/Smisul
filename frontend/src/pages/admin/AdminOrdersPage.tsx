@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchAdminOrders } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
+import { usePersistedOrderListState } from '../../hooks/usePersistedOrderListState';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import EmptyState from '../../components/EmptyState';
@@ -14,8 +14,7 @@ import { formatPrice } from '../../services/productCatalog';
 const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
 
 export default function AdminOrdersPage() {
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<OrderFilters>(DEFAULT_FILTERS);
+  const { page, filters, setPage, changeFilters } = usePersistedOrderListState('admin-orders-list', DEFAULT_FILTERS);
 
   const { data, isLoading, error } = useAsync(
     () =>
@@ -33,8 +32,7 @@ export default function AdminOrdersPage() {
   );
 
   function handleFiltersChange(next: OrderFilters) {
-    setFilters(next);
-    setPage(1);
+    changeFilters(next);
   }
 
   return (

@@ -624,6 +624,7 @@ export const checkout = {
   review: {
     title: 'Преглед на поръчката',
     itemsHeading: 'Артикули',
+    upsellHeading: 'Добави към поръчката',
     customerHeading: 'Данни за поръчката',
     addressHeading: 'Адрес за доставка',
     billingAddressHeading: 'Адрес за фактуриране',

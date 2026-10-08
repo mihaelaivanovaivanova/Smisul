@@ -29,10 +29,11 @@ class AddCartItemRequest extends FormRequest
                 Rule::exists('product_variants', 'id')->whereNull('deleted_at'),
             ],
             'quantity' => ['required', 'integer', 'min:1', 'max:'.CartPricingService::MAX_QUANTITY_PER_ITEM],
-            // Just an intent signal from a specific UI entry point (the
-            // cart drawer's bamboo-case cross-sell card) - CartService
-            // re-validates eligibility server-side before ever honoring it,
-            // never trusting this flag alone (see its isEligibleForUpsellPrice()).
+            // Just an intent signal from a specific UI entry point (an
+            // upsell card - cart drawer, checkout review, or the bamboo
+            // case's own product page) - CartService re-validates
+            // eligibility server-side before ever honoring it, never
+            // trusting this flag alone (see its isEligibleForUpsellPrice()).
             'is_upsell' => ['sometimes', 'boolean'],
         ];
     }

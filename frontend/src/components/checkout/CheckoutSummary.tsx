@@ -18,6 +18,20 @@ export default function CheckoutSummary({ cart, shippingMethod, codFee }: Checko
       <div className="card-body">
         <h2 className="h6 mb-3">{cartCopy.grandTotal}</h2>
 
+        <div className="d-flex flex-column gap-1 mb-2">
+          {cart.items.map((item) => (
+            <div className="d-flex justify-content-between small text-muted" key={item.id}>
+              <span>
+                {item.product_variant.product?.name ?? item.product_variant.name}
+                {item.product_variant.name ? ` (${item.product_variant.name})` : ''} × {item.quantity}
+              </span>
+              <span>{formatPrice(item.line_total)}</span>
+            </div>
+          ))}
+        </div>
+
+        <hr className="my-2" />
+
         <div className="d-flex justify-content-between small mb-2">
           <span className="text-muted">
             {cartCopy.itemsHeading} ({cart.total_quantity})

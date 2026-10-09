@@ -174,4 +174,28 @@ class DashboardAdminTest extends TestCase
         $response->assertJsonPath('data.total_orders', 1);
         $response->assertJsonPath('data.orders_today', 1);
     }
+
+    /**
+     * A parcel the carrier sends back (OrderStatus::Returned - reached only
+     * from Shipped, see OrderStatusService::TRANSITIONS) was never a
+     * completed sale, so it must stop counting as revenue the moment it's
+     * marked returned - unlike Cancelled/Failed above, it still counts
+     * toward total_orders/orders_today (a real order did happen and ship,
+     * it just came back), only revenue is affected.
+     */
+    #[Test]
+    public function returned_orders_are_excluded_from_revenue_but_still_counted_as_orders(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        Order::factory()->create(['status' => OrderStatus::Paid, 'grand_total' => 40]);
+        Order::factory()->create(['status' => OrderStatus::Returned, 'grand_total' => 999]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/dashboard');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.total_revenue', 40);
+        $response->assertJsonPath('data.revenue_today', 40);
+        $response->assertJsonPath('data.total_orders', 2);
+        $response->assertJsonPath('data.orders_today', 2);
+    }
 }

@@ -65,6 +65,37 @@ class OrderReminderService
     }
 
     /**
+     * TEMPORARY test-only helper behind the admin "send-reminder-email-now"
+     * route — lets an admin verify the real reminder mailable actually
+     * renders and delivers in production, on demand, against any address,
+     * without waiting 30 real days for a Delivered order to age into
+     * eligibility. Deliberately bypasses every eligibility check
+     * dueOrders() applies (age, customer_email, thirty_day_reminder_sent_at)
+     * and never writes thirty_day_reminder_sent_at — this is not the real
+     * reminder send, just a delivery check for whichever $order's content
+     * the admin wants to preview. Remove this method and its route/
+     * controller action once that's verified; see the commit introducing it.
+     */
+    public function sendTestReminder(Order $order, string $email): bool
+    {
+        try {
+            Mail::to($email)->send(new OrderThirtyDayReminderMail($order));
+        } catch (Throwable $exception) {
+            Log::error('Could not send the test 30-day order reminder email.', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'email' => $email,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Mirrors SendOrderStatusEmails::send()'s own resilience convention: a
      * mail transport failure is logged and skipped, never thrown - one bad
      * send must not stop the rest of the batch, and must not mark this

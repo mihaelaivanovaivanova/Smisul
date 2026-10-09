@@ -408,6 +408,45 @@ class OrderAdminTest extends TestCase
         $this->actingAs($customer)->postJson('/api/v1/admin/orders/send-reminder-emails')->assertForbidden();
     }
 
+    /**
+     * TEMPORARY test-only route — see OrderReminderService::
+     * sendTestReminder()'s own docblock. Deliberately exercises an order
+     * that would never be eligible for the real reminder (no customer
+     * email, not 30 days old) to prove the override bypasses that.
+     */
+    #[Test]
+    public function an_administrator_can_send_a_test_reminder_email_to_any_address_bypassing_eligibility(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => null]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email", [
+            'email' => 'tester@example.com',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.sent', true);
+        Mail::assertSent(OrderThirtyDayReminderMail::class, fn ($mail) => $mail->hasTo('tester@example.com'));
+        $this->assertNull($order->fresh()->thirty_day_reminder_sent_at);
+        $this->assertDatabaseHas('admin_action_logs', [
+            'user_id' => $admin->id,
+            'action' => 'orders.test_reminder_email_sent',
+        ]);
+    }
+
+    #[Test]
+    public function a_customer_cannot_send_a_test_reminder_email(): void
+    {
+        $customer = User::factory()->create();
+        $order = Order::factory()->create();
+
+        $this->actingAs($customer)
+            ->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email", ['email' => 'tester@example.com'])
+            ->assertForbidden();
+    }
+
     #[Test]
     public function creating_a_shipment_for_an_order_that_already_has_one_is_rejected(): void
     {

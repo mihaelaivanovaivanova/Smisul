@@ -159,6 +159,22 @@ class OrderController extends Controller
     }
 
     /**
+     * TEMPORARY test-only action — see OrderReminderService::
+     * sendTestReminder()'s own docblock. Remove this action and its route
+     * alongside that method once production deliverability is verified.
+     */
+    public function sendTestReminderEmail(Request $request, Order $order): JsonResponse
+    {
+        $email = $request->validate(['email' => ['required', 'email']])['email'];
+
+        $sent = $this->reminders->sendTestReminder($order, $email);
+
+        $this->actionLogger->log($request->user(), 'orders.test_reminder_email_sent', $order, ['email' => $email, 'sent' => $sent]);
+
+        return response()->json(['data' => ['sent' => $sent]]);
+    }
+
+    /**
      * Manual fallback for CreateShipmentOnOrderPaid (which already runs
      * automatically on payment confirmation): retries a failed automatic
      * attempt, or dispatches a historical order placed before that listener

@@ -11,6 +11,7 @@ import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/listing/Pagination';
 import StatusBadge from '../../components/admin/StatusBadge';
 import OrderFilterBar from '../../components/admin/OrderFilterBar';
+import SyncShipmentTrackingButton from '../../components/admin/SyncShipmentTrackingButton';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
 import type { DashboardStats } from '../../types/admin';
@@ -48,6 +49,10 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  // Bumped by the "Sync tracking" button so both the stats below and the
+  // orders table re-fetch immediately, instead of waiting for the next
+  // poll/navigation - see their own effect/useAsync deps.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -79,7 +84,7 @@ export default function DashboardPage() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [reloadKey]);
 
   const {
     page: ordersPage,
@@ -109,7 +114,7 @@ export default function DashboardPage() {
         date_to: orderFilters.dateTo || undefined,
         sort: orderFilters.sort,
       }),
-    [ordersPage, orderFilters],
+    [ordersPage, orderFilters, reloadKey],
     'Could not load orders.',
   );
 
@@ -138,7 +143,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <h2 className="h5 mb-3">Orders</h2>
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <h2 className="h5 mb-0">Orders</h2>
+        <SyncShipmentTrackingButton onSynced={() => setReloadKey((key) => key + 1)} />
+      </div>
       <OrderFilterBar filters={orderFilters} onChange={handleOrderFiltersChange} />
 
       <div className="card">

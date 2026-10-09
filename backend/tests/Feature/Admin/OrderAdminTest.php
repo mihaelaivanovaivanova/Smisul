@@ -308,6 +308,49 @@ class OrderAdminTest extends TestCase
         $response->assertJsonPath('data.shipment.tracking_number', 'BN-MANUAL-1');
     }
 
+    /**
+     * End-to-end wiring for the "Sync tracking" button (the actual
+     * poll/advance behavior - both carriers, every edge case - is covered
+     * in depth by ShipmentTrackingSyncTest).
+     */
+    #[Test]
+    public function an_administrator_can_sync_shipment_tracking(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response([
+            'parcels' => [[
+                'operations' => [
+                    ['operationCode' => -14, 'dateTime' => '2026-07-07T10:00:00+03:00', 'description' => null],
+                ],
+            ]],
+        ])]);
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/orders/shipments/sync-tracking');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.checked', 1);
+        $response->assertJsonPath('data.orders_updated', 1);
+        $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
+        $this->assertDatabaseHas('admin_action_logs', [
+            'user_id' => $admin->id,
+            'action' => 'orders.shipment_tracking_synced',
+        ]);
+    }
+
+    #[Test]
+    public function a_customer_cannot_sync_shipment_tracking(): void
+    {
+        $customer = User::factory()->create();
+
+        $this->actingAs($customer)->postJson('/api/v1/admin/orders/shipments/sync-tracking')->assertForbidden();
+    }
+
     #[Test]
     public function creating_a_shipment_for_an_order_that_already_has_one_is_rejected(): void
     {

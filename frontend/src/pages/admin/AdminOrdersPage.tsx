@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchAdminOrders } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
@@ -8,6 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/listing/Pagination';
 import StatusBadge from '../../components/admin/StatusBadge';
 import OrderFilterBar from '../../components/admin/OrderFilterBar';
+import SyncShipmentTrackingButton from '../../components/admin/SyncShipmentTrackingButton';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
 
@@ -15,6 +17,7 @@ const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', hideCancelled: f
 
 export default function AdminOrdersPage() {
   const { page, filters, setPage, changeFilters } = usePersistedOrderListState('admin-orders-list', DEFAULT_FILTERS);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const { data, isLoading, error } = useAsync(
     () =>
@@ -27,7 +30,7 @@ export default function AdminOrdersPage() {
         date_to: filters.dateTo || undefined,
         sort: filters.sort,
       }),
-    [page, filters],
+    [page, filters, reloadKey],
     'Could not load orders.',
   );
 
@@ -37,11 +40,14 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-start mb-4">
         <h1 className="h3 mb-0">Orders</h1>
-        <Link className="btn btn-primary" to="/admin/orders/new">
-          Create order
-        </Link>
+        <div className="d-flex align-items-start gap-2">
+          <SyncShipmentTrackingButton onSynced={() => setReloadKey((key) => key + 1)} />
+          <Link className="btn btn-primary" to="/admin/orders/new">
+            Create order
+          </Link>
+        </div>
       </div>
 
       <OrderFilterBar filters={filters} onChange={handleFiltersChange} />

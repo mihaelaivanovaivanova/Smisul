@@ -6,7 +6,9 @@ use App\Services\ShipmentTrackingSyncService;
 use Illuminate\Console\Command;
 
 /**
- * Scheduled periodically (see routes/console.php) - thin wrapper around
+ * Manual CLI equivalent of the admin "Sync tracking" button (see
+ * Admin\OrderController::syncShipmentTracking()) - not scheduled, by
+ * request (see routes/console.php). Thin wrapper around
  * ShipmentTrackingSyncService, which owns the actual sync/advance logic so
  * it stays unit-testable without the console layer.
  */
@@ -14,11 +16,11 @@ class SyncShipmentTracking extends Command
 {
     protected $signature = 'shipments:sync-tracking';
 
-    protected $description = 'Poll every non-final shipment\'s live status from its carrier, and advance a Shipped order to Delivered/Returned to match';
+    protected $description = 'Poll every Shipped order\'s shipment for its live carrier status, and advance it to Delivered/Returned to match';
 
     public function handle(ShipmentTrackingSyncService $service): int
     {
-        $result = $service->syncDue();
+        $result = $service->sync();
 
         $this->info("Checked {$result['checked']} shipment(s), {$result['updated']} status change(s), {$result['orders_updated']} order(s) advanced.");
 

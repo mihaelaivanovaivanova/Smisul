@@ -14,6 +14,7 @@ use App\Services\AdminActionLogger;
 use App\Services\AdminOrderService;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
+use App\Services\ShipmentTrackingSyncService;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,7 @@ class OrderController extends Controller
         private readonly ShippingService $shipping,
         private readonly AdminActionLogger $actionLogger,
         private readonly AdminOrderService $adminOrders,
+        private readonly ShipmentTrackingSyncService $trackingSync,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -119,6 +121,22 @@ class OrderController extends Controller
     public function statistics(): JsonResponse
     {
         return response()->json(['data' => $this->orders->statistics()]);
+    }
+
+    /**
+     * The "Sync tracking" button on the Orders page/dashboard - polls every
+     * Shipped order's shipment for its live carrier status (Speedy and
+     * BOX NOW alike) and advances it to Delivered/Returned to match. See
+     * ShipmentTrackingSyncService's own docblock for why this is on-demand
+     * rather than scheduled.
+     */
+    public function syncShipmentTracking(Request $request): JsonResponse
+    {
+        $result = $this->trackingSync->sync();
+
+        $this->actionLogger->log($request->user(), 'orders.shipment_tracking_synced', null, $result);
+
+        return response()->json(['data' => $result]);
     }
 
     /**

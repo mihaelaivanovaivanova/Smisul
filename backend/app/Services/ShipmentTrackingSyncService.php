@@ -9,23 +9,26 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Periodically polls every non-final shipment's live status from its
- * carrier and keeps the parent order's own status in step with it -
- * exactly the "future scheduled sync" ShippingService::track()'s own
- * docblock already anticipated as its reason to exist. Before this,
- * nothing in the app ever called track() outside of tests: a shipment's
- * status sat frozen at whatever it was when the label was first created,
- * and an order never left Shipped on its own.
+ * On demand (an admin pressing "Sync tracking" on the Orders page or the
+ * dashboard - see Admin\OrderController::syncShipmentTracking()), polls
+ * every Shipped order's shipment for its live status from its carrier and
+ * keeps the order's own status in step with it - exactly the "future
+ * sync" ShippingService::track()'s own docblock already anticipated as its
+ * reason to exist. Before this, nothing in the app ever called track()
+ * outside of tests: a shipment's status sat frozen at whatever it was when
+ * the label was first created, and an order never left Shipped on its own.
  *
- * Carrier-agnostic by construction - track() already dispatches to
- * whichever ShippingProviderInterface the shipment's own carrier needs
- * (see ShippingService::providerFor()), so this covers Speedy and BOX NOW
- * identically, not just one of them.
+ * Scoped to orders currently sitting at exactly Shipped - a shipment on an
+ * order that hasn't reached that status yet (still Packed, say) has
+ * nothing useful to poll for. Carrier-agnostic by construction - track()
+ * already dispatches to whichever ShippingProviderInterface the shipment's
+ * own carrier needs (see ShippingService::providerFor()), so this covers
+ * Speedy and BOX NOW identically in the same pass, never just one of them.
  *
- * Scheduled via SyncShipmentTracking (see routes/console.php); kept as its
- * own service, not inline in the command, so the sync logic stays
- * unit-testable without the console layer - same split as
- * OrderReminderService/SendOrderReminderEmails.
+ * Kept as its own service, not inline in the controller (or
+ * SyncShipmentTracking, the equivalent manual console command - see its
+ * own docblock), so the sync logic stays unit-testable without either of
+ * those layers - same split as OrderReminderService/SendOrderReminderEmails.
  */
 class ShipmentTrackingSyncService
 {
@@ -37,7 +40,7 @@ class ShipmentTrackingSyncService
     /**
      * @return array{checked: int, updated: int, orders_updated: int, failed: int}
      */
-    public function syncDue(): array
+    public function sync(): array
     {
         $finalStatuses = collect(ShipmentStatus::cases())
             ->filter(fn (ShipmentStatus $status) => $status->isFinal())
@@ -52,6 +55,7 @@ class ShipmentTrackingSyncService
         Shipment::query()
             ->whereNotIn('status', $finalStatuses)
             ->whereNotNull('tracking_number')
+            ->whereHas('order', fn ($query) => $query->where('status', OrderStatus::Shipped))
             ->with('order')
             ->chunkById(50, function ($shipments) use (&$checked, &$updated, &$ordersUpdated, &$failed) {
                 foreach ($shipments as $shipment) {
@@ -90,12 +94,13 @@ class ShipmentTrackingSyncService
     }
 
     /**
-     * Only ever advances an order sitting at exactly Shipped - never
-     * overrides a status an admin (or any other flow) has already moved it
-     * to since, and never fires twice for the same shipment: Delivered and
-     * Returned are both terminal ShipmentStatus values, so the query above
-     * excludes this shipment from every future sync run the moment either
-     * is recorded.
+     * Re-checks the order is still sitting at exactly Shipped (the query
+     * above already filtered on this, but re-confirms it here in case
+     * something else moved it in between) - never overrides a status an
+     * admin (or any other flow) has already moved it to since, and never
+     * fires twice for the same shipment: Delivered and Returned are both
+     * terminal ShipmentStatus values, so the query above excludes this
+     * shipment from every future sync run the moment either is recorded.
      */
     private function advanceOrderStatus(Shipment $shipment): bool
     {
@@ -119,7 +124,7 @@ class ShipmentTrackingSyncService
             $order,
             $targetStatus,
             null,
-            "Auto-updated from {$shipment->carrier->value} tracking: {$shipment->status->label()}",
+            "Updated from {$shipment->carrier->value} tracking sync: {$shipment->status->label()}",
         );
 
         return true;

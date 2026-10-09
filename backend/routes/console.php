@@ -14,9 +14,7 @@ Artisan::command('inspire', function () {
 // entry actually exists on the production host before relying on this.
 Schedule::command('orders:send-thirty-day-reminders')->daily();
 
-// Speedy/BOX NOW don't push webhooks on status change, so this is the only
-// way a shipment (and the order shipped with it) ever finds out it was
-// delivered or returned - see ShipmentTrackingSyncService's own docblock.
-// Hourly keeps API usage light while still catching a same-day delivery
-// well before SendOrderReminderEmails' own 30-day window would matter.
-Schedule::command('shipments:sync-tracking')->hourly()->withoutOverlapping();
+// shipments:sync-tracking (Speedy/BOX NOW status sync) is deliberately NOT
+// scheduled here - by request, it only ever runs on demand: the "Sync
+// tracking" button on the admin Orders page/dashboard, or manually via
+// this command. See ShipmentTrackingSyncService's own docblock.

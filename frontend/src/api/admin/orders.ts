@@ -21,6 +21,25 @@ export async function fetchAdminOrders(filters: AdminOrderFilters): Promise<Pagi
   return data;
 }
 
+export interface ShipmentTrackingSyncResult {
+  checked: number;
+  updated: number;
+  orders_updated: number;
+  failed: number;
+}
+
+/**
+ * The "Sync tracking" button (Orders page and dashboard) - polls every
+ * Shipped order's shipment for its live carrier status (Speedy and BOX NOW
+ * alike, see backend's ShipmentTrackingSyncService) and advances it to
+ * Delivered/Returned to match. On-demand only, not scheduled - call this
+ * and then refetch whatever order list/stats are on screen.
+ */
+export async function syncShipmentTracking(): Promise<ShipmentTrackingSyncResult> {
+  const { data } = await apiClient.post<{ data: ShipmentTrackingSyncResult }>('/admin/orders/shipments/sync-tracking');
+  return data.data;
+}
+
 export async function fetchAdminOrder(id: number): Promise<AdminOrder> {
   const { data } = await apiClient.get<{ data: AdminOrder }>(`/admin/orders/${id}`);
   return data.data;

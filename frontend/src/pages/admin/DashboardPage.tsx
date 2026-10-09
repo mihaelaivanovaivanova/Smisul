@@ -25,7 +25,7 @@ import type { DashboardStats } from '../../types/admin';
 // whole stat-card grid with a loading spinner every minute.
 const STATS_POLL_INTERVAL_MS = 60_000;
 
-const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
+const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', carrier: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
 
 interface StatCardProps {
   label: string;
@@ -104,6 +104,7 @@ export default function DashboardPage() {
         page: ordersPage,
         search: orderFilters.search || undefined,
         status: orderFilters.status || undefined,
+        carrier: orderFilters.carrier || undefined,
         hide_cancelled: orderFilters.hideCancelled || undefined,
         // Unconditional (not a filter toggle, unlike hide_cancelled above)
         // - a failed payment attempt never became a real order, so it has

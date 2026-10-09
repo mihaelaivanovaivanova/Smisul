@@ -8,6 +8,7 @@ export interface AdminOrderFilters {
   search?: string;
   user_id?: number;
   status?: string;
+  carrier?: ShippingCarrier;
   hide_cancelled?: boolean;
   hide_failed?: boolean;
   date_from?: string;

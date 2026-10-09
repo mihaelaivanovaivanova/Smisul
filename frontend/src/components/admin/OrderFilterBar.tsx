@@ -1,14 +1,21 @@
 import { ORDER_STATUSES } from '../../constants/orderStatus';
 import type { AdminOrderFilters } from '../../api/admin/orders';
+import type { ShippingCarrier } from '../../types/checkout';
 
 export interface OrderFilters {
   search: string;
   status: string;
+  carrier: ShippingCarrier | '';
   hideCancelled: boolean;
   dateFrom: string;
   dateTo: string;
   sort: AdminOrderFilters['sort'];
 }
+
+const CARRIER_LABELS: Record<ShippingCarrier, string> = {
+  speedy: 'Speedy',
+  box_now: 'BOX NOW',
+};
 
 interface OrderFilterBarProps {
   filters: OrderFilters;
@@ -18,10 +25,10 @@ interface OrderFilterBarProps {
 /**
  * Shared by the dedicated Orders page and the Dashboard's orders table, so
  * both search by the same criteria (order # / email / tracking number,
- * status, date placed, sort) instead of drifting into two different filter
- * sets. The search field also matches a shipment's tracking number (see
- * OrderService::listForAdmin()) - the backend is the sole source of what
- * actually matches, this is just the input for it.
+ * status, carrier, date placed, sort) instead of drifting into two different
+ * filter sets. The search field also matches a shipment's tracking number
+ * (see OrderService::listForAdmin()) - the backend is the sole source of
+ * what actually matches, this is just the input for it.
  */
 export default function OrderFilterBar({ filters, onChange }: OrderFilterBarProps) {
   function set<K extends keyof OrderFilters>(key: K, value: OrderFilters[K]) {
@@ -45,6 +52,20 @@ export default function OrderFilterBar({ filters, onChange }: OrderFilterBarProp
           {ORDER_STATUSES.map((status) => (
             <option key={status} value={status}>
               {status.replace(/_/g, ' ')}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="col-sm-3 col-lg-2">
+        <select
+          className="form-select"
+          value={filters.carrier}
+          onChange={(event) => set('carrier', event.target.value as OrderFilters['carrier'])}
+        >
+          <option value="">All carriers</option>
+          {Object.entries(CARRIER_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
             </option>
           ))}
         </select>

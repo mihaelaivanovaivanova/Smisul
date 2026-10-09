@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\OrderStatus;
+use App\Enums\ShippingCarrier;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,6 +23,11 @@ class OrderIndexRequest extends FormRequest
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'status' => ['sometimes', 'nullable', Rule::in(array_column(OrderStatus::cases(), 'value'))],
+            // All cases, not just active() - an admin filtering historical
+            // orders should still be able to isolate old Econt ones even
+            // though it's no longer offered at checkout (see
+            // ShippingCarrier's own docblock on why that case stays).
+            'carrier' => ['sometimes', 'nullable', Rule::in(array_column(ShippingCarrier::cases(), 'value'))],
             // Not Laravel's 'boolean' rule - it only accepts true/false/0/1
             // as actual values, not the literal strings "true"/"false" that
             // a GET query string sends (?hide_cancelled=true). Parsed

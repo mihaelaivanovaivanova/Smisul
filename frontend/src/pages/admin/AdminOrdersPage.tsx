@@ -13,7 +13,7 @@ import AdminActionButton from '../../components/admin/AdminActionButton';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
 
-const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
+const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', carrier: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
 
 export default function AdminOrdersPage() {
   const { page, filters, setPage, changeFilters } = usePersistedOrderListState('admin-orders-list', DEFAULT_FILTERS);
@@ -25,6 +25,7 @@ export default function AdminOrdersPage() {
         page,
         search: filters.search || undefined,
         status: filters.status || undefined,
+        carrier: filters.carrier || undefined,
         hide_cancelled: filters.hideCancelled || undefined,
         date_from: filters.dateFrom || undefined,
         date_to: filters.dateTo || undefined,

@@ -109,6 +109,20 @@ class OrderAdminTest extends TestCase
     }
 
     #[Test]
+    public function orders_can_be_filtered_by_carrier(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
+        Order::factory()->create(['shipping_carrier' => ShippingCarrier::BoxNow]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?carrier=box_now');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.shipping.carrier', 'box_now');
+    }
+
+    #[Test]
     public function hide_cancelled_excludes_cancelled_orders_regardless_of_the_status_filter(): void
     {
         $admin = User::factory()->administrator()->create();

@@ -376,8 +376,8 @@ class OrderService
 
     /**
      * Admin order listing: search (order number, customer name/email),
-     * status filter, placement-date range, and sort — all optional and
-     * combinable. No ownership scoping (unlike the customer-facing index);
+     * status filter, carrier filter, placement-date range, and sort — all
+     * optional and combinable. No ownership scoping (unlike the customer-facing index);
      * gating this to administrators is the caller's job (route middleware).
      */
     public function listForAdmin(OrderFilterData $filters): LengthAwarePaginator
@@ -406,6 +406,10 @@ class OrderService
 
         if ($filters->status !== null) {
             $query->where('status', $filters->status);
+        }
+
+        if ($filters->carrier !== null) {
+            $query->where('shipping_carrier', $filters->carrier);
         }
 
         if ($filters->hideCancelled) {

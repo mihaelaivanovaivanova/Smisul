@@ -7,6 +7,7 @@ final readonly class OrderFilterData
     public function __construct(
         public ?string $search = null,
         public ?string $status = null,
+        public ?string $carrier = null,
         public bool $hideCancelled = false,
         public bool $hideFailed = false,
         public ?string $dateFrom = null,
@@ -25,6 +26,7 @@ final readonly class OrderFilterData
         return new self(
             search: $data['search'] ?? null,
             status: $data['status'] ?? null,
+            carrier: $data['carrier'] ?? null,
             hideCancelled: filter_var($data['hide_cancelled'] ?? false, FILTER_VALIDATE_BOOLEAN),
             hideFailed: filter_var($data['hide_failed'] ?? false, FILTER_VALIDATE_BOOLEAN),
             dateFrom: $data['date_from'] ?? null,

@@ -12,6 +12,7 @@ use App\Http\Resources\Admin\OrderResource;
 use App\Models\Order;
 use App\Services\AdminActionLogger;
 use App\Services\AdminOrderService;
+use App\Services\OrderReminderService;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
 use App\Services\ShipmentTrackingSyncService;
@@ -33,6 +34,7 @@ class OrderController extends Controller
         private readonly AdminActionLogger $actionLogger,
         private readonly AdminOrderService $adminOrders,
         private readonly ShipmentTrackingSyncService $trackingSync,
+        private readonly OrderReminderService $reminders,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -135,6 +137,23 @@ class OrderController extends Controller
         $result = $this->trackingSync->sync();
 
         $this->actionLogger->log($request->user(), 'orders.shipment_tracking_synced', null, $result);
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * The "Send reminder emails" button on the Orders page/dashboard -
+     * emails every Delivered order that reached that status 30+ days ago
+     * and hasn't had its reminder sent yet. Safe to press repeatedly or
+     * the same day the old daily schedule would have run:
+     * OrderReminderService only ever sends once per order
+     * (thirty_day_reminder_sent_at), so there's no double-send risk.
+     */
+    public function sendReminderEmails(Request $request): JsonResponse
+    {
+        $result = $this->reminders->sendDueReminders();
+
+        $this->actionLogger->log($request->user(), 'orders.reminder_emails_sent', null, $result);
 
         return response()->json(['data' => $result]);
     }

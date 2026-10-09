@@ -321,6 +321,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/orders/statistics', [AdminOrderController::class, 'statistics'])->name('orders.statistics');
         Route::post('/orders/shipments/sync-tracking', [AdminOrderController::class, 'syncShipmentTracking'])->name('orders.shipments.sync-tracking');
+        Route::post('/orders/send-reminder-emails', [AdminOrderController::class, 'sendReminderEmails'])->name('orders.send-reminder-emails');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::post('/orders', [AdminOrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');

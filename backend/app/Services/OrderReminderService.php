@@ -11,11 +11,14 @@ use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
- * Powers the daily orders:send-thirty-day-reminders command. Finds every
- * Delivered order that reached that status 30+ days ago and hasn't had its
- * reminder sent yet, emails each one, and marks it sent - once only, ever,
- * per order (thirty_day_reminder_sent_at is set on success and checked on
- * every run, so a later run never re-sends to the same order).
+ * Powers the on-demand orders:send-thirty-day-reminders command and the
+ * admin "Send reminder emails" button (Admin\OrderController::
+ * sendReminderEmails()) - not scheduled, by request (see routes/
+ * console.php). Finds every Delivered order that reached that status 30+
+ * days ago and hasn't had its reminder sent yet, emails each one, and
+ * marks it sent - once only, ever, per order (thirty_day_reminder_sent_at
+ * is set on success and checked on every run, so pressing the button
+ * repeatedly, or any day, never re-sends to the same order).
  */
 class OrderReminderService
 {

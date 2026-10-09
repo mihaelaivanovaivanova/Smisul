@@ -40,6 +40,23 @@ export async function syncShipmentTracking(): Promise<ShipmentTrackingSyncResult
   return data.data;
 }
 
+export interface ReminderEmailsResult {
+  sent: number;
+  failed: number;
+}
+
+/**
+ * The "Send reminder emails" button (Orders page and dashboard) - emails
+ * every order that was marked Delivered 30+ days ago and hasn't had its
+ * reminder sent yet (see backend's OrderReminderService). On-demand only,
+ * not scheduled - safe to call repeatedly, each order is only ever
+ * reminded once.
+ */
+export async function sendReminderEmails(): Promise<ReminderEmailsResult> {
+  const { data } = await apiClient.post<{ data: ReminderEmailsResult }>('/admin/orders/send-reminder-emails');
+  return data.data;
+}
+
 export async function fetchAdminOrder(id: number): Promise<AdminOrder> {
   const { data } = await apiClient.get<{ data: AdminOrder }>(`/admin/orders/${id}`);
   return data.data;

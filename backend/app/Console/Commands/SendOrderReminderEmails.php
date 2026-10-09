@@ -6,9 +6,11 @@ use App\Services\OrderReminderService;
 use Illuminate\Console\Command;
 
 /**
- * Scheduled daily (see routes/console.php) - thin wrapper around
- * OrderReminderService, which owns the actual eligibility/sending logic
- * so it stays unit-testable without the console layer.
+ * Manual CLI equivalent of the admin "Send reminder emails" button (see
+ * Admin\OrderController::sendReminderEmails()) - not scheduled, by request
+ * (see routes/console.php). Thin wrapper around OrderReminderService,
+ * which owns the actual eligibility/sending logic so it stays
+ * unit-testable without the console layer.
  */
 class SendOrderReminderEmails extends Command
 {

@@ -6,14 +6,17 @@ use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
+use App\Mail\OrderThirtyDayReminderMail;
 use App\Models\Complaint;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\Shipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -349,6 +352,46 @@ class OrderAdminTest extends TestCase
         $customer = User::factory()->create();
 
         $this->actingAs($customer)->postJson('/api/v1/admin/orders/shipments/sync-tracking')->assertForbidden();
+    }
+
+    /**
+     * End-to-end wiring for the "Send reminder emails" button (eligibility
+     * and send-once-only behavior are covered in depth by
+     * OrderThirtyDayReminderTest).
+     */
+    #[Test]
+    public function an_administrator_can_send_reminder_emails(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'ivan@example.com']);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(31),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/orders/send-reminder-emails');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.sent', 1);
+        $response->assertJsonPath('data.failed', 0);
+        Mail::assertSent(OrderThirtyDayReminderMail::class, 1);
+        $this->assertNotNull($order->fresh()->thirty_day_reminder_sent_at);
+        $this->assertDatabaseHas('admin_action_logs', [
+            'user_id' => $admin->id,
+            'action' => 'orders.reminder_emails_sent',
+        ]);
+    }
+
+    #[Test]
+    public function a_customer_cannot_send_reminder_emails(): void
+    {
+        $customer = User::factory()->create();
+
+        $this->actingAs($customer)->postJson('/api/v1/admin/orders/send-reminder-emails')->assertForbidden();
     }
 
     #[Test]

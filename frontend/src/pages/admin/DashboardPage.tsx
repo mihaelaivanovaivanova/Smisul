@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchDashboardStats } from '../../api/admin/dashboard';
-import { fetchAdminOrders } from '../../api/admin/orders';
+import { fetchAdminOrders, sendReminderEmails, syncShipmentTracking } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { usePersistedOrderListState } from '../../hooks/usePersistedOrderListState';
 import { getErrorMessage } from '../../api/errors';
@@ -11,7 +11,7 @@ import EmptyState from '../../components/EmptyState';
 import Pagination from '../../components/listing/Pagination';
 import StatusBadge from '../../components/admin/StatusBadge';
 import OrderFilterBar from '../../components/admin/OrderFilterBar';
-import SyncShipmentTrackingButton from '../../components/admin/SyncShipmentTrackingButton';
+import AdminActionButton from '../../components/admin/AdminActionButton';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
 import type { DashboardStats } from '../../types/admin';
@@ -49,9 +49,10 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-  // Bumped by the "Sync tracking" button so both the stats below and the
-  // orders table re-fetch immediately, instead of waiting for the next
-  // poll/navigation - see their own effect/useAsync deps.
+  // Bumped by either the "Send reminder emails" or "Sync tracking" button
+  // so both the stats below and the orders table re-fetch immediately,
+  // instead of waiting for the next poll/navigation - see their own
+  // effect/useAsync deps.
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -145,7 +146,27 @@ export default function DashboardPage() {
 
       <div className="d-flex justify-content-between align-items-start mb-3">
         <h2 className="h5 mb-0">Orders</h2>
-        <SyncShipmentTrackingButton onSynced={() => setReloadKey((key) => key + 1)} />
+        <div className="d-flex align-items-start gap-2">
+          <AdminActionButton
+            label="Send reminder emails"
+            pendingLabel="Sending…"
+            action={sendReminderEmails}
+            summarize={(result) => `Sent ${result.sent} email(s).${result.failed > 0 ? ` ${result.failed} failed - see logs.` : ''}`}
+            onSuccess={() => setReloadKey((key) => key + 1)}
+            errorFallback="Could not send reminder emails."
+          />
+          <AdminActionButton
+            label="Sync tracking"
+            pendingLabel="Syncing…"
+            action={syncShipmentTracking}
+            summarize={(result) =>
+              `Checked ${result.checked} shipment(s), ${result.updated} status change(s), ${result.orders_updated} order(s) advanced.` +
+              (result.failed > 0 ? ` ${result.failed} failed - see logs.` : '')
+            }
+            onSuccess={() => setReloadKey((key) => key + 1)}
+            errorFallback="Could not sync shipment tracking."
+          />
+        </div>
       </div>
       <OrderFilterBar filters={orderFilters} onChange={handleOrderFiltersChange} />
 

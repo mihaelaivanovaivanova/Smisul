@@ -394,7 +394,13 @@ class OrderService
                 $query->where('order_number', 'like', $term)
                     ->orWhere('customer_email', 'like', $term)
                     ->orWhere('customer_first_name', 'like', $term)
-                    ->orWhere('customer_last_name', 'like', $term);
+                    ->orWhere('customer_last_name', 'like', $term)
+                    // An admin pasting in a courier's tracking number (from
+                    // an email/SMS, a customer complaint, etc.) should find
+                    // the order it belongs to just as well as searching by
+                    // order number - not every order has a shipment yet, so
+                    // this is a left-join-style whereHas, not a required match.
+                    ->orWhereHas('shipment', fn ($query) => $query->where('tracking_number', 'like', $term));
             });
         }
 

@@ -17,8 +17,11 @@ interface OrderFilterBarProps {
 
 /**
  * Shared by the dedicated Orders page and the Dashboard's orders table, so
- * both search by the same criteria (order # / email, status, date placed,
- * sort) instead of drifting into two different filter sets.
+ * both search by the same criteria (order # / email / tracking number,
+ * status, date placed, sort) instead of drifting into two different filter
+ * sets. The search field also matches a shipment's tracking number (see
+ * OrderService::listForAdmin()) - the backend is the sole source of what
+ * actually matches, this is just the input for it.
  */
 export default function OrderFilterBar({ filters, onChange }: OrderFilterBarProps) {
   function set<K extends keyof OrderFilters>(key: K, value: OrderFilters[K]) {
@@ -31,7 +34,7 @@ export default function OrderFilterBar({ filters, onChange }: OrderFilterBarProp
         <input
           type="search"
           className="form-control"
-          placeholder="Search order # or email..."
+          placeholder="Search order #, email, or tracking #..."
           value={filters.search}
           onChange={(event) => set('search', event.target.value)}
         />

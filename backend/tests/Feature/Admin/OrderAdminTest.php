@@ -174,6 +174,40 @@ class OrderAdminTest extends TestCase
         $response->assertJsonPath('data.0.id', $target->id);
     }
 
+    /**
+     * An admin typically has the tracking number in hand (a courier email,
+     * a customer complaint) before they have the order number - searching
+     * by it should find the order the same way order #/email already do.
+     */
+    #[Test]
+    public function orders_can_be_searched_by_shipment_tracking_number(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $target = Order::factory()->create();
+        Shipment::factory()->for($target)->created()->create(['tracking_number' => 'BN-TRACK-123']);
+        $other = Order::factory()->create();
+        Shipment::factory()->for($other)->created()->create(['tracking_number' => 'BN-OTHER-999']);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?search=TRACK-123');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $target->id);
+    }
+
+    #[Test]
+    public function searching_still_works_for_orders_with_no_shipment_yet(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $target = Order::factory()->create(['customer_email' => 'noshipmentyet@example.com']);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?search=noshipmentyet');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $target->id);
+    }
+
     #[Test]
     public function orders_can_be_sorted_by_total(): void
     {

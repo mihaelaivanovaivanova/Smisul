@@ -19,6 +19,10 @@ use Throwable;
  * marks it sent - once only, ever, per order (thirty_day_reminder_sent_at
  * is set on success and checked on every run, so pressing the button
  * repeatedly, or any day, never re-sends to the same order).
+ *
+ * Also powers sendTestReminderForTestAccount() below - the same send, on
+ * demand for a single order, restricted to known test accounts (see its
+ * own docblock).
  */
 class OrderReminderService
 {
@@ -65,34 +69,44 @@ class OrderReminderService
     }
 
     /**
-     * TEMPORARY test-only helper behind the admin "send-reminder-email-now"
-     * route — lets an admin verify the real reminder mailable actually
-     * renders and delivers in production, on demand, against any address,
-     * without waiting 30 real days for a Delivered order to age into
-     * eligibility. Deliberately bypasses every eligibility check
-     * dueOrders() applies (age, customer_email, thirty_day_reminder_sent_at)
-     * and never writes thirty_day_reminder_sent_at — this is not the real
-     * reminder send, just a delivery check for whichever $order's content
-     * the admin wants to preview. Remove this method and its route/
-     * controller action once that's verified; see the commit introducing it.
+     * Backs the "Send test reminder email" button that appears on an order's
+     * admin detail page only when that order's customer_email is one of
+     * OrderService::TEST_CUSTOMER_EMAILS (see OrderResource::is_test_account)
+     * — lets an admin verify the real reminder mailable still renders and
+     * delivers against production's real mail transport, on demand, without
+     * waiting 30 real days for a Delivered order to age into eligibility,
+     * and without touching any real customer's order. A fresh manually-
+     * created order with a test-account email (see StoreManualOrderRequest's
+     * own docblock) can be marched to Delivered and tested again any number
+     * of times.
+     *
+     * Deliberately reuses sendReminder() below rather than duplicating it,
+     * so this is a genuine dry run of the exact real send - same mailable,
+     * same recipient resolution (order.customer_email, no override), same
+     * thirty_day_reminder_sent_at bookkeeping. The only check it skips is
+     * dueOrders()'s 30-day age requirement; every other real requirement
+     * (Delivered status, has an email, not already reminded) still applies,
+     * on top of the test-account gate.
+     *
+     * @return array{sent: bool, reason: string|null}
      */
-    public function sendTestReminder(Order $order, string $email): bool
+    public function sendTestReminderForTestAccount(Order $order): array
     {
-        try {
-            Mail::to($email)->send(new OrderThirtyDayReminderMail($order));
-        } catch (Throwable $exception) {
-            Log::error('Could not send the test 30-day order reminder email.', [
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
-                'email' => $email,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ]);
-
-            return false;
+        if (! OrderService::isTestCustomerEmail($order->customer_email)) {
+            return ['sent' => false, 'reason' => 'This order is not from a known test account.'];
         }
 
-        return true;
+        if ($order->status !== OrderStatus::Delivered) {
+            return ['sent' => false, 'reason' => 'Order must be Delivered first.'];
+        }
+
+        if ($order->thirty_day_reminder_sent_at !== null) {
+            return ['sent' => false, 'reason' => 'A reminder was already sent for this order - create a new test order to try again.'];
+        }
+
+        $sent = $this->sendReminder($order);
+
+        return ['sent' => $sent, 'reason' => $sent ? null : 'Sending failed - see the logs.'];
     }
 
     /**

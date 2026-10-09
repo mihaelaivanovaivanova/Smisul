@@ -452,7 +452,24 @@ class OrderService
         'vladofilchev@gmail.com',
         'admin@smisul.bg',
         'test@gmail.com',
+        'mihaela.ivanova.ivanova@gmail.com',
     ];
+
+    /**
+     * Case-insensitive membership check against TEST_CUSTOMER_EMAILS — the
+     * one place that comparison is made, so excludingTestOrders() below and
+     * anything else gating behavior on "is this a test account" (e.g.
+     * OrderReminderService::sendTestReminderForTestAccount()) can't drift
+     * out of sync with each other.
+     */
+    public static function isTestCustomerEmail(?string $email): bool
+    {
+        if ($email === null) {
+            return false;
+        }
+
+        return in_array(mb_strtolower($email), array_map('mb_strtolower', self::TEST_CUSTOMER_EMAILS), true);
+    }
 
     /**
      * @param  Builder<Order>  $query

@@ -322,7 +322,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders/statistics', [AdminOrderController::class, 'statistics'])->name('orders.statistics');
         Route::post('/orders/shipments/sync-tracking', [AdminOrderController::class, 'syncShipmentTracking'])->name('orders.shipments.sync-tracking');
         Route::post('/orders/send-reminder-emails', [AdminOrderController::class, 'sendReminderEmails'])->name('orders.send-reminder-emails');
-        // TEMPORARY test-only route — see OrderReminderService::sendTestReminder()'s own docblock.
+        // Admin "Send test reminder email" button — test accounts only, see OrderReminderService::sendTestReminderForTestAccount()'s own docblock.
         Route::post('/orders/{order}/send-test-reminder-email', [AdminOrderController::class, 'sendTestReminderEmail'])->name('orders.send-test-reminder-email');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::post('/orders', [AdminOrderController::class, 'store'])->name('orders.store');

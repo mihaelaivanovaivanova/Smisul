@@ -9,14 +9,19 @@ use Illuminate\Validation\Rule;
 
 /**
  * A quick phone/in-person sale entered straight into the admin panel — no
- * email, no cart, one line item. Deliberately office/locker delivery only
- * (no "address" option, unlike checkout's PlaceOrderRequest): a full
- * settlement/street-address picker isn't worth the form complexity for this
- * flow, and every real shipment still needs a pickup point either way.
- * shipping_price/cod_fee are trusted as submitted rather than recomputed
- * here — the admin form prefills both from the same public
- * shipping-methods/payment-methods endpoints checkout uses, then lets the
- * admin edit or zero either one out before submitting.
+ * cart, one line item, and no email required (most phone/in-person sales
+ * genuinely don't have one on hand). customer_email is optional, not
+ * absent on principle: entering one is useful on its own (lets the order
+ * carry a real email on file) and is also how an admin gets a test order
+ * eligible for OrderReminderService::sendTestReminderForTestAccount() — see
+ * its own docblock — by using one of OrderService::TEST_CUSTOMER_EMAILS.
+ * Deliberately office/locker delivery only (no "address" option, unlike
+ * checkout's PlaceOrderRequest): a full settlement/street-address picker
+ * isn't worth the form complexity for this flow, and every real shipment
+ * still needs a pickup point either way. shipping_price/cod_fee are trusted
+ * as submitted rather than recomputed here — the admin form prefills both
+ * from the same public shipping-methods/payment-methods endpoints checkout
+ * uses, then lets the admin edit or zero either one out before submitting.
  */
 class StoreManualOrderRequest extends FormRequest
 {
@@ -33,6 +38,7 @@ class StoreManualOrderRequest extends FormRequest
         return [
             'customer_first_name' => ['required', 'string', 'max:100'],
             'customer_last_name' => ['required', 'string', 'max:100'],
+            'customer_email' => ['sometimes', 'nullable', 'email', 'max:255'],
             // Same shape the checkout PhoneField always submits (+359 plus
             // the 9-digit local number) — a real carrier shipment needs a
             // valid Bulgarian mobile number regardless of how the order

@@ -12,6 +12,8 @@ export interface AdminOrder extends Omit<Order, 'customer'> {
   cheapest_standard_shipping_price_at_placement: number | null;
   /** Null only for a manually-created order with no email on file (see Admin\OrderController::store()) — every checkout order still always has one. */
   customer: Omit<Order['customer'], 'email'> & { email: string | null };
+  /** Gates the order detail page's "Send test reminder email" button — see backend OrderReminderService::sendTestReminderForTestAccount(). */
+  is_test_account: boolean;
 }
 
 /**

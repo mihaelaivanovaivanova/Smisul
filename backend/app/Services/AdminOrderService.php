@@ -16,8 +16,9 @@ use Illuminate\Support\Str;
 
 /**
  * Manual order entry for the admin panel — a phone/in-person sale typed
- * straight in, bypassing the cart/checkout flow entirely (no email, no
- * legal-document acceptance, exactly one line item). Kept separate from
+ * straight in, bypassing the cart/checkout flow entirely (no legal-document
+ * acceptance, exactly one line item; customer_email is optional - see
+ * StoreManualOrderRequest's own docblock for why). Kept separate from
  * OrderService (which owns the real checkout path) rather than added to it,
  * so this stays free to make simplifying assumptions checkout can't (see
  * StoreManualOrderRequest's own docblock) without complicating that class's
@@ -41,6 +42,7 @@ class AdminOrderService
      * @param  array{
      *     customer_first_name: string,
      *     customer_last_name: string,
+     *     customer_email?: string|null,
      *     customer_phone: string,
      *     shipping_carrier: string,
      *     shipping_delivery_type: string,
@@ -88,7 +90,7 @@ class AdminOrderService
                 'currency' => 'EUR',
                 'customer_first_name' => $data['customer_first_name'],
                 'customer_last_name' => $data['customer_last_name'],
-                'customer_email' => null,
+                'customer_email' => $data['customer_email'] ?? null,
                 'customer_phone' => $data['customer_phone'],
                 // Same "office's own city/address stands in for a street
                 // address" convention real checkout uses for office/locker

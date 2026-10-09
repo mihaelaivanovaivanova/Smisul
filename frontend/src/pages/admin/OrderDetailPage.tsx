@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiBaseUrl } from '../../api/client';
-import { cancelOrderShipment, createOrderShipment, deleteOrder, fetchAdminOrder, refundPayment, reversePayment, updateOrderStatus } from '../../api/admin/orders';
+import { cancelOrderShipment, createOrderShipment, deleteOrder, fetchAdminOrder, refundPayment, reversePayment, sendTestReminderEmail, updateOrderStatus } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -38,6 +38,9 @@ export default function OrderDetailPage() {
   const [shipmentError, setShipmentError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isSendingTestReminder, setIsSendingTestReminder] = useState(false);
+  const [testReminderMessage, setTestReminderMessage] = useState<string | null>(null);
+  const [testReminderError, setTestReminderError] = useState<string | null>(null);
 
   async function handleCreateShipment() {
     setIsCreatingShipment(true);
@@ -102,6 +105,21 @@ export default function OrderDetailPage() {
     } catch (err) {
       setDeleteError(getErrorMessage(err, 'Could not delete the order.'));
       setIsDeleting(false);
+    }
+  }
+
+  async function handleSendTestReminder() {
+    setIsSendingTestReminder(true);
+    setTestReminderMessage(null);
+    setTestReminderError(null);
+    try {
+      await sendTestReminderEmail(id);
+      setTestReminderMessage('Sent. Check the inbox.');
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setTestReminderError(getErrorMessage(err, 'Could not send the test reminder email.'));
+    } finally {
+      setIsSendingTestReminder(false);
     }
   }
 
@@ -388,7 +406,26 @@ export default function OrderDetailPage() {
                 {order.customer.first_name} {order.customer.last_name}
               </p>
               <p className="mb-1">{order.customer.email ?? <span className="text-muted">No email (manual order)</span>}</p>
-              <p className="mb-0">{order.customer.phone}</p>
+              <p className={order.is_test_account ? 'mb-3' : 'mb-0'}>{order.customer.phone}</p>
+              {order.is_test_account && (
+                <>
+                  <p className="small text-muted mb-2">
+                    This order is from a known test account. You can trigger its 30-day reminder email now, without waiting - the order
+                    must be Delivered first, and this only works once per order (create a new test order to try again).
+                  </p>
+                  {testReminderMessage && <div className="alert alert-success py-2 mb-2">{testReminderMessage}</div>}
+                  {testReminderError && <div className="alert alert-danger py-2 mb-2">{testReminderError}</div>}
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    disabled={isSendingTestReminder}
+                    onClick={() => void handleSendTestReminder()}
+                  >
+                    {isSendingTestReminder && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                    Send test reminder email
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

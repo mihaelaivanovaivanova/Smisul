@@ -41,6 +41,7 @@ export default function CreateOrderPage() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [variantId, setVariantId] = useState('');
   const [quantity, setQuantity] = useState('1');
@@ -151,6 +152,7 @@ export default function CreateOrderPage() {
       const order = await createManualOrder({
         customer_first_name: firstName,
         customer_last_name: lastName,
+        customer_email: email || undefined,
         customer_phone: phone,
         shipping_carrier: selectedMethod.carrier,
         shipping_delivery_type: selectedMethod.delivery_type as 'office' | 'locker',
@@ -197,6 +199,10 @@ export default function CreateOrderPage() {
             </div>
             <div className="col-12">
               <PhoneField id="order-phone" label="Phone" value={phone} onChange={setPhone} error={errors.customer_phone} required />
+            </div>
+            <div className="col-12">
+              <FormField id="order-email" label="Email (optional)" type="email" value={email} onChange={setEmail} error={errors.customer_email} />
+              <div className="form-text">Only needed if this order should receive order emails — e.g. a test order for a known test account.</div>
             </div>
           </div>
 

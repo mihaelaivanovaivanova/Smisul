@@ -159,19 +159,22 @@ class OrderController extends Controller
     }
 
     /**
-     * TEMPORARY test-only action — see OrderReminderService::
-     * sendTestReminder()'s own docblock. Remove this action and its route
-     * alongside that method once production deliverability is verified.
+     * The "Send test reminder email" button on an order's admin detail page
+     * — only rendered there (and only accepted here) when the order's own
+     * customer_email is a known test account — see OrderReminderService::
+     * sendTestReminderForTestAccount()'s own docblock.
      */
     public function sendTestReminderEmail(Request $request, Order $order): JsonResponse
     {
-        $email = $request->validate(['email' => ['required', 'email']])['email'];
+        $result = $this->reminders->sendTestReminderForTestAccount($order);
 
-        $sent = $this->reminders->sendTestReminder($order, $email);
+        $this->actionLogger->log($request->user(), 'orders.test_reminder_email_sent', $order, $result);
 
-        $this->actionLogger->log($request->user(), 'orders.test_reminder_email_sent', $order, ['email' => $email, 'sent' => $sent]);
+        if (! $result['sent']) {
+            return response()->json(['message' => $result['reason']], 422);
+        }
 
-        return response()->json(['data' => ['sent' => $sent]]);
+        return response()->json(['data' => $result]);
     }
 
     /**

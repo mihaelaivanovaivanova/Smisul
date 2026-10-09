@@ -58,6 +58,18 @@ export async function sendReminderEmails(): Promise<ReminderEmailsResult> {
   return data.data;
 }
 
+/**
+ * The "Send test reminder email" button on an order's detail page — only
+ * ever rendered when that order is from a test account (order.is_test_account,
+ * see AdminOrder's own docblock). Runs the exact real send for that one
+ * order, bypassing only the 30-day age wait (see backend
+ * OrderReminderService::sendTestReminderForTestAccount()).
+ */
+export async function sendTestReminderEmail(id: number): Promise<{ sent: boolean }> {
+  const { data } = await apiClient.post<{ data: { sent: boolean } }>(`/admin/orders/${id}/send-test-reminder-email`);
+  return data.data;
+}
+
 export async function fetchAdminOrder(id: number): Promise<AdminOrder> {
   const { data } = await apiClient.get<{ data: AdminOrder }>(`/admin/orders/${id}`);
   return data.data;
@@ -66,6 +78,8 @@ export async function fetchAdminOrder(id: number): Promise<AdminOrder> {
 export interface ManualOrderPayload {
   customer_first_name: string;
   customer_last_name: string;
+  /** Optional — most phone/in-person sales don't have one on hand. Also how a test order becomes eligible for "Send test reminder email" (see OrderDetailPage). */
+  customer_email?: string;
   customer_phone: string;
   shipping_carrier: ShippingCarrier;
   shipping_delivery_type: Extract<ShippingDeliveryType, 'office' | 'locker'>;

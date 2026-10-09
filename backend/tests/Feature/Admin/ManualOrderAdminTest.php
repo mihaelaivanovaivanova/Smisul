@@ -71,6 +71,33 @@ class ManualOrderAdminTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $response->json('data.id'), 'customer_email' => null]);
     }
 
+    /**
+     * customer_email is optional on a manual order, not absent on
+     * principle - see StoreManualOrderRequest's own docblock, including why
+     * this is also how a test order becomes eligible for the "Send test
+     * reminder email" button.
+     */
+    #[Test]
+    public function an_administrator_can_create_a_manual_order_with_an_email(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $variant = ProductVariant::factory()->create();
+        Price::factory()->for($variant, 'productVariant')->create(['amount' => 10]);
+        Inventory::factory()->for($variant, 'productVariant')->create(['quantity_on_hand' => 20, 'quantity_reserved' => 0]);
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/admin/orders', $this->payload($variant, [
+            'customer_email' => 'mihaela.ivanova.ivanova@gmail.com',
+        ]));
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.customer.email', 'mihaela.ivanova.ivanova@gmail.com');
+        $response->assertJsonPath('data.is_test_account', true);
+        $this->assertDatabaseHas('orders', [
+            'id' => $response->json('data.id'),
+            'customer_email' => 'mihaela.ivanova.ivanova@gmail.com',
+        ]);
+    }
+
     #[Test]
     public function creating_a_manual_order_decrements_stock_immediately(): void
     {

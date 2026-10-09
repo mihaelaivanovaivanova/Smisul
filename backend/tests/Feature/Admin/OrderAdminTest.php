@@ -409,31 +409,66 @@ class OrderAdminTest extends TestCase
     }
 
     /**
-     * TEMPORARY test-only route — see OrderReminderService::
-     * sendTestReminder()'s own docblock. Deliberately exercises an order
-     * that would never be eligible for the real reminder (no customer
-     * email, not 30 days old) to prove the override bypasses that.
+     * End-to-end wiring for the "Send test reminder email" button (see
+     * OrderReminderService::sendTestReminderForTestAccount()'s own
+     * docblock) - deliberately a Delivered order that's nowhere near 30
+     * days old, to prove the age check is the one thing this bypasses.
      */
     #[Test]
-    public function an_administrator_can_send_a_test_reminder_email_to_any_address_bypassing_eligibility(): void
+    public function an_administrator_can_send_a_test_reminder_email_for_a_test_account_order(): void
     {
         Mail::fake();
 
         $admin = User::factory()->administrator()->create();
-        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => null]);
-
-        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email", [
-            'email' => 'tester@example.com',
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'Mihaela.Ivanova.Ivanova@gmail.com',
         ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now(), // today - the real dueOrders() query would never pick this up
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email");
 
         $response->assertOk();
         $response->assertJsonPath('data.sent', true);
-        Mail::assertSent(OrderThirtyDayReminderMail::class, fn ($mail) => $mail->hasTo('tester@example.com'));
-        $this->assertNull($order->fresh()->thirty_day_reminder_sent_at);
+        Mail::assertSent(OrderThirtyDayReminderMail::class, fn ($mail) => $mail->hasTo('Mihaela.Ivanova.Ivanova@gmail.com'));
+        $this->assertNotNull($order->fresh()->thirty_day_reminder_sent_at);
         $this->assertDatabaseHas('admin_action_logs', [
             'user_id' => $admin->id,
             'action' => 'orders.test_reminder_email_sent',
         ]);
+    }
+
+    #[Test]
+    public function sending_a_test_reminder_email_is_rejected_for_an_order_that_is_not_a_test_account(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'realcustomer@example.com']);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email");
+
+        $response->assertStatus(422);
+        Mail::assertNotSent(OrderThirtyDayReminderMail::class);
+    }
+
+    #[Test]
+    public function sending_a_test_reminder_email_is_rejected_when_the_order_is_not_delivered_yet(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'customer_email' => 'mihaela.ivanova.ivanova@gmail.com']);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email");
+
+        $response->assertStatus(422);
+        Mail::assertNotSent(OrderThirtyDayReminderMail::class);
     }
 
     #[Test]
@@ -443,7 +478,7 @@ class OrderAdminTest extends TestCase
         $order = Order::factory()->create();
 
         $this->actingAs($customer)
-            ->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email", ['email' => 'tester@example.com'])
+            ->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email")
             ->assertForbidden();
     }
 

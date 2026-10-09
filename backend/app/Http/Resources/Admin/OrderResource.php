@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin;
 use App\Http\Resources\OrderResource as BaseOrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Http\Resources\ShipmentResource;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 
 /**
@@ -31,6 +32,10 @@ class OrderResource extends BaseOrderResource
             // Order::cheapestStandardShippingPriceAtPlacement(). null for
             // orders placed before this was tracked.
             'cheapest_standard_shipping_price_at_placement' => $this->cheapestStandardShippingPriceAtPlacement(),
+            // Gates the admin order detail page's "Send test reminder
+            // email" button - see OrderReminderService::
+            // sendTestReminderForTestAccount()'s own docblock.
+            'is_test_account' => OrderService::isTestCustomerEmail($this->customer_email),
         ];
     }
 }

@@ -51,6 +51,37 @@ class ShipmentTrackingTest extends TestCase
     }
 
     #[Test]
+    public function tracking_a_speedy_shipment_sends_the_parcel_ref_as_a_bare_id(): void
+    {
+        // Regression test: Speedy's real schema for `track` takes a bare
+        // `id`, not `parcelId` (that nested shape belongs to `print`'s
+        // ShipmentParcelRef only - see SpeedyShippingProvider::track()).
+        // Sending `parcelId` here doesn't error, it just silently matches
+        // nothing, so a confirmed-delivered parcel came back as
+        // `{"parcels":[]}` on production with the wrong field name.
+        Http::fake([
+            'api.speedy.bg/*' => Http::response([
+                'parcels' => [[
+                    'operations' => [['operationCode' => -14, 'dateTime' => '2026-07-06T10:00:00+03:00']],
+                ]],
+            ]),
+        ]);
+
+        $order = Order::factory()->create(['shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::PickedUp,
+            'tracking_number' => '63773763045',
+        ]);
+
+        $this->app->make(ShippingService::class)->track($shipment);
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.speedy.bg/v1/track'
+            && $request['parcels'][0]['id'] === '63773763045'
+            && ! isset($request['parcels'][0]['parcelId']));
+    }
+
+    #[Test]
     public function tracking_does_not_record_a_duplicate_event_when_the_status_is_unchanged(): void
     {
         Http::fake([

@@ -344,11 +344,22 @@ class SpeedyShippingProvider implements ShippingProviderInterface
         );
     }
 
+    /**
+     * `POST track` per Speedy's real published schema
+     * (`TrackShipmentParcelRef` takes a bare `id`, unlike `print`'s
+     * `ShipmentParcelRef` below which nests it under `parcelId.id`) —
+     * sending `parcelId` here instead of `id` doesn't error, it just
+     * silently matches nothing: confirmed live against production, a
+     * real delivered parcel came back as `{"parcels":[]}` with the wrong
+     * field name and with the correct one returned its full operation
+     * history, `-14` (delivered) included.
+     */
     public function track(string $trackingNumber): TrackingData
     {
         try {
             $response = $this->client()->post('track', $this->withCredentials([
-                'parcels' => [['parcelId' => $trackingNumber]],
+                'parcels' => [['id' => $trackingNumber]],
+                'lastOperationOnly' => true,
             ]));
         } catch (ConnectionException $exception) {
             throw ShippingProviderException::requestFailed('speedy', 'track', $exception->getMessage());

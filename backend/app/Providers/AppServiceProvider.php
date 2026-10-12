@@ -28,11 +28,14 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -55,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureRateLimiting();
         $this->configureAuthNotificationUrls();
+        $this->configureBrevoMailTransport();
 
         // Event discovery is off entirely (see bootstrap/app.php's
         // withEvents(discover: false) — it was silently double-registering
@@ -127,6 +131,24 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('funnel-leads', function ($request) {
             return Limit::perMinute(3)->by($request->ip());
+        });
+    }
+
+    /**
+     * Laravel ships built-in support for turning MAIL_MAILER=ses/postmark/
+     * resend/mailgun into a real Symfony transport, but not brevo - so this
+     * does by hand what those do automatically, via the official symfony/
+     * brevo-mailer bridge (composer require symfony/brevo-mailer). Uses the
+     * "brevo+api" DSN scheme specifically (HTTPS POST), never "brevo+smtp" -
+     * see services.brevo's own comment on why SMTP isn't an option on this
+     * host.
+     */
+    private function configureBrevoMailTransport(): void
+    {
+        Mail::extend('brevo', function (array $config) {
+            return (new BrevoTransportFactory)->create(
+                new Dsn('brevo+api', 'default', $config['key'] ?? null),
+            );
         });
     }
 

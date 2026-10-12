@@ -2,11 +2,13 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\HasUnsubscribeLink;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\URL;
 
@@ -20,7 +22,7 @@ use Illuminate\Support\Facades\URL;
  */
 class OrderThirtyDayReminderMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use HasUnsubscribeLink, Queueable, SerializesModels;
 
     public function __construct(public readonly Order $order) {}
 
@@ -31,10 +33,16 @@ class OrderThirtyDayReminderMail extends Mailable
         );
     }
 
+    public function headers(): Headers
+    {
+        return $this->unsubscribeHeaders($this->order->customer_email);
+    }
+
     public function content(): Content
     {
         return new Content(view: 'emails.orders.thirty-day-reminder', with: [
             'reviewUrl' => $this->reviewUrl(),
+            'unsubscribeUrl' => $this->unsubscribeUrl($this->order->customer_email),
         ]);
     }
 

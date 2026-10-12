@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\BroadcastController as AdminBroadcastController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ComplaintController as AdminComplaintController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
@@ -48,6 +49,8 @@ use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\ShipmentController;
 use App\Http\Controllers\Api\V1\StoredPaymentMethodController;
+use App\Http\Controllers\BrevoWebhookController;
+use App\Http\Controllers\UnsubscribeController;
 use App\Http\Resources\UserResource;
 use App\Services\ContentBlockService;
 use App\Services\FunnelContentService;
@@ -394,5 +397,30 @@ Route::prefix('v1')->group(function () {
         Route::get('/funnel/leads', [AdminFunnelLeadController::class, 'index'])->name('funnel.leads.index');
         Route::get('/funnel/leads/export', [AdminFunnelLeadController::class, 'export'])->name('funnel.leads.export');
         Route::delete('/funnel/leads/{lead}', [AdminFunnelLeadController::class, 'destroy'])->name('funnel.leads.destroy');
+
+        // The weekly "write it, hit send" broadcast button - see
+        // BroadcastController's own docblock.
+        Route::get('/broadcasts/recipient-count', [AdminBroadcastController::class, 'recipientCount'])->name('broadcasts.recipient-count');
+        Route::post('/broadcasts', [AdminBroadcastController::class, 'send'])->name('broadcasts.send');
     });
+
+    // The one-click unsubscribe link every promotional email carries (see
+    // App\Mail\Concerns\HasUnsubscribeLink) - no auth, by necessity: the
+    // recipient has no session here. Trust comes from the route signature
+    // itself, not from who's asking - GET is a human clicking the footer
+    // link, POST is what Gmail/Yahoo's own one-click unsubscribe does
+    // automatically per RFC 8058 (List-Unsubscribe-Post), and both must
+    // work without any further confirmation step for Gmail/Yahoo to count
+    // this as compliant.
+    Route::match(['get', 'post'], '/unsubscribe/{email}', [UnsubscribeController::class, 'handle'])
+        ->middleware('signed')
+        ->name('unsubscribe');
+
+    // Brevo's transactional bounce/spam-complaint webhook - see
+    // BrevoWebhookController's own docblock for why the secret is a path
+    // segment, not route-signature-based like the unsubscribe link above
+    // (Brevo calls this directly; it has no way to produce our signature).
+    Route::post('/webhooks/brevo/{secret}', [BrevoWebhookController::class, 'handle'])
+        ->middleware('throttle:webhooks')
+        ->name('webhooks.brevo');
 });

@@ -65,6 +65,15 @@ return [
             'transport' => 'resend',
         ],
 
+        // Registered via Mail::extend() in AppServiceProvider::boot() -
+        // Laravel has no built-in Brevo transport the way it does for ses/
+        // postmark/resend/mailgun, so this driver name only resolves once
+        // that extend() call has run.
+        'brevo' => [
+            'transport' => 'brevo',
+            'key' => env('BREVO_API_KEY'),
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),

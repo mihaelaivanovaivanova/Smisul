@@ -47,6 +47,7 @@ import LogsPage from './pages/admin/LogsPage';
 import ComplaintsPage from './pages/admin/ComplaintsPage';
 import FunnelPage from './pages/admin/FunnelPage';
 import LeadsPage from './pages/admin/LeadsPage';
+import BroadcastPage from './pages/admin/BroadcastPage';
 
 function ScrollToTop() {
   const { pathname, search, hash } = useLocation();
@@ -146,6 +147,7 @@ export default function App() {
           <Route path="content" element={<ContentPage />} />
           <Route path="funnel" element={<FunnelPage />} />
           <Route path="leads" element={<LeadsPage />} />
+          <Route path="broadcast" element={<BroadcastPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/new" element={<CreateOrderPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />

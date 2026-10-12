@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/admin/content', label: 'Content' },
   { to: '/admin/funnel', label: 'Funnel' },
   { to: '/admin/leads', label: 'Leads' },
+  { to: '/admin/broadcast', label: 'Broadcast' },
   { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/reviews', label: 'Reviews' },
   { to: '/admin/customers', label: 'Customers' },

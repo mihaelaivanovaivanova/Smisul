@@ -22,6 +22,21 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    // HTTP API only (brevo+api DSN scheme) - never SMTP. SuperHosting
+    // blocks outbound SMTP sockets from PHP entirely (see MAIL_MAILER's own
+    // comment in deployment/backend.env.production.example), which rules
+    // out Brevo's SMTP relay the same way it ruled out sending directly;
+    // the API transport is a plain HTTPS POST, which isn't blocked.
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+        // Brevo doesn't sign its webhook payloads - this random string,
+        // embedded in the webhook URL you register with Brevo, is what
+        // proves a request calling BrevoWebhookController really came from
+        // the webhook you set up and not an open guess. Generate one with
+        // e.g. `php artisan tinker --execute="echo Str::random(40);"`.
+        'webhook_secret' => env('BREVO_WEBHOOK_SECRET'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

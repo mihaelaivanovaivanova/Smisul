@@ -55,6 +55,22 @@
 
                     @yield('content')
 
+                    {{-- Only set by promotional mail (BroadcastMail, the
+                         30-day reminder) - transactional notices (order
+                         confirmation, invoice, etc.) have no $unsubscribeUrl
+                         and skip this row entirely, since there's nothing
+                         to opt out of. A visible link, not just the
+                         List-Unsubscribe header, for mail clients/webmail
+                         (e.g. abv.bg) that don't surface one-click
+                         unsubscribe UI of their own. --}}
+                    @isset($unsubscribeUrl)
+                        <tr>
+                            <td align="center" style="padding: 12px 24px; background-color: #fffdf9; color: #a69d8d; font-size: 12px;">
+                                Не искаш повече такива имейли? <a href="{{ $unsubscribeUrl }}" style="color: #71695c; text-decoration: underline;">Отпиши се</a>
+                            </td>
+                        </tr>
+                    @endisset
+
                     <tr>
                         <td align="center" style="background-color: #24362c; padding: 20px 24px; color: #fffdf9; font-size: 13px;">
                             ПАЗАРУВАЙ С | МИСЪЛ

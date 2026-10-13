@@ -17,22 +17,24 @@ class OrderThirtyDayReminderTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function deliveredOrder(array $overrides = [], ?Carbon $deliveredAt = null): Order
+    private function deliveredOrder(array $overrides = [], ?Carbon $placedAt = null): Order
     {
-        $order = Order::factory()->create(array_merge(['status' => OrderStatus::Delivered], $overrides));
+        $order = Order::factory()->create(array_merge([
+            'status' => OrderStatus::Delivered,
+            'created_at' => $placedAt ?? now()->subDays(31),
+        ], $overrides));
 
         OrderStatusHistory::factory()->create([
             'order_id' => $order->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => $deliveredAt ?? now()->subDays(31),
         ]);
 
         return $order->fresh();
     }
 
     #[Test]
-    public function an_order_delivered_31_days_ago_gets_a_reminder(): void
+    public function an_order_placed_31_days_ago_gets_a_reminder(): void
     {
         Mail::fake();
 
@@ -46,11 +48,30 @@ class OrderThirtyDayReminderTest extends TestCase
     }
 
     #[Test]
-    public function an_order_delivered_less_than_30_days_ago_is_not_reminded_yet(): void
+    public function an_order_placed_less_than_30_days_ago_is_not_reminded_yet(): void
     {
         Mail::fake();
 
         $this->deliveredOrder(['customer_email' => 'ivan@example.com'], now()->subDays(10));
+
+        $result = app(OrderReminderService::class)->sendDueReminders();
+
+        $this->assertSame(['sent' => 0, 'failed' => 0], $result);
+        Mail::assertNothingSent();
+    }
+
+    /**
+     * An order can be delivered quickly (well within 30 days of placement)
+     * and still not be reminded yet - by request, the clock runs from
+     * placement (Order::created_at), not from whenever it reached
+     * Delivered, so a fast delivery doesn't move the reminder date up.
+     */
+    #[Test]
+    public function an_order_delivered_quickly_still_waits_for_30_days_since_placement(): void
+    {
+        Mail::fake();
+
+        $this->deliveredOrder(['customer_email' => 'ivan@example.com'], now()->subDays(5));
 
         $result = app(OrderReminderService::class)->sendDueReminders();
 
@@ -134,7 +155,7 @@ class OrderThirtyDayReminderTest extends TestCase
      * endpoint's own dedicated coverage) - not just well-formed looking.
      */
     #[Test]
-    public function the_reviewUrl_link_is_a_real_signed_link_the_review_identity_endpoint_accepts(): void
+    public function the_review_url_link_is_a_real_signed_link_the_review_identity_endpoint_accepts(): void
     {
         $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com', 'customer_first_name' => 'Ivan']);
 

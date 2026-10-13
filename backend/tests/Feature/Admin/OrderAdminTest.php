@@ -379,12 +379,15 @@ class OrderAdminTest extends TestCase
         Mail::fake();
 
         $admin = User::factory()->administrator()->create();
-        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'ivan@example.com']);
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'ivan@example.com',
+            'created_at' => now()->subDays(31),
+        ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $order->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now()->subDays(31),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/api/v1/admin/orders/send-reminder-emails');
@@ -428,8 +431,9 @@ class OrderAdminTest extends TestCase
             'order_id' => $order->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now(), // today - the real dueOrders() query would never pick this up
         ]);
+        // $order's own created_at defaults to today - the real dueOrders()
+        // query would never pick this up.
 
         $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-test-reminder-email");
 
@@ -491,12 +495,12 @@ class OrderAdminTest extends TestCase
         $order = Order::factory()->create([
             'status' => OrderStatus::Delivered,
             'customer_email' => 'realcustomer@example.com',
+            'created_at' => now()->subDays(31),
         ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $order->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now()->subDays(31),
         ]);
 
         $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
@@ -517,12 +521,15 @@ class OrderAdminTest extends TestCase
         Mail::fake();
 
         $admin = User::factory()->administrator()->create();
-        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'realcustomer@example.com']);
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'realcustomer@example.com',
+            'created_at' => now(),
+        ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $order->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now(),
         ]);
 
         $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
@@ -540,13 +547,13 @@ class OrderAdminTest extends TestCase
         $order = Order::factory()->create([
             'status' => OrderStatus::Delivered,
             'customer_email' => 'realcustomer@example.com',
+            'created_at' => now()->subDays(31),
             'thirty_day_reminder_sent_at' => now()->subDay(),
         ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $order->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now()->subDays(31),
         ]);
 
         $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
@@ -571,32 +578,38 @@ class OrderAdminTest extends TestCase
     {
         $admin = User::factory()->administrator()->create();
 
-        $dueOrder = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'due@example.com']);
+        $dueOrder = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'due@example.com',
+            'created_at' => now()->subDays(31),
+        ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $dueOrder->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now()->subDays(31),
         ]);
 
-        $tooRecentOrder = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'recent@example.com']);
+        $tooRecentOrder = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'recent@example.com',
+            'created_at' => now(),
+        ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $tooRecentOrder->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now(),
         ]);
 
         $alreadyRemindedOrder = Order::factory()->create([
             'status' => OrderStatus::Delivered,
             'customer_email' => 'reminded@example.com',
+            'created_at' => now()->subDays(31),
             'thirty_day_reminder_sent_at' => now()->subDay(),
         ]);
         OrderStatusHistory::factory()->create([
             'order_id' => $alreadyRemindedOrder->id,
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
-            'created_at' => now()->subDays(31),
         ]);
 
         $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?reminder_eligible=1');

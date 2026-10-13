@@ -16,8 +16,10 @@ use Throwable;
  * sendReminderEmails(), but isn't currently surfaced in the admin UI, by
  * request - per-order sending below is the one in use for now) - not
  * scheduled, by request (see routes/console.php). Finds every Delivered
- * order that reached that status 30+ days ago and hasn't had its reminder
- * sent yet, emails each one, and marks it sent - once only, ever, per order
+ * order that was PLACED 30+ days ago (Order::created_at - not whenever it
+ * happened to reach Delivered, by request, so a slow shipment never pushes
+ * the reminder date out) and hasn't had its reminder sent yet, emails each
+ * one, and marks it sent - once only, ever, per order
  * (thirty_day_reminder_sent_at is set on success and checked on every run,
  * so pressing the button repeatedly, or any day, never re-sends to the same
  * order).
@@ -32,12 +34,6 @@ class OrderReminderService
     private const REMINDER_AFTER_DAYS = 30;
 
     /**
-     * One order can only ever reach "Delivered" once in this app's normal
-     * flow (no Delivered -> X -> Delivered cycle exists in practice), so
-     * the existence of a Delivered status-history row old enough is
-     * equivalent to "became Delivered 30+ days ago" - no need to resolve
-     * which row is the authoritative one.
-     *
      * @return array{sent: int, failed: int}
      */
     public function sendDueReminders(): array
@@ -69,7 +65,8 @@ class OrderReminderService
      * a 30-day reminder email" at the database level - shared by
      * dueOrders() above (the bulk sweep) and OrderService::listForAdmin()'s
      * reminder-eligibility filter, so the two can never drift apart on what
-     * counts as due.
+     * counts as due. The 30-day clock runs from Order::created_at (when the
+     * order was placed), not from whenever it happened to reach Delivered.
      *
      * @param  Builder<Order>  $query
      * @return Builder<Order>
@@ -79,20 +76,14 @@ class OrderReminderService
         return $query->where('status', OrderStatus::Delivered)
             ->whereNull('thirty_day_reminder_sent_at')
             ->whereNotNull('customer_email')
-            ->whereHas('statusHistories', function ($query) {
-                $query->where('status', OrderStatus::Delivered)
-                    ->where('created_at', '<=', now()->subDays(self::REMINDER_AFTER_DAYS));
-            });
+            ->where('created_at', '<=', now()->subDays(self::REMINDER_AFTER_DAYS));
     }
 
     /**
      * The in-memory equivalent of applyEligibleForReminderScope() above, for
      * a single already-loaded order - gates the admin order detail page's
      * real "Send reminder email" button and its qualifies_for_reminder JSON
-     * field (see Admin\OrderResource). Relies on statusHistories already
-     * being eager-loaded (OrderService::EAGER_LOAD/ADMIN_EAGER_LOAD and the
-     * admin orders list query all include it), so this never issues a
-     * fresh query.
+     * field (see Admin\OrderResource).
      */
     public static function isEligibleForReminder(Order $order): bool
     {
@@ -108,11 +99,7 @@ class OrderReminderService
             return false;
         }
 
-        $cutoff = now()->subDays(self::REMINDER_AFTER_DAYS);
-
-        return $order->statusHistories->contains(
-            fn ($history) => $history->status === OrderStatus::Delivered && $history->created_at->lte($cutoff),
-        );
+        return $order->created_at->lte(now()->subDays(self::REMINDER_AFTER_DAYS));
     }
 
     /**

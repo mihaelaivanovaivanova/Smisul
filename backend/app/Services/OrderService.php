@@ -405,7 +405,7 @@ class OrderService
      */
     public function listForAdmin(OrderFilterData $filters): LengthAwarePaginator
     {
-        $query = Order::query()->with(['items', 'shipment', 'statusHistories']);
+        $query = Order::query()->with(['items', 'shipment']);
 
         if ($filters->userId !== null) {
             $query->where('user_id', $filters->userId);

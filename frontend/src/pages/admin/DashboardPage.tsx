@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchDashboardStats } from '../../api/admin/dashboard';
-import { fetchAdminOrders, sendReminderEmails, syncShipmentTracking } from '../../api/admin/orders';
+import { fetchAdminOrders, syncShipmentTracking } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { usePersistedOrderListState } from '../../hooks/usePersistedOrderListState';
 import { getErrorMessage } from '../../api/errors';
@@ -25,7 +25,16 @@ import type { DashboardStats } from '../../types/admin';
 // whole stat-card grid with a loading spinner every minute.
 const STATS_POLL_INTERVAL_MS = 60_000;
 
-const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', carrier: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
+const DEFAULT_FILTERS: OrderFilters = {
+  search: '',
+  status: '',
+  carrier: '',
+  hideCancelled: false,
+  reminderEligible: false,
+  dateFrom: '',
+  dateTo: '',
+  sort: 'newest',
+};
 
 interface StatCardProps {
   label: string;
@@ -49,10 +58,9 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-  // Bumped by either the "Send reminder emails" or "Sync tracking" button
-  // so both the stats below and the orders table re-fetch immediately,
-  // instead of waiting for the next poll/navigation - see their own
-  // effect/useAsync deps.
+  // Bumped by the "Sync tracking" button so both the stats below and the
+  // orders table re-fetch immediately, instead of waiting for the next
+  // poll/navigation - see its own effect/useAsync deps.
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -106,6 +114,7 @@ export default function DashboardPage() {
         status: orderFilters.status || undefined,
         carrier: orderFilters.carrier || undefined,
         hide_cancelled: orderFilters.hideCancelled || undefined,
+        reminder_eligible: orderFilters.reminderEligible || undefined,
         // Unconditional (not a filter toggle, unlike hide_cancelled above)
         // - a failed payment attempt never became a real order, so it has
         // no place in the dashboard's own summary view. Still fully visible
@@ -148,14 +157,6 @@ export default function DashboardPage() {
       <div className="d-flex justify-content-between align-items-start mb-3">
         <h2 className="h5 mb-0">Orders</h2>
         <div className="d-flex align-items-start gap-2">
-          <AdminActionButton
-            label="Send reminder emails"
-            pendingLabel="Sending…"
-            action={sendReminderEmails}
-            summarize={(result) => `Sent ${result.sent} email(s).${result.failed > 0 ? ` ${result.failed} failed - see logs.` : ''}`}
-            onSuccess={() => setReloadKey((key) => key + 1)}
-            errorFallback="Could not send reminder emails."
-          />
           <AdminActionButton
             label="Sync tracking"
             pendingLabel="Syncing…"

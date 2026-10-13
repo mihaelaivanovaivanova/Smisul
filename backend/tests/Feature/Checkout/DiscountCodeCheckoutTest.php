@@ -71,7 +71,7 @@ class DiscountCodeCheckoutTest extends TestCase
     }
 
     #[Test]
-    public function a_valid_code_for_the_right_email_passes_validation(): void
+    public function a_valid_code_passes_validation(): void
     {
         DiscountCode::create([
             'code' => 'MISWAK-ABC123',
@@ -83,15 +83,21 @@ class DiscountCodeCheckoutTest extends TestCase
 
         $response = $this->postJson('/api/v1/checkout/discount-code/validate', [
             'code' => 'miswak-abc123',
-            'email' => 'Ivan@Example.com',
         ]);
 
         $response->assertOk();
         $response->assertJsonPath('data.discount_percent', 10);
     }
 
+    /**
+     * By request: customer_email on a DiscountCode (set when
+     * IssueReviewRewardCode issues a review-reward code) is a record of
+     * who earned it, not a redemption gate - DiscountCodeService never
+     * compares it against the checkout email, so a code issued to one
+     * address still validates for anyone who has it.
+     */
     #[Test]
-    public function a_code_restricted_to_a_different_email_fails_validation(): void
+    public function a_code_issued_to_one_email_still_validates_for_a_different_one(): void
     {
         DiscountCode::create([
             'code' => 'MISWAK-ABC123',
@@ -101,10 +107,12 @@ class DiscountCodeCheckoutTest extends TestCase
             'expires_at' => now()->addDays(30),
         ]);
 
-        $this->postJson('/api/v1/checkout/discount-code/validate', [
+        $response = $this->postJson('/api/v1/checkout/discount-code/validate', [
             'code' => 'MISWAK-ABC123',
-            'email' => 'ivan@example.com',
-        ])->assertUnprocessable();
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.discount_percent', 10);
     }
 
     #[Test]
@@ -120,7 +128,6 @@ class DiscountCodeCheckoutTest extends TestCase
 
         $this->postJson('/api/v1/checkout/discount-code/validate', [
             'code' => 'MISWAK-OLD123',
-            'email' => 'ivan@example.com',
         ])->assertUnprocessable();
     }
 
@@ -148,6 +155,29 @@ class DiscountCodeCheckoutTest extends TestCase
         $response->assertJsonPath('data.totals.discount_code', 'MISWAK-ABC123');
 
         $this->assertDatabaseHas('discount_codes', ['code' => 'MISWAK-ABC123', 'used_count' => 1]);
+    }
+
+    #[Test]
+    public function placing_an_order_applies_a_code_issued_to_a_different_email(): void
+    {
+        $variant = $this->purchasableVariant();
+        $guestToken = $this->addToCartAndGetGuestToken($variant, 1);
+        DiscountCode::create([
+            'code' => 'MISWAK-ABC123',
+            'customer_email' => 'the-reviewer@example.com',
+            'discount_percent' => 10,
+            'max_uses' => 1,
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        // validPayload()'s default customer.email is 'ivan@example.com' -
+        // deliberately different from the code's customer_email above.
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->postJson('/api/v1/checkout/orders', $this->validPayload(['discount_code' => 'miswak-abc123']));
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.totals.discount_code', 'MISWAK-ABC123');
+        $response->assertJsonPath('data.totals.discount_total', 2);
     }
 
     #[Test]

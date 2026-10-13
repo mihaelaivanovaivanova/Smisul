@@ -12,21 +12,23 @@ use Illuminate\Support\Str;
  * redeemed, re-validated fresh from the DB inside that same locked
  * transaction - see that method's own comment on never trusting
  * client-supplied discount figures, which this mirrors for codes).
+ *
+ * A code is redeemable by whoever has it, regardless of which email is
+ * typed at checkout - discount_codes.customer_email (set when
+ * IssueReviewRewardCode issues a review-reward code) is kept purely as a
+ * record of who originally earned it, not as a redemption gate. By
+ * request: the single-use limit (max_uses/used_count) is what actually
+ * stops a code being reused, not an email match.
  */
 class DiscountCodeService
 {
-    public function findValid(string $code, string $email): ?DiscountCode
+    public function findValid(string $code): ?DiscountCode
     {
         $discountCode = DiscountCode::query()
             ->whereRaw('UPPER(code) = ?', [Str::upper(trim($code))])
             ->first();
 
         if ($discountCode === null || ! $discountCode->isRedeemable()) {
-            return null;
-        }
-
-        if ($discountCode->customer_email !== null
-            && Str::lower($discountCode->customer_email) !== Str::lower(trim($email))) {
             return null;
         }
 
@@ -37,11 +39,11 @@ class DiscountCodeService
      * Row-locks the code so two concurrent checkout attempts can't both
      * redeem the last remaining use - the caller must already be inside a
      * DB transaction (OrderService::placeOrder() is). Re-runs the same
-     * eligibility checks as findValid() against the locked row, since
+     * eligibility check as findValid() against the locked row, since
      * another request could have consumed it between an earlier
      * findValid() call (e.g. the checkout-page "Apply" preview) and now.
      */
-    public function findRedeemable(string $code, string $email): ?DiscountCode
+    public function findRedeemable(string $code): ?DiscountCode
     {
         $discountCode = DiscountCode::query()
             ->whereRaw('UPPER(code) = ?', [Str::upper(trim($code))])
@@ -49,11 +51,6 @@ class DiscountCodeService
             ->first();
 
         if ($discountCode === null || ! $discountCode->isRedeemable()) {
-            return null;
-        }
-
-        if ($discountCode->customer_email !== null
-            && Str::lower($discountCode->customer_email) !== Str::lower(trim($email))) {
             return null;
         }
 

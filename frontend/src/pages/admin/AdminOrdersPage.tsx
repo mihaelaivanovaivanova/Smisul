@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchAdminOrders, sendReminderEmails, syncShipmentTracking } from '../../api/admin/orders';
+import { fetchAdminOrders, syncShipmentTracking } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { usePersistedOrderListState } from '../../hooks/usePersistedOrderListState';
 import LoadingState from '../../components/LoadingState';
@@ -13,7 +13,16 @@ import AdminActionButton from '../../components/admin/AdminActionButton';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
 
-const DEFAULT_FILTERS: OrderFilters = { search: '', status: '', carrier: '', hideCancelled: false, dateFrom: '', dateTo: '', sort: 'newest' };
+const DEFAULT_FILTERS: OrderFilters = {
+  search: '',
+  status: '',
+  carrier: '',
+  hideCancelled: false,
+  reminderEligible: false,
+  dateFrom: '',
+  dateTo: '',
+  sort: 'newest',
+};
 
 export default function AdminOrdersPage() {
   const { page, filters, setPage, changeFilters } = usePersistedOrderListState('admin-orders-list', DEFAULT_FILTERS);
@@ -27,6 +36,7 @@ export default function AdminOrdersPage() {
         status: filters.status || undefined,
         carrier: filters.carrier || undefined,
         hide_cancelled: filters.hideCancelled || undefined,
+        reminder_eligible: filters.reminderEligible || undefined,
         date_from: filters.dateFrom || undefined,
         date_to: filters.dateTo || undefined,
         sort: filters.sort,
@@ -44,14 +54,6 @@ export default function AdminOrdersPage() {
       <div className="d-flex justify-content-between align-items-start mb-4">
         <h1 className="h3 mb-0">Orders</h1>
         <div className="d-flex align-items-start gap-2">
-          <AdminActionButton
-            label="Send reminder emails"
-            pendingLabel="Sending…"
-            action={sendReminderEmails}
-            summarize={(result) => `Sent ${result.sent} email(s).${result.failed > 0 ? ` ${result.failed} failed - see logs.` : ''}`}
-            onSuccess={() => setReloadKey((key) => key + 1)}
-            errorFallback="Could not send reminder emails."
-          />
           <AdminActionButton
             label="Sync tracking"
             pendingLabel="Syncing…"

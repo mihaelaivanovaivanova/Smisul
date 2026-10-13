@@ -483,6 +483,131 @@ class OrderAdminTest extends TestCase
     }
 
     #[Test]
+    public function an_administrator_can_send_a_real_reminder_email_for_any_order_that_qualifies(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'realcustomer@example.com',
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(31),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.sent', true);
+        Mail::assertSent(OrderThirtyDayReminderMail::class, fn ($mail) => $mail->hasTo('realcustomer@example.com'));
+        $this->assertNotNull($order->fresh()->thirty_day_reminder_sent_at);
+        $this->assertDatabaseHas('admin_action_logs', [
+            'user_id' => $admin->id,
+            'action' => 'orders.reminder_email_sent',
+        ]);
+    }
+
+    #[Test]
+    public function sending_a_real_reminder_email_is_rejected_when_the_order_is_not_old_enough(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'realcustomer@example.com']);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
+
+        $response->assertStatus(422);
+        Mail::assertNotSent(OrderThirtyDayReminderMail::class);
+    }
+
+    #[Test]
+    public function sending_a_real_reminder_email_is_rejected_when_already_sent(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'realcustomer@example.com',
+            'thirty_day_reminder_sent_at' => now()->subDay(),
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(31),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
+
+        $response->assertStatus(422);
+        Mail::assertNotSent(OrderThirtyDayReminderMail::class);
+    }
+
+    #[Test]
+    public function a_customer_cannot_send_a_real_reminder_email(): void
+    {
+        $customer = User::factory()->create();
+        $order = Order::factory()->create();
+
+        $this->actingAs($customer)
+            ->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email")
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function reminder_eligible_filter_returns_only_orders_currently_due_for_a_reminder(): void
+    {
+        $admin = User::factory()->administrator()->create();
+
+        $dueOrder = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'due@example.com']);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $dueOrder->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(31),
+        ]);
+
+        $tooRecentOrder = Order::factory()->create(['status' => OrderStatus::Delivered, 'customer_email' => 'recent@example.com']);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $tooRecentOrder->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now(),
+        ]);
+
+        $alreadyRemindedOrder = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'reminded@example.com',
+            'thirty_day_reminder_sent_at' => now()->subDay(),
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $alreadyRemindedOrder->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(31),
+        ]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/orders?reminder_eligible=1');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $dueOrder->id);
+        $response->assertJsonPath('data.0.qualifies_for_reminder', true);
+    }
+
+    #[Test]
     public function creating_a_shipment_for_an_order_that_already_has_one_is_rejected(): void
     {
         $admin = User::factory()->administrator()->create();

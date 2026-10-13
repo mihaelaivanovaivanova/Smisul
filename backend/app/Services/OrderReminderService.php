@@ -11,18 +11,21 @@ use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
- * Powers the on-demand orders:send-thirty-day-reminders command and the
- * admin "Send reminder emails" button (Admin\OrderController::
- * sendReminderEmails()) - not scheduled, by request (see routes/
- * console.php). Finds every Delivered order that reached that status 30+
- * days ago and hasn't had its reminder sent yet, emails each one, and
- * marks it sent - once only, ever, per order (thirty_day_reminder_sent_at
- * is set on success and checked on every run, so pressing the button
- * repeatedly, or any day, never re-sends to the same order).
+ * Powers the on-demand orders:send-thirty-day-reminders command (the admin
+ * "Send reminder emails" bulk button still exists at Admin\OrderController::
+ * sendReminderEmails(), but isn't currently surfaced in the admin UI, by
+ * request - per-order sending below is the one in use for now) - not
+ * scheduled, by request (see routes/console.php). Finds every Delivered
+ * order that reached that status 30+ days ago and hasn't had its reminder
+ * sent yet, emails each one, and marks it sent - once only, ever, per order
+ * (thirty_day_reminder_sent_at is set on success and checked on every run,
+ * so pressing the button repeatedly, or any day, never re-sends to the same
+ * order).
  *
- * Also powers sendTestReminderForTestAccount() below - the same send, on
- * demand for a single order, restricted to known test accounts (see its
- * own docblock).
+ * Also powers sendTestReminderForTestAccount() and sendReminderForOrder()
+ * below - the same send, on demand for a single order, the former
+ * restricted to known test accounts, the latter open to any order (see
+ * their own docblocks).
  */
 class OrderReminderService
 {
@@ -58,14 +61,58 @@ class OrderReminderService
      */
     private function dueOrders(): Builder
     {
-        return Order::query()
-            ->where('status', OrderStatus::Delivered)
+        return self::applyEligibleForReminderScope(Order::query());
+    }
+
+    /**
+     * The single source of truth for "does this order currently qualify for
+     * a 30-day reminder email" at the database level - shared by
+     * dueOrders() above (the bulk sweep) and OrderService::listForAdmin()'s
+     * reminder-eligibility filter, so the two can never drift apart on what
+     * counts as due.
+     *
+     * @param  Builder<Order>  $query
+     * @return Builder<Order>
+     */
+    public static function applyEligibleForReminderScope(Builder $query): Builder
+    {
+        return $query->where('status', OrderStatus::Delivered)
             ->whereNull('thirty_day_reminder_sent_at')
             ->whereNotNull('customer_email')
             ->whereHas('statusHistories', function ($query) {
                 $query->where('status', OrderStatus::Delivered)
                     ->where('created_at', '<=', now()->subDays(self::REMINDER_AFTER_DAYS));
             });
+    }
+
+    /**
+     * The in-memory equivalent of applyEligibleForReminderScope() above, for
+     * a single already-loaded order - gates the admin order detail page's
+     * real "Send reminder email" button and its qualifies_for_reminder JSON
+     * field (see Admin\OrderResource). Relies on statusHistories already
+     * being eager-loaded (OrderService::EAGER_LOAD/ADMIN_EAGER_LOAD and the
+     * admin orders list query all include it), so this never issues a
+     * fresh query.
+     */
+    public static function isEligibleForReminder(Order $order): bool
+    {
+        if ($order->status !== OrderStatus::Delivered) {
+            return false;
+        }
+
+        if ($order->thirty_day_reminder_sent_at !== null) {
+            return false;
+        }
+
+        if ($order->customer_email === null) {
+            return false;
+        }
+
+        $cutoff = now()->subDays(self::REMINDER_AFTER_DAYS);
+
+        return $order->statusHistories->contains(
+            fn ($history) => $history->status === OrderStatus::Delivered && $history->created_at->lte($cutoff),
+        );
     }
 
     /**
@@ -102,6 +149,26 @@ class OrderReminderService
 
         if ($order->thirty_day_reminder_sent_at !== null) {
             return ['sent' => false, 'reason' => 'A reminder was already sent for this order - create a new test order to try again.'];
+        }
+
+        $sent = $this->sendReminder($order);
+
+        return ['sent' => $sent, 'reason' => $sent ? null : 'Sending failed - see the logs.'];
+    }
+
+    /**
+     * Backs the real "Send reminder email" button on an order's admin
+     * detail page - unlike sendTestReminderForTestAccount() above, any
+     * order can use this (no test-account restriction), but it keeps the
+     * real 30-day age requirement that the test-only version skips - see
+     * isEligibleForReminder() for the exact conditions.
+     *
+     * @return array{sent: bool, reason: string|null}
+     */
+    public function sendReminderForOrder(Order $order): array
+    {
+        if (! self::isEligibleForReminder($order)) {
+            return ['sent' => false, 'reason' => 'This order does not currently qualify for a reminder email.'];
         }
 
         $sent = $this->sendReminder($order);

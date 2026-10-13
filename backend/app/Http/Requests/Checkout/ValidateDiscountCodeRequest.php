@@ -18,7 +18,6 @@ class ValidateDiscountCodeRequest extends FormRequest
     {
         return [
             'code' => ['required', 'string', 'max:50'],
-            'email' => ['required', 'string', 'email', 'max:255'],
         ];
     }
 }

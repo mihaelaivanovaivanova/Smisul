@@ -178,6 +178,27 @@ class OrderController extends Controller
     }
 
     /**
+     * The real "Send reminder email" button on an order's admin detail page
+     * — only rendered there (and only accepted here) when the order
+     * currently qualifies (order.qualifies_for_reminder, see
+     * OrderReminderService::isEligibleForReminder()'s own docblock). Once
+     * sent, thirty_day_reminder_sent_at makes the order ineligible again,
+     * so the button can't be used twice for the same order.
+     */
+    public function sendReminderEmail(Request $request, Order $order): JsonResponse
+    {
+        $result = $this->reminders->sendReminderForOrder($order);
+
+        $this->actionLogger->log($request->user(), 'orders.reminder_email_sent', $order, $result);
+
+        if (! $result['sent']) {
+            return response()->json(['message' => $result['reason']], 422);
+        }
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
      * Manual fallback for CreateShipmentOnOrderPaid (which already runs
      * automatically on payment confirmation): retries a failed automatic
      * attempt, or dispatches a historical order placed before that listener

@@ -56,11 +56,13 @@ class CheckoutController extends Controller
      * actual, authoritative check happens again inside placeOrder() ->
      * OrderService::placeOrder(), so a code that validates here but gets
      * spent by someone else in the meantime simply fails silently there
-     * (discount just doesn't apply) rather than anything breaking.
+     * (discount just doesn't apply) rather than anything breaking. No
+     * email involved - a valid, not-yet-used code works regardless of
+     * who's checking out with it.
      */
     public function validateDiscountCode(ValidateDiscountCodeRequest $request): JsonResponse
     {
-        $discountCode = $this->discountCodes->findValid($request->string('code')->toString(), $request->string('email')->toString());
+        $discountCode = $this->discountCodes->findValid($request->string('code')->toString());
 
         if ($discountCode === null) {
             return response()->json(['message' => 'Този код е невалиден или е изтекъл.'], 422);

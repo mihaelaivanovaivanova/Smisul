@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property ShippingCarrier $shipping_carrier
  * @property ?ShippingDeliveryType $shipping_delivery_type
  * @property Carbon $created_at
+ * @property ?Carbon $thirty_day_reminder_sent_at
  */
 class Order extends Model
 {

@@ -172,9 +172,11 @@ class OrderService
             // spending the same single-use code. Applied to the subtotal
             // (before shipping), matching how the code is described to
             // customers ("-10% върху цялата поръчка" = off the goods, not
-            // the delivery fee).
+            // the delivery fee). Not scoped to $data->customer->email by
+            // request - whoever has a valid, not-yet-used code can redeem
+            // it; the single-use limit alone is what stops reuse.
             if ($data->discountCode !== null) {
-                $discountCode = $this->discountCodes->findRedeemable($data->discountCode, $data->customer->email);
+                $discountCode = $this->discountCodes->findRedeemable($data->discountCode);
 
                 if ($discountCode !== null) {
                     $discountTotal = round($discountTotal + ($subtotal * (float) $discountCode->discount_percent / 100), 2);
@@ -403,7 +405,7 @@ class OrderService
      */
     public function listForAdmin(OrderFilterData $filters): LengthAwarePaginator
     {
-        $query = Order::query()->with(['items', 'shipment']);
+        $query = Order::query()->with(['items', 'shipment', 'statusHistories']);
 
         if ($filters->userId !== null) {
             $query->where('user_id', $filters->userId);
@@ -439,6 +441,10 @@ class OrderService
 
         if ($filters->hideFailed) {
             $query->where('status', '!=', OrderStatus::Failed);
+        }
+
+        if ($filters->reminderEligible) {
+            OrderReminderService::applyEligibleForReminderScope($query);
         }
 
         if ($filters->dateFrom !== null) {

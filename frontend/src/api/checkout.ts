@@ -68,8 +68,8 @@ export interface DiscountCodeValidation {
  * happens again when placeOrder() is called with the same code, so this
  * exists purely to give the checkout-page "Apply" button instant feedback.
  */
-export async function validateDiscountCode(code: string, email: string): Promise<DiscountCodeValidation> {
-  const { data } = await apiClient.post<{ data: DiscountCodeValidation }>('/checkout/discount-code/validate', { code, email });
+export async function validateDiscountCode(code: string): Promise<DiscountCodeValidation> {
+  const { data } = await apiClient.post<{ data: DiscountCodeValidation }>('/checkout/discount-code/validate', { code });
   return data.data;
 }
 

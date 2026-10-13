@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin;
 use App\Http\Resources\OrderResource as BaseOrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Http\Resources\ShipmentResource;
+use App\Services\OrderReminderService;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 
@@ -36,6 +37,11 @@ class OrderResource extends BaseOrderResource
             // email" button - see OrderReminderService::
             // sendTestReminderForTestAccount()'s own docblock.
             'is_test_account' => OrderService::isTestCustomerEmail($this->customer_email),
+            // Gates the admin order detail page's real "Send reminder
+            // email" button and the orders list's reminder-eligibility
+            // filter - see OrderReminderService::isEligibleForReminder().
+            'qualifies_for_reminder' => OrderReminderService::isEligibleForReminder($this->resource),
+            'thirty_day_reminder_sent_at' => $this->thirty_day_reminder_sent_at?->toIso8601String(),
         ];
     }
 }

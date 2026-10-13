@@ -755,7 +755,6 @@ export default function CheckoutPage() {
               cart={cart}
               shippingMethod={selectedShippingMethod}
               codFee={selectedPaymentMethod === 'cash_on_delivery' ? cashOnDeliveryFee : 0}
-              customerEmail={customer.email}
               appliedDiscount={appliedDiscount}
               onDiscountApplied={setAppliedDiscount}
               onDiscountRemoved={() => setAppliedDiscount(null)}

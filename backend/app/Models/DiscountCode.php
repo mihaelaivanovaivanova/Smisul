@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property string $code
- * @property ?string $customer_email
+ * @property ?string $customer_email the email that originally earned this code (see IssueReviewRewardCode) - a record only, not a redemption gate: DiscountCodeService never checks it, so any valid code is redeemable by whoever has it
  * @property float $discount_percent
  * @property int $max_uses
  * @property int $used_count
@@ -47,11 +47,6 @@ class DiscountCode extends Model
         return $this->belongsTo(Review::class);
     }
 
-    /**
-     * Doesn't check customer_email - DiscountCodeService::findRedeemable()
-     * does that comparison (case-insensitively), since "whose email" isn't
-     * something this model alone can judge.
-     */
     public function isRedeemable(): bool
     {
         if (! $this->is_active) {

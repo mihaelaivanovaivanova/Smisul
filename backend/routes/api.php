@@ -333,6 +333,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/orders/send-reminder-emails', [AdminOrderController::class, 'sendReminderEmails'])->name('orders.send-reminder-emails');
         // Admin "Send test reminder email" button — test accounts only, see OrderReminderService::sendTestReminderForTestAccount()'s own docblock.
         Route::post('/orders/{order}/send-test-reminder-email', [AdminOrderController::class, 'sendTestReminderEmail'])->name('orders.send-test-reminder-email');
+        // Admin "Send reminder email" button — any order, gated by order.qualifies_for_reminder, see OrderReminderService::sendReminderForOrder()'s own docblock.
+        Route::post('/orders/{order}/send-reminder-email', [AdminOrderController::class, 'sendReminderEmail'])->name('orders.send-reminder-email');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::post('/orders', [AdminOrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');

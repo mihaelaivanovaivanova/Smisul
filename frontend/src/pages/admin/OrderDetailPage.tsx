@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiBaseUrl } from '../../api/client';
-import { cancelOrderShipment, createOrderShipment, deleteOrder, fetchAdminOrder, refundPayment, reversePayment, sendTestReminderEmail, updateOrderStatus } from '../../api/admin/orders';
+import { cancelOrderShipment, createOrderShipment, deleteOrder, fetchAdminOrder, refundPayment, reversePayment, sendReminderEmail, sendTestReminderEmail, updateOrderStatus } from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -41,6 +41,9 @@ export default function OrderDetailPage() {
   const [isSendingTestReminder, setIsSendingTestReminder] = useState(false);
   const [testReminderMessage, setTestReminderMessage] = useState<string | null>(null);
   const [testReminderError, setTestReminderError] = useState<string | null>(null);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
 
   async function handleCreateShipment() {
     setIsCreatingShipment(true);
@@ -120,6 +123,21 @@ export default function OrderDetailPage() {
       setTestReminderError(getErrorMessage(err, 'Could not send the test reminder email.'));
     } finally {
       setIsSendingTestReminder(false);
+    }
+  }
+
+  async function handleSendReminder() {
+    setIsSendingReminder(true);
+    setReminderMessage(null);
+    setReminderError(null);
+    try {
+      await sendReminderEmail(id);
+      setReminderMessage('Sent. Check the inbox.');
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setReminderError(getErrorMessage(err, 'Could not send the reminder email.'));
+    } finally {
+      setIsSendingReminder(false);
     }
   }
 
@@ -406,7 +424,13 @@ export default function OrderDetailPage() {
                 {order.customer.first_name} {order.customer.last_name}
               </p>
               <p className="mb-1">{order.customer.email ?? <span className="text-muted">No email (manual order)</span>}</p>
-              <p className={order.is_test_account ? 'mb-3' : 'mb-0'}>{order.customer.phone}</p>
+              <p
+                className={
+                  order.is_test_account || order.qualifies_for_reminder || order.thirty_day_reminder_sent_at ? 'mb-3' : 'mb-0'
+                }
+              >
+                {order.customer.phone}
+              </p>
               {order.is_test_account && (
                 <>
                   <p className="small text-muted mb-2">
@@ -417,7 +441,7 @@ export default function OrderDetailPage() {
                   {testReminderError && <div className="alert alert-danger py-2 mb-2">{testReminderError}</div>}
                   <button
                     type="button"
-                    className="btn btn-outline-secondary btn-sm"
+                    className="btn btn-outline-secondary btn-sm mb-3"
                     disabled={isSendingTestReminder}
                     onClick={() => void handleSendTestReminder()}
                   >
@@ -425,6 +449,27 @@ export default function OrderDetailPage() {
                     Send test reminder email
                   </button>
                 </>
+              )}
+              {order.thirty_day_reminder_sent_at ? (
+                <p className="small text-muted mb-0">
+                  30-day reminder email already sent on {new Date(order.thirty_day_reminder_sent_at).toLocaleString('bg-BG')}.
+                </p>
+              ) : (
+                order.qualifies_for_reminder && (
+                  <>
+                    {reminderMessage && <div className="alert alert-success py-2 mb-2">{reminderMessage}</div>}
+                    {reminderError && <div className="alert alert-danger py-2 mb-2">{reminderError}</div>}
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={isSendingReminder}
+                      onClick={() => void handleSendReminder()}
+                    >
+                      {isSendingReminder && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                      Send reminder email
+                    </button>
+                  </>
+                )
               )}
             </div>
           </div>

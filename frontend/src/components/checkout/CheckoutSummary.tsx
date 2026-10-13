@@ -11,8 +11,6 @@ interface CheckoutSummaryProps {
   shippingMethod: ShippingMethod | null;
   /** The cash-on-delivery surcharge, already zeroed out by the caller unless that method is actually selected (see CheckoutPage). */
   codFee: number;
-  /** Required to validate a code against (see DiscountCodeService::findValid on the backend - most reward codes are restricted to one email). */
-  customerEmail: string;
   appliedDiscount: DiscountCodeValidation | null;
   onDiscountApplied: (discount: DiscountCodeValidation) => void;
   onDiscountRemoved: () => void;
@@ -22,7 +20,6 @@ export default function CheckoutSummary({
   cart,
   shippingMethod,
   codFee,
-  customerEmail,
   appliedDiscount,
   onDiscountApplied,
   onDiscountRemoved,
@@ -40,16 +37,11 @@ export default function CheckoutSummary({
       return;
     }
 
-    if (customerEmail.trim() === '') {
-      setCodeError(cartCopy.discountCode.needsEmail);
-      return;
-    }
-
     setIsApplying(true);
     setCodeError(null);
 
     try {
-      const result = await validateDiscountCode(code, customerEmail);
+      const result = await validateDiscountCode(code);
       onDiscountApplied(result);
       setCodeInput('');
     } catch (err) {

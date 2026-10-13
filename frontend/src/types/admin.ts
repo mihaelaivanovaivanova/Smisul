@@ -14,6 +14,10 @@ export interface AdminOrder extends Omit<Order, 'customer'> {
   customer: Omit<Order['customer'], 'email'> & { email: string | null };
   /** Gates the order detail page's "Send test reminder email" button — see backend OrderReminderService::sendTestReminderForTestAccount(). */
   is_test_account: boolean;
+  /** Gates the order detail page's real "Send reminder email" button and the orders list's reminder filter — see backend OrderReminderService::isEligibleForReminder(). */
+  qualifies_for_reminder: boolean;
+  /** Set once the 30-day reminder has actually been sent for this order (by either button) — null until then. */
+  thirty_day_reminder_sent_at: string | null;
 }
 
 /**

@@ -7,6 +7,7 @@ export interface OrderFilters {
   status: string;
   carrier: ShippingCarrier | '';
   hideCancelled: boolean;
+  reminderEligible: boolean;
   dateFrom: string;
   dateTo: string;
   sort: AdminOrderFilters['sort'];
@@ -111,6 +112,20 @@ export default function OrderFilterBar({ filters, onChange }: OrderFilterBarProp
           />
           <label className="form-check-label" htmlFor="hide-cancelled-orders">
             Hide cancelled
+          </label>
+        </div>
+      </div>
+      <div className="col-sm-auto d-flex align-items-center">
+        <div className="form-check">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="reminder-eligible-orders"
+            checked={filters.reminderEligible}
+            onChange={(event) => set('reminderEligible', event.target.checked)}
+          />
+          <label className="form-check-label" htmlFor="reminder-eligible-orders">
+            Due for a reminder email
           </label>
         </div>
       </div>

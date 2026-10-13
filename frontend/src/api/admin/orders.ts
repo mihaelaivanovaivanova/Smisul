@@ -11,6 +11,7 @@ export interface AdminOrderFilters {
   carrier?: ShippingCarrier;
   hide_cancelled?: boolean;
   hide_failed?: boolean;
+  reminder_eligible?: boolean;
   date_from?: string;
   date_to?: string;
   sort?: 'newest' | 'oldest' | 'total_asc' | 'total_desc';
@@ -67,6 +68,20 @@ export async function sendReminderEmails(): Promise<ReminderEmailsResult> {
  */
 export async function sendTestReminderEmail(id: number): Promise<{ sent: boolean }> {
   const { data } = await apiClient.post<{ data: { sent: boolean } }>(`/admin/orders/${id}/send-test-reminder-email`);
+  return data.data;
+}
+
+/**
+ * The real "Send reminder email" button on an order's admin detail page —
+ * rendered only when order.qualifies_for_reminder is true (see AdminOrder's
+ * own docblock). Unlike sendTestReminderEmail() above, this works for any
+ * order, not just test accounts; once sent, qualifies_for_reminder flips to
+ * false and thirty_day_reminder_sent_at is set, so the button can't be used
+ * twice for the same order (see backend OrderReminderService::
+ * sendReminderForOrder()).
+ */
+export async function sendReminderEmail(id: number): Promise<{ sent: boolean }> {
+  const { data } = await apiClient.post<{ data: { sent: boolean } }>(`/admin/orders/${id}/send-reminder-email`);
   return data.data;
 }
 

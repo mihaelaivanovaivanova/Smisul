@@ -509,7 +509,6 @@ export const cart = {
     remove: 'Премахни',
     invalid: 'Този код е невалиден или е изтекъл.',
     applied: (percent: number) => `-${percent}% приложени`,
-    needsEmail: 'Въведи имейл по-горе, преди да приложиш код.',
   },
 };
 

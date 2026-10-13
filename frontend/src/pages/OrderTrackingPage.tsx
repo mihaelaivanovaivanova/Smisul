@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { fetchShipment } from '../api/checkout';
-import { getErrorMessage } from '../api/errors';
+import { getErrorMessage, getErrorReason, getErrorStatus } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
 import Seo from '../components/Seo';
+import { useAuth } from '../hooks/useAuth';
 import { tracking as trackingCopy } from '../content/copy';
 import type { Shipment, ShippingCarrier } from '../types/checkout';
 
@@ -29,11 +30,14 @@ const CARRIER_LABELS: Partial<Record<ShippingCarrier, string>> = {
 export default function OrderTrackingPage() {
   const { orderId = '' } = useParams<{ orderId: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const token = searchParams.get('token') ?? undefined;
 
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notShipped, setNotShipped] = useState(false);
+  const [accessIssue, setAccessIssue] = useState<'login_required' | 'guest_link_invalid' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export default function OrderTrackingPage() {
     setIsLoading(true);
     setError(null);
     setNotShipped(false);
+    setAccessIssue(null);
 
     fetchShipment(Number(orderId), token)
       .then((fetched) => {
@@ -48,9 +53,17 @@ export default function OrderTrackingPage() {
       })
       .catch((err: unknown) => {
         if (!isMounted) return;
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 404) {
+        if (getErrorStatus(err) === 404) {
           setNotShipped(true);
+          return;
+        }
+        // See OrderConfirmationPage's identical handling - a bare 403 is
+        // ambiguous (registered-account order with no active session, vs.
+        // a guest order whose link token is missing/wrong), so this reads
+        // the specific reason rather than assuming "log in" fits both.
+        const reason = getErrorStatus(err) === 403 ? getErrorReason(err) : undefined;
+        if (reason === 'login_required' || reason === 'guest_link_invalid') {
+          setAccessIssue(reason);
         } else {
           setError(getErrorMessage(err, trackingCopy.loadError));
         }
@@ -74,7 +87,24 @@ export default function OrderTrackingPage() {
       {!isLoading && error && <ErrorState message={error} />}
       {!isLoading && !error && notShipped && <EmptyState title={trackingCopy.title} message={trackingCopy.notShippedYet} />}
 
-      {!isLoading && !error && shipment && (
+      {!isLoading && (accessIssue === 'login_required' || accessIssue === 'guest_link_invalid') && (
+        <div className="text-center py-5">
+          {accessIssue === 'guest_link_invalid' ? (
+            <p className="mb-0">{trackingCopy.guestLinkInvalid}</p>
+          ) : (
+            <>
+              <p className="mb-3">
+                {isAuthenticated ? trackingCopy.needsLoginWrongAccount : trackingCopy.needsLogin}
+              </p>
+              <Link to="/login" state={{ from: location }} className="btn btn-primary">
+                {trackingCopy.logIn}
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {!isLoading && !error && !accessIssue && shipment && (
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8">
             <div className="card shadow-sm mb-4">

@@ -79,12 +79,30 @@ class ProductController extends Controller
     public function submitReview(SubmitReviewRequest $request, string $slug): JsonResponse
     {
         $product = $this->products->findBySlug($slug, publishedOnly: true);
+        $preVerified = $this->hasValidReviewIdentityLink($request);
 
-        $this->reviews->submitForConfirmation(
-            $product,
-            $request->validated(),
-            preVerified: $this->hasValidReviewIdentityLink($request),
-        );
+        $review = $this->reviews->submitForConfirmation($product, $request->validated(), $preVerified);
+
+        // Safe to reveal here specifically - $preVerified already proved
+        // (cryptographically, via hasValidReviewIdentityLink()) that this
+        // caller owns the order being reviewed, which is exactly the
+        // ownership proof every other "it's safe to show this customer
+        // their reward" moment (ReviewController::confirm()/store()) relies
+        // on too. The non-preVerified branch below keeps the exact same
+        // generic message as before - still never reveals whether the
+        // email matched anything.
+        if ($preVerified && $review !== null) {
+            $reward = $review->discountCode;
+
+            return response()->json([
+                'message' => 'Отзивът е публикуван.',
+                'reward' => $reward === null ? null : [
+                    'code' => $reward->code,
+                    'discount_percent' => (float) $reward->discount_percent,
+                    'expires_at' => $reward->expires_at?->toIso8601String(),
+                ],
+            ]);
+        }
 
         return response()->json([
             'message' => 'Ако имейлът отговаря на доставена поръчка за този продукт, ще получиш писмо за потвърждение.',

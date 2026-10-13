@@ -135,8 +135,27 @@ class ShipmentTrackingTest extends TestCase
         $order = Order::factory()->create();
         Shipment::factory()->for($order)->created()->create();
 
-        $this->getJson("/api/v1/orders/{$order->id}/shipment")->assertForbidden();
-        $this->getJson("/api/v1/orders/{$order->id}/shipment?token=wrong")->assertForbidden();
+        $noToken = $this->getJson("/api/v1/orders/{$order->id}/shipment");
+        $noToken->assertForbidden();
+        // Not "log in" - a guest order has no account to log into at all;
+        // the frontend reads this reason specifically to avoid showing a
+        // misleading login prompt here (see AuthorizesOrderAccess).
+        $noToken->assertJsonPath('reason', 'guest_link_invalid');
+
+        $this->getJson("/api/v1/orders/{$order->id}/shipment?token=wrong")
+            ->assertForbidden()
+            ->assertJsonPath('reason', 'guest_link_invalid');
+    }
+
+    #[Test]
+    public function viewing_an_account_orders_shipment_while_logged_out_asks_for_login_not_a_token(): void
+    {
+        $order = Order::factory()->forUser()->create();
+        Shipment::factory()->for($order)->created()->create();
+
+        $this->getJson("/api/v1/orders/{$order->id}/shipment")
+            ->assertForbidden()
+            ->assertJsonPath('reason', 'login_required');
     }
 
     #[Test]

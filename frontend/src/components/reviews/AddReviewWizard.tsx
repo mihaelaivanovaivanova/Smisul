@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import StarRating from './StarRating';
+import ReviewRewardCard, { type ReviewReward } from './ReviewRewardCard';
 import { getErrorMessage } from '../../api/errors';
 import { submitReviewForConfirmation } from '../../api/reviews';
 import { reviews as reviewsCopy } from '../../content/copy';
@@ -39,6 +40,7 @@ export default function AddReviewWizard({ productSlug, productName, productImage
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reward, setReward] = useState<ReviewReward | null>(null);
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
@@ -65,7 +67,7 @@ export default function AddReviewWizard({ productSlug, productName, productImage
     setError(null);
 
     try {
-      await submitReviewForConfirmation(productSlug, {
+      const result = await submitReviewForConfirmation(productSlug, {
         rating,
         body,
         email: email.trim(),
@@ -77,6 +79,7 @@ export default function AddReviewWizard({ productSlug, productName, productImage
           signature: knownIdentity.signature,
         }),
       });
+      setReward(result.reward);
       setStep('done');
     } catch (err) {
       setError(getErrorMessage(err, reviewsCopy.addReviewWizard.submitError));
@@ -197,12 +200,16 @@ export default function AddReviewWizard({ productSlug, productName, productImage
               )}
 
               {step === 'done' && knownIdentity && (
-                // The backend already verified the same signed link and
-                // published the review immediately (see ReviewService::
-                // submitForConfirmation's preVerified branch) - no email
-                // confirmation is coming, so skip that half of the message
-                // entirely rather than tell them to wait for one.
-                <p className="mb-0">{reviewsCopy.addReviewWizard.doneMessagePreVerified}</p>
+                <>
+                  {/* The backend already verified the same signed link and
+                      published the review immediately (see ReviewService::
+                      submitForConfirmation's preVerified branch) - no email
+                      confirmation is coming, so skip that half of the
+                      message entirely rather than tell them to wait for
+                      one. */}
+                  <p className="mb-0">{reviewsCopy.addReviewWizard.doneMessagePreVerified}</p>
+                  {reward && <ReviewRewardCard reward={reward} />}
+                </>
               )}
 
               {step === 'done' && !knownIdentity && (

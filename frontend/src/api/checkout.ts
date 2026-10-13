@@ -57,6 +57,22 @@ export async function fetchPaymentMethods(carrier?: ShippingCarrier): Promise<Pa
   return data.data;
 }
 
+export interface DiscountCodeValidation {
+  code: string;
+  discount_percent: number;
+}
+
+/**
+ * Preview-only (see CheckoutController::validateDiscountCode on the
+ * backend) — never redeems the code. The actual, authoritative check
+ * happens again when placeOrder() is called with the same code, so this
+ * exists purely to give the checkout-page "Apply" button instant feedback.
+ */
+export async function validateDiscountCode(code: string, email: string): Promise<DiscountCodeValidation> {
+  const { data } = await apiClient.post<{ data: DiscountCodeValidation }>('/checkout/discount-code/validate', { code, email });
+  return data.data;
+}
+
 interface PlaceOrderResponse {
   data: Order;
   meta: { guest_access_token: string | null };

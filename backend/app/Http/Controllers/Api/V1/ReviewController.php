@@ -38,7 +38,10 @@ class ReviewController extends Controller
 
         $review = $this->reviews->create($request->user(), $variant, $order, $request->validated());
 
-        return (new ReviewResource($review))->response()->setStatusCode(201);
+        return (new ReviewResource($review))
+            ->additional(['reward' => $this->rewardPayload($review)])
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function update(UpdateReviewRequest $request, Review $review): ReviewResource
@@ -70,6 +73,36 @@ class ReviewController extends Controller
      */
     public function confirm(Review $review): JsonResponse
     {
-        return response()->json(['data' => new ReviewResource($this->reviews->confirm($review))]);
+        $confirmed = $this->reviews->confirm($review);
+
+        return response()->json([
+            'data' => new ReviewResource($confirmed),
+            'reward' => $this->rewardPayload($confirmed),
+        ]);
+    }
+
+    /**
+     * Safe to expose in both callers above: store() just created this
+     * review for $request->user(), and confirm() is only reachable via the
+     * review's own signed confirmation link (route's `signed` middleware) -
+     * both already prove the caller owns this specific review, the same
+     * ownership bar ProductController::submitReview()'s preVerified branch
+     * uses for the same reveal.
+     *
+     * @return array{code: string, discount_percent: float, expires_at: ?string}|null
+     */
+    private function rewardPayload(Review $review): ?array
+    {
+        $reward = $review->discountCode;
+
+        if ($reward === null) {
+            return null;
+        }
+
+        return [
+            'code' => $reward->code,
+            'discount_percent' => (float) $reward->discount_percent,
+            'expires_at' => $reward->expires_at?->toIso8601String(),
+        ];
     }
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { fetchOrder } from '../api/checkout';
 import { apiBaseUrl } from '../api/client';
-import { getErrorMessage } from '../api/errors';
+import { getErrorMessage, getErrorReason, getErrorStatus } from '../api/errors';
 import LoadingState from '../components/LoadingState';
 import ErrorState from '../components/ErrorState';
 import Seo from '../components/Seo';
@@ -33,6 +33,7 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<Order | null>(state.order ?? null);
   const [isLoading, setIsLoading] = useState(state.order === undefined);
   const [error, setError] = useState<string | null>(null);
+  const [accessIssue, setAccessIssue] = useState<'login_required' | 'guest_link_invalid' | null>(null);
 
   const token = searchParams.get('token') ?? state.guestAccessToken ?? undefined;
 
@@ -46,6 +47,7 @@ export default function OrderConfirmationPage() {
     let isMounted = true;
     setIsLoading(true);
     setError(null);
+    setAccessIssue(null);
 
     fetchOrder(Number(orderId), token)
       .then((fetched) => {
@@ -54,7 +56,20 @@ export default function OrderConfirmationPage() {
         }
       })
       .catch((err: unknown) => {
-        if (isMounted) {
+        if (!isMounted) return;
+        // A 403 here is ambiguous on its own - it covers two very
+        // different situations (see AuthorizesOrderAccess on the backend):
+        // this order belongs to a registered account and nobody's logged
+        // in as its owner right now (reason=login_required, common when
+        // the confirmation-email link is opened cold on another device),
+        // or this is a guest order and the link's token is missing/wrong
+        // (reason=guest_link_invalid - a guest has no account to log into
+        // at all, so a login prompt would be actively misleading there).
+        const reason = getErrorStatus(err) === 403 ? getErrorReason(err) : undefined;
+
+        if (reason === 'login_required' || reason === 'guest_link_invalid') {
+          setAccessIssue(reason);
+        } else {
           setError(getErrorMessage(err, checkoutCopy.confirmation.loadError));
         }
       })
@@ -86,7 +101,26 @@ export default function OrderConfirmationPage() {
       {isLoading && <LoadingState message={checkoutCopy.confirmation.loading} />}
       {!isLoading && error && <ErrorState message={error} />}
 
-      {!isLoading && !error && order && (
+      {!isLoading && (accessIssue === 'login_required' || accessIssue === 'guest_link_invalid') && (
+        <div className="text-center py-5">
+          {accessIssue === 'guest_link_invalid' ? (
+            <p className="mb-0">{checkoutCopy.confirmation.guestLinkInvalid}</p>
+          ) : (
+            <>
+              <p className="mb-3">
+                {isAuthenticated
+                  ? checkoutCopy.confirmation.needsLoginWrongAccount
+                  : checkoutCopy.confirmation.needsLogin}
+              </p>
+              <Link to="/login" state={{ from: location }} className="btn btn-primary">
+                {checkoutCopy.confirmation.logIn}
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {!isLoading && !error && !accessIssue && order && (
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8">
             <div className="text-center mb-4">
@@ -123,6 +157,35 @@ export default function OrderConfirmationPage() {
                     </li>
                   ))}
                 </ul>
+
+                <div className="d-flex justify-content-between small mb-2">
+                  <span className="text-muted">{cartCopy.itemsHeading}</span>
+                  <span>{formatPrice(order.totals.subtotal)}</span>
+                </div>
+
+                {order.totals.discount_total > 0 && (
+                  <div className="d-flex justify-content-between small mb-2 text-success">
+                    <span>
+                      {cartCopy.discount}
+                      {order.totals.discount_code ? ` (${order.totals.discount_code})` : ''}
+                    </span>
+                    <span>-{formatPrice(order.totals.discount_total)}</span>
+                  </div>
+                )}
+
+                <div className="d-flex justify-content-between small mb-2">
+                  <span className="text-muted">{cartCopy.shipping}</span>
+                  <span>{formatPrice(order.totals.shipping_total)}</span>
+                </div>
+
+                {order.totals.cod_fee > 0 && (
+                  <div className="d-flex justify-content-between small mb-2">
+                    <span className="text-muted">{checkoutCopy.paymentStep.methods.cash_on_delivery}</span>
+                    <span>+{formatPrice(order.totals.cod_fee)}</span>
+                  </div>
+                )}
+
+                <hr className="my-2" />
 
                 <div className="d-flex justify-content-between fw-bold fs-5">
                   <span>{cartCopy.grandTotal}</span>

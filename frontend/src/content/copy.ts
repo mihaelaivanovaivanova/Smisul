@@ -501,6 +501,16 @@ export const cart = {
     unlockedHighlight: 'отключена!',
     goal: (amount: string) => `БЕЗПЛАТНА ДОСТАВКА над ${amount}`,
   },
+  discountCode: {
+    label: 'Промо код',
+    placeholder: 'Код за отстъпка',
+    apply: 'Приложи',
+    applying: 'Прилагане…',
+    remove: 'Премахни',
+    invalid: 'Този код е невалиден или е изтекъл.',
+    applied: (percent: number) => `-${percent}% приложени`,
+    needsEmail: 'Въведи имейл по-горе, преди да приложиш код.',
+  },
 };
 
 export const checkout = {
@@ -659,6 +669,12 @@ export const checkout = {
     statusPending: 'Изчаква обработка',
     paymentNotice: 'Ще получиш имейл с потвърждение веднага щом плащането бъде обработено.',
     continueShopping: 'Продължи пазаруването',
+    /** Shown instead of loadError specifically when the API returned 403 with reason="login_required" - this order belongs to a registered account (no guest_access_token), so the confirmation-email link only works from an active session. A clear "log in" prompt here, not the generic failure message. */
+    needsLogin: 'Тази поръчка принадлежи на регистриран акаунт. Влез, за да я видиш.',
+    needsLoginWrongAccount: 'Влязъл си с друг акаунт - тази поръчка не е негова.',
+    logIn: 'Вход',
+    /** reason="guest_link_invalid" - a guest order has no account at all, so a login prompt would be actively wrong here; the link itself (from the confirmation email) is what's missing or broken. */
+    guestLinkInvalid: 'Този линк е непълен или невалиден. Използвай линка от имейла за потвърждение на поръчката.',
   },
 
   redirectingToPayment: 'Пренасочване към страницата за плащане…',
@@ -676,6 +692,11 @@ export const tracking = {
   estimatedDeliveryLabel: 'Очаквана доставка',
   historyHeading: 'История на пратката',
   backToOrder: 'Обратно към поръчката',
+  /** See checkoutCopy.confirmation's own needsLogin/guestLinkInvalid keys - identical causes (403 with reason="login_required"/"guest_link_invalid"), just the tracking page's copy of the same messages. */
+  needsLogin: 'Тази поръчка принадлежи на регистриран акаунт. Влез, за да видиш пратката.',
+  needsLoginWrongAccount: 'Влязъл си с друг акаунт - тази поръчка не е негова.',
+  logIn: 'Вход',
+  guestLinkInvalid: 'Този линк е непълен или невалиден. Използвай линка от имейла за потвърждение на поръчката.',
 };
 
 export const orders = {
@@ -836,6 +857,15 @@ export const reviews = {
     invalidLink: 'Този линк за потвърждение е невалиден или непълен.',
     error: 'Този линк за потвърждение е невалиден или е изтекъл.',
     goHome: 'Към началната страница',
+  },
+
+  /** Shown wherever a just-approved review's response carries a freshly issued reward code - see ReviewRewardCard. */
+  reward: {
+    heading: (percent: number) => `🎁 Твоята -${percent}% отстъпка е готова`,
+    expires: (date: string) => `Валиден до ${date}, за еднократна употреба.`,
+    copy: 'Копирай кода',
+    copied: 'Копиран!',
+    explorePackages: 'Разгледай пакетите →',
   },
 };
 

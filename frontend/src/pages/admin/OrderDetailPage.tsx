@@ -190,7 +190,7 @@ export default function OrderDetailPage() {
                   </tr>
                   <tr>
                     <td colSpan={4} className="text-end fw-semibold">
-                      Discount
+                      Discount{order.totals.discount_code ? ` (${order.totals.discount_code})` : ''}
                     </td>
                     <td className="text-end">-{formatPrice(order.totals.discount_total)}</td>
                   </tr>

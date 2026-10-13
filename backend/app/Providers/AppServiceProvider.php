@@ -11,6 +11,7 @@ use App\Events\Review\ReviewRejected;
 use App\Events\Review\ReviewReplied;
 use App\Listeners\CancelShipmentOnOrderCancelled;
 use App\Listeners\CreateShipmentOnOrderPaid;
+use App\Listeners\IssueReviewRewardCode;
 use App\Listeners\LogFailedLogin;
 use App\Listeners\LogLogout;
 use App\Listeners\LogSuccessfulLogin;
@@ -81,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ProductPriceDropped::class, NotifyFavoritesOfPriceDrop::class);
         Event::listen(ProductBackInStock::class, NotifyFavoritesOfBackInStock::class);
         Event::listen(ReviewApproved::class, SendReviewApprovedNotification::class);
+        Event::listen(ReviewApproved::class, IssueReviewRewardCode::class);
         Event::listen(ReviewRejected::class, SendReviewRejectedNotification::class);
         Event::listen(ReviewReplied::class, SendReviewReplyNotification::class);
         Event::listen(LegalDocumentUpdated::class, NotifyAccountHoldersOfLegalDocumentUpdate::class);

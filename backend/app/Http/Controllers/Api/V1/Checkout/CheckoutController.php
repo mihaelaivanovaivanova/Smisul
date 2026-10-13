@@ -10,6 +10,7 @@ use App\Enums\ShippingDeliveryType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Checkout\PlaceOrderRequest;
 use App\Http\Requests\Checkout\ShippingQuoteRequest;
+use App\Http\Requests\Checkout\ValidateDiscountCodeRequest;
 use App\Http\Resources\Checkout\LegalDocumentResource;
 use App\Http\Resources\Checkout\PaymentMethodResource;
 use App\Http\Resources\Checkout\SettlementResource;
@@ -22,6 +23,7 @@ use App\Models\Cart;
 use App\Services\BulgarianSettlementService;
 use App\Services\CartPricingService;
 use App\Services\CartService;
+use App\Services\DiscountCodeService;
 use App\Services\LegalDocumentService;
 use App\Services\OrderService;
 use App\Services\PaymentService;
@@ -45,7 +47,30 @@ class CheckoutController extends Controller
         private readonly LegalDocumentService $legalDocuments,
         private readonly BulgarianSettlementService $settlements,
         private readonly CartPricingService $cartPricing,
+        private readonly DiscountCodeService $discountCodes,
     ) {}
+
+    /**
+     * Checkout-page "Apply" button - preview only, never redeems the code
+     * (see DiscountCodeService::findValid() vs findRedeemable()). The
+     * actual, authoritative check happens again inside placeOrder() ->
+     * OrderService::placeOrder(), so a code that validates here but gets
+     * spent by someone else in the meantime simply fails silently there
+     * (discount just doesn't apply) rather than anything breaking.
+     */
+    public function validateDiscountCode(ValidateDiscountCodeRequest $request): JsonResponse
+    {
+        $discountCode = $this->discountCodes->findValid($request->string('code')->toString(), $request->string('email')->toString());
+
+        if ($discountCode === null) {
+            return response()->json(['message' => 'Този код е невалиден или е изтекъл.'], 422);
+        }
+
+        return response()->json(['data' => [
+            'code' => $discountCode->code,
+            'discount_percent' => (float) $discountCode->discount_percent,
+        ]]);
+    }
 
     /**
      * Prices reflect the current cart's subtotal — every method's price is

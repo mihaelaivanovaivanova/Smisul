@@ -21,6 +21,7 @@ final readonly class PlaceOrderData
         public ?string $shippingOfficeCity,
         public ?string $shippingOfficeAddress,
         public array $legalDocumentIds,
+        public ?string $discountCode,
     ) {}
 
     /**
@@ -44,6 +45,7 @@ final readonly class PlaceOrderData
             shippingOfficeCity: isset($data['shipping_office_city']) ? (string) $data['shipping_office_city'] : null,
             shippingOfficeAddress: isset($data['shipping_office_address']) ? (string) $data['shipping_office_address'] : null,
             legalDocumentIds: array_map('intval', $data['legal_document_ids']),
+            discountCode: isset($data['discount_code']) && $data['discount_code'] !== '' ? (string) $data['discount_code'] : null,
         );
     }
 }

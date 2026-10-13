@@ -4,6 +4,7 @@ namespace Tests\Feature\Reviews;
 
 use App\Enums\OrderStatus;
 use App\Mail\ReviewConfirmationMail;
+use App\Mail\ReviewRewardMail;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -279,7 +280,10 @@ class ReviewSubmissionTest extends TestCase
      * orders.review-identity link (see OrderThirtyDayReminderMail) skips the
      * usual confirm-by-email step entirely: published immediately, no
      * ReviewConfirmationMail sent, since clicking that link already proved
-     * the customer controls the inbox it was sent to.
+     * the customer controls the inbox it was sent to. It still fires
+     * ReviewApproved like every other "review becomes approved" path (see
+     * IssueReviewRewardCode/SendReviewApprovedNotification), so those two
+     * mailables are expected here - just not the confirmation one.
      */
     #[Test]
     public function a_submission_with_a_valid_signed_order_link_is_published_immediately_with_no_confirmation_email(): void
@@ -307,7 +311,8 @@ class ReviewSubmissionTest extends TestCase
         $review = Review::query()->where('order_id', $order->id)->firstOrFail();
         $this->assertSame('approved', $review->status->value);
         $this->assertNotNull($review->confirmed_at);
-        Mail::assertNothingSent();
+        Mail::assertNotSent(ReviewConfirmationMail::class);
+        Mail::assertSent(ReviewRewardMail::class, fn (ReviewRewardMail $mail) => $mail->hasTo('ivan@example.com'));
         $this->getJson("/api/v1/products/{$product->slug}/reviews")->assertJsonCount(1, 'data');
     }
 

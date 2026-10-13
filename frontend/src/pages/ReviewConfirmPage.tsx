@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import AuthCard from '../components/AuthCard';
 import Alert from '../components/Alert';
+import ReviewRewardCard, { type ReviewReward } from '../components/reviews/ReviewRewardCard';
 import { confirmReview } from '../api/reviews';
 import { getErrorMessage } from '../api/errors';
 import { reviews as reviewsCopy } from '../content/copy';
@@ -19,6 +20,7 @@ export default function ReviewConfirmPage() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<Status>('verifying');
   const [message, setMessage] = useState('');
+  const [reward, setReward] = useState<ReviewReward | null>(null);
 
   useEffect(() => {
     const expires = searchParams.get('expires');
@@ -33,10 +35,11 @@ export default function ReviewConfirmPage() {
     let isMounted = true;
 
     confirmReview(reviewId, { expires, signature })
-      .then(() => {
+      .then((result) => {
         if (isMounted) {
           setStatus('success');
           setMessage(reviewsCopy.confirmPage.success);
+          setReward(result.reward);
         }
       })
       .catch((error: unknown) => {
@@ -60,7 +63,12 @@ export default function ReviewConfirmPage() {
           </div>
         </div>
       )}
-      {status === 'success' && <Alert variant="success">{message}</Alert>}
+      {status === 'success' && (
+        <>
+          <Alert variant="success">{message}</Alert>
+          {reward && <ReviewRewardCard reward={reward} />}
+        </>
+      )}
       {status === 'error' && <Alert variant="danger">{message}</Alert>}
 
       <p className="text-center mt-3 mb-0">

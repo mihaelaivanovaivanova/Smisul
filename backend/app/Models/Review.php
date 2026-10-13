@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property ReviewStatus $status
  * @property Carbon $created_at
  * @property ?Carbon $admin_reply_at
+ * @property-read ?User $user guest reviews have no account - see the guest confirmation-flow migration
+ * @property ?string $email
  */
 class Review extends Model
 {
@@ -113,6 +116,19 @@ class Review extends Model
     }
 
     /**
+     * Exists only once this review has been approved - IssueReviewRewardCode
+     * creates it synchronously as part of handling ReviewApproved, so by the
+     * time a controller that just created/approved this review returns, the
+     * row (if any) is already there to load.
+     *
+     * @return HasOne<DiscountCode, $this>
+     */
+    public function discountCode(): HasOne
+    {
+        return $this->hasOne(DiscountCode::class);
+    }
+
+    /**
      * @param  Builder<Review>  $query
      * @return Builder<Review>
      */
@@ -124,6 +140,28 @@ class Review extends Model
     public function isPending(): bool
     {
         return $this->status === ReviewStatus::Pending;
+    }
+
+    /**
+     * Works for both an authenticated review (no email/display_name
+     * columns set - user_id is the source of truth) and a guest review
+     * (user_id null, email/display_name set directly - see the guest
+     * confirmation-flow migration). Resolved via the order rather than
+     * display_name for the greeting name specifically, since display_name
+     * is a public-facing nickname the guest typed (could be "Anonymous",
+     * an alias, anything) - not reliably a real first name the way
+     * order.customer_first_name is.
+     */
+    public function reviewerEmail(): ?string
+    {
+        $user = $this->user;
+
+        return $user !== null ? $user->email : $this->email;
+    }
+
+    public function reviewerFirstName(): string
+    {
+        return $this->order->customer_first_name;
     }
 
     public function hasReply(): bool

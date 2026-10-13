@@ -224,6 +224,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/settlements', [CheckoutController::class, 'settlements'])->name('checkout.settlements');
         Route::get('/legal-documents', [CheckoutController::class, 'legalDocuments'])->name('checkout.legal-documents');
         Route::get('/payment-methods', [CheckoutController::class, 'paymentMethods'])->name('checkout.payment-methods');
+        // Preview-only - never redeems the code (see DiscountCodeService::
+        // findValid() vs findRedeemable()). Throttled like placeOrder since
+        // it's an unauthenticated, repeatable code-guessing surface.
+        Route::post('/discount-code/validate', [CheckoutController::class, 'validateDiscountCode'])
+            ->middleware('throttle:checkout')
+            ->name('checkout.discount-code.validate');
         Route::post('/orders', [CheckoutController::class, 'placeOrder'])
             ->middleware('throttle:checkout')
             ->name('checkout.orders.store');

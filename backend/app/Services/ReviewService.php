@@ -119,12 +119,14 @@ class ReviewService
     }
 
     /**
-     * Entry point for the guest-friendly "Add a review" wizard. Never
-     * reveals whether the typed email actually matched anything — the
-     * caller (ProductController::submitReview) returns the same generic
-     * "check your email" response either way, so this method's return type
-     * is void rather than a success/failure result that could leak through.
-     * A non-matching email is a silent no-op: no review row, no email sent.
+     * Entry point for the guest-friendly "Add a review" wizard. Returns the
+     * created Review (or null for a non-matching email) so a preVerified
+     * caller can read its freshly-issued reward code straight off the
+     * response - but ProductController::submitReview() deliberately keeps
+     * returning the same generic "check your email" message regardless of
+     * this return value for the non-preVerified path, so a non-matching
+     * email still can't be distinguished from a matching one. A non-matching
+     * email is a silent no-op: no review row, no email sent.
      *
      * The review is created immediately (status Pending, confirmed_at null)
      * rather than staged elsewhere, so the existing unique(order_id,
@@ -143,12 +145,12 @@ class ReviewService
      *
      * @param  array{rating: int, title?: ?string, body: string, email: string, display_name: string, is_anonymous?: bool}  $data
      */
-    public function submitForConfirmation(Product $product, array $data, bool $preVerified = false): void
+    public function submitForConfirmation(Product $product, array $data, bool $preVerified = false): ?Review
     {
         $eligible = $this->findEligibleOrderForEmail($data['email'], $product);
 
         if ($eligible === null) {
-            return;
+            return null;
         }
 
         $review = Review::create([
@@ -167,7 +169,9 @@ class ReviewService
         ]);
 
         if ($preVerified) {
-            return;
+            event(new ReviewApproved($review));
+
+            return $review;
         }
 
         // A mail transport failure must never turn into a 500 for the
@@ -184,6 +188,8 @@ class ReviewService
                 'message' => $exception->getMessage(),
             ]);
         }
+
+        return $review;
     }
 
     /**
@@ -201,6 +207,8 @@ class ReviewService
             'confirmed_at' => now(),
             'status' => ReviewStatus::Approved,
         ]);
+
+        event(new ReviewApproved($review));
 
         return $review;
     }
@@ -229,6 +237,8 @@ class ReviewService
             'status' => ReviewStatus::Approved,
             'verified_purchase' => true,
         ]);
+
+        event(new ReviewApproved($review));
 
         return $review->load(self::PUBLIC_EAGER_LOAD);
     }

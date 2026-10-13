@@ -94,6 +94,11 @@ class PlaceOrderRequest extends FormRequest
 
             'legal_document_ids' => ['required', 'array', 'min:1'],
             'legal_document_ids.*' => ['integer', 'exists:legal_documents,id'],
+
+            // Re-validated server-side regardless (see DiscountCodeService/
+            // OrderService::placeOrder()) - this rule only bounds its
+            // length, never trusts that a code here is actually valid.
+            'discount_code' => ['nullable', 'string', 'max:50'],
         ];
     }
 

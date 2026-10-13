@@ -8,9 +8,12 @@ import type {
   SubmitReviewPayload,
   UpdateReviewPayload,
 } from '../types/review';
+import type { ReviewReward } from '../components/reviews/ReviewRewardCard';
 
-interface ApiMessage {
+interface SubmitReviewResponse {
   message: string;
+  /** Only present when the submission came through a pre-verified reminder-email link - see ProductController::submitReview(). */
+  reward?: ReviewReward | null;
 }
 
 export async function fetchProductReviews(
@@ -35,14 +38,20 @@ export async function fetchMyReviews(): Promise<Review[]> {
   return data.data;
 }
 
-export async function submitReviewForConfirmation(slug: string, payload: SubmitReviewPayload): Promise<string> {
-  const { data } = await apiClient.post<ApiMessage>(`/products/${slug}/reviews/submit`, payload);
-  return data.message;
+export async function submitReviewForConfirmation(
+  slug: string,
+  payload: SubmitReviewPayload,
+): Promise<{ message: string; reward: ReviewReward | null }> {
+  const { data } = await apiClient.post<SubmitReviewResponse>(`/products/${slug}/reviews/submit`, payload);
+  return { message: data.message, reward: data.reward ?? null };
 }
 
-export async function confirmReview(reviewId: string, params: { expires: string; signature: string }): Promise<Review> {
-  const { data } = await apiClient.get<{ data: Review }>(`/reviews/${reviewId}/confirm`, { params });
-  return data.data;
+export async function confirmReview(
+  reviewId: string,
+  params: { expires: string; signature: string },
+): Promise<{ review: Review; reward: ReviewReward | null }> {
+  const { data } = await apiClient.get<{ data: Review; reward: ReviewReward | null }>(`/reviews/${reviewId}/confirm`, { params });
+  return { review: data.data, reward: data.reward };
 }
 
 export async function createReview(payload: CreateReviewPayload): Promise<Review> {

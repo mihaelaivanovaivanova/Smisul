@@ -97,6 +97,7 @@ export interface PlaceOrderPayload {
   legal_document_ids: number[];
   payment_method?: PaymentMethodValue;
   stored_payment_method_id?: number;
+  discount_code?: string;
 }
 
 export interface OrderItem {
@@ -127,6 +128,7 @@ export interface OrderTimelineEntry {
 export interface OrderTotals {
   subtotal: number;
   discount_total: number;
+  discount_code: string | null;
   shipping_total: number;
   /** Surcharge for choosing cash on delivery (see PaymentMethod::fee() on the backend) — 0 for every other order, already folded into grand_total. */
   cod_fee: number;

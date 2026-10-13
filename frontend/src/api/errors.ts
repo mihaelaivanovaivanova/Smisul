@@ -4,6 +4,8 @@ import type { AxiosError } from 'axios';
 export interface ValidationErrorBody {
   message: string;
   errors?: Record<string, string[]>;
+  /** Machine-readable discriminator some 403 responses carry (see AuthorizesOrderAccess on the backend) - lets a caller tell apart causes that look identical as a bare status code, e.g. "log in" vs "this guest link is broken". */
+  reason?: string;
 }
 
 /** True for any Axios error response (not only 422s) shaped like our API's error body. */
@@ -38,4 +40,14 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
+}
+
+/** The HTTP status code of an API error response, or undefined for anything else (network error, unexpected shape). */
+export function getErrorStatus(error: unknown): number | undefined {
+  return isApiError(error) ? error.response?.status : undefined;
+}
+
+/** See ValidationErrorBody.reason. */
+export function getErrorReason(error: unknown): string | undefined {
+  return isApiError(error) ? error.response?.data.reason : undefined;
 }

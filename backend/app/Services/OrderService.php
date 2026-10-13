@@ -70,6 +70,7 @@ class OrderService
         private readonly LegalDocumentService $legalDocuments,
         private readonly OrderNumberGenerator $orderNumbers,
         private readonly OrderStatusService $orderStatus,
+        private readonly DiscountCodeService $discountCodes,
     ) {}
 
     public function placeOrder(Cart $cart, PlaceOrderData $data, ?User $user): Order
@@ -162,6 +163,25 @@ class OrderService
             $shippingTotal = $this->shippingMethods->isFreeShipping($subtotal) ? 0.0 : $shippingMethod->price;
             $discountTotal = round(array_sum(array_column($lines, 'discount_amount')), 2);
             $taxTotal = 0.0;
+            $redeemedDiscountCode = null;
+
+            // Re-validated and redeemed fresh here, inside this same locked
+            // transaction - never trusts a discount figure the client
+            // might send, and lockForUpdate() (see DiscountCodeService::
+            // findRedeemable()) stops two concurrent checkouts from both
+            // spending the same single-use code. Applied to the subtotal
+            // (before shipping), matching how the code is described to
+            // customers ("-10% върху цялата поръчка" = off the goods, not
+            // the delivery fee).
+            if ($data->discountCode !== null) {
+                $discountCode = $this->discountCodes->findRedeemable($data->discountCode, $data->customer->email);
+
+                if ($discountCode !== null) {
+                    $discountTotal = round($discountTotal + ($subtotal * (float) $discountCode->discount_percent / 100), 2);
+                    $this->discountCodes->redeem($discountCode);
+                    $redeemedDiscountCode = $discountCode->code;
+                }
+            }
 
             $billingAddress = $data->billingSameAsShipping ? $data->address : $data->billingAddress;
 
@@ -210,6 +230,7 @@ class OrderService
                 'shipping_rate_snapshot' => $shippingRateSnapshot,
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
+                'discount_code' => $redeemedDiscountCode,
                 'tax_total' => $taxTotal,
                 'grand_total' => round($subtotal - $discountTotal + $shippingTotal + $taxTotal, 2),
             ]);

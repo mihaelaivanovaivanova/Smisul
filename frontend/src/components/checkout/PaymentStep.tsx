@@ -12,6 +12,8 @@ interface PaymentStepProps {
   selectedMethod: PaymentMethodValue;
   /** The cash-on-delivery surcharge (see PaymentMethod::fee() on the backend) — irrelevant unless selectedMethod is actually cash_on_delivery. */
   cashOnDeliveryFee: number;
+  /** A code applied in CheckoutSummary's "Код за отстъпка" field, if any — must be mirrored into this step's own total too, or the figure shown right next to the Pay button disagrees with the sidebar's. */
+  discountAmount: number;
   storedPaymentMethodId: number | null;
   onSelectStoredPaymentMethod: (id: number | null) => void;
 }
@@ -26,9 +28,9 @@ const cardTrustMarks = ['Visa', 'Mastercard', 'Amex', 'Borica'];
  * in; this just confirms it, offers a saved card for a card payment, and
  * shows the total right before the Pay button.
  */
-export default function PaymentStep({ cart, shippingMethod, selectedMethod, cashOnDeliveryFee, storedPaymentMethodId, onSelectStoredPaymentMethod }: PaymentStepProps) {
+export default function PaymentStep({ cart, shippingMethod, selectedMethod, cashOnDeliveryFee, discountAmount, storedPaymentMethodId, onSelectStoredPaymentMethod }: PaymentStepProps) {
   const codFee = selectedMethod === 'cash_on_delivery' ? cashOnDeliveryFee : 0;
-  const grandTotal = cart.totals.subtotal + (shippingMethod?.price ?? 0) + codFee;
+  const grandTotal = cart.totals.subtotal - discountAmount + (shippingMethod?.price ?? 0) + codFee;
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
 
   useEffect(() => {

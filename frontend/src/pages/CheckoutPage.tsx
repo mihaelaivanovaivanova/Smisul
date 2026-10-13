@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAsync } from '../hooks/useAsync';
 import * as checkoutApi from '../api/checkout';
 import { fetchShippingMethods, fetchShippingOffices, fetchLegalDocuments, fetchSettlements, fetchPaymentMethods } from '../api/checkout';
+import type { DiscountCodeValidation } from '../api/checkout';
 import { fetchCartUpsell } from '../api/cart';
 import { fetchPublicSettings } from '../api/settings';
 import { initiatePayment, recordPaymentReturn } from '../api/payment';
@@ -105,6 +106,7 @@ export default function CheckoutPage() {
     company: '',
     vat_number: '',
   });
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCodeValidation | null>(null);
   const [wantsInvoice, setWantsInvoice] = useState(false);
   const [address, setAddress] = useState<ShippingAddress>({
     country: 'България',
@@ -483,6 +485,7 @@ export default function CheckoutPage() {
         legal_document_ids: acceptedLegalDocumentIds,
         payment_method: selectedPaymentMethod,
         stored_payment_method_id: selectedPaymentMethod === 'card' ? storedPaymentMethodId ?? undefined : undefined,
+        discount_code: appliedDiscount?.code,
       });
 
       await refreshCart();
@@ -651,6 +654,7 @@ export default function CheckoutPage() {
                     shippingMethod={selectedShippingMethod}
                     selectedMethod={selectedPaymentMethod}
                     cashOnDeliveryFee={cashOnDeliveryFee}
+                    discountAmount={appliedDiscount ? (cart.totals.subtotal * appliedDiscount.discount_percent) / 100 : 0}
                     storedPaymentMethodId={storedPaymentMethodId}
                     onSelectStoredPaymentMethod={setStoredPaymentMethodId}
                   />
@@ -751,6 +755,10 @@ export default function CheckoutPage() {
               cart={cart}
               shippingMethod={selectedShippingMethod}
               codFee={selectedPaymentMethod === 'cash_on_delivery' ? cashOnDeliveryFee : 0}
+              customerEmail={customer.email}
+              appliedDiscount={appliedDiscount}
+              onDiscountApplied={setAppliedDiscount}
+              onDiscountRemoved={() => setAppliedDiscount(null)}
             />
           </div>
         </div>

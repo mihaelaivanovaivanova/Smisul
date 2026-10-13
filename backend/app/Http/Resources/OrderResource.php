@@ -58,6 +58,7 @@ class OrderResource extends JsonResource
             'totals' => [
                 'subtotal' => (float) $this->subtotal,
                 'discount_total' => (float) $this->discount_total,
+                'discount_code' => $this->discount_code,
                 'shipping_total' => (float) $this->shipping_price,
                 // Reconciled onto the order the moment cash on delivery is
                 // actually chosen (see PaymentService::initiate()) - zero

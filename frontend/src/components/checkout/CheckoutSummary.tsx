@@ -1,17 +1,68 @@
+import { useState } from 'react';
 import type { Cart } from '../../types/cart';
 import type { ShippingMethod } from '../../types/checkout';
 import { formatPrice } from '../../services/productCatalog';
 import { cart as cartCopy, checkout as checkoutCopy } from '../../content/copy';
+import { validateDiscountCode, type DiscountCodeValidation } from '../../api/checkout';
+import { getErrorMessage } from '../../api/errors';
 
 interface CheckoutSummaryProps {
   cart: Cart;
   shippingMethod: ShippingMethod | null;
   /** The cash-on-delivery surcharge, already zeroed out by the caller unless that method is actually selected (see CheckoutPage). */
   codFee: number;
+  /** Required to validate a code against (see DiscountCodeService::findValid on the backend - most reward codes are restricted to one email). */
+  customerEmail: string;
+  appliedDiscount: DiscountCodeValidation | null;
+  onDiscountApplied: (discount: DiscountCodeValidation) => void;
+  onDiscountRemoved: () => void;
 }
 
-export default function CheckoutSummary({ cart, shippingMethod, codFee }: CheckoutSummaryProps) {
-  const grandTotal = cart.totals.subtotal + (shippingMethod?.price ?? 0) + codFee;
+export default function CheckoutSummary({
+  cart,
+  shippingMethod,
+  codFee,
+  customerEmail,
+  appliedDiscount,
+  onDiscountApplied,
+  onDiscountRemoved,
+}: CheckoutSummaryProps) {
+  const [codeInput, setCodeInput] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+
+  const discountAmount = appliedDiscount ? (cart.totals.subtotal * appliedDiscount.discount_percent) / 100 : 0;
+  const grandTotal = cart.totals.subtotal - discountAmount + (shippingMethod?.price ?? 0) + codFee;
+
+  async function handleApplyCode(): Promise<void> {
+    const code = codeInput.trim();
+    if (code === '') {
+      return;
+    }
+
+    if (customerEmail.trim() === '') {
+      setCodeError(cartCopy.discountCode.needsEmail);
+      return;
+    }
+
+    setIsApplying(true);
+    setCodeError(null);
+
+    try {
+      const result = await validateDiscountCode(code, customerEmail);
+      onDiscountApplied(result);
+      setCodeInput('');
+    } catch (err) {
+      setCodeError(getErrorMessage(err, cartCopy.discountCode.invalid));
+    } finally {
+      setIsApplying(false);
+    }
+  }
+
+  function handleRemoveCode(): void {
+    onDiscountRemoved();
+    setCodeError(null);
+  }
 
   return (
     <div className="card shadow-sm">
@@ -50,6 +101,46 @@ export default function CheckoutSummary({ cart, shippingMethod, codFee }: Checko
             <span>+{formatPrice(codFee)}</span>
           </div>
         )}
+
+        {appliedDiscount && (
+          <div className="d-flex justify-content-between small mb-2 text-success">
+            <span>
+              {cartCopy.discount} ({appliedDiscount.code})
+            </span>
+            <span>-{formatPrice(discountAmount)}</span>
+          </div>
+        )}
+
+        <div className="mb-2">
+          {appliedDiscount ? (
+            <div className="d-flex align-items-center justify-content-between small">
+              <span className="text-success">{cartCopy.discountCode.applied(appliedDiscount.discount_percent)}</span>
+              <button type="button" className="btn btn-link btn-sm p-0" onClick={handleRemoveCode}>
+                {cartCopy.discountCode.remove}
+              </button>
+            </div>
+          ) : (
+            <div className="input-group input-group-sm">
+              <input
+                type="text"
+                className="form-control"
+                placeholder={cartCopy.discountCode.placeholder}
+                value={codeInput}
+                onChange={(event) => setCodeInput(event.target.value)}
+                disabled={isApplying}
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => void handleApplyCode()}
+                disabled={isApplying || codeInput.trim() === ''}
+              >
+                {isApplying ? cartCopy.discountCode.applying : cartCopy.discountCode.apply}
+              </button>
+            </div>
+          )}
+          {codeError && <div className="small text-danger mt-1">{codeError}</div>}
+        </div>
 
         <hr />
 

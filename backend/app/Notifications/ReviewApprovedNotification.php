@@ -30,7 +30,7 @@ class ReviewApprovedNotification extends Notification
 
         return (new MailMessage)
             ->subject('Твоят отзив е одобрен')
-            ->greeting("Здравей, {$notifiable->first_name}!")
+            ->greeting("Здравей, {$this->review->reviewerFirstName()}!")
             ->line("Твоят отзив за \"{$product->name}\" вече е одобрен и е видим за останалите клиенти.")
             ->action('Виж продукта', $productUrl);
     }

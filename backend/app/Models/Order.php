@@ -62,6 +62,7 @@ class Order extends Model
         'cod_fee',
         'subtotal',
         'discount_total',
+        'discount_code',
         'tax_total',
         'grand_total',
     ];

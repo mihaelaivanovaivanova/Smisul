@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Concerns\AuthorizesOrderAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
@@ -15,6 +16,8 @@ use Illuminate\Http\Response;
 
 class OrderController extends Controller
 {
+    use AuthorizesOrderAccess;
+
     public function __construct(
         private readonly InvoiceNumberGenerator $invoiceNumbers,
         private readonly SettingService $settings,
@@ -44,7 +47,7 @@ class OrderController extends Controller
      */
     public function show(Request $request, Order $order): OrderResource
     {
-        $this->authorizeAccess($request, $order);
+        $this->authorizeOrderAccess($request, $order);
 
         return new OrderResource($order->load(OrderService::EAGER_LOAD));
     }
@@ -82,7 +85,7 @@ class OrderController extends Controller
      */
     public function invoice(Request $request, Order $order): Response
     {
-        $this->authorizeAccess($request, $order);
+        $this->authorizeOrderAccess($request, $order);
 
         $order->load('items');
         $this->invoiceNumbers->generateFor($order);
@@ -92,21 +95,5 @@ class OrderController extends Controller
             'Content-Type' => 'text/html',
             'Content-Disposition' => "attachment; filename=\"invoice-{$order->order_number}.html\"",
         ]);
-    }
-
-    private function authorizeAccess(Request $request, Order $order): void
-    {
-        $user = $request->user();
-
-        if ($order->user_id !== null) {
-            abort_unless($user !== null && $user->can('view', $order), 403);
-
-            return;
-        }
-
-        abort_unless(
-            $order->guest_access_token !== null && hash_equals($order->guest_access_token, (string) $request->query('token')),
-            403,
-        );
     }
 }

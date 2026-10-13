@@ -29,7 +29,7 @@ class OrderThirtyDayReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Мина месец… и имаме нещо ново',
+            subject: 'Мина месец… И ще оценим твоят коментар',
         );
     }
 

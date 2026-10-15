@@ -5,7 +5,10 @@ namespace Tests\Feature\Checkout;
 use App\Enums\OrderStatus;
 use App\Mail\OrderThirtyDayReminderMail;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\OrderReminderService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -175,6 +178,10 @@ class OrderThirtyDayReminderTest extends TestCase
         // (write_review, a duplicate order_id) - those were never part of
         // what temporarySignedRoute() signed, so including them here would
         // (correctly) fail signature validation, same as a real tampered link.
+        //
+        // No items on this order (deliveredOrder() doesn't attach any), so
+        // reviewUrl() falls back to 'miswak' - see the dedicated test below
+        // for an order whose actual product isn't Miswak.
         preg_match('/expires=(\d+)/', $rendered, $expiresMatch);
         preg_match('/signature=([a-f0-9]{64})/', $rendered, $signatureMatch);
         $response = $this->getJson("/api/v1/orders/{$order->id}/review-identity?expires={$expiresMatch[1]}&signature={$signatureMatch[1]}");
@@ -182,5 +189,37 @@ class OrderThirtyDayReminderTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('data.email', 'ivan@example.com');
         $response->assertJsonPath('data.display_name', 'Ivan');
+    }
+
+    /**
+     * Regression test: reviewUrl() used to hardcode /products/miswak
+     * regardless of what the order actually contained, so an order for
+     * either accessory product sent its reminder link to Miswak's review
+     * page - ReviewService::findEligibleOrderForEmail() would never find a
+     * Delivered Miswak order for that email and silently no-op (the same
+     * generic "thanks" message either way), so the customer's review was
+     * never created and no reward was ever issued, with no visible error.
+     */
+    #[Test]
+    public function the_review_url_links_to_the_products_own_review_page_not_always_miswak(): void
+    {
+        $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com']);
+        $product = Product::factory()->create(['slug' => 'bambukov-keis-za-miswak']);
+        $variant = ProductVariant::factory()->for($product)->create();
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'product_name' => $product->name,
+            'variant_name' => $variant->name,
+            'sku' => $variant->sku,
+            'quantity' => 1,
+            'unit_price' => 10,
+            'line_total' => 10,
+        ]);
+
+        $rendered = (new OrderThirtyDayReminderMail($order->fresh()))->render();
+
+        $this->assertStringContainsString('/products/bambukov-keis-za-miswak?write_review=1', $rendered);
+        $this->assertStringNotContainsString('/products/miswak?write_review=1', $rendered);
     }
 }

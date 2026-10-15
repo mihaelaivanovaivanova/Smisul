@@ -56,6 +56,16 @@ class OrderThirtyDayReminderMail extends Mailable
      * hours) since this link's whole purpose is being clicked well after
      * the fact - there's no "did you mean to request this" freshness
      * concern the way a confirmation link has.
+     *
+     * Links to the review page of the product actually on this order, not
+     * a hardcoded Miswak - this store sells two other products (the case,
+     * the tongue scraper) and an order for either of those was previously
+     * always sent to /products/miswak, where ReviewService::
+     * findEligibleOrderForEmail() would never find a Delivered Miswak
+     * order for that email and silently no-op (same generic "thanks" the
+     * wizard shows either way - see AddReviewWizard's done step). Falls
+     * back to 'miswak' only if the order's variant/product was deleted
+     * since (product_variant_id is nullOnDelete).
      */
     private function reviewUrl(): string
     {
@@ -67,7 +77,8 @@ class OrderThirtyDayReminderMail extends Mailable
 
         $query = parse_url($signedBackendUrl, PHP_URL_QUERY);
         $frontendUrl = rtrim(config('app.frontend_url'), '/');
+        $productSlug = $this->order->items->first()?->productVariant?->product->slug ?? 'miswak';
 
-        return "{$frontendUrl}/products/miswak?write_review=1&order_id={$this->order->id}&{$query}";
+        return "{$frontendUrl}/products/{$productSlug}?write_review=1&order_id={$this->order->id}&{$query}";
     }
 }

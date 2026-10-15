@@ -26,11 +26,16 @@ use Illuminate\Support\Collection;
  * creates is guaranteed usable with that button immediately, with no
  * further setup. By default cycles through all of them; pass --email to
  * pin every order to one specific whitelisted address instead (e.g. to
- * inspect a batch of real sends landing in one real inbox).
+ * inspect a batch of real sends landing in one real inbox). Likewise,
+ * --product pins every order to one product slug instead of cycling
+ * through miswak/bambukov-keis-za-miswak/stargalka-za-ezik - useful to
+ * guarantee a fresh, never-yet-reviewed product for a given email (see
+ * ReviewService::findEligibleOrderForEmail()'s one-review-per-email-per-
+ * product rule, and OrderThirtyDayReminderMail::reviewUrl()).
  */
 class SeedTestReminderOrders extends Command
 {
-    protected $signature = 'orders:seed-test-reminders {count=10 : How many test orders to create} {--email= : Use this one whitelisted test-account email for every order instead of cycling through all of them}';
+    protected $signature = 'orders:seed-test-reminders {count=10 : How many test orders to create} {--email= : Use this one whitelisted test-account email for every order instead of cycling through all of them} {--product= : Use this one product slug for every order instead of cycling through miswak/bambukov-keis-za-miswak/stargalka-za-ezik}';
 
     protected $description = 'Create Delivered test orders (one of the whitelisted test accounts each) ready for the admin "Send test reminder email" button';
 
@@ -58,6 +63,18 @@ class SeedTestReminderOrders extends Command
             $this->error('No purchasable product variants with a EUR price found - nothing to put on these test orders.');
 
             return self::FAILURE;
+        }
+
+        $requestedProduct = $this->option('product');
+
+        if ($requestedProduct !== null) {
+            $variants = $variants->filter(fn (ProductVariant $variant) => $variant->product->slug === $requestedProduct)->values();
+
+            if ($variants->isEmpty()) {
+                $this->error("No purchasable variant found for product slug '{$requestedProduct}'.");
+
+                return self::FAILURE;
+            }
         }
 
         $requestedEmail = $this->option('email');

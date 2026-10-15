@@ -9,13 +9,14 @@
     // logged in (works for a registered customer's order too, unlike the
     // guest_access_token this used before).
     //
-    // Deliberately a single CTA (the review link) and no "what's new/go
-    // shop" upsell section - an earlier version bolted unrelated product
-    // marketing onto this review ask (second button, emoji, discount
-    // called out twice), which reads as a promotional blast rather than a
-    // personal request and was landing in Gmail's Promotions tab as a
-    // result. That kind of "here's what's new" content belongs in a
-    // broadcast (see BroadcastMail/the admin Broadcast screen), not here.
+    // Deliberately still a single CTA (the review link), no emoji, and no
+    // boxed "what's new" callout - an earlier version bolted a full
+    // marketing section onto this review ask (second button, emoji, a
+    // bordered product box), which read as a promotional blast rather
+    // than a personal request and was landing in Gmail's Promotions tab
+    // as a result. By request, the two accessory products are still
+    // mentioned (see the plain-text line below), just as a passing
+    // sentence rather than that separate boxed section/CTA.
 @endphp
 
 @section('title', "Мина месец… И ще оценим твоят коментар")
@@ -34,6 +35,12 @@
         <td style="padding: 16px 24px 0; font-size: 14px; color: #2b2822; line-height: 1.6;">
             <p style="margin: 0 0 8px;">За нас обратната връзка е наистина ценна — не само хубавата.</p>
             <p style="margin: 0;">Искаме да знаем какво ти хареса, какво не ти хареса и дали Miswak намери място в ежедневието ти.</p>
+        </td>
+    </tr>
+
+    <tr>
+        <td style="padding: 16px 24px 0; font-size: 14px; color: #2b2822; line-height: 1.6;">
+            Между другото, добавихме и бамбуков калъф за Miswak, както и стъргалка за език — ако ти трябват, вече ги има в сайта.
         </td>
     </tr>
 

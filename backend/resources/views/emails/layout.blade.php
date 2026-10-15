@@ -35,7 +35,18 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="left" style="vertical-align: middle;">
-                                        <img src="{{ $message->embed(public_path('mail/smisul-logo.png')) }}" alt="Смисъл" width="200" style="display: block; width: 200px; max-width: 100%; height: auto;">
+                                        {{-- A real URL, not $message->embed()'s cid: inline attachment -
+                                             embed() only survives transports that send raw MIME (SMTP);
+                                             Brevo's HTTP API transport (symfony/brevo-mailer) doesn't
+                                             carry the inline attachment through, so the cid: reference
+                                             resolved to nothing and the logo showed broken in every
+                                             client. Same {app.url}/mail/... URL invoices/order.blade.php
+                                             already uses - backend/public/ itself is never web-served on
+                                             production (see deployment/public_html/.htaccess), so this
+                                             file also ships from frontend/public/mail/ (same filename),
+                                             landing at the site's shared document root where it's
+                                             actually reachable. --}}
+                                        <img src="{{ $assetUrl }}/mail/smisul-logo.png" alt="Смисъл" width="200" style="display: block; width: 200px; max-width: 100%; height: auto;">
                                     </td>
                                     <td align="right" style="vertical-align: middle; color: #71695c; font-size: 13px;">
                                         @hasSection('header_right')

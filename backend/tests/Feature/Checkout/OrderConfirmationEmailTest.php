@@ -53,8 +53,16 @@ class OrderConfirmationEmailTest extends TestCase
             ], $overrides));
     }
 
+    /**
+     * Asserts a real https://.../mail/smisul-logo.png URL, not a cid:
+     * inline attachment - Mail::embed()'s MIME attachment never survives
+     * Brevo's HTTP API transport (symfony/brevo-mailer rebuilds its own
+     * JSON payload from the Symfony Email object and drops it), which was
+     * showing as a broken image in every client on production. See
+     * emails/layout.blade.php's own comment on the <img> tag.
+     */
     #[Test]
-    public function a_paid_order_notifies_the_customer_and_each_store_recipient_with_an_embedded_logo(): void
+    public function a_paid_order_notifies_the_customer_and_each_store_recipient_with_a_logo_url(): void
     {
         $mailer = app('mail.manager');
         Mail::fake();
@@ -80,9 +88,8 @@ class OrderConfirmationEmailTest extends TestCase
             $sent = Mail::mailer('array')->to('test@example.com')->send($mail);
             $message = $sent->getSymfonySentMessage()->getOriginalMessage();
             $this->assertStringContainsString($order->order_number, $message->getSubject());
-            $this->assertStringContainsString('cid:', $message->getHtmlBody());
-            $this->assertCount(1, $message->getAttachments());
-            $this->assertSame('image/png', $message->getAttachments()[0]->getMediaType().'/'.$message->getAttachments()[0]->getMediaSubtype());
+            $this->assertStringContainsString(rtrim(config('app.url'), '/').'/mail/smisul-logo.png', $message->getHtmlBody());
+            $this->assertCount(0, $message->getAttachments());
         }
     }
 

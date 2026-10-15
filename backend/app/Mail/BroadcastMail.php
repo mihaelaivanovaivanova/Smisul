@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Mail\Concerns\HasUnsubscribeLink;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
@@ -19,6 +20,12 @@ use Illuminate\Queue\SerializesModels;
  * styling, so a promo lands looking like it's really from this store, not
  * like a copy-pasted blast - a real (if soft) trust/deliverability signal
  * on top of just looking better.
+ *
+ * Sent from config('mail.broadcast_from') - a different sender identity
+ * than order confirmations/the 30-day reminder (config('mail.from')), by
+ * request, so this mailable's bulk/promotional sending pattern doesn't
+ * drag Gmail's per-sender Promotions-tab reputation down for the other,
+ * more personal mail sharing the same address would otherwise get.
  */
 class BroadcastMail extends Mailable
 {
@@ -37,7 +44,10 @@ class BroadcastMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->subjectLine);
+        return new Envelope(
+            from: new Address(config('mail.broadcast_from.address'), config('mail.broadcast_from.name')),
+            subject: $this->subjectLine,
+        );
     }
 
     public function headers(): Headers

@@ -126,6 +126,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Broadcast "From" Address
+    |--------------------------------------------------------------------------
+    |
+    | A separate sender identity for the admin "Send broadcast" bulk email
+    | button (see BroadcastMail) - deliberately NOT the same address as
+    | order confirmations/review reminders above. Gmail's Promotions-tab
+    | classifier weighs sender-level reputation (aggregated across every
+    | recipient of that address) far more than any one email's own content,
+    | so a bulk, discount-heavy weekly broadcast sharing an address with
+    | personal order mail drags the latter into Promotions too. Splitting
+    | them keeps that reputation from bleeding across the two.
+    |
+    */
+
+    'broadcast_from' => [
+        'address' => env('MAIL_BROADCAST_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+        'name' => env('MAIL_BROADCAST_FROM_NAME', env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel'))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Administrator Notification Address
     |--------------------------------------------------------------------------
     |

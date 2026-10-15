@@ -79,6 +79,33 @@ class BroadcastAdminTest extends TestCase
         Mail::assertNotSent(BroadcastMail::class, fn (BroadcastMail $mail) => $mail->hasTo('not-opted-in@example.com'));
     }
 
+    /**
+     * By request: broadcasts go out from a separate sender identity
+     * (config('mail.broadcast_from')) than order confirmations/the 30-day
+     * reminder, so Gmail's per-sender Promotions-tab reputation for this
+     * bulk, discount-heavy mail doesn't bleed into the more personal mail
+     * sharing config('mail.from') would otherwise get - see BroadcastMail's
+     * own docblock.
+     */
+    #[Test]
+    public function a_broadcast_is_sent_from_the_separate_broadcast_sender_address(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create(['marketing_consent' => false, 'newsletter_subscription' => false]);
+        User::factory()->create(['email' => 'opted-in@example.com', 'marketing_consent' => true, 'newsletter_subscription' => false]);
+
+        $this->actingAs($admin)->postJson('/api/v1/admin/broadcasts', [
+            'subject' => 'New Miswak accessories',
+            'body' => 'Body',
+        ])->assertOk();
+
+        Mail::assertSent(
+            BroadcastMail::class,
+            fn (BroadcastMail $mail) => $mail->hasFrom(config('mail.broadcast_from.address'), config('mail.broadcast_from.name')),
+        );
+    }
+
     #[Test]
     public function a_customer_cannot_send_a_broadcast_by_posting_directly(): void
     {

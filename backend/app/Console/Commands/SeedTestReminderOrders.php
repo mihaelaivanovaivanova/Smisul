@@ -24,11 +24,13 @@ use Illuminate\Support\Collection;
  * (via OrderResource::is_test_account) before it'll let the admin "Send
  * test reminder email" button appear/fire at all, so every order this
  * creates is guaranteed usable with that button immediately, with no
- * further setup.
+ * further setup. By default cycles through all of them; pass --email to
+ * pin every order to one specific whitelisted address instead (e.g. to
+ * inspect a batch of real sends landing in one real inbox).
  */
 class SeedTestReminderOrders extends Command
 {
-    protected $signature = 'orders:seed-test-reminders {count=10 : How many test orders to create}';
+    protected $signature = 'orders:seed-test-reminders {count=10 : How many test orders to create} {--email= : Use this one whitelisted test-account email for every order instead of cycling through all of them}';
 
     protected $description = 'Create Delivered test orders (one of the whitelisted test accounts each) ready for the admin "Send test reminder email" button';
 
@@ -58,7 +60,15 @@ class SeedTestReminderOrders extends Command
             return self::FAILURE;
         }
 
-        $emails = OrderService::TEST_CUSTOMER_EMAILS;
+        $requestedEmail = $this->option('email');
+
+        if ($requestedEmail !== null && ! OrderService::isTestCustomerEmail($requestedEmail)) {
+            $this->error("'{$requestedEmail}' is not one of the whitelisted test accounts (see OrderService::TEST_CUSTOMER_EMAILS) - the \"Send test reminder email\" button would never appear for these orders.");
+
+            return self::FAILURE;
+        }
+
+        $emails = $requestedEmail !== null ? [$requestedEmail] : OrderService::TEST_CUSTOMER_EMAILS;
 
         for ($i = 0; $i < $count; $i++) {
             $name = self::CUSTOMER_NAMES[$i % count(self::CUSTOMER_NAMES)];

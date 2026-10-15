@@ -12,6 +12,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\Review;
 use App\Models\Shipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,6 +26,30 @@ use Tests\TestCase;
 class OrderAdminTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * A reminder is only sendable if there's still a product on the order
+     * this email hasn't reviewed yet (see OrderReminderService::
+     * applyEligibleForReminderScope()) - OrderItem::factory() alone leaves
+     * product_variant_id null, which never counts, so the reminder tests
+     * below need a real product/variant attached instead.
+     */
+    private function addReviewableOrderItem(Order $order): void
+    {
+        $product = Product::factory()->create();
+        $variant = ProductVariant::factory()->for($product)->create();
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'product_name' => $product->name,
+            'variant_name' => $variant->name,
+            'sku' => $variant->sku,
+            'quantity' => 1,
+            'unit_price' => 10,
+            'line_total' => 10,
+        ]);
+    }
 
     #[Test]
     public function a_customer_cannot_access_admin_order_endpoints(): void
@@ -389,6 +416,7 @@ class OrderAdminTest extends TestCase
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
         ]);
+        $this->addReviewableOrderItem($order);
 
         $response = $this->actingAs($admin)->postJson('/api/v1/admin/orders/send-reminder-emails');
 
@@ -502,6 +530,7 @@ class OrderAdminTest extends TestCase
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
         ]);
+        $this->addReviewableOrderItem($order);
 
         $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
 
@@ -531,6 +560,54 @@ class OrderAdminTest extends TestCase
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
         ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
+
+        $response->assertStatus(422);
+        Mail::assertNotSent(OrderThirtyDayReminderMail::class);
+    }
+
+    /**
+     * By request: a reminder is only sendable while there's still a
+     * product on the order this email hasn't reviewed yet - otherwise
+     * there's nothing left to ask for a review of, and the button on the
+     * order detail page stays disabled/hidden (order.qualifies_for_reminder
+     * false - see Admin\OrderResource) just like any other ineligibility
+     * reason.
+     */
+    #[Test]
+    public function sending_a_real_reminder_email_is_rejected_when_every_product_on_the_order_is_already_reviewed(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'customer_email' => 'realcustomer@example.com',
+            'created_at' => now()->subDays(31),
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Delivered,
+            'previous_status' => OrderStatus::Shipped,
+        ]);
+        $product = Product::factory()->create();
+        $variant = ProductVariant::factory()->for($product)->create();
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'product_name' => $product->name,
+            'variant_name' => $variant->name,
+            'sku' => $variant->sku,
+            'quantity' => 1,
+            'unit_price' => 10,
+            'line_total' => 10,
+        ]);
+        Review::factory()->for($product)->create(['email' => 'realcustomer@example.com']);
+
+        $show = $this->actingAs($admin)->getJson("/api/v1/admin/orders/{$order->id}");
+        $show->assertOk();
+        $show->assertJsonPath('data.qualifies_for_reminder', false);
 
         $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/send-reminder-email");
 
@@ -588,6 +665,7 @@ class OrderAdminTest extends TestCase
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
         ]);
+        $this->addReviewableOrderItem($dueOrder);
 
         $tooRecentOrder = Order::factory()->create([
             'status' => OrderStatus::Delivered,

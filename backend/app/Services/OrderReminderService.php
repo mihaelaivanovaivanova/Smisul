@@ -63,10 +63,20 @@ class OrderReminderService
     /**
      * The single source of truth for "does this order currently qualify for
      * a 30-day reminder email" at the database level - shared by
-     * dueOrders() above (the bulk sweep) and OrderService::listForAdmin()'s
-     * reminder-eligibility filter, so the two can never drift apart on what
-     * counts as due. The 30-day clock runs from Order::created_at (when the
-     * order was placed), not from whenever it happened to reach Delivered.
+     * dueOrders() above (the bulk sweep), OrderService::listForAdmin()'s
+     * reminder-eligibility filter, and isEligibleForReminder() below, so
+     * none of the three can drift apart on what counts as due. The 30-day
+     * clock runs from Order::created_at (when the order was placed), not
+     * from whenever it happened to reach Delivered.
+     *
+     * The last condition - at least one distinct product on this order
+     * that this order's email hasn't already reviewed - mirrors
+     * ReviewService::reviewableProductForOrder() (which OrderThirtyDay
+     * ReminderMail uses to pick WHICH product to link to) at the SQL
+     * level: a correlated NOT EXISTS per order item's product rather than
+     * reviewableProductForOrder()'s per-product findEligibleOrderForEmail()
+     * calls, since this runs as part of a list/bulk query rather than once
+     * for a single order being emailed.
      *
      * @param  Builder<Order>  $query
      * @return Builder<Order>
@@ -76,30 +86,29 @@ class OrderReminderService
         return $query->where('status', OrderStatus::Delivered)
             ->whereNull('thirty_day_reminder_sent_at')
             ->whereNotNull('customer_email')
-            ->where('created_at', '<=', now()->subDays(self::REMINDER_AFTER_DAYS));
+            ->where('created_at', '<=', now()->subDays(self::REMINDER_AFTER_DAYS))
+            ->whereHas('items.productVariant.product', function ($productQuery) {
+                $productQuery->whereDoesntHave('reviews', function ($reviewQuery) {
+                    $reviewQuery->whereRaw('LOWER(reviews.email) = LOWER(orders.customer_email)');
+                });
+            });
     }
 
     /**
-     * The in-memory equivalent of applyEligibleForReminderScope() above, for
-     * a single already-loaded order - gates the admin order detail page's
-     * real "Send reminder email" button and its qualifies_for_reminder JSON
-     * field (see Admin\OrderResource).
+     * Whether this one order currently qualifies - gates the admin order
+     * detail page's real "Send reminder email" button and its
+     * qualifies_for_reminder JSON field (see Admin\OrderResource). Just
+     * applyEligibleForReminderScope() narrowed to this order's id, rather
+     * than a separate in-memory check, now that the review condition above
+     * needs real relational data (items/variants/products/reviews) that
+     * isn't worth eager-loading just for this - one small indexed exists()
+     * query per call, fine for a single detail-page order; the admin list
+     * accepts the same per-row cost for its qualifies_for_reminder field,
+     * same tradeoff as any other admin-only, page-capped-at-100-rows view.
      */
     public static function isEligibleForReminder(Order $order): bool
     {
-        if ($order->status !== OrderStatus::Delivered) {
-            return false;
-        }
-
-        if ($order->thirty_day_reminder_sent_at !== null) {
-            return false;
-        }
-
-        if ($order->customer_email === null) {
-            return false;
-        }
-
-        return $order->created_at->lte(now()->subDays(self::REMINDER_AFTER_DAYS));
+        return self::applyEligibleForReminderScope(Order::query())->whereKey($order->id)->exists();
     }
 
     /**

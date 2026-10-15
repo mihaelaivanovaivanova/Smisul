@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Mail\Concerns\HasUnsubscribeLink;
 use App\Models\Order;
+use App\Services\ReviewService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -57,15 +58,18 @@ class OrderThirtyDayReminderMail extends Mailable
      * the fact - there's no "did you mean to request this" freshness
      * concern the way a confirmation link has.
      *
-     * Links to the review page of the product actually on this order, not
-     * a hardcoded Miswak - this store sells two other products (the case,
+     * Links to the review page of a product actually on this order, not a
+     * hardcoded Miswak - this store sells two other products (the case,
      * the tongue scraper) and an order for either of those was previously
      * always sent to /products/miswak, where ReviewService::
      * findEligibleOrderForEmail() would never find a Delivered Miswak
      * order for that email and silently no-op (same generic "thanks" the
-     * wizard shows either way - see AddReviewWizard's done step). Falls
-     * back to 'miswak' only if the order's variant/product was deleted
-     * since (product_variant_id is nullOnDelete).
+     * wizard shows either way - see AddReviewWizard's done step). Product
+     * selection itself (Miswak-priority, skipping an already-reviewed
+     * product) lives in ReviewService::reviewableProductForOrder() - the
+     * same method OrderReminderService::isEligibleForReminder() uses to
+     * gate whether this mail is even sendable for this order, so the two
+     * can't drift apart on what counts as reviewable.
      */
     private function reviewUrl(): string
     {
@@ -77,7 +81,10 @@ class OrderThirtyDayReminderMail extends Mailable
 
         $query = parse_url($signedBackendUrl, PHP_URL_QUERY);
         $frontendUrl = rtrim(config('app.frontend_url'), '/');
-        $productSlug = $this->order->items->first()?->productVariant?->product->slug ?? 'miswak';
+        $product = app(ReviewService::class)->reviewableProductForOrder($this->order);
+        $productSlug = $product !== null
+            ? $product->slug
+            : ($this->order->items->first()?->productVariant?->product->slug ?? 'miswak');
 
         return "{$frontendUrl}/products/{$productSlug}?write_review=1&order_id={$this->order->id}&{$query}";
     }

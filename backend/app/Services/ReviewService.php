@@ -119,6 +119,51 @@ class ReviewService
     }
 
     /**
+     * The product on $order this email can still review - prioritizing
+     * Miswak when it's on the order and not yet reviewed by this email
+     * (the flagship product customers are most likely to want to talk
+     * about - see OrderThirtyDayReminderMail), otherwise the first other
+     * eligible product in cart order. Null if every distinct product on
+     * this order has already been reviewed by this email - the single
+     * source of truth both for which product the 30-day reminder links
+     * to (OrderThirtyDayReminderMail::reviewUrl()) and for whether a
+     * reminder is sendable for this order at all (OrderReminderService::
+     * applyEligibleForReminderScope()/isEligibleForReminder() encode the
+     * same "not every product reviewed yet" rule in SQL, for the admin
+     * list/filter, rather than calling this per row).
+     */
+    public function reviewableProductForOrder(Order $order): ?Product
+    {
+        if ($order->customer_email === null) {
+            return null;
+        }
+
+        $products = $order->items
+            ->map(fn ($item) => $item->productVariant?->product)
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        $miswak = $products->firstWhere('slug', 'miswak');
+
+        if ($miswak !== null && $this->findEligibleOrderForEmail($order->customer_email, $miswak) !== null) {
+            return $miswak;
+        }
+
+        foreach ($products as $product) {
+            if ($miswak !== null && $product->is($miswak)) {
+                continue;
+            }
+
+            if ($this->findEligibleOrderForEmail($order->customer_email, $product) !== null) {
+                return $product;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Entry point for the guest-friendly "Add a review" wizard. Returns the
      * created Review (or null for a non-matching email) so a preVerified
      * caller can read its freshly-issued reward code straight off the

@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Review;
 use App\Services\OrderReminderService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +21,7 @@ class OrderThirtyDayReminderTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function deliveredOrder(array $overrides = [], ?Carbon $placedAt = null): Order
+    private function deliveredOrder(array $overrides = [], ?Carbon $placedAt = null, bool $withItem = true): Order
     {
         $order = Order::factory()->create(array_merge([
             'status' => OrderStatus::Delivered,
@@ -32,6 +33,17 @@ class OrderThirtyDayReminderTest extends TestCase
             'status' => OrderStatus::Delivered,
             'previous_status' => OrderStatus::Shipped,
         ]);
+
+        // A reminder is only sendable if there's still a product on the
+        // order this email hasn't reviewed yet (see OrderReminderService::
+        // applyEligibleForReminderScope()) - a fresh, never-reviewed
+        // product by default so callers that don't care about review
+        // state don't all need to attach their own item just to qualify.
+        // $withItem=false for tests building their own specific item(s)
+        // (e.g. to control exactly which products/order are on the cart).
+        if ($withItem) {
+            $this->addOrderItem($order, Product::factory()->create());
+        }
 
         return $order->fresh();
     }
@@ -161,14 +173,18 @@ class OrderThirtyDayReminderTest extends TestCase
     public function the_review_url_link_is_a_real_signed_link_the_review_identity_endpoint_accepts(): void
     {
         $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com', 'customer_first_name' => 'Ivan']);
+        $productSlug = $order->items->first()->productVariant->product->slug;
 
         $mail = new OrderThirtyDayReminderMail($order);
         $rendered = $mail->render();
 
         // &amp; not & - Blade's {{ }} HTML-escapes the href attribute, same
-        // as every other link in this email.
+        // as every other link in this email. The product slug itself
+        // (whatever deliveredOrder()'s default item happens to be) isn't
+        // this test's concern - see the dedicated tests below for Miswak-
+        // priority and skipping an already-reviewed product.
         $this->assertMatchesRegularExpression(
-            '#/products/miswak\?write_review=1&amp;order_id='.$order->id.'&amp;expires=\d+&amp;signature=[a-f0-9]{64}#',
+            '#/products/'.preg_quote($productSlug, '#').'\?write_review=1&amp;order_id='.$order->id.'&amp;expires=\d+&amp;signature=[a-f0-9]{64}#',
             $rendered,
         );
 
@@ -178,10 +194,6 @@ class OrderThirtyDayReminderTest extends TestCase
         // (write_review, a duplicate order_id) - those were never part of
         // what temporarySignedRoute() signed, so including them here would
         // (correctly) fail signature validation, same as a real tampered link.
-        //
-        // No items on this order (deliveredOrder() doesn't attach any), so
-        // reviewUrl() falls back to 'miswak' - see the dedicated test below
-        // for an order whose actual product isn't Miswak.
         preg_match('/expires=(\d+)/', $rendered, $expiresMatch);
         preg_match('/signature=([a-f0-9]{64})/', $rendered, $signatureMatch);
         $response = $this->getJson("/api/v1/orders/{$order->id}/review-identity?expires={$expiresMatch[1]}&signature={$signatureMatch[1]}");
@@ -203,9 +215,64 @@ class OrderThirtyDayReminderTest extends TestCase
     #[Test]
     public function the_review_url_links_to_the_products_own_review_page_not_always_miswak(): void
     {
-        $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com']);
-        $product = Product::factory()->create(['slug' => 'bambukov-keis-za-miswak']);
+        $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com'], withItem: false);
+        $this->addOrderItem($order, Product::factory()->create(['slug' => 'bambukov-keis-za-miswak']));
+
+        $rendered = (new OrderThirtyDayReminderMail($order->fresh()))->render();
+
+        $this->assertStringContainsString('/products/bambukov-keis-za-miswak?write_review=1', $rendered);
+        $this->assertStringNotContainsString('/products/miswak?write_review=1', $rendered);
+    }
+
+    /**
+     * An order can contain more than one distinct product - this one has
+     * both Miswak (already reviewed by this email, from some earlier
+     * order) and the case (not reviewed yet). Linking to Miswak again
+     * would hit the exact silent no-op the test above exists to prevent;
+     * the case is the one this email can actually still review.
+     */
+    #[Test]
+    public function the_review_url_skips_a_product_this_email_already_reviewed_in_favor_of_another_on_the_same_order(): void
+    {
+        $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com'], withItem: false);
+        $miswak = Product::factory()->create(['slug' => 'miswak']);
+        $case = Product::factory()->create(['slug' => 'bambukov-keis-za-miswak']);
+        $this->addOrderItem($order, $miswak);
+        $this->addOrderItem($order, $case);
+        Review::factory()->for($miswak)->create(['email' => 'ivan@example.com']);
+
+        $rendered = (new OrderThirtyDayReminderMail($order->fresh()))->render();
+
+        $this->assertStringContainsString('/products/bambukov-keis-za-miswak?write_review=1', $rendered);
+        $this->assertStringNotContainsString('/products/miswak?write_review=1', $rendered);
+    }
+
+    /**
+     * Miswak is the flagship product - when it's on the order and this
+     * email hasn't reviewed it yet, it always wins over an accessory,
+     * even when the accessory was added to the cart first (cart order
+     * alone isn't the tiebreaker here, unlike the fallback used when
+     * Miswak isn't eligible/on the order at all).
+     */
+    #[Test]
+    public function the_review_url_prefers_miswak_over_another_eligible_product_regardless_of_cart_order(): void
+    {
+        $order = $this->deliveredOrder(['customer_email' => 'ivan@example.com'], withItem: false);
+        $case = Product::factory()->create(['slug' => 'bambukov-keis-za-miswak']);
+        $miswak = Product::factory()->create(['slug' => 'miswak']);
+        $this->addOrderItem($order, $case);
+        $this->addOrderItem($order, $miswak);
+
+        $rendered = (new OrderThirtyDayReminderMail($order->fresh()))->render();
+
+        $this->assertStringContainsString('/products/miswak?write_review=1', $rendered);
+        $this->assertStringNotContainsString('/products/bambukov-keis-za-miswak?write_review=1', $rendered);
+    }
+
+    private function addOrderItem(Order $order, Product $product): void
+    {
         $variant = ProductVariant::factory()->for($product)->create();
+
         OrderItem::create([
             'order_id' => $order->id,
             'product_variant_id' => $variant->id,
@@ -216,10 +283,5 @@ class OrderThirtyDayReminderTest extends TestCase
             'unit_price' => 10,
             'line_total' => 10,
         ]);
-
-        $rendered = (new OrderThirtyDayReminderMail($order->fresh()))->render();
-
-        $this->assertStringContainsString('/products/bambukov-keis-za-miswak?write_review=1', $rendered);
-        $this->assertStringNotContainsString('/products/miswak?write_review=1', $rendered);
     }
 }

@@ -20,19 +20,19 @@ use Throwable;
  *
  * Scoped to orders currently sitting at Shipped or Returned - a shipment on
  * an order that hasn't reached Shipped yet (still Packed, say) has nothing
- * useful to poll for. Returned stays in scope (unlike every other terminal
- * ShipmentStatus) so a Returned order can still self-correct if a later
- * sync genuinely confirms Delivered - see advanceOrderStatus() and
- * ShipmentStatus::isSticky()'s own docblock for why that's the only
- * self-correction kept (an earlier, broader "un-stick on any later
- * activity" version was reverted after a real case proved it unsafe - it
- * can't be told apart from a genuinely-returned order's own unmapped
- * trailing confirmation operation without knowing Speedy's real operation
- * codes, which this app doesn't yet). Carrier-agnostic by construction -
- * track() already dispatches to whichever ShippingProviderInterface the
- * shipment's own carrier needs (see ShippingService::providerFor()), so
- * this covers Speedy and BOX NOW identically in the same pass, never just
- * one of them.
+ * useful to poll for. Returned and Failed both stay in scope (unlike
+ * Delivered/Cancelled) so a shipment stuck at either can still self-correct
+ * once a later sync genuinely confirms Delivered or Returned - see
+ * advanceOrderStatus() and ShipmentStatus::isSticky()'s own docblock.
+ * Confirmed live: a real shipment's history had a failed delivery attempt
+ * ("Неуспешна доставка") chronologically *before* its real Returned event,
+ * and briefly got stuck recording Failed during the same broken-deploy
+ * window that caused the Returned issue - excluding Failed from polling too
+ * would have left it stuck forever, the exact failure mode that window
+ * already taught us to avoid. Carrier-agnostic by construction - track()
+ * already dispatches to whichever ShippingProviderInterface the shipment's
+ * own carrier needs (see ShippingService::providerFor()), so this covers
+ * Speedy and BOX NOW identically in the same pass, never just one of them.
  *
  * Kept as its own service, not inline in the controller (or
  * SyncShipmentTracking, the equivalent manual console command - see its
@@ -58,13 +58,15 @@ class ShipmentTrackingSyncService
      */
     public function sync(): array
     {
-        // Returned is deliberately excluded from this stop-polling list -
-        // see the class docblock. Delivered/Failed/Cancelled stay excluded:
-        // no real-world case has shown either of those firing prematurely
-        // the way Returned did, so they keep the original "stop checking
+        // Returned and Failed are deliberately excluded from this
+        // stop-polling list - see the class docblock. Delivered/Cancelled
+        // stay excluded: no real-world case has shown either of those
+        // firing prematurely, so they keep the original "stop checking
         // once terminal" behavior.
         $stopPollingStatuses = collect(ShipmentStatus::cases())
-            ->filter(fn (ShipmentStatus $status) => $status->isFinal() && $status !== ShipmentStatus::Returned)
+            ->filter(fn (ShipmentStatus $status) => $status->isFinal()
+                && $status !== ShipmentStatus::Returned
+                && $status !== ShipmentStatus::Failed)
             ->map(fn (ShipmentStatus $status) => $status->value)
             ->all();
 
@@ -99,16 +101,25 @@ class ShipmentTrackingSyncService
 
                     $shipment->refresh();
 
-                    if ($shipment->status === $previousStatus) {
-                        continue;
+                    if ($shipment->status !== $previousStatus) {
+                        $updated++;
+
+                        if ($shipment->status === ShipmentStatus::ReadyForPickup && $shipment->ready_for_pickup_at === null) {
+                            $shipment->update(['ready_for_pickup_at' => now()]);
+                        }
                     }
 
-                    $updated++;
-
-                    if ($shipment->status === ShipmentStatus::ReadyForPickup && $shipment->ready_for_pickup_at === null) {
-                        $shipment->update(['ready_for_pickup_at' => now()]);
-                    }
-
+                    // Always attempted, not just when the shipment's own
+                    // status changed this run - a shipment can already be
+                    // sitting at the right status (e.g. corrected by hand,
+                    // or by a direct track() call outside this loop) while
+                    // its order hasn't caught up yet, and advanceOrderStatus()
+                    // already no-ops cheaply via its own guards when there's
+                    // genuinely nothing to do (see its own docblock).
+                    // Confirmed live: without this, a shipment whose status
+                    // was fixed by a one-off direct track() call stayed
+                    // desynced from its order on every later sync run, since
+                    // "no change this run" always skipped the order check.
                     if ($this->advanceOrderStatus($shipment)) {
                         $ordersUpdated++;
                     }
@@ -132,13 +143,17 @@ class ShipmentTrackingSyncService
      * query above already filtered on this, but re-confirms it here in
      * case something else moved it in between) - never overrides a status
      * an admin (or any other flow) has already moved it to since.
-     * Delivered/Failed/Cancelled stay terminal (the query above excludes
-     * those shipments from every future sync run once recorded); Returned
-     * doesn't - see the class docblock. The only move out of Returned here
-     * is to Delivered, on a genuine later confirmation - see
-     * ShipmentStatus::isSticky()'s own docblock for why a broader
-     * "Returned -> Shipped whenever anything else shows up" rule was
-     * tried and reverted.
+     * Delivered/Cancelled stay terminal (the query above excludes those
+     * shipments from every future sync run once recorded); Returned/Failed
+     * don't - see the class docblock. A shipment sitting at Failed has no
+     * order-level target of its own ($targetStatus falls through to null
+     * below, same as any other in-progress status) - it's just kept
+     * eligible for polling so a later real Delivered/Returned can still be
+     * caught, not treated as an order-level outcome by itself. The only
+     * move out of Returned here is to Delivered, on a genuine later
+     * confirmation - see ShipmentStatus::isSticky()'s own docblock for why
+     * a broader "Returned -> Shipped whenever anything else shows up" rule
+     * was tried and reverted.
      */
     private function advanceOrderStatus(Shipment $shipment): bool
     {

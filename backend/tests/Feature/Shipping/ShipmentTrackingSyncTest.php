@@ -64,6 +64,26 @@ class ShipmentTrackingSyncTest extends TestCase
         ];
     }
 
+    /**
+     * A real case: a failed delivery attempt (operationCode 44) followed
+     * later by the real Returned event (38) - confirms Failed doesn't
+     * permanently stick over a later Returned/Delivered the way it
+     * briefly did during a reverted intermediate design (see
+     * ShipmentTrackingSyncService's own docblock).
+     */
+    private function speedyFailedThenReturnedResponse(): array
+    {
+        return [
+            'parcels' => [[
+                'operations' => [
+                    ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
+                    ['operationCode' => 44, 'dateTime' => '2026-07-07T10:00:00+03:00', 'description' => 'Неуспешна доставка'],
+                    ['operationCode' => 38, 'dateTime' => '2026-07-10T10:00:00+03:00', 'description' => 'Връщане към подателя'],
+                ],
+            ]],
+        ];
+    }
+
     /** operationCode 38 is Speedy's own "returned to sender" code. */
     private function speedyReturnedResponse(): array
     {
@@ -320,6 +340,74 @@ class ShipmentTrackingSyncTest extends TestCase
         $this->assertSame(0, $result['orders_updated']);
         $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
         $this->assertSame(1, $order->statusHistories()->where('status', OrderStatus::Returned)->count());
+    }
+
+    /**
+     * Regression test for a real production case: Failed must not stop
+     * polling the way Delivered/Cancelled do - a failed delivery attempt
+     * is often followed by a real Returned (or Delivered) outcome, and a
+     * shipment stuck recording Failed would otherwise never be checked
+     * again (same class of bug the Returned fix above addresses).
+     */
+    #[Test]
+    public function a_failed_shipment_keeps_being_polled_and_self_corrects_to_returned(): void
+    {
+        Http::fake([
+            'api.speedy.bg/*' => Http::sequence()
+                ->push($this->speedyFailedThenReturnedResponse())
+                ->push($this->speedyFailedThenReturnedResponse()),
+        ]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(ShipmentStatus::Returned, $shipment->fresh()->status);
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+
+        // A shipment that genuinely did fail first, then a day later
+        // actually failed again (same raw response re-fetched, nothing
+        // new) must still be polled on the next run, not silently
+        // excluded the way Delivered/Cancelled are.
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+        $this->assertSame(1, $result['checked']);
+    }
+
+    /**
+     * Regression test: a shipment whose status is already correct (e.g.
+     * corrected by a direct track() call outside the normal sync loop,
+     * like a one-off tinker fix) must still bring its order in line on
+     * the next sync run, even though the shipment's own status doesn't
+     * change *during* that run. Before this fix, advanceOrderStatus() was
+     * only ever attempted when sync() detected a fresh change in the same
+     * run, leaving an already-correct-but-desynced shipment/order pair
+     * stuck forever.
+     */
+    #[Test]
+    public function a_shipment_already_at_its_correct_status_still_advances_a_desynced_order(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyReturnedResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            // Already Returned - as if a one-off direct track() call had
+            // already corrected the shipment, but nothing had touched the
+            // order yet.
+            'status' => ShipmentStatus::Returned,
+        ]);
+
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+
+        // The shipment's own status doesn't change this run (it was
+        // already Returned), but the order still gets brought in line.
+        $this->assertSame(0, $result['updated']);
+        $this->assertSame(1, $result['orders_updated']);
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
     }
 
     /**

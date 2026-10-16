@@ -78,17 +78,18 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
-     * Same history as speedyReturnedResponse() above, plus a later
-     * operation showing the carrier is still actively moving the parcel -
-     * a real case: Speedy redirected/re-attempted delivery for days after
-     * "Връщане в офис" fired. operationCode 999 stands in for whichever
-     * real redirect/retry code Speedy actually uses (still unconfirmed,
-     * see SpeedyShippingProvider::mapStatus()'s own docblock) - it falls
-     * through mapStatus()'s default branch to Pending, same as any other
-     * unmapped code, which is enough on its own to prove Returned isn't
-     * "sticky" the way Delivered is (see ShipmentStatus::isSticky()).
+     * Same history as speedyReturnedResponse() above, plus a later,
+     * unmapped operation - a real case: a genuinely-returned order's own
+     * confirmation step ("Предаване обратно на подател" - "handed back to
+     * sender") is itself unmapped. operationCode 999 stands in for
+     * whichever real code Speedy actually uses for it (still unconfirmed,
+     * see SpeedyShippingProvider::mapStatus()'s own docblock). Used to
+     * prove the opposite of what its name once implied: Returned IS
+     * sticky, so this later unmapped operation must NOT un-stick it - see
+     * ShipmentStatus::isSticky()'s own docblock for why a non-sticky
+     * version of Returned was tried and reverted.
      */
-    private function speedyReturnedThenRedirectedResponse(): array
+    private function speedyReturnedThenUnmappedFollowUpResponse(): array
     {
         return [
             'parcels' => [[
@@ -255,23 +256,20 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
-     * The normal case, not the "single sync catches it already delivered"
-     * shortcut above: a later sync sees the carrier is still actively
-     * redirecting/re-attempting delivery (not yet a real Delivered) - the
-     * order should self-correct back to Shipped, the honest description
-     * of "still in progress", not stay stuck at Returned and not jump
-     * ahead to Delivered. See ShipmentStatus::isSticky() for why this is
-     * reachable at all - a naive "highest rank always wins" rule (the
-     * first version of this fix) would have made this permanently
-     * unreachable once Returned had fired once.
+     * Regression test for a real production case: a genuinely-returned
+     * order's own unmapped trailing confirmation operation ("Предаване
+     * обратно на подател") must NOT un-stick the correct Returned verdict
+     * - it did, briefly, under a since-reverted "Returned isn't sticky"
+     * design (see ShipmentStatus::isSticky()'s own docblock). The order
+     * must stay Returned here, not flip to Shipped or anything else.
      */
     #[Test]
-    public function an_order_wrongly_marked_returned_self_corrects_back_to_shipped_while_still_in_progress(): void
+    public function a_genuinely_returned_order_stays_returned_despite_an_unmapped_trailing_operation(): void
     {
         Http::fake([
             'api.speedy.bg/*' => Http::sequence()
                 ->push($this->speedyReturnedResponse())
-                ->push($this->speedyReturnedThenRedirectedResponse()),
+                ->push($this->speedyReturnedThenUnmappedFollowUpResponse()),
         ]);
 
         $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
@@ -286,11 +284,13 @@ class ShipmentTrackingSyncTest extends TestCase
 
         $result = app(ShipmentTrackingSyncService::class)->sync();
 
+        // The computed current status is still Returned (the sticky event
+        // wins over the new unmapped one), so this doesn't even register
+        // as a status change - the order correctly never moves.
         $this->assertSame(1, $result['checked']);
-        $this->assertSame(OrderStatus::Shipped, $order->fresh()->status);
-        // The unmapped redirect code (999) falls through to Pending - see
-        // the fixture's own docblock.
-        $this->assertSame(ShipmentStatus::Pending, $shipment->fresh()->status);
+        $this->assertSame(0, $result['updated']);
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+        $this->assertSame(ShipmentStatus::Returned, $shipment->fresh()->status);
     }
 
     /**

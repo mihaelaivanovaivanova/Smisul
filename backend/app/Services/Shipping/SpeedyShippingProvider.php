@@ -363,9 +363,10 @@ class SpeedyShippingProvider implements ShippingProviderInterface
      * status and the real delivery one right before it was never seen at
      * all - a shipment stuck on its pre-delivery status forever. See
      * ShipmentStatus::isSticky() for how currentStatus now prefers a real
-     * Delivered/Failed/Cancelled operation over whatever's chronologically
-     * after it, while still letting a non-sticky status (notably Returned)
-     * be genuinely superseded by later activity - see mostAdvancedStatus().
+     * sticky operation (Delivered/Returned/Failed/Cancelled) over whatever's
+     * chronologically after it - see mostAdvancedStatus() and isSticky()'s
+     * own docblock for why Returned is sticky too, despite an earlier,
+     * reverted attempt to exclude it.
      */
     public function track(string $trackingNumber): TrackingData
     {
@@ -412,12 +413,11 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
-     * The most recent isSticky() status (Delivered/Failed/Cancelled) if
-     * any operation reports one, regardless of what's chronologically
-     * after it - otherwise simply the last operation in the list, exactly
-     * as before ShipmentStatus::isSticky() existed. See track()'s own
-     * docblock, and isSticky()'s, for why this isn't a uniform "highest
-     * rank wins" rule across every status.
+     * The most recent isSticky() status (Delivered/Returned/Failed/
+     * Cancelled) if any operation reports one, regardless of what's
+     * chronologically after it - otherwise simply the last operation in
+     * the list. See track()'s own docblock, and isSticky()'s, for the
+     * real case this exists for.
      *
      * @param  list<TrackingEventData>  $events
      */

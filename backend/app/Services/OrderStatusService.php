@@ -40,23 +40,22 @@ class OrderStatusService
         OrderStatus::Processing->value => [OrderStatus::Packed, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Packed->value => [OrderStatus::Shipped, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Refunded],
-        // Returned is reached from Shipped (the parcel came back to the
-        // sender) - or self-corrected away from, now. Confirmed live:
-        // Speedy's own "Връщане в офис" ("returned to office") tracking
-        // event can fire mid-journey, as a retry/redirect step, not a true
-        // final return - the carrier kept re-attempting delivery for days
-        // afterward in a real case. ShipmentTrackingSyncService keeps
-        // polling a Returned shipment specifically so this can correct
-        // itself: back to Shipped if the carrier's still actively handling
-        // it (the honest description of "still in progress", letting the
-        // normal Shipped -> Delivered/Returned moves above take it from
-        // there), or straight to Delivered if a single sync happens to
-        // observe it already fully delivered with no Shipped re-observed
-        // in between (see ShipmentTrackingSyncService::advanceOrderStatus()'s
-        // own docblock). Refunded is still the other legal move, for an
-        // order that was genuinely, permanently returned and paid by card
-        // before shipping (see PaymentService::refund()).
-        OrderStatus::Returned->value => [OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Refunded],
+        // Returned is reached only from Shipped (the parcel came back to
+        // the sender). ShipmentTrackingSyncService keeps polling a
+        // Returned shipment so this can still self-correct to Delivered
+        // if a later sync genuinely confirms it - but only to Delivered,
+        // not back to Shipped on any other signal. An earlier version
+        // allowed Returned -> Shipped too (a premature Returned
+        // self-correcting while the carrier was still actively
+        // redelivering), reverted after a real case proved it unsafe: a
+        // genuinely-returned order's own unmapped trailing "handover
+        // confirmed" operation is the exact same shape to our current
+        // Speedy operation-code mapping as the premature case was, with
+        // the opposite correct outcome - see ShipmentStatus::isSticky()'s
+        // own docblock for the full story. Refunded is the other legal
+        // move, for an order that was paid by card before shipping (see
+        // PaymentService::refund()).
+        OrderStatus::Returned->value => [OrderStatus::Delivered, OrderStatus::Refunded],
         // Completed is retired (see OrderStatus::Completed's own docblock) -
         // Delivered is the terminal happy-path status now. Completed's own
         // outgoing transition stays listed below for the same reason

@@ -30,27 +30,18 @@ class ReturnedOrderStatusTest extends TestCase
     }
 
     /**
-     * Shipped and Delivered are allowed too, not just Refunded - a
-     * self-correction path for ShipmentTrackingSyncService: Speedy's own
-     * "Връщане в офис" ("returned to office") tracking event can fire
-     * mid-journey, as a retry/redirect step, not a true final return
-     * (confirmed live - the carrier kept re-attempting delivery for days
-     * after it fired). Back to Shipped is the normal case (the carrier is
-     * still actively handling it - ordinary Shipped -> Delivered/Returned
-     * takes it from there next); straight to Delivered only happens if a
-     * single sync run observes it already fully delivered with no Shipped
-     * re-observed in between. See OrderStatusService::TRANSITIONS' own
-     * comment on Returned, and the two tests below.
+     * Delivered is allowed too, not just Refunded - lets
+     * ShipmentTrackingSyncService self-correct a Returned order if a
+     * later sync genuinely confirms delivery. Returned -> Shipped was
+     * tried and reverted - see ShipmentStatus::isSticky()'s own docblock
+     * for the real case that made it unsafe.
      */
     #[Test]
-    public function a_returned_order_can_move_on_to_shipped_delivered_or_refunded(): void
+    public function a_returned_order_can_move_on_to_delivered_or_refunded(): void
     {
         $service = app(OrderStatusService::class);
 
-        $this->assertSame(
-            [OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Refunded],
-            $service->allowedTransitions(OrderStatus::Returned),
-        );
+        $this->assertSame([OrderStatus::Delivered, OrderStatus::Refunded], $service->allowedTransitions(OrderStatus::Returned));
     }
 
     #[Test]
@@ -64,22 +55,7 @@ class ReturnedOrderStatusTest extends TestCase
     }
 
     #[Test]
-    public function a_returned_order_can_self_correct_back_to_shipped(): void
-    {
-        $order = Order::factory()->create(['status' => OrderStatus::Returned]);
-
-        $updated = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Shipped, null, 'Updated from speedy tracking sync: В транзит');
-
-        $this->assertSame(OrderStatus::Shipped, $updated->status);
-        $this->assertDatabaseHas('order_status_histories', [
-            'order_id' => $order->id,
-            'status' => OrderStatus::Shipped->value,
-            'previous_status' => OrderStatus::Returned->value,
-        ]);
-    }
-
-    #[Test]
-    public function a_returned_order_can_self_correct_straight_to_delivered(): void
+    public function a_returned_order_can_self_correct_to_delivered(): void
     {
         $order = Order::factory()->create(['status' => OrderStatus::Returned]);
 
@@ -91,6 +67,25 @@ class ReturnedOrderStatusTest extends TestCase
             'status' => OrderStatus::Delivered->value,
             'previous_status' => OrderStatus::Returned->value,
         ]);
+    }
+
+    /**
+     * Regression guard: Returned -> Shipped was allowed for a while (to
+     * let a premature Returned self-correct while the carrier kept
+     * redelivering) and then removed - see ShipmentStatus::isSticky()'s
+     * own docblock for the real case that made it unsafe (a genuinely-
+     * returned order's own unmapped trailing "handover confirmed"
+     * operation is indistinguishable from that case with our current
+     * Speedy operation-code mapping). Confirms it stays removed.
+     */
+    #[Test]
+    public function a_returned_order_cannot_move_back_to_shipped(): void
+    {
+        $order = Order::factory()->create(['status' => OrderStatus::Returned]);
+
+        $this->expectException(InvalidOrderStatusTransitionException::class);
+
+        app(OrderStatusService::class)->transitionTo($order, OrderStatus::Shipped, null);
     }
 
     #[Test]

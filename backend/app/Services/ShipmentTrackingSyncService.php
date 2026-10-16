@@ -21,15 +21,18 @@ use Throwable;
  * Scoped to orders currently sitting at Shipped or Returned - a shipment on
  * an order that hasn't reached Shipped yet (still Packed, say) has nothing
  * useful to poll for. Returned stays in scope (unlike every other terminal
- * ShipmentStatus) so a premature Returned verdict can self-correct: Speedy's
- * "Връщане в офис" ("returned to office") tracking event, confirmed live,
- * can fire mid-journey as a retry/redirect step rather than a true final
- * return, with the carrier still re-attempting delivery for days afterward
- * - see advanceOrderStatus() and OrderStatusService::TRANSITIONS' own
- * comments on Returned. Carrier-agnostic by construction - track() already
- * dispatches to whichever ShippingProviderInterface the shipment's own
- * carrier needs (see ShippingService::providerFor()), so this covers
- * Speedy and BOX NOW identically in the same pass, never just one of them.
+ * ShipmentStatus) so a Returned order can still self-correct if a later
+ * sync genuinely confirms Delivered - see advanceOrderStatus() and
+ * ShipmentStatus::isSticky()'s own docblock for why that's the only
+ * self-correction kept (an earlier, broader "un-stick on any later
+ * activity" version was reverted after a real case proved it unsafe - it
+ * can't be told apart from a genuinely-returned order's own unmapped
+ * trailing confirmation operation without knowing Speedy's real operation
+ * codes, which this app doesn't yet). Carrier-agnostic by construction -
+ * track() already dispatches to whichever ShippingProviderInterface the
+ * shipment's own carrier needs (see ShippingService::providerFor()), so
+ * this covers Speedy and BOX NOW identically in the same pass, never just
+ * one of them.
  *
  * Kept as its own service, not inline in the controller (or
  * SyncShipmentTracking, the equivalent manual console command - see its
@@ -131,20 +134,11 @@ class ShipmentTrackingSyncService
      * an admin (or any other flow) has already moved it to since.
      * Delivered/Failed/Cancelled stay terminal (the query above excludes
      * those shipments from every future sync run once recorded); Returned
-     * doesn't - see the class docblock.
-     *
-     * A Returned order's self-correction goes back to Shipped, not
-     * straight to Delivered, whenever the shipment's new status is
-     * anything other than Delivered/still-Returned - the honest
-     * description of "the carrier is still actively handling this parcel"
-     * is Shipped, matching whatever Shipped -> Delivered/Returned would
-     * already do next, rather than a special-cased direct Returned ->
-     * Delivered edge that skips past that real intermediate state. If a
-     * single sync run happens to observe the parcel already fully
-     * delivered (no intermediate status ever recorded in between, e.g. if
-     * nobody ran "Sync tracking" for a while), it still goes straight to
-     * Delivered - there's no dishonesty in that case, Shipped genuinely
-     * was never re-observed.
+     * doesn't - see the class docblock. The only move out of Returned here
+     * is to Delivered, on a genuine later confirmation - see
+     * ShipmentStatus::isSticky()'s own docblock for why a broader
+     * "Returned -> Shipped whenever anything else shows up" rule was
+     * tried and reverted.
      */
     private function advanceOrderStatus(Shipment $shipment): bool
     {
@@ -154,10 +148,9 @@ class ShipmentTrackingSyncService
             return false;
         }
 
-        $targetStatus = match (true) {
-            $shipment->status === ShipmentStatus::Delivered => OrderStatus::Delivered,
-            $shipment->status === ShipmentStatus::Returned => OrderStatus::Returned,
-            $order->status === OrderStatus::Returned => OrderStatus::Shipped,
+        $targetStatus = match ($shipment->status) {
+            ShipmentStatus::Delivered => OrderStatus::Delivered,
+            ShipmentStatus::Returned => OrderStatus::Returned,
             default => null,
         };
 

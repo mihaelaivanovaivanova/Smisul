@@ -84,14 +84,20 @@ class ShipmentTrackingSyncTest extends TestCase
         ];
     }
 
-    /** operationCode 38 is Speedy's own "returned to sender" code. */
+    /**
+     * operationCode 38 is Speedy's own return-family code, but only counts
+     * as a genuine "returned to sender" when the description actually
+     * names подателя (the sender) - see SpeedyShippingProvider::
+     * mapStatus()'s own docblock. "Връщане към подателя" is the real text
+     * confirmed live on real orders (KFAXTA/VJYMEJ).
+     */
     private function speedyReturnedResponse(): array
     {
         return [
             'parcels' => [[
                 'operations' => [
                     ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
-                    ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => null],
+                    ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => 'Връщане към подателя'],
                 ],
             ]],
         ];
@@ -101,13 +107,12 @@ class ShipmentTrackingSyncTest extends TestCase
      * Same history as speedyReturnedResponse() above, plus a later,
      * unmapped operation - a real case: a genuinely-returned order's own
      * confirmation step ("Предаване обратно на подател" - "handed back to
-     * sender") is itself unmapped. operationCode 999 stands in for
-     * whichever real code Speedy actually uses for it (still unconfirmed,
-     * see SpeedyShippingProvider::mapStatus()'s own docblock). Used to
-     * prove the opposite of what its name once implied: Returned IS
-     * sticky, so this later unmapped operation must NOT un-stick it - see
-     * ShipmentStatus::isSticky()'s own docblock for why a non-sticky
-     * version of Returned was tried and reverted.
+     * sender") is itself unmapped (operationCode 999 stands in for
+     * whichever real code Speedy actually uses for it). Used to prove the
+     * opposite of what its name once implied: Returned IS sticky, so this
+     * later unmapped operation must NOT un-stick it - see ShipmentStatus::
+     * isSticky()'s own docblock for why a non-sticky version of Returned
+     * was tried and reverted.
      */
     private function speedyReturnedThenUnmappedFollowUpResponse(): array
     {
@@ -115,8 +120,47 @@ class ShipmentTrackingSyncTest extends TestCase
             'parcels' => [[
                 'operations' => [
                     ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
-                    ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => 'Връщане в офис'],
-                    ['operationCode' => 999, 'dateTime' => '2026-07-09T10:00:00+03:00', 'description' => 'Насочена към офис'],
+                    ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => 'Връщане към подателя'],
+                    ['operationCode' => 999, 'dateTime' => '2026-07-09T10:00:00+03:00', 'description' => 'Предаване обратно на подател'],
+                ],
+            ]],
+        ];
+    }
+
+    /**
+     * Regression fixture for the real SQ369U case: operationCode 38 with
+     * description "Връщане в офис" (redirected back to a local office
+     * mid-journey, not a final return) must NOT be read as Returned -
+     * confirmed live, the real parcel kept moving through "Уточняване на
+     * доставка" for days afterward rather than ever coming back to us. See
+     * SpeedyShippingProvider::mapStatus()'s own docblock.
+     */
+    private function speedyOfficeRedirectResponse(): array
+    {
+        return [
+            'parcels' => [[
+                'operations' => [
+                    ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
+                    ['operationCode' => 1134, 'dateTime' => '2026-07-07T10:00:00+03:00', 'description' => 'Изпратено известие за пратка в офис/автомат'],
+                    ['operationCode' => 38, 'dateTime' => '2026-07-10T10:00:00+03:00', 'description' => 'Връщане в офис'],
+                    ['operationCode' => 136, 'dateTime' => '2026-07-11T10:00:00+03:00', 'description' => 'Уточняване на доставка'],
+                ],
+            ]],
+        ];
+    }
+
+    /**
+     * operationCode 1134 is ShipmentStatus::ReadyForPickup's real Speedy
+     * code - confirmed live (SQ369U), firing the day after arrival at the
+     * office.
+     */
+    private function speedyReadyForPickupResponse(): array
+    {
+        return [
+            'parcels' => [[
+                'operations' => [
+                    ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
+                    ['operationCode' => 1134, 'dateTime' => '2026-07-07T10:00:00+03:00', 'description' => 'Изпратено известие за пратка в офис/автомат'],
                 ],
             ]],
         ];
@@ -314,12 +358,11 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
-     * A shipment/order that really, permanently never gets collected keeps
-     * being polled (no way to distinguish "still retrying" from "truly
-     * done" without a real Speedy signal we don't have yet - see
-     * SpeedyShippingProvider::mapStatus()'s own docblock) - confirms this
-     * doesn't error or double-fire the transition when the carrier just
-     * keeps reporting the same Returned state.
+     * A genuinely-returned shipment/order (description names the sender -
+     * see SpeedyShippingProvider::mapStatus()'s own docblock) keeps being
+     * polled anyway - confirms this doesn't error or double-fire the
+     * transition when the carrier just keeps reporting the same Returned
+     * state.
      */
     #[Test]
     public function a_still_returned_shipment_is_polled_again_without_error_or_duplicate_transition(): void
@@ -340,6 +383,62 @@ class ShipmentTrackingSyncTest extends TestCase
         $this->assertSame(0, $result['orders_updated']);
         $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
         $this->assertSame(1, $order->statusHistories()->where('status', OrderStatus::Returned)->count());
+    }
+
+    /**
+     * Regression test for the real production case that started this
+     * whole investigation (order SQ369U): Speedy's "Връщане в офис"
+     * ("returned to office") shares operationCode 38 with a genuine final
+     * return, but is just a mid-journey redirect - the carrier kept
+     * re-attempting delivery for days afterward. Must NOT be read as
+     * Returned - the order has to stay Shipped so the sync keeps checking
+     * it the normal way, not via Returned's special still-polling carve-
+     * out. See SpeedyShippingProvider::mapStatus()'s own docblock for the
+     * description-based fix this confirms.
+     */
+    #[Test]
+    public function a_speedy_office_redirect_does_not_mark_the_shipment_returned(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyOfficeRedirectResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::ReadyForPickup,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertNotSame(ShipmentStatus::Returned, $shipment->fresh()->status);
+        $this->assertSame(OrderStatus::Shipped, $order->fresh()->status);
+    }
+
+    /**
+     * operationCode 1134 is ShipmentStatus::ReadyForPickup's real Speedy
+     * code - confirmed live (SQ369U). Mirrors the equivalent BOX NOW test
+     * below (a_box_now_shipment_reaching_final_destination_...) - the
+     * pickup-reminder sequence is carrier-agnostic once the status lands
+     * on ReadyForPickup.
+     */
+    #[Test]
+    public function a_speedy_shipment_reaching_the_office_is_marked_ready_for_pickup_and_sends_the_first_reminder(): void
+    {
+        Mail::fake();
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyReadyForPickupResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+
+        $shipment->refresh();
+        $this->assertSame(ShipmentStatus::ReadyForPickup, $shipment->status);
+        $this->assertNotNull($shipment->ready_for_pickup_at);
+        $this->assertNotNull($shipment->pickup_reminder_sent_at);
+        Mail::assertSent(ShipmentReadyForPickupMail::class, 1);
     }
 
     /**

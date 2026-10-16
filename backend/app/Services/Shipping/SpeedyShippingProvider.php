@@ -382,20 +382,6 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             throw ShippingProviderException::requestFailed('speedy', 'track', (string) $response->status());
         }
 
-        // Temporary diagnostic logging - remove once ShipmentStatus::
-        // ReadyForPickup's real Speedy operation code is confirmed (see
-        // mapStatus()'s own docblock) and estimated_delivery_at is either
-        // wired up to a real field here or confirmed not to exist. Speedy's
-        // public tracking page shows "Очаквана дата за доставка" on a real
-        // parcel, so some per-shipment delivery estimate likely exists
-        // somewhere in parcels.0 (a sibling of operations) - this surfaces
-        // the full raw object the next time a real shipment is synced,
-        // rather than guessing the field name blind.
-        Log::info('Speedy track() raw parcel response.', [
-            'tracking_number' => $trackingNumber,
-            'parcel' => $response->json('parcels.0'),
-        ]);
-
         $events = collect($response->json('parcels.0.operations', []))
             ->map(fn (array $event) => new TrackingEventData(
                 status: $this->mapStatus((int) $event['operationCode'], $trackingNumber, $event['description'] ?? null),
@@ -528,30 +514,54 @@ class SpeedyShippingProvider implements ShippingProviderInterface
      * Maps Speedy's real Track And Trace operation codes (Appendix 1 of
      * their API docs) onto our shared ShipmentStatus vocabulary.
      *
-     * No confirmed code for "arrived at office/APT, ready for customer
-     * pickup" (ShipmentStatus::ReadyForPickup) yet — Speedy's own public
-     * tracking page shows this as a distinct step ("Изпратено известие за
-     * пратка в офис/автомат", after "Пристигане в офис"), but the raw
-     * operationCode behind it isn't in Speedy's public docs and this app
-     * doesn't persist raw tracking payloads to recover it from a past
-     * sync. Logs any operationCode that falls through to the default case
-     * below so the next real office/APT delivery's code surfaces in the
-     * logs instead of silently vanishing into Pending - add it to this
-     * match once confirmed, rather than guessing which of the existing
-     * codes (e.g. 12, currently OutForDelivery) it might secretly be.
+     * 1134 ("Изпратено известие за пратка в офис/автомат" - notification
+     * sent that the parcel is waiting at an office/APT) is
+     * ShipmentStatus::ReadyForPickup's real code - confirmed live on a
+     * real order (SQ369U), firing the day after arrival at the office
+     * (code 1/2/21), matching the one-day gap already observed on
+     * Speedy's own public tracking page.
+     *
+     * 38 and 111 are NOT unambiguous "returned to sender" codes - also
+     * confirmed live on SQ369U: code 38 fired with description "Връщане в
+     * офис" (redirected back to a local office mid-journey - the parcel
+     * kept moving through "Уточняване на доставка" for days afterward,
+     * never actually coming back to us), the exact same operationCode a
+     * genuine final return uses with a different description ("Връщане
+     * към подателя" - confirmed live on real orders KFAXTA/VJYMEJ). The
+     * operationCode alone can't tell these two apart - only the
+     * description can - so a 38/111 only counts as Returned here when its
+     * own description actually names подателя (the sender); anything else
+     * under those codes falls through to Pending below, same as any other
+     * in-progress code, instead of wrongly sticking as a final Returned
+     * the way it used to (see ShipmentStatus::isSticky()'s own docblock
+     * for the self-correction approach this replaces).
      */
     private function mapStatus(int $operationCode, string $trackingNumber, ?string $description = null): ShipmentStatus
     {
+        if (in_array($operationCode, [38, 111], true)) {
+            if (str_contains((string) $description, 'подател')) {
+                return ShipmentStatus::Returned;
+            }
+
+            Log::warning('Speedy returned a 38/111 return-family operation code without a sender-return description - treated as still in progress, not Returned.', [
+                'operation_code' => $operationCode,
+                'tracking_number' => $trackingNumber,
+                'description' => $description,
+            ]);
+
+            return ShipmentStatus::Pending;
+        }
+
         return match ($operationCode) {
             39 => ShipmentStatus::PickedUp,
             1, 2, 21 => ShipmentStatus::InTransit,
             11 => ShipmentStatus::Prepared,
             12 => ShipmentStatus::OutForDelivery,
+            1134 => ShipmentStatus::ReadyForPickup,
             -14 => ShipmentStatus::Delivered,
-            38, 111 => ShipmentStatus::Returned,
             44, 123 => ShipmentStatus::Failed,
             default => tap(ShipmentStatus::Pending, function () use ($operationCode, $trackingNumber, $description) {
-                Log::info('Speedy returned an unmapped tracking operation code.', [
+                Log::warning('Speedy returned an unmapped tracking operation code.', [
                     'operation_code' => $operationCode,
                     'tracking_number' => $trackingNumber,
                     'description' => $description,

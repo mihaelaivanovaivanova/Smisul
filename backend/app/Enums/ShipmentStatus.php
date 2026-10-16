@@ -46,25 +46,31 @@ enum ShipmentStatus: string
      * trailing one hide the real delivery operation it followed.
      *
      * Returned was briefly excluded here (treating a trailing unmapped
-     * operation as real "forward progress" that could un-stick it), to
-     * let a premature Returned self-correct when Speedy's own "Връщане в
-     * офис" fires mid-journey as a retry step rather than a true final
-     * return - confirmed live in one real case. But a second real case
-     * proved that unsafe: a *genuinely* returned order ("Връщане към
-     * подателя" / "Предаване обратно на подател", its own reverse
-     * waybill) also has an unmapped trailing operation after the Returned
-     * one, and with Returned excluded here that trailing operation wrongly
-     * un-stuck a *correct* Returned verdict back to Shipped. Both cases
-     * are the exact same shape to our current operation-code mapping (a
-     * recognized Returned code, then an unmapped one) with opposite
-     * correct outcomes - undecidable without knowing what each unmapped
-     * code actually means, which this app doesn't yet (see
-     * SpeedyShippingProvider::mapStatus()'s own docblock on the still-
-     * pending diagnostic logging). Returned is sticky again until that's
-     * resolved: stuck-at-a-possibly-wrong-Returned (an admin can correct
-     * it by hand) is the safer failure mode than silently hiding a real
-     * return. A genuine later Delivered can still self-correct a wrong
-     * Returned either way, since that signal isn't ambiguous.
+     * operation as real "forward progress" that could un-stick it), to let
+     * a premature Returned self-correct when Speedy's own "Връщане в офис"
+     * fires mid-journey as a retry step rather than a true final return -
+     * confirmed live in one real case (SQ369U). But a second real case
+     * proved that sequence-based approach unsafe: a *genuinely* returned
+     * order ("Връщане към подателя", its own reverse waybill) also has an
+     * unmapped trailing operation after the Returned one, and with
+     * Returned excluded here that trailing operation wrongly un-stuck a
+     * *correct* Returned verdict back to Shipped. Both cases were the
+     * exact same shape to the operation-code-only mapping used back then
+     * (a recognized Returned code, then an unmapped one) with opposite
+     * correct outcomes - undecidable from sequence alone.
+     *
+     * The real fix turned out to live one layer down, not here: Speedy's
+     * own "Връщане в офис" and "Връщане към подателя" share the exact same
+     * operationCode (38/111) and are only told apart by their description
+     * text - confirmed live (SQ369U's raw operation history, "Връщане в
+     * офис" at 38, never followed by an actual sender-return). See
+     * SpeedyShippingProvider::mapStatus()'s own docblock - it now only
+     * ever maps 38/111 to Returned when the description names the sender,
+     * so Returned reaching this enum at all means a genuine final return.
+     * Keeping Returned sticky here is therefore both safe and correct: a
+     * genuine later Delivered can still self-correct it (an unambiguous
+     * signal either way), and nothing ambiguous reaches Returned anymore
+     * for isSticky() to have to arbitrate between.
      */
     public function isSticky(): bool
     {

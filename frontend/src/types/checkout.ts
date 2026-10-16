@@ -157,6 +157,12 @@ export interface Shipment {
   price: number;
   currency: string;
   estimated_delivery_at: string | null;
+  /** Set once the shipment first reaches the ready_for_pickup status - see backend ShipmentTrackingSyncService. */
+  ready_for_pickup_at: string | null;
+  /** The three escalating "come pick up your parcel" reminders (immediate/+3d/+6d) - see backend ShipmentPickupReminderService. Each null until that stage has been sent. */
+  pickup_reminder_sent_at: string | null;
+  pickup_reminder_2_sent_at: string | null;
+  pickup_reminder_3_sent_at: string | null;
   events: ShipmentTrackingEvent[];
   created_at: string;
 }

@@ -353,13 +353,24 @@ class SpeedyShippingProvider implements ShippingProviderInterface
      * real delivered parcel came back as `{"parcels":[]}` with the wrong
      * field name and with the correct one returned its full operation
      * history, `-14` (delivered) included.
+     *
+     * Fetches full history, not `lastOperationOnly` (previously used) -
+     * confirmed live that Speedy logs a trailing operation *after*
+     * delivery for every COD shipment (OBPD's accept/decline-inspection
+     * outcome - OBPD is always enabled for those, see createShipment()),
+     * which this app doesn't recognize. With lastOperationOnly, that
+     * unrecognized trailing operation silently became "the" current
+     * status and the real delivery one right before it was never seen at
+     * all - a shipment stuck on its pre-delivery status forever. See
+     * ShipmentStatus::progressRank() for how currentStatus now picks the
+     * most-advanced real status among every operation returned instead of
+     * just trusting whichever happens to be listed last.
      */
     public function track(string $trackingNumber): TrackingData
     {
         try {
             $response = $this->client()->post('track', $this->withCredentials([
                 'parcels' => [['id' => $trackingNumber]],
-                'lastOperationOnly' => true,
             ]));
         } catch (ConnectionException $exception) {
             throw ShippingProviderException::requestFailed('speedy', 'track', $exception->getMessage());
@@ -369,9 +380,23 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             throw ShippingProviderException::requestFailed('speedy', 'track', (string) $response->status());
         }
 
+        // Temporary diagnostic logging - remove once ShipmentStatus::
+        // ReadyForPickup's real Speedy operation code is confirmed (see
+        // mapStatus()'s own docblock) and estimated_delivery_at is either
+        // wired up to a real field here or confirmed not to exist. Speedy's
+        // public tracking page shows "Очаквана дата за доставка" on a real
+        // parcel, so some per-shipment delivery estimate likely exists
+        // somewhere in parcels.0 (a sibling of operations) - this surfaces
+        // the full raw object the next time a real shipment is synced,
+        // rather than guessing the field name blind.
+        Log::info('Speedy track() raw parcel response.', [
+            'tracking_number' => $trackingNumber,
+            'parcel' => $response->json('parcels.0'),
+        ]);
+
         $events = collect($response->json('parcels.0.operations', []))
             ->map(fn (array $event) => new TrackingEventData(
-                status: $this->mapStatus((int) $event['operationCode']),
+                status: $this->mapStatus((int) $event['operationCode'], $trackingNumber, $event['description'] ?? null),
                 description: $event['description'] ?? null,
                 occurredAt: CarbonImmutable::parse($event['dateTime']),
             ))
@@ -379,10 +404,35 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             ->all();
 
         return new TrackingData(
-            currentStatus: $events === [] ? ShipmentStatus::Pending : end($events)->status,
+            currentStatus: $this->mostAdvancedStatus($events),
             events: $events,
             estimatedDeliveryAt: null,
         );
+    }
+
+    /**
+     * The highest-progressRank() status among every operation returned,
+     * preferring the latest (last in the chronologically-ordered list) on
+     * a tie - see track()'s own docblock for why this isn't simply
+     * end($events)->status.
+     *
+     * @param  list<TrackingEventData>  $events
+     */
+    private function mostAdvancedStatus(array $events): ShipmentStatus
+    {
+        if ($events === []) {
+            return ShipmentStatus::Pending;
+        }
+
+        $best = $events[0];
+
+        foreach ($events as $event) {
+            if ($event->status->progressRank() >= $best->status->progressRank()) {
+                $best = $event;
+            }
+        }
+
+        return $best->status;
     }
 
     /**
@@ -476,8 +526,20 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     /**
      * Maps Speedy's real Track And Trace operation codes (Appendix 1 of
      * their API docs) onto our shared ShipmentStatus vocabulary.
+     *
+     * No confirmed code for "arrived at office/APT, ready for customer
+     * pickup" (ShipmentStatus::ReadyForPickup) yet — Speedy's own public
+     * tracking page shows this as a distinct step ("Изпратено известие за
+     * пратка в офис/автомат", after "Пристигане в офис"), but the raw
+     * operationCode behind it isn't in Speedy's public docs and this app
+     * doesn't persist raw tracking payloads to recover it from a past
+     * sync. Logs any operationCode that falls through to the default case
+     * below so the next real office/APT delivery's code surfaces in the
+     * logs instead of silently vanishing into Pending - add it to this
+     * match once confirmed, rather than guessing which of the existing
+     * codes (e.g. 12, currently OutForDelivery) it might secretly be.
      */
-    private function mapStatus(int $operationCode): ShipmentStatus
+    private function mapStatus(int $operationCode, string $trackingNumber, ?string $description = null): ShipmentStatus
     {
         return match ($operationCode) {
             39 => ShipmentStatus::PickedUp,
@@ -487,7 +549,13 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             -14 => ShipmentStatus::Delivered,
             38, 111 => ShipmentStatus::Returned,
             44, 123 => ShipmentStatus::Failed,
-            default => ShipmentStatus::Pending,
+            default => tap(ShipmentStatus::Pending, function () use ($operationCode, $trackingNumber, $description) {
+                Log::info('Speedy returned an unmapped tracking operation code.', [
+                    'operation_code' => $operationCode,
+                    'tracking_number' => $trackingNumber,
+                    'description' => $description,
+                ]);
+            }),
         };
     }
 

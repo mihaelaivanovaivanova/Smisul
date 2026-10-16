@@ -369,6 +369,17 @@ export default function OrderDetailPage() {
                   <p className="mb-3">
                     <strong>Status:</strong> <StatusBadge status={order.shipment.status} />
                   </p>
+                  {order.shipment.ready_for_pickup_at && (
+                    <p className="small text-muted mb-3">
+                      Ready for pickup since {new Date(order.shipment.ready_for_pickup_at).toLocaleString('bg-BG')}.{' '}
+                      {[
+                        order.shipment.pickup_reminder_sent_at,
+                        order.shipment.pickup_reminder_2_sent_at,
+                        order.shipment.pickup_reminder_3_sent_at,
+                      ].filter(Boolean).length}{' '}
+                      of 3 pickup reminders sent.
+                    </p>
+                  )}
                   <div className="d-flex gap-2 align-items-center flex-wrap">
                     {order.shipment.carrier === 'box_now' || order.shipment.carrier === 'speedy' ? (
                       // rel="noopener" only, not "noreferrer" - the backend's

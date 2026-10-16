@@ -28,14 +28,20 @@ export interface ShipmentTrackingSyncResult {
   updated: number;
   orders_updated: number;
   failed: number;
+  /** Pickup-ready notification emails sent this run (immediate/+3d/+6d escalation) - see backend's ShipmentPickupReminderService. */
+  pickup_reminders_sent: number;
+  pickup_reminders_failed: number;
 }
 
 /**
  * The "Sync tracking" button (Orders page and dashboard) - polls every
  * Shipped order's shipment for its live carrier status (Speedy and BOX NOW
  * alike, see backend's ShipmentTrackingSyncService) and advances it to
- * Delivered/Returned to match. On-demand only, not scheduled - call this
- * and then refetch whatever order list/stats are on screen.
+ * Delivered/Returned to match - also sends the "your parcel is ready for
+ * pickup" email sequence for any shipment currently sitting at an office/
+ * locker (see ShipmentPickupReminderService). On-demand only, not
+ * scheduled - call this and then refetch whatever order list/stats are on
+ * screen.
  */
 export async function syncShipmentTracking(): Promise<ShipmentTrackingSyncResult> {
   const { data } = await apiClient.post<{ data: ShipmentTrackingSyncResult }>('/admin/orders/shipments/sync-tracking');

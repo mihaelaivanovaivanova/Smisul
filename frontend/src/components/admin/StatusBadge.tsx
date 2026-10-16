@@ -1,6 +1,6 @@
 const POSITIVE = new Set(['published', 'active', 'paid', 'confirmed', 'delivered', 'completed', 'delivered_to_office']);
 const NEGATIVE = new Set(['cancelled', 'failed', 'expired', 'archived', 'inactive', 'refunded', 'returned', 'out_of_stock']);
-const WARNING = new Set(['pending', 'awaiting_payment', 'processing', 'packed', 'shipped', 'draft', 'low_stock']);
+const WARNING = new Set(['pending', 'awaiting_payment', 'processing', 'packed', 'shipped', 'draft', 'low_stock', 'ready_for_pickup']);
 
 function variantFor(status: string): string {
   if (POSITIVE.has(status)) return 'success';

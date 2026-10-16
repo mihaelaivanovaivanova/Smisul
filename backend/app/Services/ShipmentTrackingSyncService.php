@@ -29,16 +29,23 @@ use Throwable;
  * SyncShipmentTracking, the equivalent manual console command - see its
  * own docblock), so the sync logic stays unit-testable without either of
  * those layers - same split as OrderReminderService/SendOrderReminderEmails.
+ *
+ * Also sets ready_for_pickup_at the moment a shipment first reaches
+ * ShipmentStatus::ReadyForPickup, and runs ShipmentPickupReminderService's
+ * due sweep once at the end of every sync() call - see that service's own
+ * docblock for why the pickup-reminder sequence piggybacks on this
+ * on-demand button rather than running on a schedule.
  */
 class ShipmentTrackingSyncService
 {
     public function __construct(
         private readonly ShippingService $shipping,
         private readonly OrderStatusService $orderStatus,
+        private readonly ShipmentPickupReminderService $pickupReminders,
     ) {}
 
     /**
-     * @return array{checked: int, updated: int, orders_updated: int, failed: int}
+     * @return array{checked: int, updated: int, orders_updated: int, failed: int, pickup_reminders_sent: int, pickup_reminders_failed: int}
      */
     public function sync(): array
     {
@@ -84,13 +91,26 @@ class ShipmentTrackingSyncService
 
                     $updated++;
 
+                    if ($shipment->status === ShipmentStatus::ReadyForPickup && $shipment->ready_for_pickup_at === null) {
+                        $shipment->update(['ready_for_pickup_at' => now()]);
+                    }
+
                     if ($this->advanceOrderStatus($shipment)) {
                         $ordersUpdated++;
                     }
                 }
             });
 
-        return ['checked' => $checked, 'updated' => $updated, 'orders_updated' => $ordersUpdated, 'failed' => $failed];
+        $pickupReminders = $this->pickupReminders->sendDueReminders();
+
+        return [
+            'checked' => $checked,
+            'updated' => $updated,
+            'orders_updated' => $ordersUpdated,
+            'failed' => $failed,
+            'pickup_reminders_sent' => $pickupReminders['sent'],
+            'pickup_reminders_failed' => $pickupReminders['failed'],
+        ];
     }
 
     /**

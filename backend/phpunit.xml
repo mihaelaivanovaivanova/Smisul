@@ -34,6 +34,12 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
 
+        <!-- Opposite of the production default (false, see
+             config/services.php's own comment) - tests need the real
+             send path exercised; individual tests that specifically cover
+             the kill switch itself override this back to false. -->
+        <env name="SHIPMENT_PICKUP_REMINDERS_ENABLED" value="true"/>
+
         <!-- Dedicated test-only RSA key pair (tests/Fixtures/icard) — never
              the real iCard credentials from .env. The same pair signs
              outbound requests and fake-signs inbound webhook payloads in

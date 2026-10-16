@@ -195,6 +195,17 @@ return [
             // by overriding the env var — no code change needed.
             'free_shipping_promo_until' => env('BOX_NOW_FREE_SHIPPING_PROMO_UNTIL', '2026-09-30 23:59:59'),
         ],
+        // Rollout kill switch for the "your parcel is ready for pickup"
+        // email sequence (see ShipmentPickupReminderService) - off by
+        // default/deliberately false in production right now, by request,
+        // until the real Speedy "ready for pickup" operation code (and
+        // whether a per-shipment delivery-estimate field exists) is
+        // confirmed from the diagnostic logging already deployed (see
+        // SpeedyShippingProvider::track()'s own comment). Flip to true in
+        // .env (no code change) once that's confirmed and tested - "Sync
+        // tracking" keeps running and keeps fixing shipment/order statuses
+        // either way; only the reminder emails themselves are gated.
+        'pickup_reminders_enabled' => env('SHIPMENT_PICKUP_REMINDERS_ENABLED', false),
     ],
 
 ];

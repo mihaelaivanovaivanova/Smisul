@@ -326,13 +326,21 @@ class BoxNowShippingProvider implements ShippingProviderInterface
         }
     }
 
-    /** BOX NOW's own state vocabulary — see the guide's section 4.5. */
+    /**
+     * BOX NOW's own state vocabulary — see the guide's section 4.5.
+     * 'final-destination' means the parcel has reached its destination
+     * locker and is sitting there waiting for the customer to collect it
+     * — there's no courier-to-door leg for a locker network the way
+     * Speedy's OutForDelivery implies, so this maps to ReadyForPickup, not
+     * OutForDelivery (see ShipmentTrackingSyncService for what that
+     * triggers: the pickup-reminder email sequence).
+     */
     private function mapStatus(string $rawStatus): ShipmentStatus
     {
         return match ($rawStatus) {
             'new' => ShipmentStatus::Accepted,
             'in-transit', 'in-depot', 'wait-for-load' => ShipmentStatus::InTransit,
-            'final-destination' => ShipmentStatus::OutForDelivery,
+            'final-destination' => ShipmentStatus::ReadyForPickup,
             'delivered' => ShipmentStatus::Delivered,
             'returned', 'cancelled-return', 'expired-return' => ShipmentStatus::Returned,
             'cancelled', 'canceled', 'lost', 'missing' => ShipmentStatus::Failed,

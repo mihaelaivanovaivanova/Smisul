@@ -22,10 +22,14 @@ class SyncShipmentTracking extends Command
     {
         $result = $service->sync();
 
-        $this->info("Checked {$result['checked']} shipment(s), {$result['updated']} status change(s), {$result['orders_updated']} order(s) advanced.");
+        $this->info("Checked {$result['checked']} shipment(s), {$result['updated']} status change(s), {$result['orders_updated']} order(s) advanced, {$result['pickup_reminders_sent']} pickup reminder(s) sent.");
 
         if ($result['failed'] > 0) {
             $this->warn("{$result['failed']} failed to sync - see the log for details.");
+        }
+
+        if ($result['pickup_reminders_failed'] > 0) {
+            $this->warn("{$result['pickup_reminders_failed']} pickup reminder(s) failed to send - see the log for details.");
         }
 
         return self::SUCCESS;

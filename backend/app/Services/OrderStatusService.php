@@ -41,21 +41,24 @@ class OrderStatusService
         OrderStatus::Packed->value => [OrderStatus::Shipped, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Refunded],
         // Returned is reached only from Shipped (the parcel came back to
-        // the sender). ShipmentTrackingSyncService keeps polling a
-        // Returned shipment so this can still self-correct to Delivered
-        // if a later sync genuinely confirms it - but only to Delivered,
-        // not back to Shipped on any other signal. An earlier version
-        // allowed Returned -> Shipped too (a premature Returned
-        // self-correcting while the carrier was still actively
-        // redelivering), reverted after a real case proved it unsafe: a
-        // genuinely-returned order's own unmapped trailing "handover
-        // confirmed" operation is the exact same shape to our current
-        // Speedy operation-code mapping as the premature case was, with
-        // the opposite correct outcome - see ShipmentStatus::isSticky()'s
-        // own docblock for the full story. Refunded is the other legal
-        // move, for an order that was paid by card before shipping (see
-        // PaymentService::refund()).
-        OrderStatus::Returned->value => [OrderStatus::Delivered, OrderStatus::Refunded],
+        // the sender). ShipmentTrackingSyncService keeps polling a Returned
+        // shipment so this can self-correct both ways: to Delivered if a
+        // later sync genuinely confirms delivery, or back to Shipped if the
+        // shipment's own status moves away from Returned (see
+        // advanceOrderStatus()'s own docblock). Shipped -> Returned -> Shipped
+        // was tried once before and reverted (a premature Returned
+        // self-correcting while the carrier was still actively redelivering
+        // was indistinguishable, by sequence alone, from a genuinely-returned
+        // order's own unmapped trailing confirmation operation - see
+        // ShipmentStatus::isSticky()'s own docblock). Safely reinstated once
+        // the real root cause was found and fixed one layer down, not here:
+        // SpeedyShippingProvider::mapStatus() no longer calls something
+        // Returned at all unless the operation's own description names the
+        // sender, so a genuine return can never lose its sticky Returned
+        // status this way - only a shipment that was never really returned
+        // can. Refunded is the other legal move, for an order that was paid
+        // by card before shipping (see PaymentService::refund()).
+        OrderStatus::Returned->value => [OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Refunded],
         // Completed is retired (see OrderStatus::Completed's own docblock) -
         // Delivered is the terminal happy-path status now. Completed's own
         // outgoing transition stays listed below for the same reason

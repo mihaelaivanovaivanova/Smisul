@@ -146,14 +146,22 @@ class ShipmentTrackingSyncService
      * Delivered/Cancelled stay terminal (the query above excludes those
      * shipments from every future sync run once recorded); Returned/Failed
      * don't - see the class docblock. A shipment sitting at Failed has no
-     * order-level target of its own ($targetStatus falls through to null
-     * below, same as any other in-progress status) - it's just kept
-     * eligible for polling so a later real Delivered/Returned can still be
-     * caught, not treated as an order-level outcome by itself. The only
-     * move out of Returned here is to Delivered, on a genuine later
-     * confirmation - see ShipmentStatus::isSticky()'s own docblock for why
-     * a broader "Returned -> Shipped whenever anything else shows up" rule
-     * was tried and reverted.
+     * order-level target of its own (falls through to the Returned-order
+     * ->Shipped case below, or null if the order wasn't Returned), same as
+     * any other in-progress status - it's just kept eligible for polling
+     * so a later real Delivered/Returned can still be caught, not treated
+     * as an order-level outcome by itself.
+     *
+     * A Returned order moves back to Shipped whenever the shipment's own
+     * freshly-computed status is anything other than Returned - safe now
+     * that SpeedyShippingProvider::mapStatus() itself refuses to report
+     * Returned without a description naming the sender (see its own
+     * docblock): a genuinely-returned shipment's real Returned event is
+     * sticky and never disappears from its history, so this branch can
+     * only ever fire for a shipment that was wrongly marked Returned in
+     * the first place - confirmed live, this is exactly what left order
+     * SQ369U stuck showing Returned even after the shipment itself had
+     * already self-corrected.
      */
     private function advanceOrderStatus(Shipment $shipment): bool
     {
@@ -163,9 +171,10 @@ class ShipmentTrackingSyncService
             return false;
         }
 
-        $targetStatus = match ($shipment->status) {
-            ShipmentStatus::Delivered => OrderStatus::Delivered,
-            ShipmentStatus::Returned => OrderStatus::Returned,
+        $targetStatus = match (true) {
+            $shipment->status === ShipmentStatus::Delivered => OrderStatus::Delivered,
+            $shipment->status === ShipmentStatus::Returned => OrderStatus::Returned,
+            $order->status === OrderStatus::Returned => OrderStatus::Shipped,
             default => null,
         };
 

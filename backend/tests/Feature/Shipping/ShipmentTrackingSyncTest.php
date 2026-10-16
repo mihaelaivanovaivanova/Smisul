@@ -414,6 +414,38 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
+     * Regression test for the exact stuck state SQ369U was found in: an
+     * order/shipment pair already persisted at Returned from before this
+     * fix was deployed (the old code had no way to tell "Връщане в офис"
+     * apart from a genuine return) must self-correct back to Shipped once
+     * a sync against the fixed mapStatus() shows the shipment was never
+     * really returned - see OrderStatusService::TRANSITIONS' Returned
+     * entry and ShipmentTrackingSyncService::advanceOrderStatus()'s own
+     * docblock for why this is now safe to allow.
+     */
+    #[Test]
+    public function an_order_wrongly_stuck_at_returned_from_before_this_fix_self_corrects_back_to_shipped(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyOfficeRedirectResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Returned, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::Returned,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertNotSame(ShipmentStatus::Returned, $shipment->fresh()->status);
+        $this->assertSame(OrderStatus::Shipped, $order->fresh()->status);
+        $this->assertDatabaseHas('order_status_histories', [
+            'order_id' => $order->id,
+            'status' => OrderStatus::Shipped->value,
+            'previous_status' => OrderStatus::Returned->value,
+        ]);
+    }
+
+    /**
      * operationCode 1134 is ShipmentStatus::ReadyForPickup's real Speedy
      * code - confirmed live (SQ369U). Mirrors the equivalent BOX NOW test
      * below (a_box_now_shipment_reaching_final_destination_...) - the

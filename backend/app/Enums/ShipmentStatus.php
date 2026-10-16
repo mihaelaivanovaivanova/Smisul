@@ -31,30 +31,38 @@ enum ShipmentStatus: string
     }
 
     /**
-     * How far along the shipment lifecycle this status represents - used
-     * to pick the most-advanced real status among several operations
-     * returned for the same tracking call (see SpeedyShippingProvider::
-     * track()), since a trailing operation this app doesn't recognize
-     * (mapped to Pending by a mapStatus()'s default branch) must never
-     * hide or "undo" a real status reported earlier in the same response.
-     * A real production case this fixes: Speedy logs a post-delivery
-     * "declined inspection/testing" operation for every COD shipment
-     * (OBPD is always enabled for those, see SpeedyShippingProvider::
-     * createShipment()) - picking whichever operation is simply last in
-     * the list wrongly picked that unmapped trailing one over the real
-     * delivery operation it followed.
+     * Whether this status, once observed anywhere in a shipment's
+     * operation history, should always win as "the real current status"
+     * regardless of what's reported chronologically after it - used by
+     * SpeedyShippingProvider::track() to pick the right currentStatus
+     * among several operations returned for the same tracking call. Only
+     * Delivered/Failed/Cancelled qualify, not Returned, and not by
+     * oversight: a real production case needed exactly this distinction.
+     *
+     * Delivered needs it - Speedy logs a post-delivery "declined
+     * inspection/testing" operation for every COD shipment (OBPD is
+     * always enabled for those, see SpeedyShippingProvider::
+     * createShipment()), and naively trusting whichever operation is
+     * simply last in the list let that unmapped trailing one hide the
+     * real delivery operation it followed.
+     *
+     * Returned must NOT get the same treatment - confirmed live, Speedy's
+     * own "Връщане в офис" ("returned to office") tracking event can fire
+     * mid-journey, as a retry/redirect step, not a true final return (the
+     * carrier kept re-attempting delivery for days afterward in a real
+     * case). Treating Returned as equally "sticky" would make
+     * ShipmentTrackingSyncService's Returned -> Shipped self-correction
+     * (see its own docblock) unreachable in practice, since nothing
+     * chronologically after it could ever "win" again. Leaving it out
+     * means a real subsequent status (even back to InTransit) is simply
+     * whatever's genuinely last, the same as before this method existed -
+     * see isSticky()'s only caller for exactly how.
      */
-    public function progressRank(): int
+    public function isSticky(): bool
     {
         return match ($this) {
-            self::Pending => 0,
-            self::Accepted => 1,
-            self::Prepared => 2,
-            self::PickedUp => 3,
-            self::InTransit => 4,
-            self::OutForDelivery => 5,
-            self::ReadyForPickup => 6,
-            self::Delivered, self::Returned, self::Failed, self::Cancelled => 7,
+            self::Delivered, self::Failed, self::Cancelled => true,
+            default => false,
         };
     }
 

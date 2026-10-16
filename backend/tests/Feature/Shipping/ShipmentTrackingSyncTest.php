@@ -44,7 +44,7 @@ class ShipmentTrackingSyncTest extends TestCase
      * *after* delivery that this app doesn't recognize - confirmed live,
      * every COD shipment gets a trailing "declined/accepted inspection"
      * (OBPD) operation once the courier hands the parcel over. Before
-     * ShipmentStatus::progressRank() existed, simply trusting whichever
+     * ShipmentStatus::isSticky() existed, simply trusting whichever
      * operation came last in the list meant this unmapped trailing one
      * (operationCode 999 here, a placeholder for whatever Speedy's real
      * code for it turns out to be) silently won over the real delivery
@@ -72,6 +72,30 @@ class ShipmentTrackingSyncTest extends TestCase
                 'operations' => [
                     ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
                     ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => null],
+                ],
+            ]],
+        ];
+    }
+
+    /**
+     * Same history as speedyReturnedResponse() above, plus a later
+     * operation showing the carrier is still actively moving the parcel -
+     * a real case: Speedy redirected/re-attempted delivery for days after
+     * "Връщане в офис" fired. operationCode 999 stands in for whichever
+     * real redirect/retry code Speedy actually uses (still unconfirmed,
+     * see SpeedyShippingProvider::mapStatus()'s own docblock) - it falls
+     * through mapStatus()'s default branch to Pending, same as any other
+     * unmapped code, which is enough on its own to prove Returned isn't
+     * "sticky" the way Delivered is (see ShipmentStatus::isSticky()).
+     */
+    private function speedyReturnedThenRedirectedResponse(): array
+    {
+        return [
+            'parcels' => [[
+                'operations' => [
+                    ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
+                    ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => 'Връщане в офис'],
+                    ['operationCode' => 999, 'dateTime' => '2026-07-09T10:00:00+03:00', 'description' => 'Насочена към офис'],
                 ],
             ]],
         ];
@@ -182,6 +206,120 @@ class ShipmentTrackingSyncTest extends TestCase
         app(ShipmentTrackingSyncService::class)->sync();
 
         $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+    }
+
+    /**
+     * Regression test for a real production case: Speedy's "Връщане в
+     * офис" ("returned to office") tracking event fired mid-journey as a
+     * retry/redirect step, not a true final return - the carrier kept
+     * re-attempting delivery for days afterward and eventually delivered
+     * it. Before this fix, a Returned shipment/order was excluded from
+     * every future sync (ShipmentStatus::isFinal() + the order-status
+     * filter), so the real delivery that followed was never seen and the
+     * order stayed wrongly marked Returned forever. Now sync() keeps
+     * polling a Returned shipment and self-corrects the order to
+     * Delivered once the carrier confirms it (see OrderStatusService::
+     * TRANSITIONS' Returned entry).
+     */
+    #[Test]
+    public function an_order_wrongly_marked_returned_self_corrects_to_delivered_on_a_later_sync(): void
+    {
+        // Both responses queued upfront via Http::sequence() rather than
+        // calling Http::fake() again between the two sync() calls below -
+        // re-registering a fake for the same URL pattern isn't guaranteed
+        // to take priority over the first one, a sequence is deterministic.
+        Http::fake([
+            'api.speedy.bg/*' => Http::sequence()
+                ->push($this->speedyReturnedResponse())
+                ->push($this->speedyDeliveredResponse()),
+        ]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+        $this->assertSame(ShipmentStatus::Returned, $shipment->fresh()->status);
+
+        // The carrier redirected the parcel and eventually delivered it -
+        // a later sync should see this new history and self-correct.
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(1, $result['checked']);
+        $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
+        $this->assertSame(ShipmentStatus::Delivered, $shipment->fresh()->status);
+    }
+
+    /**
+     * The normal case, not the "single sync catches it already delivered"
+     * shortcut above: a later sync sees the carrier is still actively
+     * redirecting/re-attempting delivery (not yet a real Delivered) - the
+     * order should self-correct back to Shipped, the honest description
+     * of "still in progress", not stay stuck at Returned and not jump
+     * ahead to Delivered. See ShipmentStatus::isSticky() for why this is
+     * reachable at all - a naive "highest rank always wins" rule (the
+     * first version of this fix) would have made this permanently
+     * unreachable once Returned had fired once.
+     */
+    #[Test]
+    public function an_order_wrongly_marked_returned_self_corrects_back_to_shipped_while_still_in_progress(): void
+    {
+        Http::fake([
+            'api.speedy.bg/*' => Http::sequence()
+                ->push($this->speedyReturnedResponse())
+                ->push($this->speedyReturnedThenRedirectedResponse()),
+        ]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(1, $result['checked']);
+        $this->assertSame(OrderStatus::Shipped, $order->fresh()->status);
+        // The unmapped redirect code (999) falls through to Pending - see
+        // the fixture's own docblock.
+        $this->assertSame(ShipmentStatus::Pending, $shipment->fresh()->status);
+    }
+
+    /**
+     * A shipment/order that really, permanently never gets collected keeps
+     * being polled (no way to distinguish "still retrying" from "truly
+     * done" without a real Speedy signal we don't have yet - see
+     * SpeedyShippingProvider::mapStatus()'s own docblock) - confirms this
+     * doesn't error or double-fire the transition when the carrier just
+     * keeps reporting the same Returned state.
+     */
+    #[Test]
+    public function a_still_returned_shipment_is_polled_again_without_error_or_duplicate_transition(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyReturnedResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        app(ShipmentTrackingSyncService::class)->sync();
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(1, $result['checked']);
+        $this->assertSame(0, $result['updated']);
+        $this->assertSame(0, $result['orders_updated']);
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+        $this->assertSame(1, $order->statusHistories()->where('status', OrderStatus::Returned)->count());
     }
 
     /**

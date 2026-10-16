@@ -362,9 +362,10 @@ class SpeedyShippingProvider implements ShippingProviderInterface
      * unrecognized trailing operation silently became "the" current
      * status and the real delivery one right before it was never seen at
      * all - a shipment stuck on its pre-delivery status forever. See
-     * ShipmentStatus::progressRank() for how currentStatus now picks the
-     * most-advanced real status among every operation returned instead of
-     * just trusting whichever happens to be listed last.
+     * ShipmentStatus::isSticky() for how currentStatus now prefers a real
+     * Delivered/Failed/Cancelled operation over whatever's chronologically
+     * after it, while still letting a non-sticky status (notably Returned)
+     * be genuinely superseded by later activity - see mostAdvancedStatus().
      */
     public function track(string $trackingNumber): TrackingData
     {
@@ -411,10 +412,12 @@ class SpeedyShippingProvider implements ShippingProviderInterface
     }
 
     /**
-     * The highest-progressRank() status among every operation returned,
-     * preferring the latest (last in the chronologically-ordered list) on
-     * a tie - see track()'s own docblock for why this isn't simply
-     * end($events)->status.
+     * The most recent isSticky() status (Delivered/Failed/Cancelled) if
+     * any operation reports one, regardless of what's chronologically
+     * after it - otherwise simply the last operation in the list, exactly
+     * as before ShipmentStatus::isSticky() existed. See track()'s own
+     * docblock, and isSticky()'s, for why this isn't a uniform "highest
+     * rank wins" rule across every status.
      *
      * @param  list<TrackingEventData>  $events
      */
@@ -424,15 +427,13 @@ class SpeedyShippingProvider implements ShippingProviderInterface
             return ShipmentStatus::Pending;
         }
 
-        $best = $events[0];
-
-        foreach ($events as $event) {
-            if ($event->status->progressRank() >= $best->status->progressRank()) {
-                $best = $event;
+        foreach (array_reverse($events) as $event) {
+            if ($event->status->isSticky()) {
+                return $event->status;
             }
         }
 
-        return $best->status;
+        return end($events)->status;
     }
 
     /**

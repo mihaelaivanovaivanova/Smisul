@@ -40,10 +40,23 @@ class OrderStatusService
         OrderStatus::Processing->value => [OrderStatus::Packed, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Packed->value => [OrderStatus::Shipped, OrderStatus::Cancelled, OrderStatus::Refunded],
         OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Refunded],
-        // Returned is reached only from Shipped (the parcel came back to the
-        // sender). From there the only move is Refunded, for an order that
-        // was paid by card before shipping (see PaymentService::refund()).
-        OrderStatus::Returned->value => [OrderStatus::Refunded],
+        // Returned is reached from Shipped (the parcel came back to the
+        // sender) - or self-corrected away from, now. Confirmed live:
+        // Speedy's own "Връщане в офис" ("returned to office") tracking
+        // event can fire mid-journey, as a retry/redirect step, not a true
+        // final return - the carrier kept re-attempting delivery for days
+        // afterward in a real case. ShipmentTrackingSyncService keeps
+        // polling a Returned shipment specifically so this can correct
+        // itself: back to Shipped if the carrier's still actively handling
+        // it (the honest description of "still in progress", letting the
+        // normal Shipped -> Delivered/Returned moves above take it from
+        // there), or straight to Delivered if a single sync happens to
+        // observe it already fully delivered with no Shipped re-observed
+        // in between (see ShipmentTrackingSyncService::advanceOrderStatus()'s
+        // own docblock). Refunded is still the other legal move, for an
+        // order that was genuinely, permanently returned and paid by card
+        // before shipping (see PaymentService::refund()).
+        OrderStatus::Returned->value => [OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Refunded],
         // Completed is retired (see OrderStatus::Completed's own docblock) -
         // Delivered is the terminal happy-path status now. Completed's own
         // outgoing transition stays listed below for the same reason

@@ -9,14 +9,17 @@
     // logged in (works for a registered customer's order too, unlike the
     // guest_access_token this used before).
     //
-    // Deliberately still a single CTA (the review link), no emoji, and no
-    // boxed "what's new" callout - an earlier version bolted a full
-    // marketing section onto this review ask (second button, emoji, a
-    // bordered product box), which read as a promotional blast rather
-    // than a personal request and was landing in Gmail's Promotions tab
-    // as a result. By request, the two accessory products are still
-    // mentioned (see the plain-text line below), just as a passing
-    // sentence rather than that separate boxed section/CTA.
+    // Deliberately still a single CTA (the review link) and no boxed
+    // "what's new" callout - an earlier version bolted a full marketing
+    // section onto this review ask (second button, a bordered product
+    // box), which read as a promotional blast rather than a personal
+    // request and was landing in Gmail's Promotions tab as a result. The
+    // two accessory products are mentioned as a passing sentence rather
+    // than that separate boxed section/CTA. Emoji were removed for the
+    // same Promotions-tab reason and have since been restored by request -
+    // accept that as one more (minor, on its own) signal in that
+    // direction, on top of the sender-identity split (config('mail.
+    // promotional_from')) that's since addressed the bigger lever.
 @endphp
 
 @section('title', "Мина месец… И ще оценим твоят коментар")
@@ -26,7 +29,7 @@
         <td align="center" style="padding: 32px 24px 8px;">
             <h1 style="margin: 0 0 8px; font-size: 20px; color: #24362c;">Здравей, {{ $order->customer_first_name }}</h1>
             <p style="margin: 0; font-size: 14px; color: #24362c; line-height: 1.6;">
-                Мина около месец, откакто получи своя Miswak, и вече вероятно имаш достатъчно впечатления, за да ни кажеш как се разбирате.
+                Мина около месец, откакто получи своя Miswak, и вече вероятно имаш достатъчно впечатления, за да ни кажеш как се разбирате. 🌿
             </p>
         </td>
     </tr>
@@ -40,7 +43,7 @@
 
     <tr>
         <td style="padding: 16px 24px 0; font-size: 14px; color: #2b2822; line-height: 1.6;">
-            Между другото, добавихме и бамбуков калъф за Miswak, както и стъргалка за език — ако ти трябват, вече ги има в сайта.
+            Между другото, добавихме и 🌿 бамбуков калъф за Miswak, както и 👅 стъргалка за език — ако ти трябват, вече ги има в сайта.
         </td>
     </tr>
 
@@ -54,7 +57,7 @@
                  offer block is one of the patterns that reads as a
                  marketing blast to Gmail's classifier; plain inline
                  emphasis inside a sentence doesn't carry the same signal. --}}
-            Ако имаш минутка, ще се радваме да оставиш своето мнение. Като благодарност ще получиш и личен код за
+            Ако имаш минутка, ще се радваме да оставиш своето мнение. Като благодарност 🎁 ще получиш и личен код за
             <strong style="font-size: 17px; color: #24362c;">-10% отстъпка</strong>
             за следващата си поръчка, валиден 30 дни.
         </td>
@@ -70,7 +73,7 @@
 
     <tr>
         <td style="padding: 0 24px 32px; font-size: 14px; color: #2b2822; line-height: 1.6;">
-            <p style="margin: 0 0 4px;">Благодарим ти, че избра С | МИСЪЛ.</p>
+            <p style="margin: 0 0 4px;">Благодарим ти, че избра С | МИСЪЛ. 🤍</p>
             <p style="margin: 0; color: #71695c;">Екипът на С | МИСЪЛ<br>smisul.bg</p>
         </td>
     </tr>

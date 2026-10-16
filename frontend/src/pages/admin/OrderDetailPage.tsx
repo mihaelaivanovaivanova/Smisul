@@ -413,6 +413,30 @@ export default function OrderDetailPage() {
                       </button>
                     )}
                   </div>
+                  {order.shipment.events.length > 0 && (
+                    // The carrier's own raw tracking history (status +
+                    // description, e.g. "Връщане в офис" / "Предаване
+                    // обратно на подател") - our internal status mapping
+                    // doesn't recognize every real carrier operation yet
+                    // (see backend SpeedyShippingProvider::mapStatus()'s
+                    // own docblock), so this stays visible here as a
+                    // fallback even when the badge above hasn't caught up
+                    // to what actually happened.
+                    <div className="mt-3">
+                      <div className="small text-muted mb-1">Carrier tracking history</div>
+                      <ul className="list-group list-group-flush">
+                        {order.shipment.events.map((event, index) => (
+                          <li key={index} className="list-group-item px-0 py-2">
+                            <div className="d-flex justify-content-between">
+                              <span className="small fw-semibold">{event.label}</span>
+                              <span className="text-muted small">{new Date(event.occurred_at).toLocaleString('bg-BG')}</span>
+                            </div>
+                            {event.description && <div className="small text-muted">{event.description}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>

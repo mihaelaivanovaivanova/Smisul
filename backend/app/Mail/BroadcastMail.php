@@ -21,11 +21,11 @@ use Illuminate\Queue\SerializesModels;
  * like a copy-pasted blast - a real (if soft) trust/deliverability signal
  * on top of just looking better.
  *
- * Sent from config('mail.broadcast_from') - a different sender identity
- * than order confirmations/the 30-day reminder (config('mail.from')), by
- * request, so this mailable's bulk/promotional sending pattern doesn't
- * drag Gmail's per-sender Promotions-tab reputation down for the other,
- * more personal mail sharing the same address would otherwise get.
+ * Sent from config('mail.promotional_from') - shared with
+ * OrderThirtyDayReminderMail, the other mailable carrying a
+ * List-Unsubscribe header, but deliberately NOT the same address as order
+ * confirmations/review confirmations (config('mail.from')), which never
+ * carry one - see that config entry's own docblock for why.
  */
 class BroadcastMail extends Mailable
 {
@@ -45,7 +45,7 @@ class BroadcastMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address(config('mail.broadcast_from.address'), config('mail.broadcast_from.name')),
+            from: new Address(config('mail.promotional_from.address'), config('mail.promotional_from.name')),
             subject: $this->subjectLine,
         );
     }

@@ -164,6 +164,31 @@ class OrderThirtyDayReminderTest extends TestCase
     }
 
     /**
+     * By request: the reminder goes out from the same separate sender
+     * identity as BroadcastMail (config('mail.promotional_from')), not
+     * the order-confirmation/review-confirmation address
+     * (config('mail.from')) - both this mailable and BroadcastMail carry
+     * a List-Unsubscribe header, so sharing an address with each other is
+     * fine; sharing one with purely transactional mail that never carries
+     * one is what drags the latter's Gmail Promotions-tab placement down.
+     */
+    #[Test]
+    public function the_reminder_is_sent_from_the_separate_promotional_sender_address(): void
+    {
+        Mail::fake();
+
+        $this->deliveredOrder(['customer_email' => 'ivan@example.com']);
+
+        app(OrderReminderService::class)->sendDueReminders();
+
+        Mail::assertSent(
+            OrderThirtyDayReminderMail::class,
+            fn (OrderThirtyDayReminderMail $mail) => $mail->hasTo('ivan@example.com')
+                && $mail->hasFrom(config('mail.promotional_from.address'), config('mail.promotional_from.name')),
+        );
+    }
+
+    /**
      * End-to-end: the "Остави ревю" link's signed query params (see
      * OrderThirtyDayReminderMail::reviewUrl()) must be real and accepted by
      * orders.review-identity (see OrderReviewIdentityTest for that

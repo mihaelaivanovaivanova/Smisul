@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Services\ReviewService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
@@ -20,6 +21,11 @@ use Illuminate\Support\Facades\URL;
  * toward two new accessory products and a product review, not a
  * transactional/legal notice, so it skips the usual legal-disclosures
  * partial other order emails include.
+ *
+ * Sent from config('mail.promotional_from') - shared with BroadcastMail,
+ * the other mailable carrying a List-Unsubscribe header, but deliberately
+ * NOT the same address as order confirmations/review confirmations
+ * (config('mail.from')) - see that config entry's own docblock for why.
  */
 class OrderThirtyDayReminderMail extends Mailable
 {
@@ -30,6 +36,7 @@ class OrderThirtyDayReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: new Address(config('mail.promotional_from.address'), config('mail.promotional_from.name')),
             subject: 'Мина месец… И ще оценим твоят коментар',
         );
     }

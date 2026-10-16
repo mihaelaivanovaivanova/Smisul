@@ -81,14 +81,16 @@ class BroadcastAdminTest extends TestCase
 
     /**
      * By request: broadcasts go out from a separate sender identity
-     * (config('mail.broadcast_from')) than order confirmations/the 30-day
-     * reminder, so Gmail's per-sender Promotions-tab reputation for this
-     * bulk, discount-heavy mail doesn't bleed into the more personal mail
-     * sharing config('mail.from') would otherwise get - see BroadcastMail's
-     * own docblock.
+     * (config('mail.promotional_from')) than order confirmations/review
+     * confirmations, so Gmail's per-sender Promotions-tab reputation for
+     * this bulk, discount-heavy mail doesn't bleed into the purely
+     * transactional mail sharing config('mail.from') would otherwise get -
+     * see BroadcastMail's own docblock. Shared with the 30-day reminder
+     * (same reasoning, see OrderThirtyDayReminderMail), by request -
+     * that's covered by OrderThirtyDayReminderTest, not here.
      */
     #[Test]
-    public function a_broadcast_is_sent_from_the_separate_broadcast_sender_address(): void
+    public function a_broadcast_is_sent_from_the_separate_promotional_sender_address(): void
     {
         Mail::fake();
 
@@ -102,7 +104,7 @@ class BroadcastAdminTest extends TestCase
 
         Mail::assertSent(
             BroadcastMail::class,
-            fn (BroadcastMail $mail) => $mail->hasFrom(config('mail.broadcast_from.address'), config('mail.broadcast_from.name')),
+            fn (BroadcastMail $mail) => $mail->hasFrom(config('mail.promotional_from.address'), config('mail.promotional_from.name')),
         );
     }
 

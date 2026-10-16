@@ -18,6 +18,8 @@ export interface AdminOrder extends Omit<Order, 'customer'> {
   qualifies_for_reminder: boolean;
   /** Set once the 30-day reminder has actually been sent for this order (by either button) — null until then. */
   thirty_day_reminder_sent_at: string | null;
+  /** Gates the order detail page's "Send pickup notification" button — see backend ShipmentPickupNotificationService::isEligible(). Speedy only; repeatable, not a one-shot flag. */
+  qualifies_for_pickup_notification: boolean;
 }
 
 /**

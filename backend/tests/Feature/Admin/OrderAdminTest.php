@@ -7,6 +7,7 @@ use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Enums\ShippingDeliveryType;
 use App\Mail\OrderThirtyDayReminderMail;
+use App\Mail\ShipmentPickupNotificationMail;
 use App\Models\Complaint;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -946,5 +947,88 @@ class OrderAdminTest extends TestCase
 
         $response->assertStatus(422);
         $this->assertNotNull(Order::find($order->id));
+    }
+
+    /**
+     * End-to-end wiring for the "Send pickup notification" button -
+     * eligibility details (carrier, office_name, order status) are covered
+     * in depth by ShipmentPickupNotificationServiceTest.
+     */
+    #[Test]
+    public function an_administrator_can_send_a_pickup_notification(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Shipped,
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'customer_email' => 'ivan@example.com',
+        ]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::ReadyForPickup,
+            'office_name' => 'Офис 10 - Русе',
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/pickup-notification");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.sent', true);
+        Mail::assertSent(ShipmentPickupNotificationMail::class, fn (ShipmentPickupNotificationMail $mail) => $mail->hasTo('ivan@example.com'));
+        $this->assertNotNull($shipment->fresh()->pickup_notification_sent_at);
+        $this->assertDatabaseHas('admin_action_logs', [
+            'user_id' => $admin->id,
+            'action' => 'orders.pickup_notification_sent',
+        ]);
+    }
+
+    /**
+     * Unlike the 30-day reminder, this isn't a one-shot - an admin can send
+     * it again for the same order (see ShipmentPickupNotificationService's
+     * own docblock).
+     */
+    #[Test]
+    public function an_administrator_can_send_a_pickup_notification_more_than_once(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Shipped,
+            'shipping_carrier' => ShippingCarrier::Speedy,
+            'customer_email' => 'ivan@example.com',
+        ]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::ReadyForPickup,
+            'office_name' => 'Офис 10 - Русе',
+            'pickup_notification_sent_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/pickup-notification");
+
+        $response->assertOk();
+        Mail::assertSent(ShipmentPickupNotificationMail::class, 1);
+    }
+
+    #[Test]
+    public function sending_a_pickup_notification_for_an_ineligible_order_is_rejected(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Packed, 'shipping_carrier' => ShippingCarrier::Speedy]);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/orders/{$order->id}/shipment/pickup-notification");
+
+        $response->assertStatus(422);
+    }
+
+    #[Test]
+    public function a_customer_cannot_send_a_pickup_notification(): void
+    {
+        $customer = User::factory()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+
+        $this->actingAs($customer)->postJson("/api/v1/admin/orders/{$order->id}/shipment/pickup-notification")->assertForbidden();
     }
 }

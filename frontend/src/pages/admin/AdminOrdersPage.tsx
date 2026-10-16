@@ -59,9 +59,8 @@ export default function AdminOrdersPage() {
             pendingLabel="Syncing…"
             action={syncShipmentTracking}
             summarize={(result) =>
-              `Checked ${result.checked} shipment(s), ${result.updated} status change(s), ${result.orders_updated} order(s) advanced, ${result.pickup_reminders_sent} pickup reminder(s) sent.` +
-              (result.failed > 0 ? ` ${result.failed} failed - see logs.` : '') +
-              (result.pickup_reminders_failed > 0 ? ` ${result.pickup_reminders_failed} pickup reminder(s) failed - see logs.` : '')
+              `Checked ${result.checked} shipment(s), ${result.updated} status change(s), ${result.orders_updated} order(s) advanced.` +
+              (result.failed > 0 ? ` ${result.failed} failed - see logs.` : '')
             }
             onSuccess={() => setReloadKey((key) => key + 1)}
             errorFallback="Could not sync shipment tracking."

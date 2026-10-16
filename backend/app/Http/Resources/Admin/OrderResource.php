@@ -7,6 +7,7 @@ use App\Http\Resources\PaymentResource;
 use App\Http\Resources\ShipmentResource;
 use App\Services\OrderReminderService;
 use App\Services\OrderService;
+use App\Services\ShipmentPickupNotificationService;
 use Illuminate\Http\Request;
 
 /**
@@ -42,6 +43,11 @@ class OrderResource extends BaseOrderResource
             // filter - see OrderReminderService::isEligibleForReminder().
             'qualifies_for_reminder' => OrderReminderService::isEligibleForReminder($this->resource),
             'thirty_day_reminder_sent_at' => $this->thirty_day_reminder_sent_at?->toIso8601String(),
+            // Gates the admin order detail page's "Send pickup
+            // notification" button - see
+            // ShipmentPickupNotificationService::isEligible()'s own
+            // docblock.
+            'qualifies_for_pickup_notification' => ShipmentPickupNotificationService::isEligible($this->resource),
         ];
     }
 }

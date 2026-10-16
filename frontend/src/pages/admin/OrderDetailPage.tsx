@@ -1,7 +1,18 @@
 import { Fragment, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiBaseUrl } from '../../api/client';
-import { cancelOrderShipment, createOrderShipment, deleteOrder, fetchAdminOrder, refundPayment, reversePayment, sendReminderEmail, sendTestReminderEmail, updateOrderStatus } from '../../api/admin/orders';
+import {
+  cancelOrderShipment,
+  createOrderShipment,
+  deleteOrder,
+  fetchAdminOrder,
+  refundPayment,
+  reversePayment,
+  sendPickupNotification,
+  sendReminderEmail,
+  sendTestReminderEmail,
+  updateOrderStatus,
+} from '../../api/admin/orders';
 import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import LoadingState from '../../components/LoadingState';
@@ -44,6 +55,9 @@ export default function OrderDetailPage() {
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [reminderMessage, setReminderMessage] = useState<string | null>(null);
   const [reminderError, setReminderError] = useState<string | null>(null);
+  const [isSendingPickupNotification, setIsSendingPickupNotification] = useState(false);
+  const [pickupNotificationMessage, setPickupNotificationMessage] = useState<string | null>(null);
+  const [pickupNotificationError, setPickupNotificationError] = useState<string | null>(null);
 
   async function handleCreateShipment() {
     setIsCreatingShipment(true);
@@ -138,6 +152,21 @@ export default function OrderDetailPage() {
       setReminderError(getErrorMessage(err, 'Could not send the reminder email.'));
     } finally {
       setIsSendingReminder(false);
+    }
+  }
+
+  async function handleSendPickupNotification() {
+    setIsSendingPickupNotification(true);
+    setPickupNotificationMessage(null);
+    setPickupNotificationError(null);
+    try {
+      await sendPickupNotification(id);
+      setPickupNotificationMessage('Sent. Check the inbox.');
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setPickupNotificationError(getErrorMessage(err, 'Could not send the pickup notification email.'));
+    } finally {
+      setIsSendingPickupNotification(false);
     }
   }
 
@@ -371,15 +400,11 @@ export default function OrderDetailPage() {
                   </p>
                   {order.shipment.ready_for_pickup_at && (
                     <p className="small text-muted mb-3">
-                      Ready for pickup since {new Date(order.shipment.ready_for_pickup_at).toLocaleString('bg-BG')}.{' '}
-                      {[
-                        order.shipment.pickup_reminder_sent_at,
-                        order.shipment.pickup_reminder_2_sent_at,
-                        order.shipment.pickup_reminder_3_sent_at,
-                      ].filter(Boolean).length}{' '}
-                      of 3 pickup reminders sent.
+                      Ready for pickup since {new Date(order.shipment.ready_for_pickup_at).toLocaleString('bg-BG')}.
                     </p>
                   )}
+                  {pickupNotificationMessage && <div className="alert alert-success py-2 mb-2">{pickupNotificationMessage}</div>}
+                  {pickupNotificationError && <div className="alert alert-danger py-2 mb-2">{pickupNotificationError}</div>}
                   <div className="d-flex gap-2 align-items-center flex-wrap">
                     {order.shipment.carrier === 'box_now' || order.shipment.carrier === 'speedy' ? (
                       // rel="noopener" only, not "noreferrer" - the backend's
@@ -412,7 +437,25 @@ export default function OrderDetailPage() {
                         Cancel shipment
                       </button>
                     )}
+                    {order.qualifies_for_pickup_notification && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary btn-sm"
+                        disabled={isSendingPickupNotification}
+                        onClick={() => void handleSendPickupNotification()}
+                      >
+                        {isSendingPickupNotification && (
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        )}
+                        Send pickup notification
+                      </button>
+                    )}
                   </div>
+                  {order.shipment.pickup_notification_sent_at && (
+                    <p className="small text-muted mt-2 mb-0">
+                      Pickup notification last sent {new Date(order.shipment.pickup_notification_sent_at).toLocaleString('bg-BG')}.
+                    </p>
+                  )}
                   {order.shipment.events.length > 0 && (
                     // The carrier's own raw tracking history (status +
                     // description, e.g. "Връщане в офис" / "Предаване

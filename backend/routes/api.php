@@ -343,6 +343,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/orders/{order}/shipment', [AdminOrderController::class, 'createShipment'])->name('orders.shipment.create');
         Route::get('/orders/{order}/shipment/label', [AdminOrderController::class, 'shipmentLabel'])->name('orders.shipment.label');
         Route::post('/orders/{order}/shipment/cancel', [AdminOrderController::class, 'cancelShipment'])->name('orders.shipment.cancel');
+        Route::post('/orders/{order}/shipment/pickup-notification', [AdminOrderController::class, 'sendPickupNotification'])->name('orders.shipment.pickup-notification');
 
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.show');
 

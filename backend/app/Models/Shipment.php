@@ -19,9 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ?array<string, mixed> $raw_response
  * @property ?Carbon $estimated_delivery_at
  * @property ?Carbon $ready_for_pickup_at
- * @property ?Carbon $pickup_reminder_sent_at
- * @property ?Carbon $pickup_reminder_2_sent_at
- * @property ?Carbon $pickup_reminder_3_sent_at
+ * @property ?Carbon $pickup_notification_sent_at
  */
 class Shipment extends Model
 {
@@ -42,9 +40,7 @@ class Shipment extends Model
         'label_url',
         'raw_response',
         'ready_for_pickup_at',
-        'pickup_reminder_sent_at',
-        'pickup_reminder_2_sent_at',
-        'pickup_reminder_3_sent_at',
+        'pickup_notification_sent_at',
     ];
 
     protected function casts(): array
@@ -57,9 +53,7 @@ class Shipment extends Model
             'estimated_delivery_at' => 'datetime',
             'raw_response' => 'array',
             'ready_for_pickup_at' => 'datetime',
-            'pickup_reminder_sent_at' => 'datetime',
-            'pickup_reminder_2_sent_at' => 'datetime',
-            'pickup_reminder_3_sent_at' => 'datetime',
+            'pickup_notification_sent_at' => 'datetime',
         ];
     }
 

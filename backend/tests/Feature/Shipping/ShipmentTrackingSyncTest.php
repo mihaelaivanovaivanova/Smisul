@@ -5,7 +5,6 @@ namespace Tests\Feature\Shipping;
 use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
-use App\Mail\ShipmentReadyForPickupMail;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\ShipmentTrackingSyncService;
@@ -203,8 +202,6 @@ class ShipmentTrackingSyncTest extends TestCase
             'updated' => 1,
             'orders_updated' => 1,
             'failed' => 0,
-            'pickup_reminders_sent' => 0,
-            'pickup_reminders_failed' => 0,
         ], $result);
         $this->assertSame(ShipmentStatus::Delivered, $shipment->fresh()->status);
         $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
@@ -448,12 +445,14 @@ class ShipmentTrackingSyncTest extends TestCase
     /**
      * operationCode 1134 is ShipmentStatus::ReadyForPickup's real Speedy
      * code - confirmed live (SQ369U). Mirrors the equivalent BOX NOW test
-     * below (a_box_now_shipment_reaching_final_destination_...) - the
-     * pickup-reminder sequence is carrier-agnostic once the status lands
-     * on ReadyForPickup.
+     * below (a_box_now_shipment_reaching_final_destination_...) - setting
+     * ready_for_pickup_at is carrier-agnostic once the status lands on
+     * ReadyForPickup. No email is sent here - sync() doesn't send mail at
+     * all anymore (see ShipmentPickupNotificationService for the separate
+     * manual "Send pickup notification" button this replaced).
      */
     #[Test]
-    public function a_speedy_shipment_reaching_the_office_is_marked_ready_for_pickup_and_sends_the_first_reminder(): void
+    public function a_speedy_shipment_reaching_the_office_is_marked_ready_for_pickup(): void
     {
         Mail::fake();
         Http::fake(['api.speedy.bg/*' => Http::response($this->speedyReadyForPickupResponse())]);
@@ -469,8 +468,7 @@ class ShipmentTrackingSyncTest extends TestCase
         $shipment->refresh();
         $this->assertSame(ShipmentStatus::ReadyForPickup, $shipment->status);
         $this->assertNotNull($shipment->ready_for_pickup_at);
-        $this->assertNotNull($shipment->pickup_reminder_sent_at);
-        Mail::assertSent(ShipmentReadyForPickupMail::class, 1);
+        Mail::assertNothingSent();
     }
 
     /**
@@ -631,15 +629,15 @@ class ShipmentTrackingSyncTest extends TestCase
 
     /**
      * BOX NOW's 'final-destination' state means the parcel reached its
-     * destination locker and is waiting for the customer - this is the
-     * trigger for the whole pickup-reminder feature (see
-     * ShipmentPickupReminderService), so confirms both that
-     * ready_for_pickup_at gets set the moment this is first observed, and
-     * that the immediate (stage 1) reminder email goes out in the same
-     * sync run.
+     * destination locker and is waiting for the customer - confirms
+     * ready_for_pickup_at gets set the moment this is first observed. No
+     * email is sent here - sync() doesn't send mail at all anymore (see
+     * ShipmentPickupNotificationService for the separate manual "Send
+     * pickup notification" button this replaced, which is Speedy-only by
+     * request - BOX NOW gets no equivalent).
      */
     #[Test]
-    public function a_box_now_shipment_reaching_final_destination_is_marked_ready_for_pickup_and_sends_the_first_reminder(): void
+    public function a_box_now_shipment_reaching_final_destination_is_marked_ready_for_pickup(): void
     {
         Mail::fake();
 
@@ -669,23 +667,16 @@ class ShipmentTrackingSyncTest extends TestCase
             'office_name' => 'BOX NOW - Mall Sofia',
         ]);
 
-        $result = app(ShipmentTrackingSyncService::class)->sync();
+        app(ShipmentTrackingSyncService::class)->sync();
 
-        $this->assertSame(1, $result['pickup_reminders_sent']);
         $shipment->refresh();
         $this->assertSame(ShipmentStatus::ReadyForPickup, $shipment->status);
         $this->assertNotNull($shipment->ready_for_pickup_at);
-        $this->assertNotNull($shipment->pickup_reminder_sent_at);
-        $this->assertNull($shipment->pickup_reminder_2_sent_at);
-        $this->assertNull($shipment->pickup_reminder_3_sent_at);
         // Order stays Shipped - ReadyForPickup is a shipment-level signal
         // only, not a new order lifecycle stage (see advanceOrderStatus()'s
         // match, which only ever acts on Delivered/Returned).
         $this->assertSame(OrderStatus::Shipped, $order->fresh()->status);
-        Mail::assertSent(
-            ShipmentReadyForPickupMail::class,
-            fn (ShipmentReadyForPickupMail $mail) => $mail->hasTo('ivan@example.com') && $mail->stage === 1,
-        );
+        Mail::assertNothingSent();
     }
 
     #[Test]
@@ -700,7 +691,7 @@ class ShipmentTrackingSyncTest extends TestCase
         ]);
 
         $this->artisan('shipments:sync-tracking')
-            ->expectsOutputToContain('Checked 1 shipment(s), 1 status change(s), 1 order(s) advanced, 0 pickup reminder(s) sent.')
+            ->expectsOutputToContain('Checked 1 shipment(s), 1 status change(s), 1 order(s) advanced.')
             ->assertSuccessful();
 
         $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);

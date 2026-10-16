@@ -30,9 +30,7 @@ class ShipmentResource extends JsonResource
             'currency' => $this->currency,
             'estimated_delivery_at' => $this->estimated_delivery_at?->toIso8601String(),
             'ready_for_pickup_at' => $this->ready_for_pickup_at?->toIso8601String(),
-            'pickup_reminder_sent_at' => $this->pickup_reminder_sent_at?->toIso8601String(),
-            'pickup_reminder_2_sent_at' => $this->pickup_reminder_2_sent_at?->toIso8601String(),
-            'pickup_reminder_3_sent_at' => $this->pickup_reminder_3_sent_at?->toIso8601String(),
+            'pickup_notification_sent_at' => $this->pickup_notification_sent_at?->toIso8601String(),
             'events' => ShipmentStatusEventResource::collection($this->whenLoaded('statusEvents')),
             'created_at' => $this->created_at->toIso8601String(),
         ];

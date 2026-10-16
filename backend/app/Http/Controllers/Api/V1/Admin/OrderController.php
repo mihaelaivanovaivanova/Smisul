@@ -15,6 +15,7 @@ use App\Services\AdminOrderService;
 use App\Services\OrderReminderService;
 use App\Services\OrderService;
 use App\Services\OrderStatusService;
+use App\Services\ShipmentPickupNotificationService;
 use App\Services\ShipmentTrackingSyncService;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ class OrderController extends Controller
         private readonly AdminOrderService $adminOrders,
         private readonly ShipmentTrackingSyncService $trackingSync,
         private readonly OrderReminderService $reminders,
+        private readonly ShipmentPickupNotificationService $pickupNotifications,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -264,5 +266,27 @@ class OrderController extends Controller
         }
 
         return new OrderResource($order->fresh()->load(OrderService::ADMIN_EAGER_LOAD));
+    }
+
+    /**
+     * The "Send pickup notification" button on a Shipped Speedy order's
+     * admin detail page - only rendered there (and only accepted here) when
+     * the order currently qualifies (order.qualifies_for_pickup_notification,
+     * see ShipmentPickupNotificationService::isEligible()'s own docblock).
+     * Manual and repeatable - unlike the 30-day reminder, this can be sent
+     * more than once (an admin might need to nudge a customer again), so
+     * there's no eligibility flag flip to prevent a second click.
+     */
+    public function sendPickupNotification(Request $request, Order $order): JsonResponse
+    {
+        $result = $this->pickupNotifications->send($order);
+
+        $this->actionLogger->log($request->user(), 'orders.pickup_notification_sent', $order, $result);
+
+        if (! $result['sent']) {
+            return response()->json(['message' => $result['reason']], 422);
+        }
+
+        return response()->json(['data' => $result]);
     }
 }

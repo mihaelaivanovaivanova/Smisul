@@ -149,16 +149,26 @@ class ShipmentTrackingSyncService
      * so a later real Delivered/Returned can still be caught, not treated
      * as an order-level outcome by itself.
      *
-     * A Returned order moves back to Shipped whenever the shipment's own
-     * freshly-computed status is anything other than Returned - safe now
-     * that SpeedyShippingProvider::mapStatus() itself refuses to report
-     * Returned without a description naming the sender (see its own
-     * docblock): a genuinely-returned shipment's real Returned event is
-     * sticky and never disappears from its history, so this branch can
-     * only ever fire for a shipment that was wrongly marked Returned in
-     * the first place - confirmed live, this is exactly what left order
-     * SQ369U stuck showing Returned even after the shipment itself had
-     * already self-corrected.
+     * The only move out of Returned here is to Delivered, on a genuine
+     * later confirmation - deliberately NOT back to Shipped on any other
+     * signal, even though the shipment's own status can leave Returned
+     * (see isSticky()'s own docblock on description-based disambiguation
+     * at the mapStatus() layer). An earlier version of this DID allow
+     * Returned -> Shipped whenever the shipment stopped reporting
+     * Returned, reasoning that mapStatus() no longer calls something
+     * Returned without a confirmed sender-return description, so a
+     * genuine return could never lose its sticky status. That reasoning
+     * held for our own mapping logic, but not for Speedy's API itself:
+     * confirmed live (KWAKHR/CYYCSE/SQ369U/MSL6QP/KSRNLR), Speedy's
+     * `track` endpoint intermittently returns an INCOMPLETE operations
+     * list for the same parcel - sometimes missing the real "Връщане към
+     * подателя" event entirely - so a single flaky poll could un-stick a
+     * genuinely-returned order at any time, for any order, unpredictably.
+     * Direct evidence: the exact same shipment computed as Returned on
+     * three back-to-back manual API calls, then Pending moments later via
+     * the real sync path. Reverted for good - a wrongly-marked Returned
+     * order (the SQ369U case) needs a manual admin correction now, slower
+     * but not actively flapping live order statuses and revenue figures.
      */
     private function advanceOrderStatus(Shipment $shipment): bool
     {
@@ -168,22 +178,11 @@ class ShipmentTrackingSyncService
             return false;
         }
 
-        $targetStatus = match (true) {
-            $shipment->status === ShipmentStatus::Delivered => OrderStatus::Delivered,
-            $shipment->status === ShipmentStatus::Returned => OrderStatus::Returned,
-            $order->status === OrderStatus::Returned => OrderStatus::Shipped,
+        $targetStatus = match ($shipment->status) {
+            ShipmentStatus::Delivered => OrderStatus::Delivered,
+            ShipmentStatus::Returned => OrderStatus::Returned,
             default => null,
         };
-
-        // Temporary diagnostic - remove once the live Returned<->Shipped
-        // flapping (KWAKHR/CYYCSE/SQ369U/MSL6QP/KSRNLR) is understood.
-        Log::warning('advanceOrderStatus() decision.', [
-            'order_number' => $order->order_number,
-            'shipment_id' => $shipment->id,
-            'shipment_status' => $shipment->status->value,
-            'order_status_before' => $order->status->value,
-            'target_status' => $targetStatus?->value,
-        ]);
 
         if ($targetStatus === null || $targetStatus === $order->status) {
             return false;

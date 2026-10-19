@@ -42,23 +42,28 @@ class OrderStatusService
         OrderStatus::Shipped->value => [OrderStatus::Delivered, OrderStatus::Returned, OrderStatus::Refunded],
         // Returned is reached only from Shipped (the parcel came back to
         // the sender). ShipmentTrackingSyncService keeps polling a Returned
-        // shipment so this can self-correct both ways: to Delivered if a
-        // later sync genuinely confirms delivery, or back to Shipped if the
-        // shipment's own status moves away from Returned (see
-        // advanceOrderStatus()'s own docblock). Shipped -> Returned -> Shipped
-        // was tried once before and reverted (a premature Returned
-        // self-correcting while the carrier was still actively redelivering
-        // was indistinguishable, by sequence alone, from a genuinely-returned
-        // order's own unmapped trailing confirmation operation - see
-        // ShipmentStatus::isSticky()'s own docblock). Safely reinstated once
-        // the real root cause was found and fixed one layer down, not here:
-        // SpeedyShippingProvider::mapStatus() no longer calls something
-        // Returned at all unless the operation's own description names the
-        // sender, so a genuine return can never lose its sticky Returned
-        // status this way - only a shipment that was never really returned
-        // can. Refunded is the other legal move, for an order that was paid
-        // by card before shipping (see PaymentService::refund()).
-        OrderStatus::Returned->value => [OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Refunded],
+        // shipment so this can still self-correct to Delivered if a later
+        // sync genuinely confirms it - but only to Delivered, never back to
+        // Shipped. Shipped -> Returned -> Shipped was tried twice and
+        // reverted twice: first because a premature Returned self-correcting
+        // mid-redelivery was indistinguishable, by sequence alone, from a
+        // genuinely-returned order's own unmapped trailing confirmation
+        // operation; then again after fixing that (mapStatus() now refuses
+        // to call something Returned without a description naming the
+        // sender) once live evidence showed the real constraint isn't our
+        // mapping logic at all - Speedy's own `track` endpoint intermittently
+        // returns an INCOMPLETE operations list for the same parcel,
+        // sometimes missing the real "Връщане към подателя" event entirely
+        // (confirmed live: KWAKHR/CYYCSE/SQ369U/MSL6QP/KSRNLR all flipped
+        // between Returned and Shipped on alternating sync runs despite
+        // stable, verified carrier data on most calls). A single flaky poll
+        // could un-stick ANY genuinely-returned order at any time - not
+        // worth the automation; a wrongly-marked Returned order needs a
+        // manual admin correction instead (see ShipmentTrackingSyncService::
+        // advanceOrderStatus()'s own docblock for the full story). Refunded
+        // is the other legal move, for an order that was paid by card
+        // before shipping (see PaymentService::refund()).
+        OrderStatus::Returned->value => [OrderStatus::Delivered, OrderStatus::Refunded],
         // Completed is retired (see OrderStatus::Completed's own docblock) -
         // Delivered is the terminal happy-path status now. Completed's own
         // outgoing transition stays listed below for the same reason

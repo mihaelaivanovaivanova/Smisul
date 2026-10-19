@@ -30,21 +30,21 @@ class ReturnedOrderStatusTest extends TestCase
     }
 
     /**
-     * Shipped, Delivered and Refunded are all allowed, not just Refunded -
-     * lets ShipmentTrackingSyncService self-correct a Returned order
-     * either way: to Delivered if a later sync genuinely confirms
-     * delivery, or back to Shipped if the shipment's own status moves away
-     * from Returned - see ShipmentTrackingSyncService::advanceOrderStatus()'s
-     * own docblock for why this is safe (the real ambiguity that made an
-     * earlier version of this unsafe was fixed one layer down, in
-     * SpeedyShippingProvider::mapStatus()).
+     * Delivered is allowed too, not just Refunded - lets
+     * ShipmentTrackingSyncService self-correct a Returned order if a
+     * later sync genuinely confirms delivery. Returned -> Shipped was
+     * tried twice and reverted twice - see ShipmentTrackingSyncService::
+     * advanceOrderStatus()'s own docblock for the full story, most
+     * recently: Speedy's own API intermittently returns incomplete
+     * tracking data, so a single flaky poll could un-stick any
+     * genuinely-returned order at any time.
      */
     #[Test]
-    public function a_returned_order_can_move_on_to_shipped_delivered_or_refunded(): void
+    public function a_returned_order_can_move_on_to_delivered_or_refunded(): void
     {
         $service = app(OrderStatusService::class);
 
-        $this->assertSame([OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Refunded], $service->allowedTransitions(OrderStatus::Returned));
+        $this->assertSame([OrderStatus::Delivered, OrderStatus::Refunded], $service->allowedTransitions(OrderStatus::Returned));
     }
 
     #[Test]
@@ -73,28 +73,20 @@ class ReturnedOrderStatusTest extends TestCase
     }
 
     /**
-     * Confirms the Returned -> Shipped self-correction path itself (see
-     * ShipmentTrackingSyncService::advanceOrderStatus()'s own docblock for
-     * when the sync actually triggers this - this test only covers that
-     * OrderStatusService allows the transition). The end-to-end regression
-     * guard for the real case that made an earlier version of this unsafe
-     * (a genuinely-returned order's own unmapped trailing confirmation
-     * operation) lives in ShipmentTrackingSyncTest::
-     * a_genuinely_returned_order_stays_returned_despite_an_unmapped_trailing_operation().
+     * Regression guard: Returned -> Shipped was tried twice and reverted
+     * twice (see ShipmentTrackingSyncService::advanceOrderStatus()'s own
+     * docblock) - most recently because Speedy's own API intermittently
+     * returns incomplete tracking data, which could un-stick a genuinely-
+     * returned order on any single flaky poll. Confirms it stays removed.
      */
     #[Test]
-    public function a_returned_order_can_self_correct_to_shipped(): void
+    public function a_returned_order_cannot_move_back_to_shipped(): void
     {
         $order = Order::factory()->create(['status' => OrderStatus::Returned]);
 
-        $updated = app(OrderStatusService::class)->transitionTo($order, OrderStatus::Shipped, null, 'Updated from speedy tracking sync: В транзит');
+        $this->expectException(InvalidOrderStatusTransitionException::class);
 
-        $this->assertSame(OrderStatus::Shipped, $updated->status);
-        $this->assertDatabaseHas('order_status_histories', [
-            'order_id' => $order->id,
-            'status' => OrderStatus::Shipped->value,
-            'previous_status' => OrderStatus::Returned->value,
-        ]);
+        app(OrderStatusService::class)->transitionTo($order, OrderStatus::Shipped, null);
     }
 
     #[Test]

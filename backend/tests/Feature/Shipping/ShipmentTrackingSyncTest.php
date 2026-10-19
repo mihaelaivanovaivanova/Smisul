@@ -468,17 +468,19 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
-     * Regression test for the exact stuck state SQ369U was found in: an
-     * order/shipment pair already persisted at Returned from before this
-     * fix was deployed (the old code had no way to tell "Връщане в офис"
-     * apart from a genuine return) must self-correct back to Shipped once
-     * a sync against the fixed mapStatus() shows the shipment was never
-     * really returned - see OrderStatusService::TRANSITIONS' Returned
-     * entry and ShipmentTrackingSyncService::advanceOrderStatus()'s own
-     * docblock for why this is now safe to allow.
+     * Regression guard for a bug found after the SQ369U fix was initially
+     * deployed with automatic order-level self-correction attached: the
+     * shipment's own status can still leave Returned (the mapStatus()
+     * description-based fix below this test still works), but the ORDER
+     * must NOT automatically follow it back to Shipped - see
+     * ShipmentTrackingSyncService::advanceOrderStatus()'s own docblock for
+     * why (Speedy's API intermittently returns incomplete tracking data,
+     * which made a genuinely-returned order's status flap live in
+     * production). An order stuck like this now needs a manual admin
+     * correction instead.
      */
     #[Test]
-    public function an_order_wrongly_stuck_at_returned_from_before_this_fix_self_corrects_back_to_shipped(): void
+    public function a_shipment_self_correcting_away_from_returned_does_not_automatically_move_the_order(): void
     {
         Http::fake(['api.speedy.bg/*' => Http::response($this->speedyOfficeRedirectResponse())]);
 
@@ -491,12 +493,7 @@ class ShipmentTrackingSyncTest extends TestCase
         app(ShipmentTrackingSyncService::class)->sync();
 
         $this->assertNotSame(ShipmentStatus::Returned, $shipment->fresh()->status);
-        $this->assertSame(OrderStatus::Shipped, $order->fresh()->status);
-        $this->assertDatabaseHas('order_status_histories', [
-            'order_id' => $order->id,
-            'status' => OrderStatus::Shipped->value,
-            'previous_status' => OrderStatus::Returned->value,
-        ]);
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
     }
 
     /**

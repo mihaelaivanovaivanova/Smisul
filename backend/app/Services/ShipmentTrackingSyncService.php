@@ -175,6 +175,16 @@ class ShipmentTrackingSyncService
             default => null,
         };
 
+        // Temporary diagnostic - remove once the live Returned<->Shipped
+        // flapping (KWAKHR/CYYCSE/SQ369U/MSL6QP/KSRNLR) is understood.
+        Log::warning('advanceOrderStatus() decision.', [
+            'order_number' => $order->order_number,
+            'shipment_id' => $shipment->id,
+            'shipment_status' => $shipment->status->value,
+            'order_status_before' => $order->status->value,
+            'target_status' => $targetStatus?->value,
+        ]);
+
         if ($targetStatus === null || $targetStatus === $order->status) {
             return false;
         }

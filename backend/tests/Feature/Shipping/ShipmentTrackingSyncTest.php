@@ -127,6 +127,32 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
+     * Same real events as speedyReturnedThenUnmappedFollowUpResponse()
+     * above, but deliberately out of chronological order in the array -
+     * confirmed live that Speedy's track endpoint doesn't reliably return
+     * operations in the same order across repeated calls for the same
+     * parcel (real orders KWAKHR/CYYCSE/SQ369U flipped between Returned
+     * and Shipped on every alternating sync run, including consecutive
+     * CLI invocations - fresh PHP processes each time, ruling out
+     * OPcache). mostAdvancedStatus() must resolve this the same way
+     * regardless of array order - see SpeedyShippingProvider::track()'s
+     * own docblock on sorting by occurredAt rather than trusting the API's
+     * array order.
+     */
+    private function speedyReturnedWithOutOfOrderOperationsResponse(): array
+    {
+        return [
+            'parcels' => [[
+                'operations' => [
+                    ['operationCode' => 999, 'dateTime' => '2026-07-09T10:00:00+03:00', 'description' => 'Предаване обратно на подател'],
+                    ['operationCode' => 1, 'dateTime' => '2026-07-06T10:00:00+03:00', 'description' => null],
+                    ['operationCode' => 38, 'dateTime' => '2026-07-08T10:00:00+03:00', 'description' => 'Връщане към подателя'],
+                ],
+            ]],
+        ];
+    }
+
+    /**
      * Regression fixture for the real SQ369U case: operationCode 38 with
      * description "Връщане в офис" (redirected back to a local office
      * mid-journey, not a final return) must NOT be read as Returned -
@@ -352,6 +378,37 @@ class ShipmentTrackingSyncTest extends TestCase
         $this->assertSame(0, $result['updated']);
         $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
         $this->assertSame(ShipmentStatus::Returned, $shipment->fresh()->status);
+    }
+
+    /**
+     * Regression test for the real production bug that caused order status
+     * to visibly flip back and forth on every single sync run (KWAKHR,
+     * CYYCSE, SQ369U and others, confirmed live even across independent
+     * CLI invocations): the computed status must be the same regardless of
+     * what order Speedy's API happens to return operations in. Same real
+     * event set as a_genuinely_returned_order_stays_returned_despite_an_
+     * unmapped_trailing_operation above, fed out of order every time -
+     * must resolve to Returned every single call, not alternate.
+     */
+    #[Test]
+    public function the_computed_status_does_not_depend_on_the_carriers_own_operation_order(): void
+    {
+        Http::fake([
+            'api.speedy.bg/*' => Http::response($this->speedyReturnedWithOutOfOrderOperationsResponse()),
+        ]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::InTransit,
+        ]);
+
+        for ($i = 0; $i < 5; $i++) {
+            app(ShipmentTrackingSyncService::class)->sync();
+
+            $this->assertSame(ShipmentStatus::Returned, $shipment->fresh()->status);
+            $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+        }
     }
 
     /**

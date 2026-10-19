@@ -388,6 +388,17 @@ class SpeedyShippingProvider implements ShippingProviderInterface
                 description: $event['description'] ?? null,
                 occurredAt: CarbonImmutable::parse($event['dateTime']),
             ))
+            // Sorted explicitly by occurredAt, never trusting the API's own
+            // array order - confirmed live that Speedy's `track` endpoint
+            // does NOT reliably return operations in the same order across
+            // repeated calls for the same parcel: real orders (KWAKHR,
+            // CYYCSE, SQ369U and others) flipped between Returned and
+            // Shipped on every single alternating sync run, including
+            // consecutive CLI invocations (fresh PHP processes each time,
+            // ruling out OPcache/caching entirely). mostAdvancedStatus()
+            // below depends on array order to find "the most recent sticky
+            // event" - an unstable order made that non-deterministic.
+            ->sortBy(fn (TrackingEventData $event) => $event->occurredAt)
             ->values()
             ->all();
 
@@ -404,6 +415,12 @@ class SpeedyShippingProvider implements ShippingProviderInterface
      * chronologically after it - otherwise simply the last operation in
      * the list. See track()'s own docblock, and isSticky()'s, for the
      * real case this exists for.
+     *
+     * Requires $events already sorted by occurredAt (see track()) - this
+     * only reverses whatever order it's given, it doesn't sort by time
+     * itself. Relying on that invariant, rather than sorting again here,
+     * keeps the one real fix (trust timestamps, not API array order) in
+     * one place.
      *
      * @param  list<TrackingEventData>  $events
      */

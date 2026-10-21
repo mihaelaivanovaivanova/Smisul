@@ -2,6 +2,16 @@
     Options -MultiViews -Indexes
     RewriteEngine On
 
+    # Force HTTPS - without this, a visitor reaching the site over plain
+    # http:// (an old link, a mistyped URL, a stale bookmark) gets served
+    # the page insecurely, and since SESSION_SECURE_COOKIE=true in
+    # production, their browser then refuses to persist the Secure-flagged
+    # session/XSRF cookies at all - every state-changing request (add to
+    # cart, checkout, anything) then 419s with "CSRF token mismatch".
+    # Confirmed live: a customer hit exactly this trying to buy the 3-pack.
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
     # Preserve headers required by Laravel Sanctum.
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

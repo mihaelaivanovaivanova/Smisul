@@ -49,6 +49,18 @@ use Throwable;
  */
 class ShipmentTrackingSyncService
 {
+    /**
+     * A Returned order older than this stops being polled at all - by
+     * request, after enough real experience with Speedy's `track` endpoint
+     * (see advanceOrderStatus()'s own docblock) to know a parcel genuinely
+     * returned this long ago is never coming back as a late delivery; every
+     * further poll is just wasted carrier calls and extra exposure to that
+     * endpoint's occasional unmapped-code noise. Doesn't affect Shipped
+     * orders, or a Returned order's own eligibility to self-correct to
+     * Delivered while still within the window.
+     */
+    private const RETURNED_POLLING_WINDOW_DAYS = 10;
+
     public function __construct(
         private readonly ShippingService $shipping,
         private readonly OrderStatusService $orderStatus,
@@ -79,7 +91,27 @@ class ShipmentTrackingSyncService
         Shipment::query()
             ->whereNotIn('status', $stopPollingStatuses)
             ->whereNotNull('tracking_number')
-            ->whereHas('order', fn ($query) => $query->whereIn('status', [OrderStatus::Shipped, OrderStatus::Returned]))
+            ->whereHas('order', function ($query) {
+                $query->where(function ($statusQuery) {
+                    $statusQuery->where('status', OrderStatus::Shipped)
+                        ->orWhere(function ($returnedQuery) {
+                            // Only a RECENT Returned transition keeps this
+                            // in scope - see RETURNED_POLLING_WINDOW_DAYS'
+                            // own docblock. A real Returned order can only
+                            // ever carry one such history row (see
+                            // OrderStatusService::TRANSITIONS - Returned is
+                            // reached once, from Shipped), so "exists one
+                            // within the window" is equivalent to "the
+                            // order's own Returned transition is within
+                            // the window".
+                            $returnedQuery->where('status', OrderStatus::Returned)
+                                ->whereHas('statusHistories', function ($historyQuery) {
+                                    $historyQuery->where('status', OrderStatus::Returned)
+                                        ->where('created_at', '>=', now()->subDays(self::RETURNED_POLLING_WINDOW_DAYS));
+                                });
+                        });
+                });
+            })
             ->with('order')
             ->chunkById(50, function ($shipments) use (&$checked, &$updated, &$ordersUpdated, &$failed) {
                 foreach ($shipments as $shipment) {

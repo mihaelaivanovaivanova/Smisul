@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Enums\ShippingCarrier;
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
 use App\Models\Shipment;
 use App\Services\ShipmentTrackingSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -440,6 +441,61 @@ class ShipmentTrackingSyncTest extends TestCase
     }
 
     /**
+     * By request: a Returned order older than
+     * ShipmentTrackingSyncService::RETURNED_POLLING_WINDOW_DAYS (10 days)
+     * is dropped from the sync entirely - a parcel returned this long ago
+     * is never coming back as a late delivery, so every further poll is
+     * just wasted carrier calls.
+     */
+    #[Test]
+    public function a_returned_order_older_than_the_polling_window_is_not_synced(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyDeliveredResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Returned, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::Returned,
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Returned,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(11),
+        ]);
+
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(0, $result['checked']);
+        $this->assertSame(OrderStatus::Returned, $order->fresh()->status);
+    }
+
+    /** The counterpart to the test above - still within the window, so still polled normally. */
+    #[Test]
+    public function a_returned_order_within_the_polling_window_is_still_synced(): void
+    {
+        Http::fake(['api.speedy.bg/*' => Http::response($this->speedyDeliveredResponse())]);
+
+        $order = Order::factory()->create(['status' => OrderStatus::Returned, 'shipping_carrier' => ShippingCarrier::Speedy]);
+        $shipment = Shipment::factory()->for($order)->created()->create([
+            'carrier' => ShippingCarrier::Speedy,
+            'status' => ShipmentStatus::Returned,
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Returned,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDays(9),
+        ]);
+
+        $result = app(ShipmentTrackingSyncService::class)->sync();
+
+        $this->assertSame(1, $result['checked']);
+        $this->assertSame(ShipmentStatus::Delivered, $shipment->fresh()->status);
+        $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
+    }
+
+    /**
      * Regression test for the real production case that started this
      * whole investigation (order SQ369U): Speedy's "Връщане в офис"
      * ("returned to office") shares operationCode 38 with a genuine final
@@ -488,6 +544,12 @@ class ShipmentTrackingSyncTest extends TestCase
         $shipment = Shipment::factory()->for($order)->created()->create([
             'carrier' => ShippingCarrier::Speedy,
             'status' => ShipmentStatus::Returned,
+        ]);
+        OrderStatusHistory::factory()->create([
+            'order_id' => $order->id,
+            'status' => OrderStatus::Returned,
+            'previous_status' => OrderStatus::Shipped,
+            'created_at' => now()->subDay(),
         ]);
 
         app(ShipmentTrackingSyncService::class)->sync();

@@ -50,6 +50,14 @@ class SettingsSeeder extends Seeder
             ['key' => 'general.box_now_badge_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show Box Now floating badge', 'value' => '1'],
             ['key' => 'general.box_now_banner_message', 'group' => 'general', 'type' => 'string', 'label' => 'Box Now top banner message', 'value' => 'Безплатна доставка с Box Now до края на септември!'],
 
+            // Per-product upsell visibility (cart drawer, checkout review,
+            // and the bamboo case's own product page — see CartService::
+            // upsellOffers()) — independent of upsell_amount/stock, so an
+            // admin can hide an out-of-stock upsell product without losing
+            // its configured upsell price.
+            ['key' => 'general.upsell_bamboo_case_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show bamboo case in upsell (cart/checkout)', 'value' => '1'],
+            ['key' => 'general.upsell_tongue_scraper_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show tongue scraper in upsell (cart/checkout)', 'value' => '1'],
+
             ['key' => 'email.from_name', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" name', 'value' => 'Smisul'],
             ['key' => 'email.from_address', 'group' => 'email', 'type' => 'string', 'label' => 'Email "from" address', 'value' => null],
 

@@ -79,9 +79,23 @@ class CartService
 
     private const UPSELL_MISWAK_SLUG = 'miswak';
 
+    /**
+     * Per-product admin kill switch (Settings -> General -> "Show ... in
+     * upsell") for when a product in UPSELL_PRODUCT_SLUGS is out of stock
+     * but the admin doesn't want to lose its configured upsell_amount by
+     * clearing the price - see isUpsellProductEnabled() below.
+     *
+     * @var array<string, string>
+     */
+    private const UPSELL_PRODUCT_SETTING_KEYS = [
+        'bambukov-keis-za-miswak' => 'general.upsell_bamboo_case_enabled',
+        'stargalka-za-ezik' => 'general.upsell_tongue_scraper_enabled',
+    ];
+
     public function __construct(
         private readonly CartPricingService $pricing,
         private readonly InventoryService $inventory,
+        private readonly SettingService $settings,
     ) {}
 
     /**
@@ -356,11 +370,30 @@ class CartService
      */
     private function isEligibleForUpsellPrice(Cart $cart, ProductVariant $variant): bool
     {
-        if (! in_array($variant->product?->slug, self::UPSELL_PRODUCT_SLUGS, true)) {
+        $slug = $variant->product?->slug;
+
+        if ($slug === null || ! in_array($slug, self::UPSELL_PRODUCT_SLUGS, true) || ! $this->isUpsellProductEnabled($slug)) {
             return false;
         }
 
         return $this->cartHasProduct($cart, self::UPSELL_MISWAK_SLUG);
+    }
+
+    /**
+     * The admin toggle's actual read - defaults to enabled (true) if the
+     * setting row is somehow missing, same "fail open" convention
+     * box_now_banner_enabled etc. use, rather than silently hiding an
+     * upsell because a setting failed to seed.
+     */
+    private function isUpsellProductEnabled(string $slug): bool
+    {
+        $key = self::UPSELL_PRODUCT_SETTING_KEYS[$slug] ?? null;
+
+        if ($key === null) {
+            return true;
+        }
+
+        return $this->settings->get($key) !== '0';
     }
 
     private function cartHasProduct(Cart $cart, string $productSlug): bool
@@ -396,9 +429,12 @@ class CartService
      * Every cross-sell offer eligible for this cart right now, in
      * UPSELL_PRODUCT_SLUGS order — empty once the cart has no Miswak item
      * yet. Each product is then considered independently: already in the
-     * cart, not found, or no upsell_amount configured for it (set via the
-     * admin product price form — see Admin\PriceResource) all just skip
-     * that one product rather than short-circuiting the rest. Single
+     * cart, not found, no upsell_amount configured for it (set via the
+     * admin product price form — see Admin\PriceResource), or toggled off
+     * via its own Settings -> General switch (isUpsellProductEnabled() —
+     * e.g. the bamboo case going out of stock without losing its
+     * configured upsell price) all just skip that one product rather than
+     * short-circuiting the rest. Single
      * source of truth for both what UpsellCard.tsx displays (cart drawer,
      * checkout review, and the bamboo case's own product page) and what
      * addItem() above actually charges — isEligibleForUpsellPrice() reuses
@@ -416,7 +452,7 @@ class CartService
         $offers = [];
 
         foreach (self::UPSELL_PRODUCT_SLUGS as $slug) {
-            if ($this->cartHasProduct($cart, $slug)) {
+            if ($this->cartHasProduct($cart, $slug) || ! $this->isUpsellProductEnabled($slug)) {
                 continue;
             }
 

@@ -6,6 +6,7 @@ use App\Enums\Currency;
 use App\Enums\VariantStatus;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -264,6 +265,67 @@ class CartUpsellPricingTest extends TestCase
             ->getJson('/api/v1/cart/upsell')
             ->assertOk()
             ->assertJsonPath('data', []);
+    }
+
+    /**
+     * Admin kill switch (Settings -> General -> "Show bamboo case in
+     * upsell") - for when it's out of stock without clearing its
+     * configured upsell_amount. See CartService::isUpsellProductEnabled().
+     */
+    #[Test]
+    public function the_offer_endpoint_hides_a_product_toggled_off_in_settings(): void
+    {
+        Setting::updateOrCreate(
+            ['key' => 'general.upsell_bamboo_case_enabled'],
+            ['group' => 'general', 'type' => 'boolean', 'label' => 'Show bamboo case in upsell (cart/checkout)', 'value' => '0'],
+        );
+
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $this->variant('stargalka-za-ezik', 'TONGUE-SCRAPER-1', 3.99, 2.99);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart/upsell');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.product.slug', 'stargalka-za-ezik');
+    }
+
+    /**
+     * Same switch also blocks the discounted price at add time, not just
+     * the offer card - the invariant upsellOffers()'s own docblock states
+     * ("an offer never gets shown that wouldn't also be honored at add
+     * time") still has to hold once a product is toggled off.
+     */
+    #[Test]
+    public function a_toggled_off_product_is_not_eligible_for_the_upsell_price_even_with_the_flag_set(): void
+    {
+        Setting::updateOrCreate(
+            ['key' => 'general.upsell_bamboo_case_enabled'],
+            ['group' => 'general', 'type' => 'boolean', 'label' => 'Show bamboo case in upsell (cart/checkout)', 'value' => '0'],
+        );
+
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->postJson('/api/v1/cart/items', [
+            'product_variant_id' => $case->id,
+            'quantity' => 1,
+            'is_upsell' => true,
+        ]);
+
+        $response->assertCreated();
+        $caseLine = collect($response->json('data.items'))->firstWhere('product_variant.id', $case->id);
+        $this->assertSame(6.49, $caseLine['unit_price']);
+        $this->assertFalse($caseLine['is_on_sale']);
     }
 
     /**

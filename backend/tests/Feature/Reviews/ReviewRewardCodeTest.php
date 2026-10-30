@@ -51,8 +51,12 @@ class ReviewRewardCodeTest extends TestCase
             'body' => 'Loved it.',
         ]);
 
-        $this->assertDatabaseCount('discount_codes', 1);
-        $discountCode = DiscountCode::first();
+        // whereNotNull('review_id'), not assertDatabaseCount on the whole
+        // table - a promo code unrelated to any review (e.g. a seeded
+        // marketing code, review_id always null for those) can coexist in
+        // the table without this test caring about it.
+        $this->assertSame(1, DiscountCode::whereNotNull('review_id')->count());
+        $discountCode = DiscountCode::whereNotNull('review_id')->first();
         $this->assertSame('ivan@example.com', $discountCode->customer_email);
         $this->assertEquals(10, $discountCode->discount_percent);
         $this->assertSame(1, $discountCode->max_uses);
@@ -83,7 +87,7 @@ class ReviewRewardCodeTest extends TestCase
         // moderation) must not mint a second code or re-send the email.
         app(ReviewService::class)->approve($review);
 
-        $this->assertDatabaseCount('discount_codes', 1);
+        $this->assertSame(1, DiscountCode::whereNotNull('review_id')->count());
         Mail::assertSentCount(1);
     }
 

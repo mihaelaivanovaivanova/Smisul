@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property float $discount_percent
  * @property int $max_uses
  * @property int $used_count
+ * @property ?Carbon $starts_at
  * @property ?Carbon $expires_at
  * @property bool $is_active
  */
@@ -23,6 +24,7 @@ class DiscountCode extends Model
         'discount_percent',
         'max_uses',
         'used_count',
+        'starts_at',
         'expires_at',
         'is_active',
         'review_id',
@@ -34,6 +36,7 @@ class DiscountCode extends Model
             'discount_percent' => 'decimal:2',
             'max_uses' => 'integer',
             'used_count' => 'integer',
+            'starts_at' => 'datetime',
             'expires_at' => 'datetime',
             'is_active' => 'boolean',
         ];
@@ -50,6 +53,10 @@ class DiscountCode extends Model
     public function isRedeemable(): bool
     {
         if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->starts_at !== null && Carbon::now()->lt($this->starts_at)) {
             return false;
         }
 

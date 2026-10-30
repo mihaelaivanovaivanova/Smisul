@@ -131,6 +131,49 @@ class DiscountCodeCheckoutTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    /**
+     * A code scheduled for a future activation window (e.g. a one-day
+     * promo) isn't redeemable yet, even though it's active and not
+     * expired - see DiscountCode::isRedeemable()'s starts_at check.
+     */
+    #[Test]
+    public function a_code_that_has_not_started_yet_fails_validation(): void
+    {
+        // Not SPOOKY10 - that code already exists, seeded by a migration
+        // (see 2026_10_30_000002_add_spooky10_discount_code), so reusing
+        // it here would collide with that pre-existing row.
+        DiscountCode::create([
+            'code' => 'FUTURE-PROMO',
+            'discount_percent' => 10,
+            'max_uses' => 500,
+            'starts_at' => now()->addDay(),
+            'expires_at' => now()->addDays(2),
+        ]);
+
+        $this->postJson('/api/v1/checkout/discount-code/validate', [
+            'code' => 'FUTURE-PROMO',
+        ])->assertUnprocessable();
+    }
+
+    #[Test]
+    public function a_code_within_its_active_window_passes_validation(): void
+    {
+        DiscountCode::create([
+            'code' => 'ACTIVE-PROMO',
+            'discount_percent' => 10,
+            'max_uses' => 500,
+            'starts_at' => now()->subHour(),
+            'expires_at' => now()->addHours(12),
+        ]);
+
+        $response = $this->postJson('/api/v1/checkout/discount-code/validate', [
+            'code' => 'ACTIVE-PROMO',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.discount_percent', 10);
+    }
+
     #[Test]
     public function placing_an_order_with_a_valid_code_discounts_the_grand_total(): void
     {

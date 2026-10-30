@@ -4,12 +4,15 @@ import {
   createVariant,
   deleteVariant,
   deleteVariantPhoto,
+  fetchVariantReservations,
+  releaseVariantReservation,
   updateVariant,
   updateVariantInventory,
   updateVariantPrice,
   updateVariantPhotoFocus,
   uploadVariantPhoto,
 } from '../../api/admin/variants';
+import type { CartReservation } from '../../api/admin/variants';
 import { getErrorMessage, getValidationErrors } from '../../api/errors';
 import { formatPrice } from '../../services/productCatalog';
 import ConfirmModal from './ConfirmModal';
@@ -72,6 +75,17 @@ export default function VariantManager({ productId, variants, onChange }: Varian
   const photoTargetRef = useRef<number | null>(null);
   const [settingFocusFor, setSettingFocusFor] = useState<{ variantId: number; media: Media } | null>(null);
 
+  // Reservations modal - lets an admin see which cart(s) are holding stock
+  // reserved against a variant (why available_quantity can read 0 while
+  // quantity_on_hand doesn't) and release a stale one. See
+  // InventoryService::reservationsFor()'s own docblock on the backend for
+  // why this is a manual judgment call rather than an automatic expiry.
+  const [reservationsFor, setReservationsFor] = useState<ProductVariant | null>(null);
+  const [reservations, setReservations] = useState<CartReservation[]>([]);
+  const [isLoadingReservations, setIsLoadingReservations] = useState(false);
+  const [reservationsError, setReservationsError] = useState<string | null>(null);
+  const [releasingId, setReleasingId] = useState<number | null>(null);
+
   async function refresh() {
     const product = await fetchAdminProduct(productId);
     onChange(product.variants);
@@ -133,7 +147,13 @@ export default function VariantManager({ productId, variants, onChange }: Varian
       amount: price?.amount ?? 0,
       compare_at_amount: price?.compare_at_amount ?? null,
       upsell_amount: price?.upsell_amount ?? null,
-      quantity_on_hand: variant.inventory?.available_quantity ?? 0,
+      // The real on-hand count, not available_quantity (= on_hand -
+      // reserved) - editing this field sets the physical stock count, and
+      // prefilling it with the already-reduced "available" number used to
+      // mean re-saving the same value looked like a no-op save whenever
+      // any of it was reserved by carts. Falls back to available_quantity
+      // only if quantity_on_hand wasn't sent (older cached data).
+      quantity_on_hand: variant.inventory?.quantity_on_hand ?? variant.inventory?.available_quantity ?? 0,
     });
     setFormErrors({});
     setFormError(null);
@@ -194,6 +214,39 @@ export default function VariantManager({ productId, variants, onChange }: Varian
     }
   }
 
+  async function openReservations(variant: ProductVariant): Promise<void> {
+    setReservationsFor(variant);
+    setReservations([]);
+    setReservationsError(null);
+    setIsLoadingReservations(true);
+    try {
+      setReservations(await fetchVariantReservations(productId, variant.id));
+    } catch (err) {
+      setReservationsError(getErrorMessage(err, 'Could not load reservations.'));
+    } finally {
+      setIsLoadingReservations(false);
+    }
+  }
+
+  async function handleReleaseReservation(cartItemId: number): Promise<void> {
+    if (!reservationsFor) return;
+    if (!window.confirm('Remove this item from the customer’s cart? This frees the reserved stock, but the item disappears from their cart.')) {
+      return;
+    }
+
+    setReleasingId(cartItemId);
+    setReservationsError(null);
+    try {
+      await releaseVariantReservation(productId, reservationsFor.id, cartItemId);
+      setReservations((current) => current.filter((reservation) => reservation.id !== cartItemId));
+      await refresh();
+    } catch (err) {
+      setReservationsError(getErrorMessage(err, 'Could not release this reservation.'));
+    } finally {
+      setReleasingId(null);
+    }
+  }
+
   async function handleDelete(): Promise<void> {
     if (!deleting) return;
     setIsDeleting(true);
@@ -250,7 +303,14 @@ export default function VariantManager({ productId, variants, onChange }: Varian
                     <td>{variant.name}</td>
                     <td>{variant.pack_size}</td>
                     <td>{price ? formatPrice(price.amount, price.currency) : '—'}</td>
-                    <td>{variant.inventory?.available_quantity ?? '—'}</td>
+                    <td>
+                      {variant.inventory?.available_quantity ?? '—'}
+                      {!!variant.inventory?.quantity_reserved && (
+                        <div className="small text-warning">
+                          {variant.inventory.quantity_reserved} reserved by cart(s) — {variant.inventory.quantity_on_hand} on hand
+                        </div>
+                      )}
+                    </td>
                     <td>
                       <div className="d-flex align-items-center gap-2">
                         {photo ? (
@@ -299,6 +359,11 @@ export default function VariantManager({ productId, variants, onChange }: Varian
                     </td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
+                        {!!variant.inventory?.quantity_reserved && (
+                          <button type="button" className="btn btn-outline-warning" onClick={() => void openReservations(variant)}>
+                            Reservations
+                          </button>
+                        )}
                         <button type="button" className="btn btn-outline-secondary" onClick={() => openEditForm(variant)}>
                           Edit
                         </button>
@@ -455,6 +520,80 @@ export default function VariantManager({ productId, variants, onChange }: Varian
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleting(null)}
       />
+
+      {reservationsFor && (
+        <>
+          <div className="modal d-block" tabIndex={-1} role="dialog">
+            <div className="modal-dialog modal-lg" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Reservations — {reservationsFor.name}</h5>
+                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setReservationsFor(null)}></button>
+                </div>
+                <div className="modal-body">
+                  <p className="small text-muted">
+                    Stock reserved by carts that added this item but haven&apos;t checked out yet — carts never expire automatically, so a
+                    reservation that&apos;s sat untouched for a long time is likely abandoned. Releasing one removes the item from that
+                    cart and frees the stock.
+                  </p>
+                  {reservationsError && <div className="alert alert-danger py-2">{reservationsError}</div>}
+                  {isLoadingReservations && <div className="text-muted small">Loading...</div>}
+                  {!isLoadingReservations && reservations.length === 0 && !reservationsError && (
+                    <div className="text-muted small">No reservations found — the stock difference may have just resolved itself.</div>
+                  )}
+                  {!isLoadingReservations && reservations.length > 0 && (
+                    <div className="table-responsive">
+                      <table className="table table-sm align-middle mb-0">
+                        <thead>
+                          <tr>
+                            <th>Cart</th>
+                            <th className="text-end">Qty</th>
+                            <th className="text-end">Last touched</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reservations.map((reservation) => (
+                            <tr key={reservation.id}>
+                              <td>
+                                {reservation.is_guest ? (
+                                  <span className="text-muted">Guest cart #{reservation.cart_id}</span>
+                                ) : (
+                                  reservation.customer_email ?? `User cart #${reservation.cart_id}`
+                                )}
+                              </td>
+                              <td className="text-end">{reservation.quantity}</td>
+                              <td className="text-end">
+                                {reservation.days_since_last_touched !== null ? `${reservation.days_since_last_touched}d ago` : '—'}
+                              </td>
+                              <td className="text-end">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  disabled={releasingId === reservation.id}
+                                  onClick={() => void handleReleaseReservation(reservation.id)}
+                                >
+                                  {releasingId === reservation.id ? '…' : 'Release'}
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setReservationsFor(null)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-backdrop show"></div>
+        </>
+      )}
 
       <ConfirmModal
         show={confirmClearUpsell}

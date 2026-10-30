@@ -299,6 +299,10 @@ Route::prefix('v1')->group(function () {
             ->name('products.variants.price.update');
         Route::put('/products/{product}/variants/{variant}/inventory', [AdminProductVariantController::class, 'updateInventory'])
             ->name('products.variants.inventory.update');
+        Route::get('/products/{product}/variants/{variant}/reservations', [AdminProductVariantController::class, 'reservations'])
+            ->name('products.variants.reservations');
+        Route::delete('/products/{product}/variants/{variant}/reservations/{cartItem}', [AdminProductVariantController::class, 'releaseReservation'])
+            ->name('products.variants.reservations.release');
 
         Route::post('/products/{product}/media', [AdminProductMediaController::class, 'store'])
             ->name('products.media.store');

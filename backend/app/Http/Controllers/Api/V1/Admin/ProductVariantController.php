@@ -7,17 +7,28 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\InventoryUpdateRequest;
 use App\Http\Requests\Product\StoreProductVariantRequest;
 use App\Http\Requests\Product\UpdateProductVariantRequest;
-use App\Http\Resources\InventoryResource;
-use App\Http\Resources\ProductVariantResource;
+use App\Http\Resources\Admin\CartReservationResource;
+use App\Http\Resources\Admin\InventoryResource;
+use App\Http\Resources\Admin\ProductVariantResource;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\AdminActionLogger;
+use App\Services\CartService;
+use App\Services\InventoryService;
 use App\Services\ProductVariantService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ProductVariantController extends Controller
 {
-    public function __construct(private readonly ProductVariantService $variants) {}
+    public function __construct(
+        private readonly ProductVariantService $variants,
+        private readonly InventoryService $inventory,
+        private readonly CartService $cart,
+        private readonly AdminActionLogger $actionLogger,
+    ) {}
 
     public function store(StoreProductVariantRequest $request, Product $product): JsonResponse
     {
@@ -53,5 +64,43 @@ class ProductVariantController extends Controller
         $variant->inventory()->update($request->validated());
 
         return (new InventoryResource($variant->inventory()->firstOrFail()))->response()->setStatusCode(200);
+    }
+
+    /**
+     * Every cart currently holding reserved stock for this variant — lets
+     * an admin looking at "on hand but 0 available" (quantity_on_hand vs.
+     * quantity_reserved, see Admin\InventoryResource) see exactly what's
+     * eating the difference, instead of guessing. See
+     * InventoryService::reservationsFor()'s own docblock for the ordering.
+     */
+    public function reservations(Product $product, ProductVariant $variant): JsonResponse
+    {
+        return response()->json(['data' => CartReservationResource::collection($this->inventory->reservationsFor($variant))]);
+    }
+
+    /**
+     * Clears one stale reservation by removing that line from whichever
+     * cart holds it — reuses CartService::removeItem() (the exact same
+     * removal a customer's own "remove from cart" triggers) rather than
+     * adjusting quantity_reserved directly, so the invariant CartService's
+     * own docblock states (quantity_reserved always equals the sum of that
+     * variant's quantity across every cart_item) never has a path to drift.
+     * An admin judgment call, not an automatic cleanup — see
+     * CartReservationResource's own docblock on why no expiry exists yet.
+     */
+    public function releaseReservation(Request $request, Product $product, ProductVariant $variant, CartItem $cartItem): JsonResponse
+    {
+        abort_if($cartItem->product_variant_id !== $variant->id, 404);
+
+        $holdingCart = $cartItem->cart;
+        $this->cart->removeItem($holdingCart, $cartItem->id);
+
+        $this->actionLogger->log($request->user(), 'inventory.reservation_released', $variant, [
+            'cart_item_id' => $cartItem->id,
+            'cart_id' => $holdingCart->id,
+            'quantity' => $cartItem->quantity,
+        ]);
+
+        return response()->json(['data' => new InventoryResource($variant->inventory()->firstOrFail()->refresh())]);
     }
 }

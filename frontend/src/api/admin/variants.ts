@@ -51,6 +51,30 @@ export async function updateVariantInventory(
   return data.data;
 }
 
+export interface CartReservation {
+  id: number;
+  quantity: number;
+  cart_id: number;
+  is_guest: boolean;
+  customer_email: string | null;
+  guest_token: string | null;
+  added_at: string | null;
+  last_touched_at: string | null;
+  days_since_last_touched: number | null;
+}
+
+/** Every cart currently holding reserved stock for this variant — see backend Admin\CartReservationResource for why available_quantity can read 0 while quantity_on_hand is nonzero. */
+export async function fetchVariantReservations(productId: number, variantId: number): Promise<CartReservation[]> {
+  const { data } = await apiClient.get<{ data: CartReservation[] }>(`/admin/products/${productId}/variants/${variantId}/reservations`);
+  return data.data;
+}
+
+/** Removes that line from whichever cart holds it (the same effect as the customer's own "remove from cart"), releasing its reserved stock back to available. */
+export async function releaseVariantReservation(productId: number, variantId: number, cartItemId: number): Promise<Inventory> {
+  const { data } = await apiClient.delete<{ data: Inventory }>(`/admin/products/${productId}/variants/${variantId}/reservations/${cartItemId}`);
+  return data.data;
+}
+
 /** The pack-size-specific "view photo" shown when this variant is selected — replaces any existing one in place (see the backend's attachOrReplaceVariantPhoto). */
 export async function uploadVariantPhoto(productId: number, variantId: number, file: File): Promise<Media> {
   const form = new FormData();

@@ -16,6 +16,9 @@ export interface Inventory {
   available_quantity: number;
   is_in_stock: boolean;
   is_low_stock: boolean;
+  /** Admin-only — present when loaded via the admin product endpoints, absent from every public/storefront response (see backend's Admin\InventoryResource). available_quantity = quantity_on_hand - quantity_reserved, so these two explain a "0 available" that doesn't match what's physically in stock. */
+  quantity_on_hand?: number;
+  quantity_reserved?: number;
 }
 
 export interface Media {

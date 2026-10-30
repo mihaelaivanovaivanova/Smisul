@@ -4,10 +4,31 @@ namespace App\Services;
 
 use App\Events\Favorite\ProductBackInStock;
 use App\Exceptions\InsufficientStockException;
+use App\Models\CartItem;
 use App\Models\Inventory;
+use App\Models\ProductVariant;
+use Illuminate\Database\Eloquent\Collection;
 
 class InventoryService
 {
+    /**
+     * Every cart_item currently holding reserved stock for this variant —
+     * see Admin\CartReservationResource, which is what actually explains
+     * each row to the admin. Oldest first: whichever reservation has sat
+     * untouched the longest is the one most likely to be truly abandoned,
+     * so it belongs at the top of whatever the admin reviews first.
+     *
+     * @return Collection<int, CartItem>
+     */
+    public function reservationsFor(ProductVariant $variant): Collection
+    {
+        return CartItem::query()
+            ->where('product_variant_id', $variant->id)
+            ->with('cart.user')
+            ->oldest('updated_at')
+            ->get();
+    }
+
     public function increaseStock(Inventory $inventory, int $quantity): Inventory
     {
         $wasInStock = $inventory->isInStock();

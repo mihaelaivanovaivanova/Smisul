@@ -7,7 +7,9 @@ use Illuminate\Http\Request;
 
 /**
  * Swaps in the admin PriceResource (adds upsell_amount) for the 'prices'
- * key - everything else is identical to the public variant shape.
+ * key and the admin InventoryResource (adds raw quantity_on_hand/
+ * quantity_reserved) for 'inventory' - everything else is identical to the
+ * public variant shape.
  */
 class ProductVariantResource extends BaseProductVariantResource
 {
@@ -19,6 +21,7 @@ class ProductVariantResource extends BaseProductVariantResource
         return [
             ...parent::toArray($request),
             'prices' => PriceResource::collection($this->whenLoaded('prices')),
+            'inventory' => new InventoryResource($this->whenLoaded('inventory')),
         ];
     }
 }

@@ -34,6 +34,24 @@ export interface AdminProduct extends Product {
   favorites_count: number;
 }
 
+/** See backend Admin\DiscountCodeResource. */
+export interface AdminDiscountCode {
+  id: number;
+  code: string;
+  /** Set only for a review-reward code (IssueReviewRewardCode) — null for one created directly through the admin screen. */
+  customer_email: string | null;
+  discount_percent: number;
+  max_uses: number;
+  used_count: number;
+  starts_at: string | null;
+  expires_at: string | null;
+  is_active: boolean;
+  /** Convenience flag: active + within its window + hasn't hit max_uses (see backend DiscountCode::isRedeemable()). */
+  is_redeemable: boolean;
+  review_id: number | null;
+  created_at: string | null;
+}
+
 export interface DashboardStats {
   total_orders: number;
   orders_today: number;

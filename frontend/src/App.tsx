@@ -34,6 +34,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
+import DiscountCodesPage from './pages/admin/DiscountCodesPage';
 import ContentPage from './pages/admin/ContentPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
@@ -144,6 +145,7 @@ export default function App() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="discount-codes" element={<DiscountCodesPage />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="funnel" element={<FunnelPage />} />
           <Route path="leads" element={<LeadsPage />} />

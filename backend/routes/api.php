@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryControl
 use App\Http\Controllers\Api\V1\Admin\ComplaintController as AdminComplaintController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\DiscountCodeController as AdminDiscountCodeController;
 use App\Http\Controllers\Api\V1\Admin\FunnelController as AdminFunnelController;
 use App\Http\Controllers\Api\V1\Admin\FunnelLeadController as AdminFunnelLeadController;
 use App\Http\Controllers\Api\V1\Admin\ICardConfigurationController as AdminICardConfigurationController;
@@ -331,6 +332,15 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
 
         Route::apiResource('promotions', AdminPromotionController::class);
+
+        // Explicit routes, not apiResource('discount-codes', ...) - avoids
+        // relying on Laravel's hyphen-to-underscore route parameter
+        // conversion lining up with the controller's {DiscountCode
+        // $discountCode} (camelCase) parameter.
+        Route::get('/discount-codes', [AdminDiscountCodeController::class, 'index'])->name('discount-codes.index');
+        Route::post('/discount-codes', [AdminDiscountCodeController::class, 'store'])->name('discount-codes.store');
+        Route::put('/discount-codes/{discountCode}', [AdminDiscountCodeController::class, 'update'])->name('discount-codes.update');
+        Route::delete('/discount-codes/{discountCode}', [AdminDiscountCodeController::class, 'destroy'])->name('discount-codes.destroy');
 
         Route::get('/orders/statistics', [AdminOrderController::class, 'statistics'])->name('orders.statistics');
         Route::post('/orders/shipments/sync-tracking', [AdminOrderController::class, 'syncShipmentTracking'])->name('orders.shipments.sync-tracking');

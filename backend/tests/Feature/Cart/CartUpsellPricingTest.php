@@ -296,6 +296,53 @@ class CartUpsellPricingTest extends TestCase
     }
 
     /**
+     * No manual toggle needed for this one - an upsell offer nobody could
+     * actually buy is worse than not offering it. See CartService::
+     * upsellOffers()'s isInStock() check.
+     */
+    #[Test]
+    public function the_offer_endpoint_hides_an_out_of_stock_product(): void
+    {
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $case->inventory()->update(['quantity_on_hand' => 0]);
+        $this->variant('stargalka-za-ezik', 'TONGUE-SCRAPER-1', 3.99, 2.99);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart/upsell');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.product.slug', 'stargalka-za-ezik');
+    }
+
+    /**
+     * Zero on hand doesn't mean unsellable - a variant with backorders
+     * explicitly allowed can still be offered (same isInStock() semantics
+     * used everywhere else availability is decided).
+     */
+    #[Test]
+    public function the_offer_endpoint_still_shows_a_backorderable_out_of_stock_product(): void
+    {
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $case->inventory()->update(['quantity_on_hand' => 0, 'backorders_allowed' => true]);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $response = $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])->getJson('/api/v1/cart/upsell');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.product.slug', 'bambukov-keis-za-miswak');
+    }
+
+    /**
      * Same switch also blocks the discounted price at add time, not just
      * the offer card - the invariant upsellOffers()'s own docblock states
      * ("an offer never gets shown that wouldn't also be honored at add

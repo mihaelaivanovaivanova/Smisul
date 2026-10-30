@@ -430,11 +430,12 @@ class CartService
      * UPSELL_PRODUCT_SLUGS order — empty once the cart has no Miswak item
      * yet. Each product is then considered independently: already in the
      * cart, not found, no upsell_amount configured for it (set via the
-     * admin product price form — see Admin\PriceResource), or toggled off
-     * via its own Settings -> General switch (isUpsellProductEnabled() —
-     * e.g. the bamboo case going out of stock without losing its
-     * configured upsell price) all just skip that one product rather than
-     * short-circuiting the rest. Single
+     * admin product price form — see Admin\PriceResource), toggled off via
+     * its own Settings -> General switch (isUpsellProductEnabled() — a
+     * manual reason to hide one unrelated to stock), or genuinely out of
+     * stock (no manual toggle needed for this - an offer nobody can
+     * actually check out just wastes the slot) all just skip that one
+     * product rather than short-circuiting the rest. Single
      * source of truth for both what UpsellCard.tsx displays (cart drawer,
      * checkout review, and the bamboo case's own product page) and what
      * addItem() above actually charges — isEligibleForUpsellPrice() reuses
@@ -464,6 +465,17 @@ class CartService
             $price = $variant?->priceFor($cart->currency);
 
             if ($product === null || $variant === null || $price === null || $price->upsell_amount === null) {
+                continue;
+            }
+
+            // Offering stock that can't actually be sold (isInStock()
+            // already accounts for backorders_allowed, same semantics
+            // used everywhere else availability is decided - see
+            // Inventory::isInStock()) is worse than not offering it at
+            // all. No manual toggle needed for this case specifically -
+            // see isUpsellProductEnabled() above for when the admin wants
+            // to hide one for a reason unrelated to stock.
+            if (! ($variant->inventory?->isInStock() ?? false)) {
                 continue;
             }
 

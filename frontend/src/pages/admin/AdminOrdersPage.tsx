@@ -12,6 +12,7 @@ import OrderFilterBar from '../../components/admin/OrderFilterBar';
 import AdminActionButton from '../../components/admin/AdminActionButton';
 import type { OrderFilters } from '../../components/admin/OrderFilterBar';
 import { formatPrice } from '../../services/productCatalog';
+import { getOrderItemLabel } from '../../services/orderItemDisplay';
 
 const DEFAULT_FILTERS: OrderFilters = {
   search: '',
@@ -103,7 +104,7 @@ export default function AdminOrdersPage() {
                     </td>
                     <td>{new Date(order.placed_at).toLocaleDateString('bg-BG')}</td>
                     <td>
-                      {order.items.map((item) => `${item.product_name}${item.variant_name ? ` (${item.variant_name})` : ''} x${item.quantity}`).join(', ')}
+                      {order.items.map((item) => `${getOrderItemLabel(item)} x${item.quantity}`).join(', ')}
                     </td>
                     <td>{order.shipment?.tracking_number ?? ''}</td>
                     <td className="text-end">{formatPrice(order.totals.grand_total)}</td>

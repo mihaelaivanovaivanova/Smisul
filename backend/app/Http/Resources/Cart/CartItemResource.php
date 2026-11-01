@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Cart;
 
+use App\Http\Resources\BundleResource;
 use App\Http\Resources\ProductVariantResource;
 use App\Models\CartItem;
 use App\Services\CartPricingService;
@@ -33,18 +34,28 @@ class CartItemResource extends JsonResource
         /** @var CartPricingService $pricing */
         $pricing = app(CartPricingService::class);
         $variant = $this->productVariant;
+        $bundle = $this->bundle_id !== null ? $this->bundle : null;
         $price = $pricing->effectivePrice($this->resource, $this->currency);
+
+        $maxQuantity = match (true) {
+            $bundle !== null => $pricing->maxBundleQuantityFor($bundle, $this->quantity),
+            $variant !== null => $pricing->maxQuantityFor($variant, $this->quantity),
+            default => 0,
+        };
 
         return [
             'id' => $this->id,
             'quantity' => $this->quantity,
-            'product_variant' => new ProductVariantResource($variant),
+            // Exactly one of these two is non-null: an ordinary product
+            // line has product_variant, a kit line has bundle (see CartItem).
+            'product_variant' => $variant !== null ? new ProductVariantResource($variant) : null,
+            'bundle' => $bundle !== null ? new BundleResource($bundle) : null,
             'unit_price' => $price ? (float) $price->amount : null,
             'compare_at_unit_price' => $price?->compare_at_amount !== null ? (float) $price->compare_at_amount : null,
             'is_on_sale' => $price?->isOnSale() ?? false,
             'line_total' => $pricing->lineTotal($this->resource, $this->currency),
             'is_available' => $pricing->isItemAvailable($this->resource),
-            'max_quantity' => $variant ? $pricing->maxQuantityFor($variant, $this->quantity) : 0,
+            'max_quantity' => $maxQuantity,
         ];
     }
 }

@@ -90,7 +90,14 @@ class ProductVariantController extends Controller
      */
     public function releaseReservation(Request $request, Product $product, ProductVariant $variant, CartItem $cartItem): JsonResponse
     {
-        abort_if($cartItem->product_variant_id !== $variant->id, 404);
+        // A kit line holding this variant as one of its components counts
+        // too - removing it releases every component's share (see
+        // CartService::releaseReservation()'s bundle branch).
+        $holdsVariant = $cartItem->product_variant_id === $variant->id
+            || ($cartItem->bundle_id !== null
+                && $cartItem->bundle?->items()->where('product_variant_id', $variant->id)->exists());
+
+        abort_if(! $holdsVariant, 404);
 
         $holdingCart = $cartItem->cart;
         $this->cart->removeItem($holdingCart, $cartItem->id);

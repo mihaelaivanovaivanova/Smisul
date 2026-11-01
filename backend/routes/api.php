@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\PaymentOperationController as AdminPaymentOperationController;
 use App\Http\Controllers\Api\V1\Admin\PriceController as AdminPriceController;
+use App\Http\Controllers\Api\V1\Admin\ProductBundleController as AdminProductBundleController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController as AdminProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductVariantController as AdminProductVariantController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\Api\V1\Auth\NewPasswordController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Api\V1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
+use App\Http\Controllers\Api\V1\BundleController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Checkout\CheckoutController;
@@ -158,6 +160,10 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed')
         ->name('reviews.confirm');
 
+    // Active kits (1-Person / 2-Person Kit) for the landing page - see
+    // BundleController.
+    Route::get('/bundles', [BundleController::class, 'index'])->name('bundles.index');
+
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
     Route::get('/categories/{slug}/products', [CategoryController::class, 'products'])->name('categories.products');
@@ -211,6 +217,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [CartController::class, 'show'])->name('cart.show');
         Route::get('/upsell', [CartController::class, 'upsell'])->name('cart.upsell');
         Route::post('/items', [CartController::class, 'storeItem'])->name('cart.items.store');
+        // Kits only - once added, a kit line is updated/removed via the
+        // same /items/{item} routes as any other line.
+        Route::post('/bundles', [CartController::class, 'storeBundle'])->name('cart.bundles.store');
         Route::patch('/items/{item}', [CartController::class, 'updateItem'])->name('cart.items.update');
         Route::delete('/items/{item}', [CartController::class, 'destroyItem'])->name('cart.items.destroy');
         Route::delete('/', [CartController::class, 'clear'])->name('cart.clear');
@@ -328,6 +337,9 @@ Route::prefix('v1')->group(function () {
             ->name('products.variants.media.focus');
         Route::delete('/products/{product}/variants/{variant}/media', [AdminProductVariantMediaController::class, 'destroy'])
             ->name('products.variants.media.destroy');
+
+        // Kits - see ProductBundleController.
+        Route::apiResource('bundles', AdminProductBundleController::class);
 
         Route::apiResource('categories', AdminCategoryController::class);
 

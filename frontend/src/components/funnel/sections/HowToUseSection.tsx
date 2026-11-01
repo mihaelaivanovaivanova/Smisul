@@ -52,7 +52,10 @@ function StepCard({ step, index }: { step: { title: string; body: string }; inde
 
 export default function HowToUseSection({ videos, pdfUrl, ctaPrimaryLabel, fromPrice }: HowToUseSectionProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const video = videos[0];
+  // See HowToUseAccordion.tsx's identical comment - picks the video
+  // actually tagged as the how-to-use demo instead of assuming videos[0],
+  // which broke the moment the product also had an unrelated gallery video.
+  const video = videos.find((item) => /как се използва/i.test(item.alt_text ?? '')) ?? videos[0];
   const packagesFromLabel = fromPrice ? funnelOffer.packagesFrom(formatPrice(fromPrice.amount, fromPrice.currency)) : null;
 
   const guideButton = pdfUrl ? (

@@ -22,11 +22,27 @@ class InventoryService
      */
     public function reservationsFor(ProductVariant $variant): Collection
     {
+        // Kit lines (cart_items.bundle_id) hold this variant too, when it's
+        // one of the kit's components - reserved_quantity (a transient,
+        // display-only attribute read by CartReservationResource) is how
+        // many units of THIS variant each line actually holds: its own
+        // quantity for an ordinary line, component.quantity x line
+        // quantity for a kit line.
         return CartItem::query()
-            ->where('product_variant_id', $variant->id)
-            ->with('cart.user')
+            ->where(function ($query) use ($variant) {
+                $query->where('product_variant_id', $variant->id)
+                    ->orWhereHas('bundle.items', fn ($items) => $items->where('product_variant_id', $variant->id));
+            })
+            ->with(['cart.user', 'bundle.items'])
             ->oldest('updated_at')
-            ->get();
+            ->get()
+            ->each(function (CartItem $item) use ($variant) {
+                $perUnit = $item->bundle_id !== null
+                    ? (int) ($item->bundle?->items->firstWhere('product_variant_id', $variant->id)?->quantity ?? 0)
+                    : 1;
+
+                $item->setAttribute('reserved_quantity', $perUnit * $item->quantity);
+            });
     }
 
     public function increaseStock(Inventory $inventory, int $quantity): Inventory

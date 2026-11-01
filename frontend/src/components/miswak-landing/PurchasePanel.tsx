@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import GalleryCarousel from '../product/GalleryCarousel';
 import PackageRadioSelector from './PackageRadioSelector';
+import BundleRadioSelector from './BundleRadioSelector';
 import TrustBullets from './TrustBullets';
 import StarRating from '../reviews/StarRating';
 import TrustAndPaymentRow from '../funnel/TrustAndPaymentRow';
 import DispatchPromise from '../funnel/DispatchPromise';
 import { getGalleryMediaForVariant, formatPrice } from '../../services/productCatalog';
-import { reviews as reviewsCopy } from '../../content/copy';
+import { bundleOffer as bundleCopy, reviews as reviewsCopy } from '../../content/copy';
 import { miswakTagline } from '../../content/miswakLanding';
+import { KIT_GALLERY_IMAGES } from '../../content/kitProducts';
+import type { BundleOffer } from '../../services/bundleOffers';
 import type { PackageOffer } from '../../services/funnelOffers';
+
+type PurchaseMode = 'kits' | 'sticks';
 import type { Product } from '../../types/product';
 import type { ReviewSummary } from '../../types/review';
 import type { FunnelTrustItem } from '../../types/funnel';
@@ -16,6 +21,8 @@ import type { FunnelTrustItem } from '../../types/funnel';
 interface PurchasePanelProps {
   product: Product;
   offers: PackageOffer[];
+  /** Active kits (GET /v1/bundles) - when non-empty, a "Complete Kits" / "Just Miswak" toggle appears above the buy box, defaulting to kits. Empty hides the toggle and shows only the package selector, exactly as before. */
+  bundleOffers?: BundleOffer[];
   reviewSummary: ReviewSummary | null;
   /** Rendered here (desktop only, right after the buy button) instead of
    * MiswakLandingPage's own separate DeliveryPaymentReturnsSection, by
@@ -60,12 +67,31 @@ interface PurchasePanelProps {
  * than guessing a pixel offset that could drift if the navbar's own height
  * ever changes.
  */
-export default function PurchasePanel({ product, offers, reviewSummary, trustItems, dispatchCutoff, freeShippingThreshold }: PurchasePanelProps) {
+export default function PurchasePanel({
+  product,
+  offers,
+  bundleOffers = [],
+  reviewSummary,
+  trustItems,
+  dispatchCutoff,
+  freeShippingThreshold,
+}: PurchasePanelProps) {
   const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
   const [selectedIndex, setSelectedIndex] = useState(featuredIndex >= 0 ? featuredIndex : 0);
+  const [selectedBundleIndex, setSelectedBundleIndex] = useState(0);
+
+  // "Complete Kits" is the default view whenever any kit exists - the kits
+  // arrive from their own fetch (see MiswakLandingPage), so the default is
+  // derived rather than stored, and only an explicit toggle click pins it.
+  const [chosenMode, setChosenMode] = useState<PurchaseMode | null>(null);
+  const hasKits = bundleOffers.length > 0;
+  const mode: PurchaseMode = hasKits ? (chosenMode ?? 'kits') : 'sticks';
 
   const selectedVariant = offers[Math.min(selectedIndex, offers.length - 1)]?.variant;
-  const images = getGalleryMediaForVariant(product, selectedVariant);
+  // Kits get their own real packaging/lifestyle photos (same gallery as the
+  // dedicated kit pages - see KitProductPage.tsx) instead of the plain
+  // Miswak-stick variant photo, since a kit is a different physical product.
+  const images = mode === 'kits' ? KIT_GALLERY_IMAGES : getGalleryMediaForVariant(product, selectedVariant);
 
   const [stickyTop, setStickyTop] = useState(0);
 
@@ -116,12 +142,37 @@ export default function PurchasePanel({ product, offers, reviewSummary, trustIte
 
             <TrustBullets />
 
-            <PackageRadioSelector
-              offers={offers}
-              selectedIndex={selectedIndex}
-              onSelect={setSelectedIndex}
-              freeShippingThreshold={freeShippingThreshold}
-            />
+            {hasKits && (
+              <div className="miswak-purchase-toggle" role="group" aria-label={bundleCopy.toggleAria}>
+                {(['kits', 'sticks'] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={mode === option}
+                    className={`miswak-purchase-toggle__option ${mode === option ? 'is-active' : ''}`}
+                    onClick={() => setChosenMode(option)}
+                  >
+                    {option === 'kits' ? bundleCopy.kitsTab : bundleCopy.sticksTab}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {mode === 'kits' ? (
+              <BundleRadioSelector
+                offers={bundleOffers}
+                selectedIndex={selectedBundleIndex}
+                onSelect={setSelectedBundleIndex}
+                freeShippingThreshold={freeShippingThreshold}
+              />
+            ) : (
+              <PackageRadioSelector
+                offers={offers}
+                selectedIndex={selectedIndex}
+                onSelect={setSelectedIndex}
+                freeShippingThreshold={freeShippingThreshold}
+              />
+            )}
 
             <div className="text-center mb-3">
               <DispatchPromise cutoff={dispatchCutoff} />

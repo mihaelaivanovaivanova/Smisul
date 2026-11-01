@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CartItem } from '../../types/cart';
-import { formatPrice, getVariantImage } from '../../services/productCatalog';
+import { formatPrice } from '../../services/productCatalog';
+import { getCartItemDisplay } from '../../services/cartItemDisplay';
 import { cart as cartCopy } from '../../content/copy';
 import { getErrorMessage } from '../../api/errors';
 import { useCart } from '../../hooks/useCart';
@@ -16,9 +17,8 @@ export default function CartItemRow({ item }: CartItemRowProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const variant = item.product_variant;
-  const product = variant.product;
-  const image = getVariantImage(variant);
+  // Ordinary line or kit line - see getCartItemDisplay.
+  const { name, detail, image, href } = getCartItemDisplay(item);
 
   async function handleQuantityChange(quantity: number): Promise<void> {
     setIsPending(true);
@@ -45,27 +45,39 @@ export default function CartItemRow({ item }: CartItemRowProps) {
     }
   }
 
+  const imageNode = (
+    <div className="ratio ratio-1x1 bg-white rounded-2 border" style={{ width: 80 }}>
+      {image ? (
+        <img src={image.url} alt={image.alt_text ?? name} className="object-fit-cover" />
+      ) : (
+        <div className="d-flex align-items-center justify-content-center text-muted small">
+          {cartCopy.noImage}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="d-flex gap-3 py-3 border-bottom">
-      <Link to={`/products/${product?.slug ?? ''}`} className="flex-shrink-0">
-        <div className="ratio ratio-1x1 bg-white rounded-2 border" style={{ width: 80 }}>
-          {image ? (
-            <img src={image.url} alt={image.alt_text ?? product?.name ?? ''} className="object-fit-cover" />
-          ) : (
-            <div className="d-flex align-items-center justify-content-center text-muted small">
-              {cartCopy.noImage}
-            </div>
-          )}
-        </div>
-      </Link>
+      {href ? (
+        <Link to={href} className="flex-shrink-0">
+          {imageNode}
+        </Link>
+      ) : (
+        <div className="flex-shrink-0">{imageNode}</div>
+      )}
 
       <div className="flex-grow-1">
         <div className="d-flex justify-content-between gap-2">
           <div>
-            <Link to={`/products/${product?.slug ?? ''}`} className="text-decoration-none text-body fw-semibold">
-              {product?.name ?? variant.name}
-            </Link>
-            {variant.name && <div className="text-muted small">{variant.name}</div>}
+            {href ? (
+              <Link to={href} className="text-decoration-none text-body fw-semibold">
+                {name}
+              </Link>
+            ) : (
+              <span className="fw-semibold">{name}</span>
+            )}
+            {detail && <div className="text-muted small">{detail}</div>}
           </div>
           <div className="text-end">
             <div className="fw-semibold">{item.unit_price !== null ? formatPrice(item.line_total) : '—'}</div>
@@ -91,7 +103,7 @@ export default function CartItemRow({ item }: CartItemRowProps) {
             className="btn btn-link btn-sm text-danger text-decoration-none p-0"
             onClick={() => void handleRemove()}
             disabled={isPending}
-            aria-label={cartCopy.removeAria(product?.name ?? variant.name)}
+            aria-label={cartCopy.removeAria(name)}
           >
             {cartCopy.remove}
           </button>

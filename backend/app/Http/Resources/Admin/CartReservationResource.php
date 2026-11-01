@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\CartItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * cart/reservation expiry exists in this app - see InventoryService's own
  * docblock). releaseReservation() below is the admin's way to clear one.
  *
- * @mixin \App\Models\CartItem
+ * @mixin CartItem
  */
 class CartReservationResource extends JsonResource
 {
@@ -26,6 +27,11 @@ class CartReservationResource extends JsonResource
         return [
             'id' => $this->id,
             'quantity' => $this->quantity,
+            // Units of the viewed variant this line holds - differs from
+            // quantity only on a kit line (see InventoryService::
+            // reservationsFor()), which also names the kit.
+            'reserved_quantity' => $this->reserved_quantity ?? $this->quantity,
+            'bundle_name' => $this->bundle_id !== null ? $this->bundle?->name : null,
             'cart_id' => $this->cart_id,
             'is_guest' => $this->cart?->isGuestCart() ?? true,
             'customer_email' => $this->cart?->user?->email,

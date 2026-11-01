@@ -6,6 +6,7 @@ import Logo from '../Logo';
 const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', end: true },
   { to: '/admin/products', label: 'Products' },
+  { to: '/admin/kits', label: 'Kits' },
   { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/promotions', label: 'Promotions' },
   { to: '/admin/discount-codes', label: 'Discount codes' },

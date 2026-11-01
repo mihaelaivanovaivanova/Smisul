@@ -3,6 +3,7 @@ import ErrorState from '../ErrorState';
 import UpsellCard from '../cart/UpsellCard';
 import FreeShippingBar from '../cart/FreeShippingBar';
 import { formatPrice } from '../../services/productCatalog';
+import { getCartItemLabel } from '../../services/cartItemDisplay';
 import { checkout as checkoutCopy } from '../../content/copy';
 import type { Cart, CartUpsellOffer } from '../../types/cart';
 import type { CustomerInfo, LegalDocument, ShippingAddress, ShippingMethod, ShippingOffice } from '../../types/checkout';
@@ -58,8 +59,7 @@ export default function OrderReviewStep({
         {cart.items.map((item) => (
           <li key={item.id} className="d-flex justify-content-between border-bottom py-2">
             <span>
-              {item.product_variant.product?.name ?? item.product_variant.name}
-              {item.product_variant.name ? ` (${item.product_variant.name})` : ''} × {item.quantity}
+              {getCartItemLabel(item)} × {item.quantity}
             </span>
             <span>{formatPrice(item.line_total)}</span>
           </li>

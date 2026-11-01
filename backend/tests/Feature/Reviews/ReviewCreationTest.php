@@ -209,4 +209,36 @@ class ReviewCreationTest extends TestCase
         $this->getJson("/api/v1/products/{$product->slug}/reviews")->assertJsonCount(4, 'data');
         $this->getJson("/api/v1/products/{$product->slug}/reviews?per_page=50")->assertJsonCount(5, 'data');
     }
+
+    /**
+     * product_variant_ids narrows both the listing and the summary to just
+     * those pack sizes' reviews - e.g. a single kit page pooling the
+     * reviews of every pack size any kit can contain, not every review of
+     * the product across every pack size that exists (including ones no
+     * kit contains).
+     */
+    #[Test]
+    public function product_variant_ids_narrows_the_listing_and_summary_to_those_variants_only(): void
+    {
+        $product = Product::factory()->published()->create();
+        $fivePack = ProductVariant::factory()->for($product)->create();
+        $tenPack = ProductVariant::factory()->for($product)->create();
+        $singlePack = ProductVariant::factory()->for($product)->create();
+
+        Review::factory()->for($product)->for($fivePack, 'productVariant')->count(2)->create(['rating' => 5]);
+        Review::factory()->for($product)->for($tenPack, 'productVariant')->count(1)->create(['rating' => 1]);
+        Review::factory()->for($product)->for($singlePack, 'productVariant')->count(1)->create(['rating' => 3]);
+
+        $this->getJson("/api/v1/products/{$product->slug}/reviews")->assertJsonCount(4, 'data');
+        $this->getJson("/api/v1/products/{$product->slug}/reviews?product_variant_ids[]={$fivePack->id}")
+            ->assertJsonCount(2, 'data');
+        // Both kit pack sizes combined - the single-stick pack's review is excluded.
+        $this->getJson("/api/v1/products/{$product->slug}/reviews?product_variant_ids[]={$fivePack->id}&product_variant_ids[]={$tenPack->id}")
+            ->assertJsonCount(3, 'data');
+
+        $summary = $this->getJson(
+            "/api/v1/products/{$product->slug}/reviews/summary?product_variant_ids[]={$fivePack->id}&product_variant_ids[]={$tenPack->id}"
+        );
+        $summary->assertJsonPath('data.review_count', 3);
+    }
 }

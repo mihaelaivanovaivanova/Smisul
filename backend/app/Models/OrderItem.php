@@ -13,6 +13,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * ProductVariant/Price rows, so this row stays meaningful even after the
  * product is edited, repriced, or deleted (productVariant may resolve to
  * null; every other field here is self-sufficient regardless).
+ *
+ * A kit line (bundle_id set) carries BOTH bundle_id and a product_variant_id
+ * - the latter points at the kit's catalog shell variant (see
+ * KitShellProductService), solely so the review/reminder system can treat
+ * it like any other purchased product. product_name/sku/bundle_name are
+ * snapshotted from the kit (see OrderService::placeOrder()), and the stock
+ * it holds lives on the kit's real component variants, never the shell
+ * (OrderService's bundle branches check bundle_id first). A kit line placed
+ * before shells existed has a null product_variant_id.
  */
 class OrderItem extends Model
 {
@@ -22,6 +31,8 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_variant_id',
+        'bundle_id',
+        'bundle_name',
         'product_name',
         'variant_name',
         'sku',
@@ -58,5 +69,18 @@ class OrderItem extends Model
     public function productVariant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
+    }
+
+    /**
+     * @return BelongsTo<ProductBundle, $this>
+     */
+    public function bundle(): BelongsTo
+    {
+        return $this->belongsTo(ProductBundle::class, 'bundle_id');
+    }
+
+    public function isBundle(): bool
+    {
+        return $this->bundle_id !== null;
     }
 }

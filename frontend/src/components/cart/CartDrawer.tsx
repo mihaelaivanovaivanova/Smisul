@@ -5,17 +5,14 @@ import { useAsync } from '../../hooks/useAsync';
 import { getErrorMessage } from '../../api/errors';
 import { fetchCartUpsell } from '../../api/cart';
 import { fetchPublicSettings } from '../../api/settings';
-import { formatPrice, getVariantImage } from '../../services/productCatalog';
+import { formatPrice } from '../../services/productCatalog';
+import { getCartItemDisplay } from '../../services/cartItemDisplay';
 import { cart as cartCopy, funnelAssurance } from '../../content/copy';
 import Icon from '../icons/Icon';
 import QuantityStepper from './QuantityStepper';
 import UpsellCard from './UpsellCard';
 import FreeShippingBar from './FreeShippingBar';
 import type { CartItem } from '../../types/cart';
-
-function productHref(slug: string | undefined): string | null {
-  return slug ? `/products/${slug}` : null;
-}
 
 /**
  * Slide-in cart drawer, opened by AddToCartButton on every successful add
@@ -172,11 +169,11 @@ function CartDrawerItem({ item, onUpdate, onRemove, onNavigate }: CartDrawerItem
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const variant = item.product_variant;
-  const product = variant.product;
-  const image = getVariantImage(variant);
+  // Ordinary line or kit line (item.bundle) - see getCartItemDisplay. A
+  // kit line otherwise gets the exact same stepper/remove controls below;
+  // the backend scales every component's stock reservation itself.
+  const { name: nameText, detail, image, href } = getCartItemDisplay(item);
   const savings = itemSavings(item);
-  const href = productHref(product?.slug);
 
   async function handleQuantityChange(quantity: number): Promise<void> {
     setIsPending(true);
@@ -205,11 +202,10 @@ function CartDrawerItem({ item, onUpdate, onRemove, onNavigate }: CartDrawerItem
     item.is_on_sale && item.compare_at_unit_price !== null ? item.compare_at_unit_price * item.quantity : null;
 
   const imageNode = image ? (
-    <img src={image.url} alt={image.alt_text ?? product?.name ?? ''} />
+    <img src={image.url} alt={image.alt_text ?? nameText} />
   ) : (
     <span className="cart-drawer-item__no-image">{cartCopy.noImage}</span>
   );
-  const nameText = product?.name ?? variant.name;
 
   return (
     <div className="cart-drawer-item">
@@ -235,12 +231,12 @@ function CartDrawerItem({ item, onUpdate, onRemove, onNavigate }: CartDrawerItem
             className="cart-drawer-item__remove"
             onClick={() => void handleRemove()}
             disabled={isPending}
-            aria-label={cartCopy.removeAria(product?.name ?? variant.name)}
+            aria-label={cartCopy.removeAria(nameText)}
           >
             <Icon name="trash" />
           </button>
 
-          {variant.name && <div className="cart-drawer-item__variant">{variant.name}</div>}
+          {detail && <div className="cart-drawer-item__variant">{detail}</div>}
 
           <div className="cart-drawer-item__price-stack">
             <span className={`cart-drawer-item__price${item.is_on_sale ? ' is-sale' : ''}`}>

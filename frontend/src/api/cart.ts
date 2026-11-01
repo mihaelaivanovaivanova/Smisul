@@ -48,6 +48,22 @@ export async function addCartItem(productVariantId: number, quantity: number, is
   return unwrap(data);
 }
 
+/**
+ * Adds a kit as ONE cart line (or increments its existing line) - the
+ * backend checks and reserves every component's stock together (see
+ * BundleService::addBundleToCart()). Once in the cart, a kit line is
+ * updated/removed via updateCartItem/removeCartItem like any other line.
+ */
+export async function addCartBundle(bundleId: number, quantity: number): Promise<Cart> {
+  await ensureCsrfCookie();
+  const { data } = await apiClient.post<CartApiResponse>(
+    '/cart/bundles',
+    { bundle_id: bundleId, quantity },
+    { headers: guestTokenHeaders() },
+  );
+  return unwrap(data);
+}
+
 export async function updateCartItem(itemId: number, quantity: number): Promise<Cart> {
   await ensureCsrfCookie();
   const { data } = await apiClient.patch<CartApiResponse>(

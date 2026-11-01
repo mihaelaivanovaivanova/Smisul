@@ -561,8 +561,13 @@ export default function VariantManager({ productId, variants, onChange }: Varian
                                 ) : (
                                   reservation.customer_email ?? `User cart #${reservation.cart_id}`
                                 )}
+                                {reservation.bundle_name && (
+                                  <div className="small text-muted">
+                                    via kit &quot;{reservation.bundle_name}&quot; x{reservation.quantity} - releasing removes the whole kit
+                                  </div>
+                                )}
                               </td>
-                              <td className="text-end">{reservation.quantity}</td>
+                              <td className="text-end">{reservation.reserved_quantity ?? reservation.quantity}</td>
                               <td className="text-end">
                                 {reservation.days_since_last_touched !== null ? `${reservation.days_since_last_touched}d ago` : '—'}
                               </td>

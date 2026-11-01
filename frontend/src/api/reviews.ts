@@ -21,15 +21,19 @@ export async function fetchProductReviews(
   sort: ReviewSortOption,
   page: number,
   perPage?: number,
+  /** Narrows to only these variants' own reviews - e.g. both kit pages pooling the reviews of every pack size any kit contains. Omitted = every review of the product, across every pack size. */
+  productVariantIds?: number[],
 ): Promise<PaginatedResponse<Review>> {
   const { data } = await apiClient.get<PaginatedResponse<Review>>(`/products/${slug}/reviews`, {
-    params: { sort, page, per_page: perPage },
+    params: { sort, page, per_page: perPage, product_variant_ids: productVariantIds },
   });
   return data;
 }
 
-export async function fetchReviewSummary(slug: string): Promise<ReviewSummary> {
-  const { data } = await apiClient.get<{ data: ReviewSummary }>(`/products/${slug}/reviews/summary`);
+export async function fetchReviewSummary(slug: string, productVariantIds?: number[]): Promise<ReviewSummary> {
+  const { data } = await apiClient.get<{ data: ReviewSummary }>(`/products/${slug}/reviews/summary`, {
+    params: { product_variant_ids: productVariantIds },
+  });
   return data.data;
 }
 

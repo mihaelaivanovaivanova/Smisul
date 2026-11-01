@@ -38,6 +38,9 @@ class DatabaseSeeder extends Seeder
         $this->call(LegalDocumentSeeder::class);
         $this->call(FunnelSeeder::class);
         $this->call(MiswakAccessoriesSeeder::class);
+        // Kits reference real variants from both FunnelSeeder (Miswak
+        // packs) and MiswakAccessoriesSeeder - must run after them.
+        $this->call(ProductBundleSeeder::class);
         $this->call(ReviewSeeder::class);
     }
 }

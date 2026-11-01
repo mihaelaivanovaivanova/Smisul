@@ -53,7 +53,12 @@ export async function updateVariantInventory(
 
 export interface CartReservation {
   id: number;
+  /** The cart line's own quantity - for a kit line, that's kits, not units of this variant (see reserved_quantity). */
   quantity: number;
+  /** Units of THIS variant the line holds - equals quantity except on a kit line (kits x this component's per-kit quantity). */
+  reserved_quantity: number;
+  /** Set when the holding line is a kit - releasing it removes the whole kit from that cart. */
+  bundle_name: string | null;
   cart_id: number;
   is_guest: boolean;
   customer_email: string | null;

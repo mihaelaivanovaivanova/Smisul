@@ -218,8 +218,12 @@ export default function OrderDetailPage() {
                   {order.items.map((item) => (
                     <tr key={item.id}>
                       <td>
-                        {item.product_name}
-                        {item.variant_name && <div className="text-muted small">{item.variant_name}</div>}
+                        {item.bundle_name ?? item.product_name}
+                        {item.bundle_name ? (
+                          <span className="badge text-bg-info ms-2">Kit</span>
+                        ) : (
+                          item.variant_name && <div className="text-muted small">{item.variant_name}</div>
+                        )}
                       </td>
                       <td>{item.sku}</td>
                       <td className="text-end">{item.quantity}</td>

@@ -19,6 +19,8 @@ interface ReviewsSectionProps {
   productSlug: string;
   productName: string;
   productImageUrl?: string;
+  /** Narrows the listing/summary to only these variants' own reviews - e.g. both kit pages pooling the reviews of every pack size any kit contains, not every review of the product across every pack size that exists. Omitted = every review, as before. Pass a stable array (e.g. memoized) - a fresh literal every render still works correctly here (the fetch re-runs only when its contents actually change, not its reference), just needlessly re-renders this component's own effect bookkeeping. */
+  productVariantIds?: number[];
   /** Set when arriving from a delivered order's "write a review" link (see OrderConfirmationPage). */
   writePrompt?: { orderId: number; productVariantId: number };
   /** Set from a shareable ?write_review=1 link (see ProductPage) - e.g. the 30-day reminder email's "Остави ревю" button, which can't carry writePrompt's in-app navigation state. */
@@ -31,6 +33,7 @@ export default function ReviewsSection({
   productSlug,
   productName,
   productImageUrl,
+  productVariantIds,
   writePrompt,
   openWizard,
   knownReviewerIdentity,
@@ -40,6 +43,11 @@ export default function ReviewsSection({
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(Boolean(writePrompt));
   const [isWizardOpen, setIsWizardOpen] = useState(Boolean(openWizard));
+  // A stable primitive for useAsync's dep arrays below - productVariantIds
+  // itself may be a fresh array literal every render (see the prop's own
+  // docblock), which would otherwise refetch on every render regardless of
+  // whether its contents actually changed.
+  const variantIdsKey = productVariantIds?.join(',');
 
   // openWizard only becomes true after ProductPage finishes resolving the
   // order's reviewer identity (an async fetch) - well after this
@@ -55,14 +63,14 @@ export default function ReviewsSection({
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: summary, error: summaryError } = useAsync(
-    () => fetchReviewSummary(productSlug),
-    [productSlug, refreshKey],
+    () => fetchReviewSummary(productSlug, productVariantIds),
+    [productSlug, variantIdsKey, refreshKey],
     reviewsCopy.summaryLoadError,
   );
 
   const { data: list, isLoading, error } = useAsync(
-    () => fetchProductReviews(productSlug, sort, page),
-    [productSlug, sort, page, refreshKey],
+    () => fetchProductReviews(productSlug, sort, page, undefined, productVariantIds),
+    [productSlug, sort, page, variantIdsKey, refreshKey],
     reviewsCopy.loadError,
   );
 

@@ -18,6 +18,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Price;
 use App\Models\Product;
+use App\Models\ProductBundle;
 use App\Models\ProductVariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -39,6 +40,12 @@ use Illuminate\Support\Str;
  * immediately beforehand, inside the enclosing transaction — eager-loaded
  * relations are for display/error-message purposes only and are never
  * used as the basis for a reservation change.
+ *
+ * Kit lines (cart_items.bundle_id - see ProductBundle/BundleService) count
+ * toward that sum per component: component.quantity x the line's quantity
+ * for each of the kit's component variants. Every reservation-touching
+ * method below has a bundle branch delegating the per-component work to
+ * BundleService; kits are added via BundleService::addBundleToCart().
  */
 class CartService
 {
@@ -57,6 +64,14 @@ class CartService
         'items.productVariant.media',
         'items.productVariant.prices',
         'items.productVariant.inventory',
+        // Kit lines (cart_items.bundle_id) - price, availability, and
+        // max_quantity are all derived from the kit's components.
+        'items.bundle.items.productVariant.product.primaryMedia',
+        // Same sibling-pack reason as the top-level copy above, but for
+        // ProductBundle::retailValue() per component instead of a raw pack line.
+        'items.bundle.items.productVariant.product.variants.prices',
+        'items.bundle.items.productVariant.prices',
+        'items.bundle.items.productVariant.inventory',
     ];
 
     /**
@@ -96,6 +111,7 @@ class CartService
         private readonly CartPricingService $pricing,
         private readonly InventoryService $inventory,
         private readonly SettingService $settings,
+        private readonly BundleService $bundles,
     ) {}
 
     /**
@@ -127,7 +143,12 @@ class CartService
         return DB::transaction(function () use ($cart, $data) {
             $variant = ProductVariant::with('product')->findOrFail($data->productVariantId);
 
-            if (! $this->pricing->isVariantPurchasable($variant)) {
+            // A kit's catalog shell (see KitShellProductService) is never
+            // sold on its own - it has no real stock, and a kit is only
+            // ever bought via BundleService::addBundleToCart(), so its
+            // real components get reserved.
+            if (! $this->pricing->isVariantPurchasable($variant)
+                || ProductBundle::where('shell_product_variant_id', $variant->id)->exists()) {
                 throw VariantNotPurchasableException::forSku($variant->sku);
             }
 
@@ -189,7 +210,7 @@ class CartService
 
             if ($data->quantity > CartPricingService::MAX_QUANTITY_PER_ITEM) {
                 $variant = $item->productVariant;
-                $sku = $variant !== null ? $variant->sku : 'unknown';
+                $sku = $variant !== null ? $variant->sku : ($item->bundle?->slug ?? 'unknown');
 
                 throw InsufficientStockException::forVariant($sku, $data->quantity, CartPricingService::MAX_QUANTITY_PER_ITEM);
             }
@@ -215,13 +236,14 @@ class CartService
 
             $removedProductSlug = $item->productVariant?->product?->slug;
             $productVariantId = $item->product_variant_id;
+            $bundleId = $item->bundle_id;
             $item->delete();
 
             if ($removedProductSlug === self::UPSELL_MISWAK_SLUG) {
                 $this->revokeUpsellPricesIfMiswakGone($cart);
             }
 
-            CartItemRemoved::dispatch($cart, $productVariantId);
+            CartItemRemoved::dispatch($cart, $productVariantId, $bundleId);
         });
     }
 
@@ -250,6 +272,29 @@ class CartService
         $delta = $newQuantity - $item->quantity;
 
         if ($delta === 0) {
+            return;
+        }
+
+        // Kit line: the same delta, applied to every component scaled by
+        // its per-kit quantity (all-or-nothing when growing - see
+        // BundleService::reserveComponents()).
+        if ($item->bundle_id !== null) {
+            $bundle = $item->bundle;
+
+            if ($bundle === null) {
+                if ($delta > 0) {
+                    throw InsufficientStockException::forVariant('unknown', $newQuantity, 0);
+                }
+
+                return;
+            }
+
+            if ($delta > 0) {
+                $this->bundles->reserveComponents($bundle, $delta);
+            } else {
+                $this->bundles->releaseComponents($bundle, -$delta);
+            }
+
             return;
         }
 
@@ -282,6 +327,14 @@ class CartService
 
     private function releaseReservation(CartItem $item): void
     {
+        if ($item->bundle_id !== null) {
+            if ($item->bundle !== null) {
+                $this->bundles->releaseComponents($item->bundle, $item->quantity);
+            }
+
+            return;
+        }
+
         $variant = $item->productVariant;
 
         if ($variant === null) {
@@ -312,7 +365,7 @@ class CartService
     {
         DB::transaction(function () use ($userCart, $guestToken) {
             $guestCart = Cart::where('guest_token', $guestToken)
-                ->with('items.productVariant')
+                ->with(['items.productVariant', 'items.bundle.items'])
                 ->lockForUpdate()
                 ->first();
 
@@ -324,6 +377,36 @@ class CartService
             $mergedCount = 0;
 
             foreach ($guestCart->items as $guestItem) {
+                // Kit line: matched on bundle_id instead of
+                // product_variant_id, same sum-then-cap rule, with any
+                // trimmed excess released across every component.
+                if ($guestItem->bundle_id !== null) {
+                    $bundle = $guestItem->bundle;
+
+                    if ($bundle === null) {
+                        continue;
+                    }
+
+                    $existing = $lockedUserCart->items()->where('bundle_id', $bundle->id)->first();
+                    $existingQuantity = $existing !== null ? $existing->quantity : 0;
+                    $combinedQuantity = $existingQuantity + $guestItem->quantity;
+                    $cappedQuantity = min($combinedQuantity, CartPricingService::MAX_QUANTITY_PER_ITEM);
+                    $excess = $combinedQuantity - $cappedQuantity;
+
+                    if ($excess > 0) {
+                        $this->bundles->releaseComponents($bundle, $excess);
+                    }
+
+                    $lockedUserCart->items()->updateOrCreate(
+                        ['bundle_id' => $bundle->id],
+                        ['quantity' => $cappedQuantity],
+                    );
+
+                    $mergedCount++;
+
+                    continue;
+                }
+
                 $variant = $guestItem->productVariant;
 
                 if ($variant === null) {
@@ -404,6 +487,21 @@ class CartService
     }
 
     /**
+     * True when a kit already in the cart bundles this product as one of
+     * its own components (e.g. both Miswak kits include the bamboo case and
+     * tongue scraper) - used by upsellOffers() below so a shopper who
+     * already has a kit isn't also offered to buy a second one of
+     * something their kit already contains.
+     */
+    private function cartHasProductViaKit(Cart $cart, string $productSlug): bool
+    {
+        return $cart->items()
+            ->whereNotNull('bundle_id')
+            ->whereHas('bundle.items.productVariant.product', fn ($query) => $query->where('slug', $productSlug))
+            ->exists();
+    }
+
+    /**
      * Keeps CartItem::is_upsell honest after a Miswak item is removed — an
      * upsell product's upsell_amount is only ever justified by a real
      * Miswak item genuinely being in the same cart (see
@@ -429,7 +527,10 @@ class CartService
      * Every cross-sell offer eligible for this cart right now, in
      * UPSELL_PRODUCT_SLUGS order — empty once the cart has no Miswak item
      * yet. Each product is then considered independently: already in the
-     * cart, not found, no upsell_amount configured for it (set via the
+     * cart, already included as a component of a kit that's in the cart
+     * (cartHasProductViaKit() — both Miswak kits already bundle the case
+     * and scraper, so a shopper who bought one shouldn't be upsold a
+     * second), not found, no upsell_amount configured for it (set via the
      * admin product price form — see Admin\PriceResource), toggled off via
      * its own Settings -> General switch (isUpsellProductEnabled() — a
      * manual reason to hide one unrelated to stock), or genuinely out of
@@ -453,7 +554,11 @@ class CartService
         $offers = [];
 
         foreach (self::UPSELL_PRODUCT_SLUGS as $slug) {
-            if ($this->cartHasProduct($cart, $slug) || ! $this->isUpsellProductEnabled($slug)) {
+            if (
+                $this->cartHasProduct($cart, $slug)
+                || $this->cartHasProductViaKit($cart, $slug)
+                || ! $this->isUpsellProductEnabled($slug)
+            ) {
                 continue;
             }
 

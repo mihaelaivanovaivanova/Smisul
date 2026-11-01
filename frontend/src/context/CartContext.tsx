@@ -62,6 +62,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(updated);
   }, []);
 
+  const addBundle = useCallback(async (bundleId: number, quantity: number) => {
+    const updated = await cartApi.addCartBundle(bundleId, quantity);
+    setCart(updated);
+  }, []);
+
   const updateItem = useCallback(async (itemId: number, quantity: number) => {
     const updated = await cartApi.updateCartItem(itemId, quantity);
     setCart(updated);
@@ -85,6 +90,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
     addItem,
+    addBundle,
     updateItem,
     removeItem,
     clear,

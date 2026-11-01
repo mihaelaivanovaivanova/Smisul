@@ -6,6 +6,8 @@ use App\DataTransferObjects\Cart\CartTotals;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Price;
+use App\Models\ProductBundle;
+use App\Models\ProductBundleItem;
 use App\Models\ProductVariant;
 
 /**
@@ -26,6 +28,55 @@ class CartPricingService
     public function isVariantPurchasable(ProductVariant $variant): bool
     {
         return $variant->product !== null && $variant->product->isPublished() && $variant->isActive();
+    }
+
+    /**
+     * A kit is purchasable only while it's active, has at least one
+     * component, and every component is itself purchasable on its own
+     * terms - a kit can never be used to sell a variant that's been
+     * unpublished, deactivated, or (soft-)deleted.
+     */
+    public function isBundlePurchasable(ProductBundle $bundle): bool
+    {
+        if (! $bundle->isActive() || $bundle->items->isEmpty()) {
+            return false;
+        }
+
+        return $bundle->items->every(function (ProductBundleItem $component) {
+            $variant = $component->productVariant;
+
+            return $variant !== null && ! $variant->trashed() && $this->isVariantPurchasable($variant);
+        });
+    }
+
+    /**
+     * The kit equivalent of maxQuantityFor(): the highest quantity a kit
+     * line could reach, limited by whichever component runs out first.
+     * $alreadyHeldByThisLine is the kit line's own current quantity, whose
+     * component reservations are added back per component (scaled by that
+     * component's per-kit quantity) for the same reason maxQuantityFor()
+     * adds back a variant line's own hold.
+     */
+    public function maxBundleQuantityFor(ProductBundle $bundle, int $alreadyHeldByThisLine = 0): int
+    {
+        $max = self::MAX_QUANTITY_PER_ITEM;
+
+        foreach ($bundle->items as $component) {
+            $inventory = $component->productVariant?->inventory;
+
+            if ($inventory === null) {
+                return $alreadyHeldByThisLine;
+            }
+
+            if ($inventory->backorders_allowed || $component->quantity < 1) {
+                continue;
+            }
+
+            $pool = $inventory->availableQuantity() + ($alreadyHeldByThisLine * $component->quantity);
+            $max = min($max, intdiv($pool, $component->quantity));
+        }
+
+        return max($alreadyHeldByThisLine, $max);
     }
 
     /**
@@ -67,6 +118,21 @@ class CartPricingService
      */
     public function isItemAvailable(CartItem $item): bool
     {
+        if ($item->bundle_id !== null) {
+            $bundle = $item->bundle;
+
+            if ($bundle === null || ! $this->isBundlePurchasable($bundle)) {
+                return false;
+            }
+
+            return $bundle->items->every(function (ProductBundleItem $component) {
+                $inventory = $component->productVariant?->inventory;
+
+                return $inventory !== null
+                    && ($inventory->backorders_allowed || $inventory->quantity_on_hand >= $inventory->quantity_reserved);
+            });
+        }
+
         $variant = $item->productVariant;
 
         if ($variant === null || ! $this->isVariantPurchasable($variant)) {
@@ -129,6 +195,27 @@ class CartPricingService
      */
     public function effectivePrice(CartItem $item, string $currency): ?Price
     {
+        // A kit line's stored price is final - none of the variant-based
+        // branches below (sale, upsell, pack compare-at) apply to it. Its
+        // compare-at is the components' live separate-purchase total (see
+        // ProductBundle::retailValue()), only when that's genuinely higher,
+        // so isOnSale() reads true exactly when there's a real saving.
+        if ($item->bundle_id !== null) {
+            $bundle = $item->bundle;
+
+            if ($bundle === null || $bundle->currency !== $currency) {
+                return null;
+            }
+
+            $retailValue = $bundle->retailValue($currency);
+
+            return new Price([
+                'currency' => $currency,
+                'amount' => $bundle->amount,
+                'compare_at_amount' => $retailValue > (float) $bundle->amount ? $retailValue : null,
+            ]);
+        }
+
         $variant = $item->productVariant;
         if ($variant === null) {
             return null;

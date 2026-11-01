@@ -1,9 +1,17 @@
+import type { Bundle } from './bundle';
 import type { Currency, Media, ProductVariant } from './product';
 
 export interface CartItem {
   id: number;
   quantity: number;
-  product_variant: ProductVariant;
+  /**
+   * Exactly one of product_variant / bundle is non-null: an ordinary line
+   * has product_variant, a kit line has bundle (see backend's
+   * CartItemResource). Use services/cartItemDisplay.ts rather than reading
+   * either directly for name/image/link.
+   */
+  product_variant: ProductVariant | null;
+  bundle: Bundle | null;
   unit_price: number | null;
   compare_at_unit_price: number | null;
   is_on_sale: boolean;

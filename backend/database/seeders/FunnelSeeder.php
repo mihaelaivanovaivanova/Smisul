@@ -134,8 +134,17 @@ class FunnelSeeder extends Seeder
         $this->seedImage($product, 'miswak-holder-flat.png', 'products/miswak-holder-flat.png', 'Miswak пръчица и дървен калъф', 4, false);
         // Short admin-uploaded clip - kept at its originally-uploaded hash
         // filename (not renamed) so re-seeding matches this exact existing
-        // row instead of creating a duplicate.
+        // row instead of creating a duplicate. A general product/lifestyle
+        // clip for the main gallery - NOT the how-to-use demo (see the
+        // alt_text-matched video right below, which HowToUseAccordion.tsx
+        // and HowToUseSection.tsx actually look for).
         $this->seedVideo($product, 'miswak-usage-clip.mp4', 'products/zFXJ9k2DyQM3moG8AX49iCgfK4s2SbHneE9YwDDw.mp4', '', 6);
+        // The real how-to-use demo clip - found by alt_text (same
+        // /как се използва/i match MiswakLandingPage.tsx's usageGuidePdfUrl
+        // already uses to find its FAQ answer's PDF, rather than relying on
+        // sort_order/array position like the old "just take videos[0]"
+        // logic did, which broke the instant a second video existed.
+        $this->seedVideo($product, 'miswak-howto-ai.mp4', 'products/miswak-howto-ai.mp4', 'Видео: как се използва Miswak', 7);
 
         return $product;
     }

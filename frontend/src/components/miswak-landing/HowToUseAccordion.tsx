@@ -84,7 +84,13 @@ export default function HowToUseAccordion({ videos, pdfUrl, ctaPrimaryLabel, fro
     clearHoverTimeout();
     hoverTimeoutRef.current = setTimeout(() => setOpenIndex(index), 150);
   }
-  const video = videos[0];
+  // The real demo clip, identified by its alt_text (same /как се използва/i
+  // match MiswakLandingPage.tsx's usageGuidePdfUrl already uses for its FAQ
+  // answer's PDF) rather than just assuming videos[0] - a product's media
+  // can include other, unrelated videos too (e.g. a lifestyle/ad clip in
+  // the main gallery), and "whichever sorts first" broke the moment a
+  // second video existed. Falls back to videos[0] if none is tagged yet.
+  const video = videos.find((item) => /как се използва/i.test(item.alt_text ?? '')) ?? videos[0];
   const packagesFromLabel = fromPrice ? funnelOffer.packagesFrom(formatPrice(fromPrice.amount, fromPrice.currency)) : null;
 
   return (

@@ -5,6 +5,7 @@ namespace Tests\Feature\Cart;
 use App\Enums\Currency;
 use App\Enums\VariantStatus;
 use App\Models\Product;
+use App\Models\ProductBundle;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -260,6 +261,42 @@ class CartUpsellPricingTest extends TestCase
         $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
         $addMiswak->assertCreated();
         $guestToken = $addMiswak->json('meta.guest_token');
+
+        $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->getJson('/api/v1/cart/upsell')
+            ->assertOk()
+            ->assertJsonPath('data', []);
+    }
+
+    /**
+     * A shopper who already has a kit (ProductBundle) shouldn't be upsold a
+     * second case/scraper the kit already bundles - both real Miswak kits
+     * include one of each. See CartService::cartHasProductViaKit().
+     */
+    #[Test]
+    public function the_offer_endpoint_hides_products_already_included_in_a_kit_in_the_cart(): void
+    {
+        $miswak = $this->variant('miswak', 'MISWAK-1', 4.29);
+        $case = $this->variant('bambukov-keis-za-miswak', 'MISWAK-CASE-1', 6.49, 5.49);
+        $scraper = $this->variant('stargalka-za-ezik', 'SCRAPER-1', 6.99, 5.99);
+
+        $bundle = ProductBundle::create([
+            'slug' => 'test-1-person-kit',
+            'name' => '1-Person Kit',
+            'currency' => Currency::EUR->value,
+            'amount' => 29.99,
+            'status' => VariantStatus::Active->value,
+        ]);
+        $bundle->items()->create(['product_variant_id' => $case->id, 'quantity' => 1]);
+        $bundle->items()->create(['product_variant_id' => $scraper->id, 'quantity' => 1]);
+
+        $addMiswak = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $miswak->id, 'quantity' => 1]);
+        $addMiswak->assertCreated();
+        $guestToken = $addMiswak->json('meta.guest_token');
+
+        $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+            ->postJson('/api/v1/cart/bundles', ['bundle_id' => $bundle->id, 'quantity' => 1])
+            ->assertCreated();
 
         $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
             ->getJson('/api/v1/cart/upsell')

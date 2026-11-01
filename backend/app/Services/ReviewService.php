@@ -16,6 +16,7 @@ use App\Models\ProductVariant;
 use App\Models\Review;
 use App\Models\ReviewVote;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -304,12 +305,19 @@ class ReviewService
     }
 
     /**
+     * Without $productVariantIds, every review of $product. With them, the
+     * reviews left for exactly those variants INSTEAD - not additionally
+     * scoped to $product, since the variants may belong to different
+     * products (e.g. both kit pages pooling the reviews of both kits'
+     * separate catalog shells - see KitShellProductService). A variant id
+     * belongs to exactly one product, so this can't over-match.
+     *
+     * @param  list<int>|null  $productVariantIds
      * @return LengthAwarePaginator<int, Review>
      */
-    public function listForProduct(Product $product, string $sort, int $page, int $perPage = 4): LengthAwarePaginator
+    public function listForProduct(Product $product, string $sort, int $page, int $perPage = 4, ?array $productVariantIds = null): LengthAwarePaginator
     {
-        $query = Review::query()
-            ->where('product_id', $product->id)
+        $query = $this->scopedToProductOrVariants($product, $productVariantIds)
             ->approved()
             ->with(self::PUBLIC_EAGER_LOAD);
 
@@ -324,11 +332,15 @@ class ReviewService
     }
 
     /**
+     * $productVariantIds narrows this the same way listForProduct() does -
+     * see its own docblock.
+     *
+     * @param  list<int>|null  $productVariantIds
      * @return array{average_rating: float, review_count: int, verified_count: int, distribution: array<int, int>}
      */
-    public function summaryFor(Product $product): array
+    public function summaryFor(Product $product, ?array $productVariantIds = null): array
     {
-        $approved = Review::query()->where('product_id', $product->id)->approved();
+        $approved = $this->scopedToProductOrVariants($product, $productVariantIds)->approved();
 
         $count = (clone $approved)->count();
         $average = $count > 0 ? round((float) (clone $approved)->avg('rating'), 2) : 0.0;
@@ -350,6 +362,19 @@ class ReviewService
             'verified_count' => $verifiedCount,
             'distribution' => $distribution,
         ];
+    }
+
+    /**
+     * See listForProduct()'s docblock.
+     *
+     * @param  list<int>|null  $productVariantIds
+     * @return Builder<Review>
+     */
+    private function scopedToProductOrVariants(Product $product, ?array $productVariantIds): Builder
+    {
+        return $productVariantIds === null
+            ? Review::query()->where('product_id', $product->id)
+            : Review::query()->whereIn('product_variant_id', $productVariantIds);
     }
 
     /**

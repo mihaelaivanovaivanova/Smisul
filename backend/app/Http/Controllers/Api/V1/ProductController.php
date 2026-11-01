@@ -58,15 +58,21 @@ class ProductController extends Controller
         $sort = $request->validated('sort') ?? 'newest';
         $page = (int) ($request->validated('page') ?? 1);
         $perPage = (int) ($request->validated('per_page') ?? 4);
+        $productVariantIds = $request->validated('product_variant_ids');
 
-        return ReviewResource::collection($this->reviews->listForProduct($product, $sort, $page, $perPage));
+        return ReviewResource::collection(
+            $this->reviews->listForProduct($product, $sort, $page, $perPage, $productVariantIds !== null ? array_map('intval', $productVariantIds) : null)
+        );
     }
 
-    public function reviewsSummary(string $slug): JsonResponse
+    public function reviewsSummary(ReviewIndexRequest $request, string $slug): JsonResponse
     {
         $product = $this->products->findBySlug($slug, publishedOnly: true);
+        $productVariantIds = $request->validated('product_variant_ids');
 
-        return response()->json(['data' => $this->reviews->summaryFor($product)]);
+        return response()->json([
+            'data' => $this->reviews->summaryFor($product, $productVariantIds !== null ? array_map('intval', $productVariantIds) : null),
+        ]);
     }
 
     /**

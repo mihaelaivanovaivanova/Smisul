@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\DataTransferObjects\Cart\AddCartItemData;
 use App\DataTransferObjects\Cart\UpdateCartItemData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cart\AddCartBundleRequest;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\Cart\CartResource;
 use App\Http\Resources\Cart\CartUpsellResource;
 use App\Models\Cart;
+use App\Models\ProductBundle;
+use App\Services\BundleService;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,6 +35,21 @@ class CartController extends Controller
     {
         $cart = $this->resolve($request);
         $result = $this->carts->addItem($cart, AddCartItemData::fromArray($request->validated()));
+
+        return $this->respond($cart, $result->wasCreated ? 201 : 200);
+    }
+
+    /**
+     * Adds a kit as one cart line (or onto its existing line) - all of its
+     * components' stock is checked and reserved together (see
+     * BundleService::addBundleToCart()). Once in the cart, a kit line is
+     * updated/removed through the ordinary /items/{item} routes below.
+     */
+    public function storeBundle(AddCartBundleRequest $request, BundleService $bundles): JsonResponse
+    {
+        $cart = $this->resolve($request);
+        $bundle = ProductBundle::findOrFail($request->validated('bundle_id'));
+        $result = $bundles->addBundleToCart($cart, $bundle, (int) ($request->validated('quantity') ?? 1));
 
         return $this->respond($cart, $result->wasCreated ? 201 : 200);
     }

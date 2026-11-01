@@ -114,6 +114,9 @@ export interface OrderItem {
   /** Null if the variant (or its product) has since been deleted — can't be reviewed in that case. */
   product_variant_id: number | null;
   product_slug: string | null;
+  /** Set only on a kit line (product_variant_id/product_slug are then null). bundle_name is a snapshot, same as product_name. */
+  bundle_id: number | null;
+  bundle_name: string | null;
 }
 
 export interface OrderTimelineEntry {

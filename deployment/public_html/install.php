@@ -166,6 +166,26 @@ if ($isUpgrade) {
             $messages[] = 'Новите продукти (стъргалка, бамбуков кейс) са добавени.';
         }
 
+        // Same one-time catch-up pattern as above, for the two kits added
+        // after this site's original install. Must run after the
+        // MiswakAccessoriesSeeder call above (same request is fine - by
+        // the time this runs, the accessory variants it needs already
+        // exist either from a past install or the call just above).
+        if (! App\Models\ProductBundle::query()->where('slug', 'miswak-1-person-kit')->exists()) {
+            (new Database\Seeders\ProductBundleSeeder)->run();
+            $messages[] = 'Новите комплекти (1-Person Kit, 2-Person Kit) са добавени.';
+        }
+
+        // Kits that predate their catalog shells (see
+        // KitShellProductService) get one - ensureShells() only creates
+        // missing shells and never touches the kits' own admin-edited
+        // name/price/badge, so it's safe on every upgrade; a no-op once
+        // every kit has its shell.
+        if (App\Models\ProductBundle::query()->whereNull('shell_product_variant_id')->exists()) {
+            (new Database\Seeders\ProductBundleSeeder)->ensureShells();
+            $messages[] = 'Комплектите вече са видими в каталога и могат да получават отзиви.';
+        }
+
         foreach ([['optimize:clear', []], ['config:cache', []]] as [$command, $arguments]) {
             $code = $kernel->call($command, $arguments);
             if ($code !== 0) throw new RuntimeException($kernel->output());
@@ -302,8 +322,11 @@ try {
     // for a real storefront's first boot. FunnelSeeder must run before
     // MiswakAccessoriesSeeder and ReviewSeeder - the accessories' cart
     // upsell and the reviews both attach to the 'miswak' product it
-    // creates. MiswakAccessoriesSeeder (unlike ProductSeeder) IS real
-    // storefront catalog, not dev fixture data - see its own docblock.
+    // creates. ProductBundleSeeder (the two kits) must run after both
+    // FunnelSeeder and MiswakAccessoriesSeeder - it references their real
+    // variants by SKU and throws if they're missing. MiswakAccessoriesSeeder
+    // and ProductBundleSeeder (unlike ProductSeeder) ARE real storefront
+    // catalog, not dev fixture data - see their own docblocks.
     // (An already-installed site instead gets it from the one-time,
     // existence-guarded call in the upgrade branch above - not from this
     // list, which only ever runs on a brand new install.)
@@ -317,6 +340,7 @@ try {
         ['db:seed', ['--class' => Database\Seeders\LegalDocumentSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\FunnelSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\MiswakAccessoriesSeeder::class, '--force' => true]],
+        ['db:seed', ['--class' => Database\Seeders\ProductBundleSeeder::class, '--force' => true]],
         ['db:seed', ['--class' => Database\Seeders\ReviewSeeder::class, '--force' => true]],
         ['config:cache', []],
     ];

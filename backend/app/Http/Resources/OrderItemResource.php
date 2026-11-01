@@ -32,6 +32,13 @@ class OrderItemResource extends JsonResource
             // (see OrderItem's class docblock), it just can't be reviewed.
             'product_variant_id' => $this->product_variant_id,
             'product_slug' => $this->productVariant?->product?->slug,
+            // Set only on a kit line - whose product_variant_id/product_slug
+            // then point at the kit's catalog shell (see
+            // KitShellProductService), or are null for a kit line placed
+            // before shells existed. bundle_name is a snapshot, same as
+            // product_name.
+            'bundle_id' => $this->bundle_id,
+            'bundle_name' => $this->bundle_name,
         ];
     }
 }

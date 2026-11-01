@@ -13,6 +13,7 @@ use App\Exceptions\Checkout\InvalidShippingMethodException;
 use App\Exceptions\Order\InvalidOrderStatusTransitionException;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -63,6 +64,16 @@ class OrderService
         'shipment.statusEvents',
     ];
 
+    /**
+     * What every stock-touching path below (confirm, cancel, delete) needs
+     * to resolve each line's inventory - a variant line's own, or every
+     * component of a kit line's.
+     */
+    private const STOCK_EAGER_LOAD = [
+        'items.productVariant.inventory',
+        'items.bundle.items.productVariant',
+    ];
+
     public function __construct(
         private readonly CartPricingService $pricing,
         private readonly InventoryService $inventory,
@@ -71,6 +82,7 @@ class OrderService
         private readonly OrderNumberGenerator $orderNumbers,
         private readonly OrderStatusService $orderStatus,
         private readonly DiscountCodeService $discountCodes,
+        private readonly BundleService $bundles,
     ) {}
 
     public function placeOrder(Cart $cart, PlaceOrderData $data, ?User $user): Order
@@ -82,6 +94,14 @@ class OrderService
                     'items.productVariant.product.categories.promotions',
                     'items.productVariant.prices',
                     'items.productVariant.inventory',
+                    'items.bundle.items.productVariant.product',
+                    // The sibling pack_size===1 variant + its prices — same
+                    // reason as CartService::EAGER_LOAD's own copy of this:
+                    // ProductBundle::retailValue() needs it per component to
+                    // compute the kit's real (non-pack-discounted) compare-at.
+                    'items.bundle.items.productVariant.product.variants.prices',
+                    'items.bundle.items.productVariant.prices',
+                    'items.bundle.items.productVariant.inventory',
                 ])
                 ->lockForUpdate()
                 ->first() ?? $cart;
@@ -118,6 +138,37 @@ class OrderService
             $lines = [];
 
             foreach ($cart->items as $item) {
+                // Kit line: one order line at the kit's single stored
+                // price. No product_variant_id of its own - its stock stays
+                // held on the components (see the class docblock and
+                // confirmAndFulfill()/cancel() below). The components' live
+                // separate-purchase total is snapshotted as compare_at_price
+                // for display only; discount_amount stays 0, since the kit
+                // price is the real price, not a markdown off of that total.
+                if ($item->bundle_id !== null) {
+                    $bundle = $item->bundle;
+                    $price = $bundle !== null ? $this->pricing->effectivePrice($item, $cart->currency) : null;
+
+                    if ($bundle === null || $price === null || ! $this->pricing->isBundlePurchasable($bundle) || ! $this->pricing->isItemAvailable($item)) {
+                        $unavailableSkus[] = $bundle->slug ?? "cart-item-{$item->id}";
+
+                        continue;
+                    }
+
+                    $lines[] = [
+                        'item' => $item,
+                        'bundle' => $bundle,
+                        'variant' => null,
+                        'unit_price' => (float) $price->amount,
+                        'compare_at_price' => $price->compare_at_amount !== null ? (float) $price->compare_at_amount : null,
+                        'discount_amount' => 0.0,
+                        'promotion_name' => null,
+                        'line_total' => $this->pricing->lineTotal($item, $cart->currency),
+                    ];
+
+                    continue;
+                }
+
                 $variant = $item->productVariant;
 
                 if ($variant === null || ! $this->pricing->isVariantPurchasable($variant) || ! $this->pricing->isItemAvailable($item)) {
@@ -141,6 +192,7 @@ class OrderService
 
                 $lines[] = [
                     'item' => $item,
+                    'bundle' => null,
                     'variant' => $variant,
                     'unit_price' => (float) $price->amount,
                     'compare_at_price' => $compareAtPrice,
@@ -238,6 +290,36 @@ class OrderService
             ]);
 
             foreach ($lines as $line) {
+                $bundle = $line['bundle'];
+
+                if ($bundle !== null) {
+                    $order->items()->create([
+                        // The kit's catalog shell (see KitShellProductService)
+                        // - purely so the review/reminder system, which
+                        // resolves everything via product_variant_id, works
+                        // for a kit purchase too. Never used for stock: every
+                        // bundle branch below checks bundle_id first and acts
+                        // on the kit's real components only.
+                        'product_variant_id' => $bundle->shell_product_variant_id,
+                        'bundle_id' => $bundle->id,
+                        'bundle_name' => $bundle->name,
+                        'product_name' => $bundle->name,
+                        'variant_name' => null,
+                        // The kit's slug stands in for a SKU everywhere a
+                        // per-line identifier is needed downstream
+                        // (invoice, admin email, BOX NOW's items[].id).
+                        'sku' => $bundle->slug,
+                        'quantity' => $line['item']->quantity,
+                        'unit_price' => $line['unit_price'],
+                        'compare_at_price' => $line['compare_at_price'],
+                        'line_total' => $line['line_total'],
+                        'discount_amount' => $line['discount_amount'],
+                        'promotion_name' => null,
+                    ]);
+
+                    continue;
+                }
+
                 $variant = $line['variant'];
 
                 $order->items()->create([
@@ -305,13 +387,23 @@ class OrderService
     private function confirmAndFulfill(Order $order, OrderStatus $to, string $note): Order
     {
         return DB::transaction(function () use ($order, $to, $note) {
-            $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
+            $order = Order::whereKey($order->id)->with(self::STOCK_EAGER_LOAD)->lockForUpdate()->first() ?? $order;
 
             if (! in_array($to, $this->orderStatus->allowedTransitions($order->status), strict: true)) {
                 throw InvalidOrderStatusTransitionException::notAllowed($order->order_number, $order->status, $to);
             }
 
             foreach ($order->items as $item) {
+                if ($item->bundle_id !== null) {
+                    // Kit line: commit every real component, scaled by
+                    // this line's quantity.
+                    if ($item->bundle !== null) {
+                        $this->bundles->fulfillComponents($item->bundle, $item->quantity);
+                    }
+
+                    continue;
+                }
+
                 $this->fulfillReservation($item->productVariant, $item->quantity);
             }
 
@@ -329,7 +421,7 @@ class OrderService
     public function cancel(Order $order, ?User $cancelledBy = null, ?string $note = null): Order
     {
         return DB::transaction(function () use ($order, $cancelledBy, $note) {
-            $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
+            $order = Order::whereKey($order->id)->with(self::STOCK_EAGER_LOAD)->lockForUpdate()->first() ?? $order;
 
             // Only a not-yet-confirmed order still holds a reservation to
             // release — an order cancelled after Paid or Confirmed already
@@ -338,11 +430,7 @@ class OrderService
             // process instead, which is out of scope here.
             if (in_array($order->status, [OrderStatus::Pending, OrderStatus::AwaitingPayment], strict: true)) {
                 foreach ($order->items as $item) {
-                    $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
-
-                    if ($inventory !== null) {
-                        $this->inventory->release($inventory, $item->quantity);
-                    }
+                    $this->releaseHeldStock($item);
                 }
             }
 
@@ -371,15 +459,11 @@ class OrderService
     public function delete(Order $order): void
     {
         DB::transaction(function () use ($order) {
-            $order = Order::whereKey($order->id)->with('items.productVariant.inventory')->lockForUpdate()->first() ?? $order;
+            $order = Order::whereKey($order->id)->with(self::STOCK_EAGER_LOAD)->lockForUpdate()->first() ?? $order;
 
             if (in_array($order->status, [OrderStatus::Pending, OrderStatus::AwaitingPayment], strict: true)) {
                 foreach ($order->items as $item) {
-                    $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
-
-                    if ($inventory !== null) {
-                        $this->inventory->release($inventory, $item->quantity);
-                    }
+                    $this->releaseHeldStock($item);
                 }
             }
 
@@ -587,6 +671,28 @@ class OrderService
                 ->whereNotNull('customer_email')
                 ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Failed])
         )->select(DB::raw('COUNT(DISTINCT LOWER(customer_email)) as count'))->value('count');
+    }
+
+    /**
+     * Releases one order line's still-held reservation (cancel()/delete()
+     * of a not-yet-confirmed order) without decrementing stock - for a kit
+     * line, across every component, scaled by the line's quantity.
+     */
+    private function releaseHeldStock(OrderItem $item): void
+    {
+        if ($item->bundle_id !== null) {
+            if ($item->bundle !== null) {
+                $this->bundles->releaseComponents($item->bundle, $item->quantity);
+            }
+
+            return;
+        }
+
+        $inventory = $item->productVariant?->inventory()->lockForUpdate()->first();
+
+        if ($inventory !== null) {
+            $this->inventory->release($inventory, $item->quantity);
+        }
     }
 
     /**

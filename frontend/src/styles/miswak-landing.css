@@ -184,7 +184,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-5) var(--space-4) var(--space-4);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-surface);
@@ -240,7 +240,7 @@
   min-width: 0;
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   column-gap: var(--space-3);
   row-gap: var(--space-1);
 }
@@ -293,6 +293,96 @@
   font-size: var(--fs-xs);
 }
 
+/* A kit's one-line tagline (see BundleRadioSelector) - same slot as
+   __value above, just for a kit option instead of a raw pack. */
+.miswak-package-option__description {
+  color: var(--color-muted);
+  font-size: var(--fs-xs);
+  margin-bottom: 0.2rem;
+}
+
+/* A kit's contents (see BundleRadioSelector) - a plain bullet list, no
+   card/box around it (an earlier boxed version was tried and reverted by
+   request). */
+.miswak-package-option__contents {
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.2rem 0 0;
+  padding: 0 0 0 1.4rem;
+  width: 100%;
+}
+
+/* Mobile only - the card is narrower there, so the bullets sit a bit
+   closer to the left edge than on desktop. */
+@media (max-width: 767px) {
+  .miswak-package-option__contents {
+    padding-left: 0.3rem;
+  }
+}
+
+.miswak-package-option__contents-item {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--color-charcoal);
+}
+
+.miswak-package-option__contents-item::marker {
+  color: var(--color-forest);
+}
+
+/* A bonus item uses a 🎁 marker instead of the regular disc (see
+   BundleRadioSelector) - a custom list-style-type (not inline text) so it
+   sits in the same marker box as the disc bullets above it and lines up
+   with them horizontally instead of drifting right with the text. */
+.miswak-package-option__contents-item--bonus {
+  list-style-type: '🎁 ';
+}
+
+/* Its own grid row (grid-row: 3 - see .miswak-package-option__body), below
+   the title/price/contents rows, so the price-stack (which only spans rows
+   1-2) centers against the title+contents height alone, excluding this
+   section - see BundleRadioSelector. Spans both columns (not just the
+   title's column 1) so the bonus box reads as a full-width callout under
+   the price too, with its "БОНУС:" label centered above it. */
+.miswak-package-option__bonus-section {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The bonus lines sit in their own bordered box, set off from the plain
+   component checklist above. */
+.miswak-package-option__bonus-box {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  margin: var(--space-3) 0 0;
+  padding: 0.5rem 0.75rem 0.5rem 1.4rem;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-md);
+  background-color: var(--color-sand);
+}
+
+/* "🎁 БОНУС: 🎁" - a small solid pill (not just colored text) so it reads
+   as its own callout, not another line in the checklist. */
+.miswak-package-option__contents-label {
+  margin-top: var(--space-3);
+  padding: 0.3rem var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-gold);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .miswak-package-option__per-unit {
   color: var(--color-muted);
   font-size: var(--fs-xs);
@@ -307,6 +397,23 @@
   font-weight: 700;
 }
 
+/* Kit-only (BundleRadioSelector): on mobile the title column is too narrow
+   for "-X%" to read as right-aligned inline next to the (often-wrapping)
+   kit name, so it's pulled out of the flex row and pinned to the card's
+   top-right corner instead - same right edge the price lines up with
+   (.miswak-package-option__price-stack), anchored off the label itself
+   (.miswak-package-option has position: relative). Scoped to the --kit
+   modifier (not plain PackageRadioSelector packs, whose shorter names
+   never wrap) and to mobile only - inline next to the name reads fine on
+   desktop. */
+@media (max-width: 767px) {
+  .miswak-package-option__save--kit {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+  }
+}
+
 .miswak-package-selector__stock {
   margin-top: var(--space-2);
 }
@@ -318,6 +425,55 @@
 .miswak-package-selector__cta .btn {
   width: 100%;
   border-radius: var(--radius-pill);
+}
+
+/* ---- Kits / sticks-only toggle (see PurchasePanel) ---- */
+
+.miswak-purchase-toggle {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+  padding: var(--space-1);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface);
+}
+
+.miswak-purchase-toggle__option {
+  flex: 1 1 0;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--color-charcoal);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.miswak-purchase-toggle__option.is-active {
+  background-color: var(--color-forest);
+  color: #fff;
+}
+
+.miswak-purchase-toggle__option:focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+}
+
+/* A kit's name (see BundleRadioSelector) links to its own product page -
+   same text styling as the plain .miswak-package-option__detail, just a
+   bit larger (a kit's name carries more weight than a plain pack size)
+   and underlined on hover/focus so it still reads as a link. */
+.miswak-package-option__detail--link {
+  color: inherit;
+  text-decoration: none;
+  font-size: var(--fs-md);
+}
+
+.miswak-package-option__detail--link:hover,
+.miswak-package-option__detail--link:focus-visible {
+  text-decoration: underline;
 }
 
 /* ---- Delivery/payment trust row, desktop-only inside the purchase panel ---- */

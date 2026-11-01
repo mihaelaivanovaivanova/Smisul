@@ -7,6 +7,8 @@ export interface CartContextValue {
   error: string | null;
   /** isUpsell: see api/cart.ts's addCartItem — only an UpsellCard.tsx instance ever passes this. */
   addItem: (productVariantId: number, quantity: number, isUpsell?: boolean) => Promise<void>;
+  /** Adds a kit (see api/cart.ts's addCartBundle) - the resulting line is then updated/removed via updateItem/removeItem like any other. */
+  addBundle: (bundleId: number, quantity: number) => Promise<void>;
   updateItem: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   clear: () => Promise<void>;

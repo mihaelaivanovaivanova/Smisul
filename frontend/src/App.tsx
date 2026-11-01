@@ -32,6 +32,7 @@ import LegalPage from './pages/LegalPage';
 import AboutPage from './pages/AboutPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ProductsPage from './pages/admin/ProductsPage';
+import ProductBundlesPage from './pages/admin/ProductBundlesPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
 import DiscountCodesPage from './pages/admin/DiscountCodesPage';
@@ -143,6 +144,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="kits" element={<ProductBundlesPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="discount-codes" element={<DiscountCodesPage />} />

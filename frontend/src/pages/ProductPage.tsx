@@ -29,6 +29,8 @@ import NotFoundPage from './NotFoundPage';
 import MiswakLandingPage from './MiswakLandingPage';
 import BambooCasePage from './BambooCasePage';
 import ScraperPage from './ScraperPage';
+import OnePersonKitPage, { ONE_PERSON_KIT_SLUG } from './OnePersonKitPage';
+import TwoPersonKitPage, { TWO_PERSON_KIT_SLUG } from './TwoPersonKitPage';
 import { BAMBOO_CASE_SLUG, TONGUE_SCRAPER_SLUG } from '../content/accessoryProducts';
 import { buildBreadcrumbJsonLd } from '../services/structuredData';
 import { breadcrumbLabels, funnelAssurance, product as productCopy, seo } from '../content/copy';
@@ -54,6 +56,14 @@ export default function ProductPage() {
 
   if (slug === TONGUE_SCRAPER_SLUG) {
     return <ScraperPage />;
+  }
+
+  if (slug === ONE_PERSON_KIT_SLUG) {
+    return <OnePersonKitPage />;
+  }
+
+  if (slug === TWO_PERSON_KIT_SLUG) {
+    return <TwoPersonKitPage />;
   }
 
   return <ProductPageDefault slug={slug} />;

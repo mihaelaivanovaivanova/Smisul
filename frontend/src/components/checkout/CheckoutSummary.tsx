@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Cart } from '../../types/cart';
 import type { ShippingMethod } from '../../types/checkout';
 import { formatPrice } from '../../services/productCatalog';
+import { getCartItemLabel } from '../../services/cartItemDisplay';
 import { cart as cartCopy, checkout as checkoutCopy } from '../../content/copy';
 import { validateDiscountCode, type DiscountCodeValidation } from '../../api/checkout';
 import { getErrorMessage } from '../../api/errors';
@@ -65,8 +66,7 @@ export default function CheckoutSummary({
           {cart.items.map((item) => (
             <div className="d-flex justify-content-between small text-muted" key={item.id}>
               <span>
-                {item.product_variant.product?.name ?? item.product_variant.name}
-                {item.product_variant.name ? ` (${item.product_variant.name})` : ''} × {item.quantity}
+                {getCartItemLabel(item)} × {item.quantity}
               </span>
               <span>{formatPrice(item.line_total)}</span>
             </div>

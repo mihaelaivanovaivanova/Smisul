@@ -8,6 +8,7 @@ import ErrorState from '../components/ErrorState';
 import Seo from '../components/Seo';
 import { trackPurchase } from '../services/analytics';
 import { formatPrice } from '../services/productCatalog';
+import { getOrderItemLabel } from '../services/orderItemDisplay';
 import { useAuth } from '../hooks/useAuth';
 import {
   cart as cartCopy,
@@ -140,8 +141,7 @@ export default function OrderConfirmationPage() {
                     <li key={item.id} className="border-bottom py-2">
                       <div className="d-flex justify-content-between">
                         <span>
-                          {item.product_name}
-                          {item.variant_name ? ` (${item.variant_name})` : ''} × {item.quantity}
+                          {getOrderItemLabel(item)} × {item.quantity}
                         </span>
                         <span>{formatPrice(item.line_total)}</span>
                       </div>

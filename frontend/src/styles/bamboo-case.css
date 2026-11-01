@@ -67,6 +67,71 @@
   line-height: 1.7;
 }
 
+/* A kit's contents (see KitProductPage) - a plain bullet list, no card/box
+   around it (an earlier boxed version was tried and reverted by request). */
+.bamboo-hero__contents {
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0 0 0 1.6rem;
+}
+
+.bamboo-hero__contents-item {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  color: var(--color-charcoal);
+}
+
+.bamboo-hero__contents-item::marker {
+  color: var(--color-forest);
+}
+
+/* A bonus item uses a 🎁 marker instead of the regular disc (see
+   KitProductPage) - a custom list-style-type (not inline text) so it sits
+   in the same marker box as the disc bullets above it and lines up with
+   them horizontally instead of drifting right with the text. */
+.bamboo-hero__contents-item--bonus {
+  list-style-type: '🎁 ';
+}
+
+/* The bonus lines sit in their own bordered box, set off from the plain
+   component checklist above - list-style: none on the <li> wrapper so it
+   doesn't also get a disc marker. */
+.bamboo-hero__bonus-box-wrapper {
+  list-style: none;
+}
+
+.bamboo-hero__bonus-box {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0.6rem 0.9rem 0.6rem 1.6rem;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-md);
+  background-color: var(--color-sand);
+}
+
+/* "🎁 БОНУС: 🎁" - a small solid pill (not just colored text) so it reads
+   as its own callout, not another line in the checklist. align-self keeps
+   it sized to its content instead of stretching the full row width. */
+.bamboo-hero__contents-label {
+  list-style: none;
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  padding: 0.3rem var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-gold);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .bamboo-hero__price {
   display: flex;
   flex-wrap: wrap;
@@ -174,6 +239,159 @@
   line-height: 1.6;
   color: var(--color-muted);
   margin-bottom: 0;
+}
+
+/* ---- "What's included" (see KitProductPage) - a plain vertical list, one
+   row per distinct product the kit contains (no card/box around each row -
+   a thin divider between rows instead), image+name linking to that
+   product's own page, quantity called out large on the right so it reads
+   at a glance. ---- */
+
+.bamboo-includes__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.bamboo-includes__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bamboo-includes__item:first-child {
+  padding-top: 0;
+}
+
+.bamboo-includes__item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.bamboo-includes__image-link {
+  flex: 0 0 auto;
+}
+
+.bamboo-includes__image {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background-color: var(--color-sand);
+}
+
+.bamboo-includes__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bamboo-includes__name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--color-forest-dark);
+  margin: 0;
+}
+
+.bamboo-includes__info {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.bamboo-includes__link {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-terracotta);
+  text-decoration: none;
+}
+
+.bamboo-includes__link:hover,
+.bamboo-includes__link:focus-visible {
+  text-decoration: underline;
+}
+
+/* The quantity is the whole point of this section (what you actually get,
+   how many of it) - set apart from the rest of the row and sized up so it
+   can't be missed, rather than tucked in as small print next to the name. */
+.bamboo-includes__qty {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 3rem;
+}
+
+.bamboo-includes__qty-number {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-terracotta);
+}
+
+.bamboo-includes__qty-unit {
+  margin-top: 0.15rem;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+/* A bonus item (see KIT_BONUS_ITEMS) has no product photo or page of its
+   own - a gift-emoji tile stands in for the image, and a "БОНУС" pill
+   (same gold pill language as the purchase panel's own bonus callout)
+   stands in for the quantity, since "1 бр." would misrepresent these as
+   counted catalog units. */
+.bamboo-includes__image--bonus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  background-color: var(--color-sand);
+}
+
+.bamboo-includes__bonus-badge {
+  padding: 0.3rem var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-gold);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Desktop only - a bonus row has far less content than a real component's
+   (no description/link), so it reads oversized at the same row height;
+   shrunk down here rather than in the base rule so mobile (already
+   compact) is untouched. */
+@media (min-width: 768px) {
+  .bamboo-includes__item--bonus {
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+  }
+
+  .bamboo-includes__item--bonus .bamboo-includes__image {
+    width: 44px;
+    height: 44px;
+  }
+
+  .bamboo-includes__item--bonus .bamboo-includes__image--bonus {
+    font-size: 1.15rem;
+  }
+
+  .bamboo-includes__item--bonus .bamboo-includes__name {
+    font-size: var(--fs-sm);
+  }
 }
 
 /* ---- Separated content blocks ---- */

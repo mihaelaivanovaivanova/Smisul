@@ -1,4 +1,4 @@
-import type { Currency, ProductSummary, VariantStatus } from './product';
+import type { Currency, Media, ProductSummary, VariantStatus } from './product';
 
 /** One component of a kit, resolved against its live variant - see backend's BundleResource. */
 export interface BundleComponent {
@@ -38,5 +38,7 @@ export interface Bundle {
   is_available: boolean;
   /** The kit's own lightweight catalog "shell" product variant (see backend's KitShellProductService) - what a kit order line's own product_variant_id points at, purely so the review system can treat a kit purchase like any other product purchase. Null only for a kit that predates this (shouldn't happen after the upgrade catch-up runs). */
   shell_product_variant_id: number | null;
+  /** The shell product's own gallery - admin-managed via /admin/products (ProductMediaManager), same as any other product's photos. Empty until an admin uploads some. */
+  gallery: Media[];
   items: BundleComponent[];
 }

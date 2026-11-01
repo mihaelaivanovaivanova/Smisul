@@ -88,10 +88,20 @@ export default function PurchasePanel({
   const mode: PurchaseMode = hasKits ? (chosenMode ?? 'kits') : 'sticks';
 
   const selectedVariant = offers[Math.min(selectedIndex, offers.length - 1)]?.variant;
+  const selectedBundle = bundleOffers[Math.min(selectedBundleIndex, bundleOffers.length - 1)]?.bundle;
   // Kits get their own real packaging/lifestyle photos (same gallery as the
   // dedicated kit pages - see KitProductPage.tsx) instead of the plain
   // Miswak-stick variant photo, since a kit is a different physical product.
-  const images = mode === 'kits' ? KIT_GALLERY_IMAGES : getGalleryMediaForVariant(product, selectedVariant);
+  // Sourced from the selected kit's own shell product gallery - admin-
+  // managed via /admin/products, same as any other product's photos (see
+  // BundleResource's `gallery` field) - falling back to the static starter
+  // set only until an admin has uploaded any.
+  const images =
+    mode === 'kits'
+      ? selectedBundle?.gallery.length
+        ? selectedBundle.gallery
+        : KIT_GALLERY_IMAGES
+      : getGalleryMediaForVariant(product, selectedVariant);
 
   const [stickyTop, setStickyTop] = useState(0);
 

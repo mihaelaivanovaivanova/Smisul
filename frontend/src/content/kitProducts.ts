@@ -13,13 +13,15 @@ export const ONE_PERSON_KIT_SLUG = 'miswak-1-person-kit';
 export const TWO_PERSON_KIT_SLUG = 'miswak-2-person-kit';
 
 /**
- * The kit gallery photos (real packaging/lifestyle shots of a kit's box,
- * case, bag, scraper and sticks together) - static assets bundled with the
- * frontend (public/kits/box1.webp..box12.webp), not backend Media: a kit
- * isn't a backend Product (see ProductBundle - no catalog record, so no
- * Media relation to attach photos to either), same reasoning as the
- * funnel page's own static imagery in public/funnel/. Shared by both
- * kits' pages - the shots aren't specific to either pack size.
+ * The original 12 kit photos (real packaging/lifestyle shots of a kit's
+ * box, case, bag, scraper and sticks together) - static assets bundled
+ * with the frontend (public/kits/box1.webp..box12.webp). Each kit's shell
+ * product (see KitShellProductService) now has its own real, independently
+ * admin-manageable gallery (/admin/products - same ProductMediaManager
+ * every other product's photos use, reorder/set-main/delete included),
+ * seeded from these same 12 files - see KitProductPage.tsx and
+ * PurchasePanel.tsx, which both prefer that live gallery and fall back to
+ * this constant only for a kit whose shell has no photos yet.
  */
 export const KIT_GALLERY_IMAGES: Media[] = Array.from({ length: 12 }, (_, index) => ({
   id: -(index + 1),

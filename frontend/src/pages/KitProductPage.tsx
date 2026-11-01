@@ -130,7 +130,10 @@ export default function KitProductPage({ slug, eyebrow, keyFacts, crossSell }: K
   const crossSellKit = bundleOffers?.find((offer) => offer.bundle.slug === crossSell.slug);
 
   const { bundle, price, currency, retailValue, description, contents, isAvailable } = kit;
-  const images = KIT_GALLERY_IMAGES;
+  // The shell product's own gallery - admin-managed via /admin/products
+  // (ProductMediaManager), same as any other product's photos - falling
+  // back to the static starter set only until an admin has uploaded any.
+  const images = shellProduct?.media.length ? shellProduct.media : KIT_GALLERY_IMAGES;
   // The shell product's own long-form description, admin-editable via
   // /admin/products (not the Miswak product's own description, which is
   // about the stick alone - see the shellProduct fetch above).

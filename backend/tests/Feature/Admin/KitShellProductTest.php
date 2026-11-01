@@ -81,6 +81,37 @@ class KitShellProductTest extends TestCase
         $this->getJson('/api/v1/products/new-kit')->assertOk();
     }
 
+    /**
+     * The shell being a plain Product means its photos are managed exactly
+     * like any other product's (upload/reorder/set-main/delete via
+     * /admin/products - see ProductMediaManager.tsx) - BundleResource's own
+     * `gallery` field is what carries that media to the storefront's kit
+     * selector (see PurchasePanel.tsx/KitProductPage.tsx).
+     */
+    #[Test]
+    public function a_kits_gallery_reflects_its_shells_own_uploaded_photos(): void
+    {
+        $admin = User::factory()->administrator()->create();
+        $bundle = $this->createKit($admin);
+        $shellProduct = ProductVariant::findOrFail($bundle->shell_product_variant_id)->product;
+
+        $this->getJson('/api/v1/bundles')->assertJsonPath('data.0.gallery', []);
+
+        $media = $shellProduct->media()->create([
+            'disk' => 'public',
+            'path' => 'products/test-kit-photo.webp',
+            'filename' => 'test-kit-photo.webp',
+            'mime_type' => 'image/webp',
+            'size' => 1024,
+            'is_primary' => true,
+            'sort_order' => 0,
+        ]);
+
+        $this->getJson('/api/v1/bundles')
+            ->assertJsonPath('data.0.gallery.0.id', $media->id)
+            ->assertJsonPath('data.0.gallery.0.is_primary', true);
+    }
+
     #[Test]
     public function updating_a_kit_syncs_its_shell_without_clobbering_admin_edited_content(): void
     {

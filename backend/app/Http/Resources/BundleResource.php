@@ -44,6 +44,15 @@ class BundleResource extends JsonResource
             // The kit's catalog shell variant (see KitShellProductService) -
             // what its reviews are filed against.
             'shell_product_variant_id' => $this->shell_product_variant_id,
+            // The shell product's own photos - admin-managed via
+            // /admin/products like any other product's gallery (see
+            // ProductMediaManager.tsx), shown on the funnel page's kit
+            // selector (BundleRadioSelector/PurchasePanel). Empty until an
+            // admin uploads some; the frontend falls back to the static
+            // KIT_GALLERY_IMAGES set in that case.
+            'gallery' => $this->shellProductVariant?->product?->relationLoaded('media')
+                ? MediaResource::collection($this->shellProductVariant->product->media)
+                : [],
             'is_available' => $isPurchasable && $pricing->maxBundleQuantityFor($this->resource) > 0,
             'items' => $this->items->map(fn (ProductBundleItem $component) => [
                 'product_variant_id' => $component->product_variant_id,

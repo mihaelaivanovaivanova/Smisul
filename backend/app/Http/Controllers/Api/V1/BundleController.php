@@ -24,7 +24,7 @@ class BundleController extends Controller
     public function index(CartPricingService $pricing): AnonymousResourceCollection
     {
         $bundles = ProductBundle::active()
-            ->with(ProductBundle::COMPONENT_EAGER_LOAD)
+            ->with([...ProductBundle::COMPONENT_EAGER_LOAD, 'shellProductVariant.product.media'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()

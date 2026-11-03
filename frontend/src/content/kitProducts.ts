@@ -36,9 +36,8 @@ export const KIT_GALLERY_IMAGES: Media[] = Array.from({ length: 12 }, (_, index)
 
 /**
  * Each kit's one-line tagline - shown on its own product page (right under
- * the rating) and on the kit's own option card wherever it's offered
- * alongside the other kit (BundleRadioSelector, on the main Miswak page's
- * "Complete Kits" toggle). Kept here, keyed by slug, rather than duplicated
+ * the rating) and on the kit's own option card in the main Miswak page's
+ * unified pick-one list (UnifiedPackageSelector). Kept here, keyed by slug, rather than duplicated
  * as a hardcoded prop in both places, so the two can never drift apart -
  * see bundleOffers.ts's toBundleOffer(), which reads this into every
  * BundleOffer's own `description` field.
@@ -83,8 +82,8 @@ export const KIT_COMPONENT_COPY: Record<string, KitComponentCopy> = {
  * Extra items every kit includes that aren't real catalog components (no
  * SKU/variant of their own, so they can't come from bundle.items) - shown
  * as a "БОНУС:" sub-list right under the regular contents checklist, both
- * on BundleRadioSelector's kit cards and KitProductPage's hero. Same three
- * items for both kits.
+ * on UnifiedPackageSelector's kit cards and KitProductPage's hero. Same
+ * three items for both kits.
  */
 export const KIT_BONUS_ITEMS: string[] = [
   'Ленена торбичка за съхранение и пренос на стъргалката за език',

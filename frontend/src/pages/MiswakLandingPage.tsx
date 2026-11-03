@@ -47,9 +47,9 @@ import { buildBreadcrumbJsonLd } from '../services/structuredData';
  * pages) - not this one.
  *
  * Section order:
- *  1 Purchase panel (gallery + kits/sticks toggle:        -> PurchasePanel
- *    BundleRadioSelector kits by default, or the package
- *    radio selector - both pick-one-then-Add-to-cart)
+ *  1 Purchase panel (gallery + one flat pick-one-then-     -> PurchasePanel
+ *    Add-to-cart list: 1-Person Kit, the Miswak packs,      (UnifiedPackageSelector)
+ *    then the 2-Person Kit)
  *  2 Delivery/payment/returns trust row                  -> DeliveryPaymentReturnsSection (reused; mobile only —
  *                                                            desktop gets the same content inside PurchasePanel's
  *                                                            own right column instead, after the buy button)

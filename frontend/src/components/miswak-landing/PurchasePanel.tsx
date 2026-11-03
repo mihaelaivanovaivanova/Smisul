@@ -1,27 +1,57 @@
 import { useEffect, useState } from 'react';
 import GalleryCarousel from '../product/GalleryCarousel';
-import PackageRadioSelector from './PackageRadioSelector';
-import BundleRadioSelector from './BundleRadioSelector';
+import UnifiedPackageSelector from './UnifiedPackageSelector';
 import TrustBullets from './TrustBullets';
 import StarRating from '../reviews/StarRating';
 import TrustAndPaymentRow from '../funnel/TrustAndPaymentRow';
 import DispatchPromise from '../funnel/DispatchPromise';
 import { getGalleryMediaForVariant, formatPrice } from '../../services/productCatalog';
-import { bundleOffer as bundleCopy, reviews as reviewsCopy } from '../../content/copy';
+import { reviews as reviewsCopy } from '../../content/copy';
 import { miswakTagline } from '../../content/miswakLanding';
-import { KIT_GALLERY_IMAGES } from '../../content/kitProducts';
+import { KIT_GALLERY_IMAGES, ONE_PERSON_KIT_SLUG, TWO_PERSON_KIT_SLUG } from '../../content/kitProducts';
+import type { UnifiedEntry } from './UnifiedPackageSelector';
 import type { BundleOffer } from '../../services/bundleOffers';
 import type { PackageOffer } from '../../services/funnelOffers';
-
-type PurchaseMode = 'kits' | 'sticks';
 import type { Product } from '../../types/product';
 import type { ReviewSummary } from '../../types/review';
 import type { FunnelTrustItem } from '../../types/funnel';
 
+/**
+ * The single flat list order requested: 1-Person Kit, then the Miswak
+ * packs in 5/1/3/10 order (5 leads since it's the best-seller, not
+ * numeric order), then the 2-Person Kit last - replaces the earlier
+ * Комплекти/Само Miswak tab toggle entirely. Any entry whose data isn't
+ * present (e.g. a pack size or kit that doesn't currently exist) is just
+ * skipped rather than erroring.
+ */
+function buildUnifiedEntries(offers: PackageOffer[], bundleOffers: BundleOffer[]): UnifiedEntry[] {
+  const findBundle = (slug: string) => bundleOffers.find((offer) => offer.bundle.slug === slug);
+  const findPack = (packSize: number) => offers.find((offer) => offer.variant.pack_size === packSize);
+
+  const candidates: (UnifiedEntry | undefined)[] = [
+    toBundleEntry(findBundle(ONE_PERSON_KIT_SLUG)),
+    toPackEntry(findPack(5)),
+    toPackEntry(findPack(1)),
+    toPackEntry(findPack(3)),
+    toPackEntry(findPack(10)),
+    toBundleEntry(findBundle(TWO_PERSON_KIT_SLUG)),
+  ];
+
+  return candidates.filter((entry): entry is UnifiedEntry => entry !== undefined);
+}
+
+function toBundleEntry(offer: BundleOffer | undefined): UnifiedEntry | undefined {
+  return offer ? { type: 'bundle', offer } : undefined;
+}
+
+function toPackEntry(offer: PackageOffer | undefined): UnifiedEntry | undefined {
+  return offer ? { type: 'pack', offer } : undefined;
+}
+
 interface PurchasePanelProps {
   product: Product;
   offers: PackageOffer[];
-  /** Active kits (GET /v1/bundles) - when non-empty, a "Complete Kits" / "Just Miswak" toggle appears above the buy box, defaulting to kits. Empty hides the toggle and shows only the package selector, exactly as before. */
+  /** Active kits (GET /v1/bundles) - interleaved into the single unified list (see buildUnifiedEntries) alongside the raw Miswak packs. Empty just leaves those two slots out of the list. */
   bundleOffers?: BundleOffer[];
   reviewSummary: ReviewSummary | null;
   /** Rendered here (desktop only, right after the buy button) instead of
@@ -33,7 +63,7 @@ interface PurchasePanelProps {
   trustItems: FunnelTrustItem[];
   /** Same-day dispatch cutoff (Settings → General) — see DispatchPromise.tsx; renders nothing outside the window. */
   dispatchCutoff: string | null | undefined;
-  /** Live free-shipping threshold (Settings → General) — passed through to PackageRadioSelector's badge. */
+  /** Live free-shipping threshold (Settings → General) — passed through to UnifiedPackageSelector's badge. */
   freeShippingThreshold?: number;
 }
 
@@ -43,10 +73,11 @@ interface PurchasePanelProps {
  * unlike the live funnel page's HeroSection, this page starts directly
  * here, matching the reference's own structure.
  *
- * Owns the selected package index (not PackageRadioSelector) so it can
- * swap the gallery to that variant's own admin-uploaded photo via
- * getGalleryMediaForVariant — same fallback-to-product-gallery behavior
- * the generic ProductPage.tsx already uses for its own variant picker.
+ * Owns the selected index into the unified list (not UnifiedPackageSelector)
+ * so it can swap the gallery to the selected entry's own photo(s) - a
+ * pack's admin-uploaded variant photo via getGalleryMediaForVariant (same
+ * fallback-to-product-gallery behavior the generic ProductPage.tsx already
+ * uses for its own variant picker), or a kit's own shell product gallery.
  *
  * Desktop only (matching the col-lg-6 split below): the gallery is pinned
  * in place via plain CSS position: sticky (see .miswak-purchase__gallery-sticky)
@@ -76,32 +107,27 @@ export default function PurchasePanel({
   dispatchCutoff,
   freeShippingThreshold,
 }: PurchasePanelProps) {
-  const featuredIndex = offers.findIndex(({ variant }) => variant.pack_size === 5);
-  const [selectedIndex, setSelectedIndex] = useState(featuredIndex >= 0 ? featuredIndex : 0);
-  const [selectedBundleIndex, setSelectedBundleIndex] = useState(0);
+  const unifiedEntries = buildUnifiedEntries(offers, bundleOffers);
+  // The 1-Person Kit leads the list (see buildUnifiedEntries), so it's the
+  // default selection too, same "first/featured option pre-picked" pattern
+  // the old per-mode defaults (kit index 0 / the 5-pack) each used on their
+  // own list.
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selected = unifiedEntries[Math.min(selectedIndex, unifiedEntries.length - 1)];
 
-  // "Complete Kits" is the default view whenever any kit exists - the kits
-  // arrive from their own fetch (see MiswakLandingPage), so the default is
-  // derived rather than stored, and only an explicit toggle click pins it.
-  const [chosenMode, setChosenMode] = useState<PurchaseMode | null>(null);
-  const hasKits = bundleOffers.length > 0;
-  const mode: PurchaseMode = hasKits ? (chosenMode ?? 'kits') : 'sticks';
-
-  const selectedVariant = offers[Math.min(selectedIndex, offers.length - 1)]?.variant;
-  const selectedBundle = bundleOffers[Math.min(selectedBundleIndex, bundleOffers.length - 1)]?.bundle;
-  // Kits get their own real packaging/lifestyle photos (same gallery as the
-  // dedicated kit pages - see KitProductPage.tsx) instead of the plain
-  // Miswak-stick variant photo, since a kit is a different physical product.
-  // Sourced from the selected kit's own shell product gallery - admin-
-  // managed via /admin/products, same as any other product's photos (see
+  // A kit gets its own real packaging/lifestyle photos (same gallery as its
+  // dedicated page - see KitProductPage.tsx) instead of a plain Miswak-pack
+  // photo, since it's a different physical product. Sourced from the
+  // selected kit's own shell product gallery - admin-managed via
+  // /admin/products, same as any other product's photos (see
   // BundleResource's `gallery` field) - falling back to the static starter
   // set only until an admin has uploaded any.
   const images =
-    mode === 'kits'
-      ? selectedBundle?.gallery.length
-        ? selectedBundle.gallery
+    selected?.type === 'bundle'
+      ? selected.offer.bundle.gallery.length
+        ? selected.offer.bundle.gallery
         : KIT_GALLERY_IMAGES
-      : getGalleryMediaForVariant(product, selectedVariant);
+      : getGalleryMediaForVariant(product, selected?.type === 'pack' ? selected.offer.variant : undefined);
 
   const [stickyTop, setStickyTop] = useState(0);
 
@@ -152,37 +178,12 @@ export default function PurchasePanel({
 
             <TrustBullets />
 
-            {hasKits && (
-              <div className="miswak-purchase-toggle" role="group" aria-label={bundleCopy.toggleAria}>
-                {(['kits', 'sticks'] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    aria-pressed={mode === option}
-                    className={`miswak-purchase-toggle__option ${mode === option ? 'is-active' : ''}`}
-                    onClick={() => setChosenMode(option)}
-                  >
-                    {option === 'kits' ? bundleCopy.kitsTab : bundleCopy.sticksTab}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {mode === 'kits' ? (
-              <BundleRadioSelector
-                offers={bundleOffers}
-                selectedIndex={selectedBundleIndex}
-                onSelect={setSelectedBundleIndex}
-                freeShippingThreshold={freeShippingThreshold}
-              />
-            ) : (
-              <PackageRadioSelector
-                offers={offers}
-                selectedIndex={selectedIndex}
-                onSelect={setSelectedIndex}
-                freeShippingThreshold={freeShippingThreshold}
-              />
-            )}
+            <UnifiedPackageSelector
+              entries={unifiedEntries}
+              selectedIndex={selectedIndex}
+              onSelect={setSelectedIndex}
+              freeShippingThreshold={freeShippingThreshold}
+            />
 
             <div className="text-center mb-3">
               <DispatchPromise cutoff={dispatchCutoff} />

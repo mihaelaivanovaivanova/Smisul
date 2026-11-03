@@ -23,7 +23,7 @@ export interface Bundle {
   id: number;
   slug: string;
   name: string;
-  /** e.g. "НАЙ-ПОПУЛЯРЕН" / "НАЙ-ИЗГОДЕН" - the same optional badge FunnelConfig's own packages carry (see PackageRadioSelector). Null when unset. */
+  /** e.g. "НАЙ-ПОПУЛЯРЕН" / "НАЙ-ИЗГОДЕН" - the same optional badge FunnelConfig's own packages carry (see UnifiedPackageSelector). Null when unset. */
   badge: string | null;
   currency: Currency;
   /** The kit's single stored price. */

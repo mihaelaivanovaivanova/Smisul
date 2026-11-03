@@ -4,7 +4,7 @@ import { KIT_TAGLINES } from '../content/kitProducts';
 import type { Bundle } from '../types/bundle';
 import type { Currency, Media } from '../types/product';
 
-/** A kit shaped for BundleRadioSelector - sibling to funnelOffers.ts's PackageOffer. */
+/** A kit shaped for UnifiedPackageSelector - sibling to funnelOffers.ts's PackageOffer. */
 export interface BundleOffer {
   bundle: Bundle;
   price: number;

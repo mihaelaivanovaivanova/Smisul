@@ -246,16 +246,13 @@ export const funnelOffer = {
   freeShippingBadge: 'БЕЗПЛАТНА ДОСТАВКА',
 };
 
-/** The Miswak page's kits (1-Person / 2-Person Kit) and the kits/sticks-only toggle above them - see PurchasePanel/BundleRadioSelector. */
+/** The Miswak page's kits (1-Person / 2-Person Kit), interleaved into the unified pick-one list alongside the raw packs - see PurchasePanel/UnifiedPackageSelector. */
 export const bundleOffer = {
-  toggleAria: 'Избери вид покупка',
-  kitsTab: 'Комплекти',
-  sticksTab: 'Само Miswak',
   bonusLabel: 'БОНУС:',
   savings: (amount: string) => `Спестяваш ${amount}`,
   /** The CTA button's label - names the currently selected kit so it reads
    * as a direct confirmation of the radio choice above it (see
-   * BundleRadioSelector), not a generic "add to cart". */
+   * UnifiedPackageSelector), not a generic "add to cart". */
   addToCart: (kitName: string) => `ИЗБИРАМ ${kitName.toUpperCase()}`,
   addError: 'Неуспешно добавяне на комплекта.',
   outOfStock: 'Временно изчерпан',

@@ -9,7 +9,6 @@ use App\Mail\OrderCancelledMail;
 use App\Mail\OrderConfirmationMail;
 use App\Mail\OrderDeliveredMail;
 use App\Mail\OrderInvoiceMail;
-use App\Services\OrderHandbookService;
 use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -63,7 +62,18 @@ class SendOrderStatusEmails
         };
 
         if ($mailable !== null) {
-            $this->send($order->customer_email, $mailable, $order->order_number);
+            $delivered = $this->send($order->customer_email, $mailable, $order->order_number);
+
+            // OrderDeliveredMail carries the kit's bonus handbook PDF
+            // directly for a kit order (see that Mailable's own docblock -
+            // keeps a delivered kit order down to two emails total instead
+            // of three) - this just mirrors that into
+            // handbook_email_sent_at so the admin order page's "already
+            // sent" state and the resend button's bookkeeping both stay
+            // accurate, without a second send.
+            if ($delivered && $mailable instanceof OrderDeliveredMail && $mailable->hasKit) {
+                $order->update(['handbook_email_sent_at' => now()]);
+            }
         }
 
         // Separate from OrderDeliveredMail above - this is the order's
@@ -83,17 +93,6 @@ class SendOrderStatusEmails
         // the sale isn't final until then.
         if ($event->to === OrderStatus::Delivered) {
             $this->send($order->customer_email, new OrderInvoiceMail($order), $order->order_number);
-
-            // The kit's bonus handbook (see OrderHandbookService's own
-            // docblock) - only for orders that actually contain a kit line.
-            // Uses the service (not a bare Mail::to()->send()) so this
-            // automatic send and the admin's manual "resend" button can
-            // never drift apart - same eligibility check, same
-            // handbook_email_sent_at bookkeeping either way.
-            $order->loadMissing('items');
-            if (OrderHandbookService::isEligible($order)) {
-                app(OrderHandbookService::class)->send($order);
-            }
         }
     }
 
@@ -105,14 +104,16 @@ class SendOrderStatusEmails
      * OrderStatusService::transitionTo()'s DB::transaction()) would roll
      * back the status transition itself.
      */
-    private function send(?string $to, Mailable $mailable, string $orderNumber): void
+    private function send(?string $to, Mailable $mailable, string $orderNumber): bool
     {
         if ($to === null) {
-            return;
+            return false;
         }
 
         try {
             Mail::to($to)->send($mailable);
+
+            return true;
         } catch (Throwable $exception) {
             Log::error('Could not send an order status email.', [
                 'order_number' => $orderNumber,
@@ -120,6 +121,8 @@ class SendOrderStatusEmails
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
             ]);
+
+            return false;
         }
     }
 }

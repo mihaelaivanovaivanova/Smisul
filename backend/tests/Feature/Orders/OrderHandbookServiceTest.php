@@ -5,6 +5,7 @@ namespace Tests\Feature\Orders;
 use App\Enums\Currency;
 use App\Enums\OrderStatus;
 use App\Enums\VariantStatus;
+use App\Mail\OrderDeliveredMail;
 use App\Mail\OrderHandbookMail;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -127,23 +128,30 @@ class OrderHandbookServiceTest extends TestCase
 
     /**
      * End-to-end: the Delivered transition itself (not just the service in
-     * isolation) actually triggers the handbook send for a kit order, via
+     * isolation) actually triggers a kit order's handbook attachment, via
      * SendOrderStatusEmails - the real path production orders go through.
+     * By request, a kit order's handbook rides along on OrderDeliveredMail
+     * itself rather than a separate email - see that Mailable's own
+     * docblock - so this asserts OrderDeliveredMail carries it and that
+     * OrderHandbookMail (now resend-button-only) is NOT also sent.
      */
     #[Test]
-    public function transitioning_a_kit_order_to_delivered_sends_the_handbook_automatically(): void
+    public function transitioning_a_kit_order_to_delivered_attaches_the_handbook_to_the_delivered_email(): void
     {
         Mail::fake();
         $order = $this->kitLineOrder(['status' => OrderStatus::Shipped]);
 
         app(OrderStatusService::class)->transitionTo($order, OrderStatus::Delivered, null);
 
-        Mail::assertSent(OrderHandbookMail::class, fn (OrderHandbookMail $mail) => $mail->hasTo('ivan@example.com'));
+        Mail::assertSent(OrderDeliveredMail::class, function (OrderDeliveredMail $mail) {
+            return $mail->hasTo('ivan@example.com') && $mail->hasKit && count($mail->attachments()) === 1;
+        });
+        Mail::assertNotSent(OrderHandbookMail::class);
         $this->assertNotNull($order->fresh()->handbook_email_sent_at);
     }
 
     #[Test]
-    public function transitioning_a_non_kit_order_to_delivered_does_not_send_the_handbook(): void
+    public function transitioning_a_non_kit_order_to_delivered_sends_the_delivered_email_without_a_handbook(): void
     {
         Mail::fake();
         $order = Order::factory()->create(['status' => OrderStatus::Shipped, 'customer_email' => 'ivan@example.com']);
@@ -151,6 +159,7 @@ class OrderHandbookServiceTest extends TestCase
 
         app(OrderStatusService::class)->transitionTo($order, OrderStatus::Delivered, null);
 
+        Mail::assertSent(OrderDeliveredMail::class, fn (OrderDeliveredMail $mail) => ! $mail->hasKit && $mail->attachments() === []);
         Mail::assertNotSent(OrderHandbookMail::class);
         $this->assertNull($order->fresh()->handbook_email_sent_at);
     }

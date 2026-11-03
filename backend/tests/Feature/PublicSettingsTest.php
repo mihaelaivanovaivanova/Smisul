@@ -34,6 +34,7 @@ class PublicSettingsTest extends TestCase
                 'box_now_banner_enabled',
                 'box_now_badge_enabled',
                 'box_now_banner_message',
+                'discount_badge_enabled',
                 'default_meta_title',
                 'default_meta_description',
                 'default_og_image',

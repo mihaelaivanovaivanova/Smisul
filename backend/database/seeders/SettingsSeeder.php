@@ -49,6 +49,11 @@ class SettingsSeeder extends Seeder
             ['key' => 'general.box_now_banner_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show Box Now top banner', 'value' => '1'],
             ['key' => 'general.box_now_badge_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show Box Now floating badge', 'value' => '1'],
             ['key' => 'general.box_now_banner_message', 'group' => 'general', 'type' => 'string', 'label' => 'Box Now top banner message', 'value' => 'Безплатна доставка с Box Now до края на септември!'],
+            // Floating discount-code badge (DiscountBadge.tsx) - same
+            // always-on-corner mechanism as the Box Now badge above, its own
+            // independent toggle since the two promos run on their own
+            // schedules and an admin may want only one showing at a time.
+            ['key' => 'general.discount_badge_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show discount code floating badge', 'value' => '0'],
 
             // Per-product upsell visibility (cart drawer, checkout review,
             // and the bamboo case's own product page — see CartService::

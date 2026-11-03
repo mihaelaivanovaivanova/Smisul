@@ -13,6 +13,7 @@ import ExitIntentModal from '../components/funnel/ExitIntentModal';
 import StickyMobileBuyBar from '../components/funnel/StickyMobileBuyBar';
 import StickyDesktopBuyBar from '../components/funnel/StickyDesktopBuyBar';
 import BoxNowBadge from '../components/funnel/BoxNowBadge';
+import DiscountBadge from '../components/funnel/DiscountBadge';
 import { resolvePackageOffers } from '../services/funnelOffers';
 import Seo from '../components/Seo';
 import { organizationJsonLd, websiteJsonLd } from '../services/structuredData';
@@ -503,6 +504,10 @@ export default function FunnelLandingPage() {
           its always-on behavior before this toggle existed); explicit
           `false` hides it once the setting has actually loaded. */}
       {publicSettings?.box_now_badge_enabled !== false && <BoxNowBadge />}
+      {/* Defaults to HIDDEN while loading/off (unlike the Box Now badge
+          above) - its own setting defaults off, so showing it before the
+          fetch resolves would flash a badge the admin hasn't turned on. */}
+      {publicSettings?.discount_badge_enabled === true && <DiscountBadge />}
       <StickyMobileBuyBar visible={showMobileBar} fromPriceLabel={fromPriceLabel} />
       <ExitIntentModal />
       <StickyDesktopBuyBar

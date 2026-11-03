@@ -20,6 +20,8 @@ export interface PublicSettings {
   box_now_banner_enabled: boolean;
   box_now_badge_enabled: boolean;
   box_now_banner_message: string | null;
+  /** Admin-configurable via the General tab - see DiscountBadge.tsx, the floating promo-code counterpart to the Box Now badge above. */
+  discount_badge_enabled: boolean;
   /** Fallback used by <Seo> whenever a page doesn't set its own title/description/OG image. */
   default_meta_title: string | null;
   default_meta_description: string | null;

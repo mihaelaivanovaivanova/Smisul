@@ -2424,3 +2424,49 @@
     transform: scale(1.045);
   }
 }
+
+/* ---- Discount code floating badge ---- */
+
+/* Same corner, same always-on/never-scroll-toggled/pulsing mechanism as
+   .funnel-boxnow-badge above (see that block's own comment) - the two are
+   independent promos with their own admin toggle each, so in practice an
+   admin runs one at a time, but nothing here prevents both from showing.
+   Unlike the Box Now circle, the source graphic (discount-badge.webp) is
+   a wide rectangular tag+label design - width is set, height is `auto` so
+   the image's own aspect ratio is preserved rather than cropped/squashed
+   into a circle. */
+.funnel-discount-badge {
+  position: fixed;
+  top: 6.75rem;
+  right: var(--space-3);
+  z-index: 1015;
+  width: 14rem;
+  filter: drop-shadow(var(--shadow-lg));
+  animation: funnel-boxnow-pulse 2.6s ease-in-out infinite;
+}
+
+.funnel-discount-badge:hover,
+.funnel-discount-badge:focus-visible {
+  animation-play-state: paused;
+  transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .funnel-discount-badge {
+    animation: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .funnel-discount-badge {
+    top: 6.75rem;
+    right: var(--space-2);
+    width: 9rem;
+  }
+}
+
+.funnel-discount-badge__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}

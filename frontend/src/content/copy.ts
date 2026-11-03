@@ -27,6 +27,11 @@ export const boxNowBadge = {
   aria: 'Безплатна доставка с Box Now',
 };
 
+/** The floating discount-code badge (DiscountBadge.tsx) - its own always-on-corner seal, same mechanism as boxNowBadge above. */
+export const discountBadge = {
+  aria: 'Вземи 10% отстъпка с код BLACKN10',
+};
+
 export const nav = {
   home: 'Начало',
   browseProducts: 'Продукти',

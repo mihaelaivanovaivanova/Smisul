@@ -104,6 +104,7 @@ class SettingService
             'general.box_now_banner_enabled' => 'box_now_banner_enabled',
             'general.box_now_badge_enabled' => 'box_now_badge_enabled',
             'general.box_now_banner_message' => 'box_now_banner_message',
+            'general.discount_badge_enabled' => 'discount_badge_enabled',
             // Site-wide fallback used by the frontend's <Seo> component
             // whenever a page doesn't set its own title/description/OG
             // image (see Seo.tsx) - previously configurable here but never

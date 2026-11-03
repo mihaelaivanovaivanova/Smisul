@@ -6,6 +6,7 @@ import CookiePreferencesModal from '../CookiePreferencesModal';
 import AnalyticsLoader from '../AnalyticsLoader';
 import LegalDocumentUpdateModal from '../LegalDocumentUpdateModal';
 import TopAnnouncementBar from '../TopAnnouncementBar';
+import PromoStickyBar from '../PromoStickyBar';
 import CartDrawer from '../cart/CartDrawer';
 
 export default function PublicLayout() {
@@ -14,6 +15,7 @@ export default function PublicLayout() {
       <LegalDocumentUpdateModal />
       <TopAnnouncementBar />
       <Navbar />
+      <PromoStickyBar />
       <main className="flex-grow-1">
         <Outlet />
       </main>

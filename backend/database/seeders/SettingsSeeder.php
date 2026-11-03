@@ -54,6 +54,11 @@ class SettingsSeeder extends Seeder
             // independent toggle since the two promos run on their own
             // schedules and an admin may want only one showing at a time.
             ['key' => 'general.discount_badge_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show discount code floating badge', 'value' => '0'],
+            // Sticky promo banner (PromoStickyBar.tsx) - site-wide, stuck
+            // just under the navbar while scrolling (unlike the Box Now top
+            // banner above, which just scrolls away with the page).
+            ['key' => 'general.promo_banner_enabled', 'group' => 'general', 'type' => 'boolean', 'label' => 'Show sticky promo banner under header', 'value' => '1'],
+            ['key' => 'general.promo_banner_message', 'group' => 'general', 'type' => 'string', 'label' => 'Sticky promo banner message', 'value' => '!!! -10% на всички продукти с промо код BLACKN10 !!!'],
 
             // Per-product upsell visibility (cart drawer, checkout review,
             // and the bamboo case's own product page — see CartService::

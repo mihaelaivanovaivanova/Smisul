@@ -18,6 +18,11 @@ export const topBanner = {
   message: 'Безплатна доставка с Box Now до края на септември!',
 };
 
+/** Sticky promo bar under the header (PromoStickyBar.tsx) - fallback while the admin-configurable setting is still loading/empty. */
+export const promoBanner = {
+  message: '!!! -10% на всички продукти с промо код BLACKN10 !!!',
+};
+
 /** Persistent floating sticker (BoxNowBadge.tsx) — links to the delivery/payment/returns section. Two curved lines stacked over the top arc, matching the reference seal's layout. */
 export const boxNowBadge = {
   curvedLine1: 'БЕЗПЛАТНА',

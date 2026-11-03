@@ -2434,10 +2434,13 @@
    Unlike the Box Now circle, the source graphic (discount-badge.webp) is
    a wide rectangular tag+label design - width is set, height is `auto` so
    the image's own aspect ratio is preserved rather than cropped/squashed
-   into a circle. */
+   into a circle. Desktop only (by request) - hidden below 768px instead
+   of shrinking, since PromoStickyBar.tsx's own sticky bar already covers
+   the same promo code on every screen size including mobile. Nudged down
+   from its original offset to clear that bar's stuck height too. */
 .funnel-discount-badge {
   position: fixed;
-  top: 6.75rem;
+  top: 9rem;
   right: var(--space-3);
   z-index: 1015;
   width: 14rem;
@@ -2459,9 +2462,7 @@
 
 @media (max-width: 767.98px) {
   .funnel-discount-badge {
-    top: 6.75rem;
-    right: var(--space-2);
-    width: 9rem;
+    display: none;
   }
 }
 

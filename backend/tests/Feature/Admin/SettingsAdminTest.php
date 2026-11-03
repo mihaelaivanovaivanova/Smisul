@@ -38,8 +38,13 @@ class SettingsAdminTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/api/v1/admin/settings');
 
         $response->assertOk();
-        $response->assertJsonPath('data.editable.general.0.key', 'general.store_name');
-        $response->assertJsonPath('data.editable.general.0.value', 'Smisul');
+        // Not index 0 - several general.* settings are seeded by their own
+        // migrations (Box Now, discount badge, promo banner, ...) and sort
+        // alphabetically ahead of "store_name", so this finds the created
+        // row by key instead of assuming its position in the list.
+        $storeNameEntry = collect($response->json('data.editable.general'))->firstWhere('key', 'general.store_name');
+        $this->assertNotNull($storeNameEntry);
+        $this->assertSame('Smisul', $storeNameEntry['value']);
         $response->assertJsonStructure([
             'data' => ['editable', 'providers' => ['payments', 'shipping']],
         ]);

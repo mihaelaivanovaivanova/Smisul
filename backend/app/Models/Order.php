@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property ?ShippingDeliveryType $shipping_delivery_type
  * @property Carbon $created_at
  * @property ?Carbon $thirty_day_reminder_sent_at
+ * @property ?Carbon $handbook_email_sent_at
  */
 class Order extends Model
 {
@@ -42,6 +43,7 @@ class Order extends Model
         'invoice_issued_at',
         'delivery_notes',
         'thirty_day_reminder_sent_at',
+        'handbook_email_sent_at',
         'shipping_country',
         'shipping_city',
         'shipping_postal_code',
@@ -78,6 +80,7 @@ class Order extends Model
             'wants_invoice' => 'boolean',
             'invoice_issued_at' => 'datetime',
             'thirty_day_reminder_sent_at' => 'datetime',
+            'handbook_email_sent_at' => 'datetime',
             'shipping_price' => 'decimal:2',
             'shipping_rate_snapshot' => 'array',
             'cod_fee' => 'decimal:2',

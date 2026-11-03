@@ -9,6 +9,7 @@ use App\Mail\OrderCancelledMail;
 use App\Mail\OrderConfirmationMail;
 use App\Mail\OrderDeliveredMail;
 use App\Mail\OrderInvoiceMail;
+use App\Services\OrderHandbookService;
 use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -82,6 +83,17 @@ class SendOrderStatusEmails
         // the sale isn't final until then.
         if ($event->to === OrderStatus::Delivered) {
             $this->send($order->customer_email, new OrderInvoiceMail($order), $order->order_number);
+
+            // The kit's bonus handbook (see OrderHandbookService's own
+            // docblock) - only for orders that actually contain a kit line.
+            // Uses the service (not a bare Mail::to()->send()) so this
+            // automatic send and the admin's manual "resend" button can
+            // never drift apart - same eligibility check, same
+            // handbook_email_sent_at bookkeeping either way.
+            $order->loadMissing('items');
+            if (OrderHandbookService::isEligible($order)) {
+                app(OrderHandbookService::class)->send($order);
+            }
         }
     }
 

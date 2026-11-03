@@ -370,6 +370,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders/{order}/shipment/label', [AdminOrderController::class, 'shipmentLabel'])->name('orders.shipment.label');
         Route::post('/orders/{order}/shipment/cancel', [AdminOrderController::class, 'cancelShipment'])->name('orders.shipment.cancel');
         Route::post('/orders/{order}/shipment/pickup-notification', [AdminOrderController::class, 'sendPickupNotification'])->name('orders.shipment.pickup-notification');
+        // Admin "Send kit handbook" button — any delivered order with a kit line, gated by order.qualifies_for_handbook_resend, see OrderHandbookService::isEligible()'s own docblock.
+        Route::post('/orders/{order}/handbook', [AdminOrderController::class, 'sendHandbook'])->name('orders.handbook.send');
 
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.show');
 

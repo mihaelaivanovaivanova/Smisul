@@ -1,3 +1,10 @@
+# text=auto's own binary-detection heuristic misjudged a real PDF as text
+# (confirmed via a byte-for-byte diff - CRLF normalization silently
+# corrupted the already-committed frontend/public/funnel/docs copy), so
+# PDFs are forced binary explicitly repo-wide rather than trusted to
+# auto-detection the way every other binary asset here is.
+*.pdf binary
+
 /.cpanel.yml text eol=lf
 /deployment/deploy-cpanel.sh text eol=lf
 /deployment/artifacts/frontend/** binary

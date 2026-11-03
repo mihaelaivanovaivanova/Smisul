@@ -8,6 +8,7 @@ import {
   fetchAdminOrder,
   refundPayment,
   reversePayment,
+  sendOrderHandbook,
   sendPickupNotification,
   sendReminderEmail,
   sendTestReminderEmail,
@@ -58,6 +59,9 @@ export default function OrderDetailPage() {
   const [isSendingPickupNotification, setIsSendingPickupNotification] = useState(false);
   const [pickupNotificationMessage, setPickupNotificationMessage] = useState<string | null>(null);
   const [pickupNotificationError, setPickupNotificationError] = useState<string | null>(null);
+  const [isSendingHandbook, setIsSendingHandbook] = useState(false);
+  const [handbookMessage, setHandbookMessage] = useState<string | null>(null);
+  const [handbookError, setHandbookError] = useState<string | null>(null);
 
   async function handleCreateShipment() {
     setIsCreatingShipment(true);
@@ -167,6 +171,21 @@ export default function OrderDetailPage() {
       setPickupNotificationError(getErrorMessage(err, 'Could not send the pickup notification email.'));
     } finally {
       setIsSendingPickupNotification(false);
+    }
+  }
+
+  async function handleSendHandbook() {
+    setIsSendingHandbook(true);
+    setHandbookMessage(null);
+    setHandbookError(null);
+    try {
+      await sendOrderHandbook(id);
+      setHandbookMessage('Sent. Check the inbox.');
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setHandbookError(getErrorMessage(err, 'Could not send the kit handbook email.'));
+    } finally {
+      setIsSendingHandbook(false);
     }
   }
 
@@ -552,6 +571,26 @@ export default function OrderDetailPage() {
                     </button>
                   </>
                 )
+              )}
+              {order.qualifies_for_handbook_resend && (
+                <div className={order.qualifies_for_reminder || order.thirty_day_reminder_sent_at ? 'mt-3' : ''}>
+                  {handbookMessage && <div className="alert alert-success py-2 mb-2">{handbookMessage}</div>}
+                  {handbookError && <div className="alert alert-danger py-2 mb-2">{handbookError}</div>}
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    disabled={isSendingHandbook}
+                    onClick={() => void handleSendHandbook()}
+                  >
+                    {isSendingHandbook && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
+                    Send kit handbook
+                  </button>
+                  {order.handbook_email_sent_at && (
+                    <p className="small text-muted mt-2 mb-0">
+                      Handbook email last sent {new Date(order.handbook_email_sent_at).toLocaleString('bg-BG')}.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </div>

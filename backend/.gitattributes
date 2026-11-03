@@ -1,5 +1,11 @@
 * text=auto eol=lf
 
+# text=auto's heuristic misdetected a real PDF as text (confirmed via a
+# byte-for-byte diff after staging - CRLF normalization silently corrupted
+# it), so PDFs are forced binary explicitly rather than trusted to the
+# auto-detection every other binary asset here (images, video) is left to.
+*.pdf binary
+
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html

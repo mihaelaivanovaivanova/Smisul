@@ -14,6 +14,7 @@ use App\Services\AdminActionLogger;
 use App\Services\AdminOrderService;
 use App\Services\OrderReminderService;
 use App\Services\OrderService;
+use App\Services\OrderHandbookService;
 use App\Services\OrderStatusService;
 use App\Services\ShipmentPickupNotificationService;
 use App\Services\ShipmentTrackingSyncService;
@@ -37,6 +38,7 @@ class OrderController extends Controller
         private readonly ShipmentTrackingSyncService $trackingSync,
         private readonly OrderReminderService $reminders,
         private readonly ShipmentPickupNotificationService $pickupNotifications,
+        private readonly OrderHandbookService $handbooks,
     ) {}
 
     public function index(OrderIndexRequest $request): AnonymousResourceCollection
@@ -282,6 +284,29 @@ class OrderController extends Controller
         $result = $this->pickupNotifications->send($order);
 
         $this->actionLogger->log($request->user(), 'orders.pickup_notification_sent', $order, $result);
+
+        if (! $result['sent']) {
+            return response()->json(['message' => $result['reason']], 422);
+        }
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * The "Send kit handbook" button on any delivered order's admin detail
+     * page that contains a kit line - only rendered there (and only
+     * accepted here) when order.qualifies_for_handbook_resend, see
+     * OrderHandbookService::isEligible()'s own docblock. Added specifically
+     * because production already has kit orders that reached Delivered
+     * before this automation existed, with no handbook email ever sent for
+     * them - manual and repeatable otherwise, same as pickup notifications.
+     */
+    public function sendHandbook(Request $request, Order $order): JsonResponse
+    {
+        $order->loadMissing('items');
+        $result = $this->handbooks->send($order);
+
+        $this->actionLogger->log($request->user(), 'orders.handbook_sent', $order, $result);
 
         if (! $result['sent']) {
             return response()->json(['message' => $result['reason']], 422);

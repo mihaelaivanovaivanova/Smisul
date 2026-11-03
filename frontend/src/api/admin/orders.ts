@@ -100,20 +100,6 @@ export async function sendPickupNotification(id: number): Promise<{ sent: boolea
   return data.data;
 }
 
-/**
- * The "Send kit handbook" button on any delivered order's admin detail
- * page that contains a kit line — rendered only when
- * order.qualifies_for_handbook_resend is true (see AdminOrder's own
- * docblock). Manual and repeatable, same reasoning as
- * sendPickupNotification() above — added specifically so an admin can
- * send this for kit orders that were already delivered before the
- * automatic send existed (see backend OrderHandbookService).
- */
-export async function sendOrderHandbook(id: number): Promise<{ sent: boolean }> {
-  const { data } = await apiClient.post<{ data: { sent: boolean } }>(`/admin/orders/${id}/handbook`);
-  return data.data;
-}
-
 export async function fetchAdminOrder(id: number): Promise<AdminOrder> {
   const { data } = await apiClient.get<{ data: AdminOrder }>(`/admin/orders/${id}`);
   return data.data;

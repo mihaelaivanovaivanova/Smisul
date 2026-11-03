@@ -18,10 +18,11 @@ use Illuminate\Queue\SerializesModels;
  * Not part of the automatic delivery flow - OrderDeliveredMail attaches
  * this same PDF directly for a kit order instead (by request, to keep a
  * delivered kit order down to two emails total rather than three; see
- * that Mailable's own docblock). This one is now only ever sent manually,
- * via OrderHandbookService::send() from the admin "Send kit handbook"
- * button - for the backlog of kit orders already delivered before this
- * feature existed, and as an ordinary standalone resend afterward.
+ * that Mailable's own docblock). This one has no UI trigger of its own
+ * (the admin "Send kit handbook" button that used to call it was removed
+ * once the merge made it redundant for new orders) - it's sent only via
+ * OrderHandbookService::send(), invoked directly (tinker/artisan) for the
+ * backlog of kit orders already delivered before this feature existed.
  *
  * The PDF is a static file bundled with the backend (resources/documents/
  * kit-handbook.pdf), not the funnel FAQ's own attachment_url (same

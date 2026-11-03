@@ -5,7 +5,6 @@ namespace App\Http\Resources\Admin;
 use App\Http\Resources\OrderResource as BaseOrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Http\Resources\ShipmentResource;
-use App\Services\OrderHandbookService;
 use App\Services\OrderReminderService;
 use App\Services\OrderService;
 use App\Services\ShipmentPickupNotificationService;
@@ -49,11 +48,6 @@ class OrderResource extends BaseOrderResource
             // ShipmentPickupNotificationService::isEligible()'s own
             // docblock.
             'qualifies_for_pickup_notification' => ShipmentPickupNotificationService::isEligible($this->resource),
-            // Gates the admin order detail page's "Send kit handbook"
-            // button - see OrderHandbookService::isEligible()'s own
-            // docblock. Repeatable, not a one-shot flag.
-            'qualifies_for_handbook_resend' => OrderHandbookService::isEligible($this->resource),
-            'handbook_email_sent_at' => $this->handbook_email_sent_at?->toIso8601String(),
         ];
     }
 }

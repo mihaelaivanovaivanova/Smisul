@@ -20,10 +20,6 @@ export interface AdminOrder extends Omit<Order, 'customer'> {
   thirty_day_reminder_sent_at: string | null;
   /** Gates the order detail page's "Send pickup notification" button — see backend ShipmentPickupNotificationService::isEligible(). Speedy only; repeatable, not a one-shot flag. */
   qualifies_for_pickup_notification: boolean;
-  /** Gates the order detail page's "Send kit handbook" button — see backend OrderHandbookService::isEligible(). Any delivered order with a kit line; repeatable, not a one-shot flag. */
-  qualifies_for_handbook_resend: boolean;
-  /** Set once the kit handbook email has actually been sent for this order (automatically on delivery, or via the resend button) — null until then. */
-  handbook_email_sent_at: string | null;
 }
 
 /**

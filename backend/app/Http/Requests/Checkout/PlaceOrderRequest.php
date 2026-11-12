@@ -47,7 +47,7 @@ class PlaceOrderRequest extends FormRequest
             // Must match the frontend's PhoneField exactly: it always
             // submits the +359 prefix plus the 9-digit local number the
             // customer types (see frontend/src/utils/phone.ts).
-            'customer.phone' => ['required', 'string', 'regex:/^\+3598\d{8}$/'],
+            'customer.phone' => ['required', 'string', 'regex:/^\+359[789]\d{8}$/'],
             'customer.company' => ['nullable', 'string', 'max:150'],
             'customer.vat_number' => ['nullable', 'string', 'max:50'],
 

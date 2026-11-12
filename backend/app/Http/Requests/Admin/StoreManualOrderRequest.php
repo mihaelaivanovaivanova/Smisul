@@ -43,7 +43,7 @@ class StoreManualOrderRequest extends FormRequest
             // the 9-digit local number) — a real carrier shipment needs a
             // valid Bulgarian mobile number regardless of how the order
             // came in.
-            'customer_phone' => ['required', 'string', 'regex:/^\+3598\d{8}$/'],
+            'customer_phone' => ['required', 'string', 'regex:/^\+359[789]\d{8}$/'],
 
             'shipping_carrier' => ['required', 'string', Rule::in(array_column(ShippingCarrier::active(), 'value'))],
             'shipping_delivery_type' => ['required', 'string', Rule::in([

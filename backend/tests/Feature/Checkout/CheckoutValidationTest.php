@@ -196,11 +196,31 @@ class CheckoutValidationTest extends TestCase
         $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
         $guestToken = $addToCart->json('meta.guest_token');
 
-        foreach (['+35921234567', '0888123456', '+3597123456', '+35988812345', '888123456'] as $invalidPhone) {
+        foreach (['+35921234567', '0888123456', '+35988812345', '888123456'] as $invalidPhone) {
             $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
                 ->postJson('/api/v1/checkout/orders', $this->validPayload(['customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => $invalidPhone]]))
                 ->assertStatus(422)
                 ->assertJsonValidationErrors(['customer.phone']);
+        }
+    }
+
+    /**
+     * Bulgarian mobile numbers are issued under all three leading digits
+     * (088x/089x/last the newer 087x range) - a real customer with e.g.
+     * 0988356131 was wrongly rejected before this regex only accepted an
+     * 8-leading local number.
+     */
+    #[Test]
+    public function phone_numbers_starting_with_7_8_or_9_are_all_accepted(): void
+    {
+        foreach (['+359788123456', '+359888123456', '+359988356131'] as $validPhone) {
+            $variant = $this->purchasableVariant();
+            $addToCart = $this->postJson('/api/v1/cart/items', ['product_variant_id' => $variant->id, 'quantity' => 1]);
+            $guestToken = $addToCart->json('meta.guest_token');
+
+            $this->withHeaders(['X-Guest-Cart-Token' => $guestToken])
+                ->postJson('/api/v1/checkout/orders', $this->validPayload(['customer' => ['first_name' => 'Ivan', 'last_name' => 'Ivanov', 'email' => 'ivan@example.com', 'phone' => $validPhone]]))
+                ->assertCreated();
         }
     }
 
